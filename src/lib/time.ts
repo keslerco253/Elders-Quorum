@@ -17,9 +17,14 @@ export function formatDate(isoDate: string, style: "long" | "short" = "long") {
   return style === "long" ? d.toFormat("cccc, LLLL d, yyyy") : d.toFormat("ccc, LLL d");
 }
 
-/** UTC ISO timestamp -> local display in the ward's zone. */
-export function formatDateTime(utcIso: string, tz: string, fmt = "ccc, LLL d · h:mm a") {
-  return DateTime.fromISO(utcIso, { zone: "utc" }).setZone(tz).toFormat(fmt);
+/** Parses a UTC timestamp stored either as ISO or as SQLite's "YYYY-MM-DD HH:MM:SS". */
+export function parseUtc(value: string) {
+  return value.includes("T") ? DateTime.fromISO(value, { zone: "utc" }) : DateTime.fromSQL(value, { zone: "utc" });
+}
+
+/** UTC timestamp -> local display in the ward's zone. */
+export function formatDateTime(utc: string, tz: string, fmt = "ccc, LLL d · h:mm a") {
+  return parseUtc(utc).setZone(tz).toFormat(fmt);
 }
 
 export function formatTime(utcIso: string, tz: string) {
