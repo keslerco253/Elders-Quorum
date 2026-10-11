@@ -1,6 +1,7 @@
 # Villas Ward Elders Quorum App: Requirements
 
-Status: gathering requirements. Nothing is shown to members without the president's approval.
+Status: requirements complete; awaiting approval of the build plan.
+The president reviews the whole first version before launch. Nothing is shown to members without the president's approval.
 
 ## Platform & Hosting
 - Progressive Web App (PWA): works on phones (installs to the home screen) and on computers.
@@ -10,7 +11,7 @@ Status: gathering requirements. Nothing is shown to members without the presiden
 - Outgoing email (login links, notices) sent from villaseldersquorum@gmail.com (Gmail app password).
 - Time zone: Mountain.
 - Plan for an easy handoff to future presidencies.
-- Build with multiple wards in mind (other stake wards may adopt it).
+- Multi-ward: one installation, each ward has its own separate space and admins.
 - Timeline: ASAP.
 
 ## Branding
@@ -68,11 +69,12 @@ Status: gathering requirements. Nothing is shown to members without the presiden
 - Automatic reminder the day before by default; admins can change it per event.
 - Optional RSVP, which admins turn on per event.
 
-## Group Messaging
-- Admin only. Push notifications to everyone or to selected groups.
+## Notifications & Group Messaging
+- Admin only. Push notifications to: everyone, admins, presidency, upcoming teachers, or custom groups.
+- Members without push enabled (for example, iPhone users who haven't installed the app) get the same messages by email.
 
 ## Extras
 - Teaching schedule and sign-ups (part of Lessons).
-- Service project and meal sign-ups.
-- Presidency assignments and to-dos.
+- Service project and meal sign-ups: created by admins only; each sign-up sets its own number of slots.
+- Presidency assignments and to-dos: assigned to a person, with a due date and reminders.
 - No member photos. No printable reports.
