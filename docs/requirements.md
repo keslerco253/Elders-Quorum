@@ -9,7 +9,8 @@ The president reviews the whole first version before launch. Nothing is shown to
 - Self-hosted on a computer at home, packaged as a Docker container,
   reached through a free Cloudflare Tunnel (no router ports opened). Free domain is fine.
 - Outgoing email (login links, notices) sent from villaseldersquorum@gmail.com (Gmail app password).
-- Time zone: Mountain.
+- Time zone: Mountain, Idaho (America/Boise), editable in settings.
+- Host computer: Windows (Docker Desktop with WSL2; set to never sleep).
 - Plan for an easy handoff to future presidencies.
 - Multi-ward: one installation, each ward has its own separate space and admins.
 - Timeline: ASAP.
@@ -34,6 +35,9 @@ The president reviews the whole first version before launch. Nothing is shown to
 
 ## Membership Import
 - CSV exported from LCR, uploaded by an admin. Adds new members and updates existing ones.
+- LCR columns: Name, Gender, Age, Birth Date, Address, Phone Number, E-mail.
+- Imported: Name, Address, Phone Number, E-mail. Gender, Age and Birth Date are ignored
+  (not needed; minimizes stored personal data).
 
 ## Presidency Home Visits (presidency only)
 - Fields: member visited, date, who visited, type (in home, at church, phone, text), notes, follow-up needed.
@@ -49,6 +53,8 @@ The president reviews the whole first version before launch. Nothing is shown to
 - Elders quorum meets **every Sunday**; one lesson per Sunday.
 - About 6 months of lessons posted right after General Conference.
 - Each lesson: date, one assigned talk (link to Gospel Library), assigned teacher.
+- Instead of a talk, presidency can mark a Sunday as General Conference or Stake Conference.
+  Those Sundays show in the list with no teacher or comments; reminders announce the conference instead.
 - Members scroll the list and open any lesson to study ahead.
 - Members can volunteer to teach; several may volunteer for the same lesson.
   A presidency member picks and assigns the teacher.
