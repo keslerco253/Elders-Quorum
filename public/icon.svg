@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#1d3a5f"/>
+  <!-- open book -->
+  <path d="M256 168c-34-26-86-36-146-30v206c60-6 112 4 146 30z" fill="#ffffff"/>
+  <path d="M256 168c34-26 86-36 146-30v206c-60-6-112 4-146 30z" fill="#dce8f2"/>
+  <path d="M256 168v206" stroke="#1d3a5f" stroke-width="6"/>
+  <!-- small star of light above -->
+  <circle cx="256" cy="112" r="18" fill="#e9c46a"/>
+</svg>

@@ -1,0 +1,49 @@
+{
+  "name": "elders-quorum",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "seed": "tsx scripts/seed.ts",
+    "icons": "node scripts/make-icons.mjs",
+    "vapid": "tsx scripts/vapid.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "luxon": "^3.7.2",
+    "marked": "^18.1.0",
+    "next": "^15.5.27",
+    "nodemailer": "^10.1.0",
+    "papaparse": "^5.7.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sanitize-html": "^2.18.0",
+    "server-only": "^0.0.1",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/luxon": "^3.7.6",
+    "@types/node": "^26.6.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/sanitize-html": "^2.16.2",
+    "@types/web-push": "^3.6.4",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.27",
+    "postcss": "^8.5.29",
+    "sharp": "^0.35.5",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3"
+  }
+}

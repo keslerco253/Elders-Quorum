@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/* Church-inspired palette (original; no Church marks). */
+:root {
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --surface-2: #efede8;
+  --text: #1f2933;
+  --muted: #5f6b76;
+  --border: #e2ded6;
+  --primary: #1d3a5f;
+  --primary-hover: #16304f;
+  --primary-text: #ffffff;
+  --accent: #2b6f9e;
+  --accent-soft: #e3eef6;
+  --gold: #b8892b;
+  --success: #2f7d4f;
+  --success-soft: #e3f2e8;
+  --warn: #9a6200;
+  --warn-soft: #fbf0d9;
+  --danger: #b4372f;
+  --danger-soft: #f9e4e2;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151d;
+    --surface: #16202b;
+    --surface-2: #1d2936;
+    --text: #e6ebf0;
+    --muted: #9aa7b4;
+    --border: #2a3846;
+    --primary: #7fb0d8;
+    --primary-hover: #9cc3e3;
+    --primary-text: #0e151d;
+    --accent: #7fb0d8;
+    --accent-soft: #1c3247;
+    --gold: #e0b45c;
+    --success: #6cc08d;
+    --success-soft: #173323;
+    --warn: #e8b45a;
+    --warn-soft: #3a2c12;
+    --danger: #ef8a80;
+    --danger-soft: #3b1a17;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0e151d;
+  --surface: #16202b;
+  --surface-2: #1d2936;
+  --text: #e6ebf0;
+  --muted: #9aa7b4;
+  --border: #2a3846;
+  --primary: #7fb0d8;
+  --primary-hover: #9cc3e3;
+  --primary-text: #0e151d;
+  --accent: #7fb0d8;
+  --accent-soft: #1c3247;
+  --gold: #e0b45c;
+  --success: #6cc08d;
+  --success-soft: #173323;
+  --warn: #e8b45a;
+  --warn-soft: #3a2c12;
+  --danger: #ef8a80;
+  --danger-soft: #3b1a17;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-text: var(--primary-text);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-gold: var(--gold);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@utility card {
+  @apply rounded-xl border border-border bg-surface p-4 sm:p-5;
+}
+
+@utility btn {
+  @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@utility btn-primary {
+  @apply btn bg-primary text-primary-text hover:bg-primary-hover;
+}
+
+@utility btn-secondary {
+  @apply btn border border-border bg-surface text-text hover:bg-surface-2;
+}
+
+@utility btn-danger {
+  @apply btn border border-danger/40 bg-surface text-danger hover:bg-danger-soft;
+}
+
+@utility btn-sm {
+  @apply min-h-8 px-3 py-1 text-xs;
+}
+
+@utility input {
+  @apply block w-full rounded-lg border border-border bg-surface px-3 py-2 text-base text-text placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none sm:text-sm;
+}
+
+@utility label {
+  @apply mb-1 block text-sm font-medium text-text;
+}
+
+@utility hint {
+  @apply mt-1 text-xs text-muted;
+}
+
+@utility badge {
+  @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+}
+
+@utility link {
+  @apply font-medium text-accent underline-offset-2 hover:underline;
+}
+
+@utility h1 {
+  @apply text-2xl font-bold tracking-tight text-text;
+}
+
+@utility h2 {
+  @apply text-lg font-semibold text-text;
+}
+
+@layer components {
+  .prose-eq {
+    @apply text-[15px] leading-relaxed;
+  }
+  .prose-eq h1 { @apply mt-6 mb-2 text-xl font-bold; }
+  .prose-eq h2 { @apply mt-5 mb-2 text-lg font-semibold; }
+  .prose-eq h3 { @apply mt-4 mb-1 font-semibold; }
+  .prose-eq p { @apply my-3; }
+  .prose-eq ul { @apply my-3 list-disc pl-6; }
+  .prose-eq ol { @apply my-3 list-decimal pl-6; }
+  .prose-eq li { @apply my-1; }
+  .prose-eq a { @apply text-accent underline; }
+  .prose-eq blockquote { @apply my-3 border-l-4 border-border pl-4 text-muted; }
+  .prose-eq table { @apply my-3 w-full border-collapse text-sm; }
+  .prose-eq th, .prose-eq td { @apply border border-border px-2 py-1 text-left; }
+  .prose-eq hr { @apply my-5 border-border; }
+}

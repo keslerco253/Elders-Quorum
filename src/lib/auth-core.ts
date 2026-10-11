@@ -1,0 +1,119 @@
+// Login tokens and sessions, independent of Next.js so they can be unit tested.
+import crypto from "crypto";
+import { DateTime } from "luxon";
+import { db } from "./db";
+import type { CurrentUser, Member, Ward } from "./types";
+
+export const REMEMBER_OPTIONS = {
+  session: { label: "Just this time (until I close the browser)", days: 1 },
+  day: { label: "1 day", days: 1 },
+  month: { label: "30 days", days: 30 },
+  year: { label: "1 year", days: 365 },
+} as const;
+export type Remember = keyof typeof REMEMBER_OPTIONS;
+export const isRemember = (v: unknown): v is Remember => typeof v === "string" && v in REMEMBER_OPTIONS;
+
+const TOKEN_MINUTES = 20;
+const MAX_CODE_ATTEMPTS = 5;
+const MAX_TOKENS_PER_HOUR = 5;
+
+export const sha256 = (s: string) => crypto.createHash("sha256").update(s).digest("hex");
+const nowIso = () => DateTime.utc().toISO()!;
+
+export function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+/** Active members who can sign in with this email (normally exactly one). */
+export function findLoginMember(email: string): Member | undefined {
+  return db()
+    .prepare("SELECT * FROM members WHERE lower(email) = ? AND status = 'active' ORDER BY updated_at DESC LIMIT 1")
+    .get(normalizeEmail(email)) as Member | undefined;
+}
+
+export type CreateTokenResult = { ok: true; token: string; code: string } | { ok: false; reason: "rate_limited" };
+
+export function createLoginToken(memberId: number, remember: Remember): CreateTokenResult {
+  const d = db();
+  const recent = d
+    .prepare("SELECT COUNT(*) AS n FROM login_tokens WHERE member_id = ? AND created_at > datetime('now', '-1 hour')")
+    .get(memberId) as { n: number };
+  if (recent.n >= MAX_TOKENS_PER_HOUR) return { ok: false, reason: "rate_limited" };
+  const token = crypto.randomBytes(32).toString("base64url");
+  const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+  d.prepare("INSERT INTO login_tokens (member_id, token_hash, code_hash, remember, expires_at) VALUES (?, ?, ?, ?, ?)").run(
+    memberId,
+    sha256(token),
+    sha256(`${memberId}:${code}`),
+    remember,
+    DateTime.utc().plus({ minutes: TOKEN_MINUTES }).toISO(),
+  );
+  return { ok: true, token, code };
+}
+
+interface TokenRow {
+  id: number;
+  member_id: number;
+  remember: Remember;
+  attempts: number;
+  expires_at: string;
+  used_at: string | null;
+}
+
+function consume(row: TokenRow | undefined): { memberId: number; remember: Remember } | null {
+  if (!row || row.used_at || row.expires_at < nowIso()) return null;
+  db().prepare("UPDATE login_tokens SET used_at = ? WHERE id = ?").run(nowIso(), row.id);
+  return { memberId: row.member_id, remember: row.remember };
+}
+
+export function redeemToken(token: string) {
+  const row = db().prepare("SELECT * FROM login_tokens WHERE token_hash = ?").get(sha256(token)) as TokenRow | undefined;
+  return consume(row);
+}
+
+/** Redeem the 6-digit code from the email (for when the link opens in a different browser). */
+export function redeemCode(email: string, code: string) {
+  const member = findLoginMember(email);
+  if (!member) return null;
+  const d = db();
+  const row = d
+    .prepare("SELECT * FROM login_tokens WHERE member_id = ? AND used_at IS NULL AND expires_at > ? ORDER BY id DESC LIMIT 1")
+    .get(member.id, nowIso()) as TokenRow | undefined;
+  if (!row || row.attempts >= MAX_CODE_ATTEMPTS) return null;
+  const expected = d.prepare("SELECT code_hash FROM login_tokens WHERE id = ?").get(row.id) as { code_hash: string };
+  if (expected.code_hash !== sha256(`${member.id}:${code.replace(/\D/g, "")}`)) {
+    d.prepare("UPDATE login_tokens SET attempts = attempts + 1 WHERE id = ?").run(row.id);
+    return null;
+  }
+  return consume(row);
+}
+
+/** Creates a session and returns the raw id to put in the cookie. */
+export function createSession(memberId: number, remember: Remember, userAgent?: string | null) {
+  const id = crypto.randomBytes(32).toString("base64url");
+  const expires = DateTime.utc().plus({ days: REMEMBER_OPTIONS[remember].days });
+  const d = db();
+  d.prepare("INSERT INTO sessions (id, member_id, expires_at, user_agent) VALUES (?, ?, ?, ?)").run(sha256(id), memberId, expires.toISO(), userAgent?.slice(0, 300) ?? null);
+  d.prepare("UPDATE members SET last_login_at = ? WHERE id = ?").run(nowIso(), memberId);
+  d.prepare("DELETE FROM sessions WHERE expires_at < ?").run(nowIso());
+  d.prepare("DELETE FROM login_tokens WHERE expires_at < datetime('now', '-1 day')").run();
+  return { id, expires: expires.toJSDate() };
+}
+
+export function userForSession(sessionId: string | undefined): CurrentUser | null {
+  if (!sessionId) return null;
+  const d = db();
+  const member = d
+    .prepare(
+      `SELECT m.* FROM sessions s JOIN members m ON m.id = s.member_id
+       WHERE s.id = ? AND s.expires_at > ? AND m.status = 'active'`,
+    )
+    .get(sha256(sessionId), nowIso()) as Member | undefined;
+  if (!member) return null;
+  const ward = d.prepare("SELECT id, name, timezone FROM wards WHERE id = ?").get(member.ward_id) as Ward;
+  return { ...member, ward };
+}
+
+export function deleteSession(sessionId: string) {
+  db().prepare("DELETE FROM sessions WHERE id = ?").run(sha256(sessionId));
+}
