@@ -96,7 +96,7 @@ docker compose up -d --build
 The first build takes a few minutes. When it finishes, open your address from
 step 5 in a browser.
 
-## 8. Option A: preview with demo data first (recommended)
+## 8. Preview with demo data first (recommended)
 
 Before setting up for real, you can explore the app filled with made-up members,
 lessons and events:
@@ -122,10 +122,15 @@ docker compose up -d
 2. Enter the setup code, keep the app name "Villas Ward Elders Quorum",
    choose **Mountain – Idaho**, and enter your name and email.
 3. Check your email for the sign-in code.
-4. Go to **Admin → Members → Import from LCR** and upload the CSV.
-5. Open each presidency member, the bishop and the high councilor, and set
-   their **Access level**.
-6. **Admin → Settings → Send me a test email** to confirm email works.
+4. **Admin → Settings → Join code → Create a code.**
+5. **Admin → Settings → Send me a test email** to confirm email works.
+6. Have the counselors, secretary, bishop and high councilor join (with the
+   code), then open each of them in **Admin → Members** and set their
+   **Access level**.
+7. Announce the address and join code in quorum meeting.
+
+The app never imports anything from LCR or Member Tools. Members join
+themselves, and only their name and email are kept.
 
 ## 10. Install on your phone
 

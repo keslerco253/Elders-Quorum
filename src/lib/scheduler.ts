@@ -7,6 +7,7 @@ import { lessonOn } from "./lessons";
 import { formatDate, formatDateTime } from "./time";
 import type { PushPayload } from "./push";
 import type { EventRow, Ward } from "./types";
+import { runRetention } from "./retention";
 
 export interface DueNotification {
   key: string;
@@ -85,7 +86,7 @@ function todoReminders(ward: Ward, now: DateTime): DueNotification[] {
 }
 
 export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
-  const wards = db().prepare("SELECT id, name, timezone FROM wards").all() as Ward[];
+  const wards = db().prepare("SELECT id, name, timezone, join_code FROM wards").all() as Ward[];
   return wards.flatMap((w) => [...lessonReminders(w, now), ...eventReminders(w, now), ...todoReminders(w, now)]);
 }
 
@@ -125,6 +126,10 @@ export async function tick(now: DateTime = DateTime.utc()) {
       console.log(`[scheduler] ${n.key}: ${res.push} push, ${res.email} email`);
     }
     await backupIfDue();
+    if (claimOnce(`retention:${DateTime.local().toISODate()}`)) {
+      const removed = Object.entries(runRetention()).filter(([, n]) => n > 0);
+      if (removed.length) console.log("[retention] deleted", Object.fromEntries(removed));
+    }
     db().prepare("DELETE FROM sent_notifications WHERE sent_at < datetime('now', '-60 days')").run();
   } catch (err) {
     console.error("[scheduler] error", err);

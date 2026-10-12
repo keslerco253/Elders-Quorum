@@ -25,7 +25,7 @@ export async function sendMessage(fd: FormData) {
   const body = String(fd.get("body") || "").trim().slice(0, 2000);
   const link = LINKS.includes(String(fd.get("link"))) ? String(fd.get("link")) : "/";
   if (!audience || !title || !body) go("/admin/messages", "Please choose who to send to and fill in the title and message.");
-  const recipients = audienceMembers(user.ward_id, audience, { includeNotJoined: fd.get("include_not_joined") === "on", tz: user.ward.timezone });
+  const recipients = audienceMembers(user.ward_id, audience, { tz: user.ward.timezone });
   const { push, email } = await notify(recipients, { title, body, url: link });
   db()
     .prepare("INSERT INTO messages (ward_id, sender_id, audience, audience_label, title, body, push_count, email_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")

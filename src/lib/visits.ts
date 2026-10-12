@@ -38,11 +38,11 @@ export function listVisits(wardId: number, opts: { memberId?: number; followUps?
 export function lastVisitByMember(wardId: number) {
   return db()
     .prepare(
-      `SELECT m.id, m.display_name, m.address,
+      `SELECT m.id, m.display_name,
         (SELECT max(date) FROM visits v WHERE v.member_id = m.id AND v.type = 'home') AS last_home,
         (SELECT max(date) FROM visits v WHERE v.member_id = m.id) AS last_any
        FROM members m WHERE m.ward_id = ? AND m.status = 'active'
-       ORDER BY last_home IS NOT NULL, last_home, m.name COLLATE NOCASE`,
+       ORDER BY last_home IS NOT NULL, last_home, m.display_name COLLATE NOCASE`,
     )
-    .all(wardId) as { id: number; display_name: string; address: string | null; last_home: string | null; last_any: string | null }[];
+    .all(wardId) as { id: number; display_name: string; last_home: string | null; last_any: string | null }[];
 }

@@ -54,7 +54,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
             ))}
           </select>
           <p className="hint">
-            Numbers count members who have signed in to the app.{" "}
+            Numbers show how many people will receive it.{" "}
             <Link href="/admin/groups" className="link">
               Manage groups
             </Link>
@@ -84,10 +84,6 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
             <option value="/signups">Sign-ups</option>
           </select>
         </div>
-        <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" name="include_not_joined" className="mt-1" />
-          <span>Also email members who haven&apos;t signed in to the app yet</span>
-        </label>
         <SubmitButton pendingText="Sending…" confirm="Send this message now?">
           Send
         </SubmitButton>

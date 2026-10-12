@@ -16,9 +16,10 @@ if ((d.prepare("SELECT COUNT(*) AS n FROM wards").get() as { n: number }).n > 0)
 
 const TZ = "America/Boise";
 const now = DateTime.now().setZone(TZ);
-const ward = Number(d.prepare("INSERT INTO wards (name, timezone) VALUES (?, ?)").run("Villas Ward Elders Quorum", TZ).lastInsertRowid);
+const ward = Number(d.prepare("INSERT INTO wards (name, timezone, join_code) VALUES (?, ?, 'DEMO123')").run("Villas Ward Elders Quorum", TZ).lastInsertRowid);
 
 const people: [string, string?][] = [
+  // Made-up people. Names are "Last, First" here only to build demo emails.
   ["Carter, Daniel", "presidency"],
   ["Nguyen, Michael", "presidency"],
   ["Hansen, Tyler", "presidency"],
@@ -36,8 +37,8 @@ people.forEach(([name, role = "member"], i) => {
   ids.push(
     Number(
       d
-        .prepare("INSERT INTO members (ward_id, name, display_name, email, phone, address, role, source, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'import', ?)")
-        .run(ward, name, `${first} ${last}`, i === 21 ? null : `${first}.${last}@example.com`.toLowerCase(), `208-555-01${String(i).padStart(2, "0")}`, `${100 + i * 7} W Example St, Boise, ID 83709`, role, joined).lastInsertRowid,
+        .prepare("INSERT INTO members (ward_id, name, display_name, email, role, source, last_login_at) VALUES (?, ?, ?, ?, ?, 'request', ?)")
+        .run(ward, `${first} ${last}`, `${first} ${last}`, `${first}.${last}@example.com`.toLowerCase(), role, joined).lastInsertRowid,
     ),
   );
 });
@@ -48,7 +49,7 @@ if (emailArg > 0 && process.argv[emailArg + 1]) {
   console.log(`You can sign in as the demo president (Daniel Carter) with ${process.argv[emailArg + 1]}.`);
 }
 d.prepare("INSERT INTO members (ward_id, name, display_name, email, status, source, request_note) VALUES (?, ?, ?, ?, 'pending', 'request', ?)").run(
-  ward, "Ramirez, Sofia", "Sofia Ramirez", "sofia.ramirez@example.com", "My husband is in the quorum and I'd like to follow the lessons too.",
+  ward, "Sofia Ramirez", "Sofia Ramirez", "sofia.ramirez@example.com", "My husband is in the quorum and I'd like to follow the lessons too.",
 );
 
 // Lessons: 26 Sundays starting last Sunday.
@@ -121,7 +122,7 @@ const visit = (memberIdx: number, daysAgo: number, type: string, notes: string, 
 };
 visit(6, 4, "home", "Great visit. Family doing well.", 0, [0, 1]);
 visit(9, 20, "home", "Interested in helping with the service project.", 1, [1, 2]);
-visit(12, 45, "phone", "Checked in after surgery. Recovering well.", 0, [0]);
+visit(12, 45, "phone", "Checked in by phone. Doing well.", 0, [0]);
 visit(15, 90, "home", "", 0, [2, 3]);
 d.prepare("INSERT INTO todos (ward_id, title, notes, assignee_id, due_date, created_by) VALUES (?, ?, ?, ?, ?, ?)").run(ward, "Finalize teacher assignments for November", "Check the volunteer list first.", ids[1], now.plus({ days: 2 }).toISODate(), ids[0]);
 d.prepare("INSERT INTO todos (ward_id, title, assignee_id, due_date, created_by) VALUES (?, ?, ?, ?, ?)").run(ward, "Order supplies for the service project", ids[2], now.minus({ days: 1 }).toISODate(), ids[0]);

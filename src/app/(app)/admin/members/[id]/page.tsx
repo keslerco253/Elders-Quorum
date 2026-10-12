@@ -7,8 +7,7 @@ import { formatDate, formatDateTime } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { ROLE_LABELS, type Member } from "@/lib/types";
-import { updateMember } from "../actions";
-import { ContactFields, RoleSelect } from "../member-form";
+import { removeMember, updateMember } from "../actions";
 
 export const metadata = { title: "Member" };
 
@@ -16,10 +15,10 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   const user = await requireAdmin();
   const { id } = await params;
   const sp = await searchParams;
-  const m = db().prepare("SELECT * FROM members WHERE id = ? AND ward_id = ?").get(Number(id), user.ward_id) as Member | undefined;
+  const m = db().prepare("SELECT * FROM members WHERE id = ? AND ward_id = ? AND status IN ('active','inactive')").get(Number(id), user.ward_id) as Member | undefined;
   if (!m) notFound();
   const presidency = isPresidency(user);
-  const lastVisit = presidency ? (db().prepare("SELECT date, type FROM visits WHERE member_id = ? ORDER BY date DESC LIMIT 1").get(m.id) as { date: string; type: string } | undefined) : undefined;
+  const lastVisit = presidency ? (db().prepare("SELECT date FROM visits WHERE member_id = ? ORDER BY date DESC LIMIT 1").get(m.id) as { date: string } | undefined) : undefined;
 
   return (
     <>
@@ -29,7 +28,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
         subtitle={
           <span className="flex flex-wrap items-center gap-2">
             <Badge tone="info">{ROLE_LABELS[m.role]}</Badge>
-            {m.status !== "active" && <Badge tone="warn">{m.status === "inactive" ? "Moved out / removed" : m.status}</Badge>}
+            {m.status !== "active" && <Badge tone="warn">Turned off</Badge>}
             <span>{m.last_login_at ? `Last signed in ${formatDateTime(m.last_login_at, user.ward.timezone, "LLL d, yyyy")}` : "Hasn't signed in yet"}</span>
           </span>
         }
@@ -38,40 +37,47 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
       <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
         <form action={updateMember} className="card space-y-4">
           <input type="hidden" name="item_id" value={m.id} />
-          <ContactFields m={m} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="name">
+                Name
+              </label>
+              <input id="name" name="name" required className="input" defaultValue={m.display_name} />
+            </div>
+            <div>
+              <label className="label" htmlFor="email">
+                Email (used to sign in)
+              </label>
+              <input id="email" name="email" type="email" required className="input" defaultValue={m.email ?? ""} />
+            </div>
+          </div>
           {presidency && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <RoleSelect value={m.role} />
+              <div>
+                <label className="label" htmlFor="role">
+                  Access level
+                </label>
+                <select id="role" name="role" className="input" defaultValue={m.role}>
+                  <option value="member">Member</option>
+                  <option value="admin">Admin (bishop, high councilor)</option>
+                  <option value="presidency">Presidency</option>
+                </select>
+              </div>
               <div>
                 <label className="label" htmlFor="status">
                   Status
                 </label>
-                <select id="status" name="status" className="input" defaultValue={m.status === "active" ? "active" : "inactive"}>
+                <select id="status" name="status" className="input" defaultValue={m.status}>
                   <option value="active">Active: can sign in</option>
-                  <option value="inactive">Moved out / removed: no access</option>
+                  <option value="inactive">Turned off: can&apos;t sign in</option>
                 </select>
               </div>
             </div>
           )}
           <SubmitButton>Save</SubmitButton>
         </form>
-        <div className="space-y-3">
-          {m.phone && (
-            <div className="card flex gap-2">
-              <a href={`tel:${m.phone}`} className="btn-secondary flex-1">
-                Call
-              </a>
-              <a href={`sms:${m.phone}`} className="btn-secondary flex-1">
-                Text
-              </a>
-            </div>
-          )}
-          {m.address && (
-            <a className="btn-secondary w-full" href={`https://maps.google.com/?q=${encodeURIComponent(m.address)}`} target="_blank" rel="noreferrer">
-              Open in Maps
-            </a>
-          )}
-          {presidency && (
+        {presidency && (
+          <div className="space-y-3">
             <div className="card text-sm">
               <div className="font-semibold">Presidency visits</div>
               <p className="mt-1 text-muted">{lastVisit ? `Last: ${formatDate(lastVisit.date)}` : "No visits recorded."}</p>
@@ -84,8 +90,16 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                 </Link>
               </div>
             </div>
-          )}
-        </div>
+            <form action={removeMember} className="card text-sm">
+              <input type="hidden" name="item_id" value={m.id} />
+              <div className="font-semibold">Delete account</div>
+              <p className="mt-1 mb-3 text-muted">Removes their account and everything they posted. They can join again later.</p>
+              <SubmitButton className="btn-danger btn-sm" confirm={`Permanently delete ${m.display_name}'s account?`}>
+                Delete account
+              </SubmitButton>
+            </form>
+          </div>
+        )}
       </div>
     </>
   );

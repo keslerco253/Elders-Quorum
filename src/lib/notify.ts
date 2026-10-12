@@ -13,30 +13,24 @@ export interface Recipient {
 }
 
 const BASE = "SELECT id, email, display_name FROM members WHERE ward_id = ? AND status = 'active'";
-const JOINED = " AND last_login_at IS NOT NULL";
 
-/**
- * Members who should receive a message. By default only members who have
- * signed in at least once ("joined"); pass includeNotJoined to reach everyone
- * on the list by email.
- */
-export function audienceMembers(wardId: number, audience: Audience, opts: { includeNotJoined?: boolean; tz?: string } = {}): Recipient[] {
-  const joined = opts.includeNotJoined ? "" : JOINED;
+/** Active members (everyone who joined and was approved) in an audience. */
+export function audienceMembers(wardId: number, audience: Audience, opts: { tz?: string } = {}): Recipient[] {
   const d = db();
-  if (audience === "everyone") return d.prepare(BASE + joined).all(wardId) as Recipient[];
-  if (audience === "admins") return d.prepare(BASE + joined + " AND role IN ('admin','presidency')").all(wardId) as Recipient[];
-  if (audience === "presidency") return d.prepare(BASE + joined + " AND role = 'presidency'").all(wardId) as Recipient[];
+  if (audience === "everyone") return d.prepare(BASE).all(wardId) as Recipient[];
+  if (audience === "admins") return d.prepare(BASE + " AND role IN ('admin','presidency')").all(wardId) as Recipient[];
+  if (audience === "presidency") return d.prepare(BASE + " AND role = 'presidency'").all(wardId) as Recipient[];
   if (audience === "teachers") {
     const today = DateTime.now().setZone(opts.tz || "America/Boise").toISODate()!;
     const until = DateTime.fromISO(today).plus({ weeks: 5 }).toISODate()!;
     return d
-      .prepare(BASE + joined + " AND id IN (SELECT teacher_id FROM lessons WHERE ward_id = ? AND date BETWEEN ? AND ? AND teacher_id IS NOT NULL)")
+      .prepare(BASE + " AND id IN (SELECT teacher_id FROM lessons WHERE ward_id = ? AND date BETWEEN ? AND ? AND teacher_id IS NOT NULL)")
       .all(wardId, wardId, today, until) as Recipient[];
   }
   if (audience.startsWith("group:")) {
     const groupId = Number(audience.slice(6));
     return d
-      .prepare(BASE + joined + " AND id IN (SELECT member_id FROM group_members gm JOIN groups g ON g.id = gm.group_id WHERE g.id = ? AND g.ward_id = ?)")
+      .prepare(BASE + " AND id IN (SELECT member_id FROM group_members gm JOIN groups g ON g.id = gm.group_id WHERE g.id = ? AND g.ward_id = ?)")
       .all(wardId, groupId, wardId) as Recipient[];
   }
   return [];

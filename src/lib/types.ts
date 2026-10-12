@@ -7,8 +7,6 @@ export interface Member {
   name: string;
   display_name: string;
   email: string | null;
-  phone: string | null;
-  address: string | null;
   role: Role;
   status: MemberStatus;
   source: string;
@@ -24,6 +22,7 @@ export interface Ward {
   id: number;
   name: string;
   timezone: string;
+  join_code: string | null;
 }
 
 export interface CurrentUser extends Member {

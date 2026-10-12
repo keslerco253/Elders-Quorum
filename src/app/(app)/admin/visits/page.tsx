@@ -58,7 +58,6 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
               <Link href={`/admin/visits?member=${m.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">{m.display_name}</div>
-                  {m.address && <div className="truncate text-xs text-muted">{m.address}</div>}
                 </div>
                 {m.last_home ? (
                   <span className="text-right text-sm">

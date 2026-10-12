@@ -9,9 +9,14 @@ Mission plans, sign-ups, push notifications, and quick links to Gospel Library
 and Member Tools.
 
 **For the presidency and admins:** comment approval, teacher assignments,
-events and event requests, group messages, LCR membership import, a member
-directory, presidency home-visit records, presidency assignments, and support
-for more than one ward.
+events and event requests, group messages, join codes and join requests,
+presidency home-visit records, presidency assignments, and support for more
+than one ward.
+
+**Privacy:** the app never imports Church membership records. Members join
+themselves and only their name, email and what they post are kept; old
+information is deleted automatically and members can delete their account at
+any time. See [Privacy summary](docs/PRIVACY-SUMMARY.md).
 
 ## Guides
 
@@ -27,7 +32,7 @@ for more than one ward.
 | | Member | Admin (bishop, high councilor) | Presidency |
 |---|:-:|:-:|:-:|
 | Lessons, comments, calendar, plans, sign-ups | ✓ | ✓ | ✓ |
-| Approve comments, post lessons/plans/events, send messages, member directory | | ✓ | ✓ |
+| Approve comments, post lessons/plans/events, send messages, see who joined | | ✓ | ✓ |
 | Home visits, assignments, assign teachers, approve access, change roles, settings | | | ✓ |
 
 ## For developers

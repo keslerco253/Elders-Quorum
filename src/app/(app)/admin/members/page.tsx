@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { ROLE_LABELS, type Member } from "@/lib/types";
 
@@ -14,60 +15,45 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   const members = db()
     .prepare(
       `SELECT * FROM members WHERE ward_id = ? AND status = ?
-       AND (? = '' OR name LIKE '%' || ? || '%' OR display_name LIKE '%' || ? || '%' OR email LIKE '%' || ? || '%' OR phone LIKE '%' || ? || '%')
-       ORDER BY name COLLATE NOCASE`,
+       AND (? = '' OR display_name LIKE '%' || ? || '%' OR email LIKE '%' || ? || '%')
+       ORDER BY role = 'member', display_name COLLATE NOCASE`,
     )
-    .all(user.ward_id, show, q, q, q, q, q) as Member[];
-  const joined = members.filter((m) => m.last_login_at).length;
+    .all(user.ward_id, show, q, q, q) as Member[];
 
   return (
     <>
       <PageHeader
         title="Members"
         back={{ href: "/admin", label: "Admin" }}
-        subtitle={show === "active" ? `${members.length} members · ${joined} have signed in` : `${members.length} moved out or removed`}
-        actions={
-          <>
-            <Link href="/admin/members/import" className="btn-secondary">
-              Import from LCR
-            </Link>
-            <Link href="/admin/members/new" className="btn-primary">
-              Add member
-            </Link>
-          </>
-        }
+        subtitle={show === "active" ? `${members.length} people have joined the app.` : `${members.length} accounts turned off`}
       />
       <Flash msg={sp.msg} />
+      <p className="mb-4 rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent">
+        Members join the app themselves. Only their name and email are stored. For addresses and phone numbers, use Member Tools.
+      </p>
       <form className="mb-4 flex flex-wrap gap-2">
-        <input name="q" defaultValue={q} placeholder="Search name, email or phone" className="input max-w-xs flex-1" />
+        <input name="q" defaultValue={q} placeholder="Search name or email" className="input max-w-xs flex-1" />
         <select name="show" defaultValue={show} className="input w-auto">
-          <option value="active">Current members</option>
-          <option value="inactive">Moved out / removed</option>
+          <option value="active">Active</option>
+          <option value="inactive">Turned off</option>
         </select>
         <button className="btn-secondary">Search</button>
       </form>
       {members.length === 0 ? (
-        <Empty>
-          No members found.{" "}
-          <Link href="/admin/members/import" className="link">
-            Import the quorum list from LCR
-          </Link>
-          .
-        </Empty>
+        <Empty>No one yet. Share the join code from Admin → Settings so members can join.</Empty>
       ) : (
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
           {members.map((m) => (
             <li key={m.id}>
-              <Link href={`/admin/members/${m.id}`} className="flex items-start gap-3 px-4 py-3 hover:bg-surface-2">
+              <Link href={`/admin/members/${m.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{m.display_name}</span>
                     {m.role !== "member" && <Badge tone="info">{ROLE_LABELS[m.role]}</Badge>}
-                    {!m.last_login_at && <Badge>Not signed in yet</Badge>}
-                    {!m.email && <Badge tone="warn">No email</Badge>}
                   </div>
-                  <div className="mt-0.5 truncate text-sm text-muted">{[m.phone, m.email].filter(Boolean).join(" · ") || "No contact info"}</div>
-                  {m.address && <div className="truncate text-xs text-muted">{m.address}</div>}
+                  <div className="truncate text-sm text-muted">
+                    {m.email} · {m.last_login_at ? `last signed in ${formatDateTime(m.last_login_at, user.ward.timezone, "LLL d")}` : "hasn't signed in yet"}
+                  </div>
                 </div>
                 <span className="text-muted">›</span>
               </Link>

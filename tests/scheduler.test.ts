@@ -24,13 +24,13 @@ describe("scheduler", () => {
     `);
   });
 
-  it("sends the Sunday 7 PM reminder for next Sunday's lesson to joined members", () => {
+  it("sends the Sunday 7 PM reminder for next Sunday's lesson to everyone who joined", () => {
     expect(collectDue(at("2026-10-11T18:59")).filter((n) => n.key.startsWith("lesson"))).toEqual([]);
     const due = collectDue(at("2026-10-11T19:00")).filter((n) => n.key.startsWith("lesson"));
     expect(due).toHaveLength(1);
     expect(due[0].key).toBe("lesson-sun:1:2026-10-18");
     expect(due[0].payload.title).toBe("This Sunday's lesson: Abide in My Love");
-    expect(due[0].recipients.map((r) => r.id).sort()).toEqual([1, 2]);
+    expect(due[0].recipients.map((r) => r.id).sort()).toEqual([1, 2, 3]);
   });
 
   it("sends the Saturday 8 AM reminder for tomorrow", () => {

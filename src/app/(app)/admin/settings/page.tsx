@@ -5,7 +5,7 @@ import { listWards } from "@/lib/wards";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addWard, saveWardSettings, sendTestEmail } from "./actions";
+import { addWard, saveWardSettings, sendTestEmail, setJoinCode } from "./actions";
 
 export const metadata = { title: "Settings" };
 
@@ -34,6 +34,33 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </div>
           <SubmitButton>Save</SubmitButton>
         </form>
+      </Section>
+      <Section title="Join code">
+        <div className="card max-w-xl space-y-3">
+          {user.ward.join_code ? (
+            <p className="text-sm">
+              Members who enter <strong className="rounded bg-surface-2 px-2 py-1 font-mono text-lg tracking-widest">{user.ward.join_code}</strong> when joining get in right away.
+              Announce it in quorum meeting. Change it if it gets shared outside the quorum.
+            </p>
+          ) : (
+            <p className="text-sm text-muted">No join code. Everyone who joins needs presidency approval.</p>
+          )}
+          <form action={setJoinCode} className="flex flex-wrap gap-2">
+            <SubmitButton name="mode" value="new" className="btn-primary btn-sm">
+              {user.ward.join_code ? "Make a new code" : "Create a code"}
+            </SubmitButton>
+            {user.ward.join_code && (
+              <SubmitButton name="mode" value="off" className="btn-secondary btn-sm" confirm="Turn off the join code? New members will need approval.">
+                Turn off
+              </SubmitButton>
+            )}
+          </form>
+          <form action={setJoinCode} className="flex flex-wrap gap-2">
+            <input type="hidden" name="mode" value="custom" />
+            <input name="code" placeholder="Or your own, e.g. VILLAS-EQ" className="input max-w-56" />
+            <SubmitButton className="btn-secondary btn-sm">Use this code</SubmitButton>
+          </form>
+        </div>
       </Section>
       <Section title="Email">
         <div className="card max-w-xl space-y-3 text-sm">

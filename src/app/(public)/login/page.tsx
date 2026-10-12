@@ -43,9 +43,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </SubmitButton>
       </form>
       <p className="mt-5 text-center text-sm text-muted">
-        Not on the quorum list?{" "}
-        <Link href="/request-access" className="link">
-          Request access
+        New here?{" "}
+        <Link href="/join" className="link">
+          Join the app
         </Link>
       </p>
     </div>

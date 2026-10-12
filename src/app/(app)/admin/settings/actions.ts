@@ -7,6 +7,7 @@ import { requirePresidency } from "@/lib/auth";
 import { createLoginToken, normalizeEmail } from "@/lib/auth-core";
 import { sendLoginEmail } from "@/lib/login-email";
 import { emailHtml, sendMail } from "@/lib/mail";
+import crypto from "crypto";
 import type { Member } from "@/lib/types";
 
 function go(text: string): never {
@@ -55,4 +56,24 @@ export async function addWard(fd: FormData) {
   const res = createLoginToken(memberId, "month");
   if (res.ok) await sendLoginEmail(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, res.token, res.code);
   go(`${wardName} was added. ${name} was emailed a sign-in link.`);
+}
+
+const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+export async function setJoinCode(fd: FormData) {
+  const user = await requirePresidency();
+  const mode = String(fd.get("mode"));
+  let code: string | null = null;
+  if (mode === "new") code = Array.from({ length: 6 }, () => CODE_CHARS[crypto.randomInt(CODE_CHARS.length)]).join("");
+  else if (mode === "custom") {
+    code = String(fd.get("code") || "").trim().toUpperCase().replace(/\s+/g, "");
+    if (!/^[A-Z0-9-]{4,20}$/.test(code)) go("Use 4–20 letters or numbers for the join code.");
+  }
+  try {
+    db().prepare("UPDATE wards SET join_code = ? WHERE id = ?").run(code, user.ward_id);
+  } catch {
+    go("Another ward already uses that code. Pick a different one.");
+  }
+  revalidatePath("/admin/settings");
+  go(code ? `Join code is now ${code}.` : "Join code turned off. New members will need presidency approval.");
 }

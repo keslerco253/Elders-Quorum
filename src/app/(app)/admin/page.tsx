@@ -32,7 +32,7 @@ export default async function AdminPage() {
   const p = isPresidency(user);
   const waiting: Tile[] = [
     { href: "/admin/comments", label: "Comments to approve", desc: "Lesson comments and replies", count: c.comments },
-    { href: "/admin/access", label: "Access requests", desc: "People not on the LCR list", count: c.access, show: p },
+    { href: "/admin/access", label: "Access requests", desc: "Requests to join without a code", count: c.access, show: p },
     { href: "/admin/event-requests", label: "Event requests", desc: "Suggested by members", count: c.eventRequests },
     { href: "/admin/lessons", label: "Teaching volunteers", desc: "Lessons with volunteers to assign", count: c.volunteers, show: p },
   ];
@@ -52,7 +52,7 @@ export default async function AdminPage() {
             { href: "/admin/events/new", label: "Add an event", desc: "Activities and meetings" },
             { href: "/signups", label: "Sign-ups", desc: "Service projects and meals" },
             { href: "/plans", label: "Ward plans", desc: "Temple & family history, ward mission" },
-            { href: "/admin/members", label: "Members", desc: "Directory and LCR import" },
+            { href: "/admin/members", label: "Members", desc: "People who joined the app" },
           ]}
         />
       </Section>

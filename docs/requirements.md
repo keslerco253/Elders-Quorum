@@ -1,6 +1,10 @@
 # Villas Ward Elders Quorum App: Requirements
 
-Status: version 1 built; awaiting the president's review.
+Status: version 1.1 (privacy redesign) built; awaiting leadership review.
+
+> **Privacy redesign (Oct 2026):** after ward leadership raised Church policy
+> concerns, the app no longer imports or stores anything from Church records.
+> Sections below marked ~~struck~~ were removed. See PRIVACY-SUMMARY.md.
 The president reviews the whole first version before launch. Nothing is shown to members without the president's approval.
 
 ## Platform & Hosting
@@ -27,18 +31,15 @@ The president reviews the whole first version before launch. Nothing is shown to
 - **Admin** (bishop, high councilor): admin tools, but **not** home visits.
 - **Member:** everyone else in the quorum.
 - Members see: plans, lessons, calendar, comments. No member directory.
-- Presidency and admins see a member directory (name, address, phone, email).
+- ~~Presidency and admins see a member directory (name, address, phone, email).~~ Admins see who joined (name and email only).
 - Login: email magic link; user picks how long to stay signed in.
-  Members with no email in LCR: an admin adds one by hand (phone login would need texting; deferred).
-- Anyone whose email is on the imported membership list can self-register.
-  Everyone else submits an access request. All presidency members are notified and any one can approve.
+- Members join themselves with name and email. With the ward join code they're in immediately;
+  without it, the request goes to the presidency (all are notified, any one can approve).
+- Members can delete their account at any time. Old contributions are deleted automatically.
 - All quorum members get access regardless of activity. Part-member families: presidency discretion.
 
-## Membership Import
-- CSV exported from LCR, uploaded by an admin. Adds new members and updates existing ones.
-- LCR columns: Name, Gender, Age, Birth Date, Address, Phone Number, E-mail.
-- Imported: Name, Address, Phone Number, E-mail. Gender, Age and Birth Date are ignored
-  (not needed; minimizes stored personal data).
+## ~~Membership Import~~
+Removed. Nothing is imported from LCR.
 
 ## Presidency Home Visits (presidency only)
 - Fields: member visited, date, who visited, type (in home, at church, phone, text), notes, follow-up needed.

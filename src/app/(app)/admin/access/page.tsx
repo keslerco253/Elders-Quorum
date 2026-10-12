@@ -14,7 +14,7 @@ export default async function AccessPage({ searchParams }: { searchParams: Promi
   const pending = db().prepare("SELECT * FROM members WHERE ward_id = ? AND status = 'pending' ORDER BY updated_at").all(user.ward_id) as Member[];
   return (
     <>
-      <PageHeader title="Access requests" back={{ href: "/admin", label: "Admin" }} subtitle="People who aren't on the LCR list. Part-member family members can be approved at the presidency's discretion." />
+      <PageHeader title="Access requests" back={{ href: "/admin", label: "Admin" }} subtitle="People who asked to join without a join code. Part-member family members can be approved at the presidency's discretion. Declined requests are deleted." />
       <Flash msg={sp.msg} />
       {pending.length === 0 ? (
         <Empty>No requests waiting.</Empty>
@@ -24,7 +24,7 @@ export default async function AccessPage({ searchParams }: { searchParams: Promi
             <div key={m.id} className="card">
               <div className="font-semibold">{m.display_name}</div>
               <div className="text-sm text-muted">
-                {[m.email, m.phone].filter(Boolean).join(" · ")} · requested {formatDateTime(m.updated_at, user.ward.timezone, "LLL d")}
+                {m.email} · requested {formatDateTime(m.updated_at, user.ward.timezone, "LLL d")}
               </div>
               {m.request_note && <p className="mt-2 rounded-lg bg-surface-2 p-3 text-sm">{m.request_note}</p>}
               <form action={decideAccess} className="mt-3 flex gap-2">

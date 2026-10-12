@@ -245,4 +245,15 @@ CREATE TABLE todos (
 );
 `,
   },
+  {
+    // Privacy redesign: the app no longer stores addresses or phone numbers,
+    // and members join themselves (optionally with a ward join code).
+    id: 2,
+    sql: `
+ALTER TABLE members DROP COLUMN phone;
+ALTER TABLE members DROP COLUMN address;
+ALTER TABLE wards ADD COLUMN join_code TEXT;
+CREATE UNIQUE INDEX wards_join_code ON wards(join_code COLLATE NOCASE) WHERE join_code IS NOT NULL;
+`,
+  },
 ];

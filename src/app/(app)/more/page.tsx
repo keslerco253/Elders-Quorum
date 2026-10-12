@@ -2,17 +2,18 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { ROLE_LABELS } from "@/lib/types";
-import { PageHeader, Section } from "@/components/ui";
+import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { QuickLinks } from "@/components/quick-links";
 import { PushToggle } from "@/components/push-toggle";
 import { signOut } from "../../(public)/actions";
-import { setTheme } from "./actions";
+import { deleteMyAccount, setTheme } from "./actions";
 
 export const metadata = { title: "More" };
 
-export default async function MorePage() {
+export default async function MorePage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
+  const sp = await searchParams;
   const links = [
     { href: "/signups", label: "Sign-ups", desc: "Service projects, meals and more" },
     ...(isAdmin(user) ? [{ href: "/admin", label: "Admin tools", desc: "Members, lessons, messages and approvals" }] : []),
@@ -20,6 +21,7 @@ export default async function MorePage() {
   return (
     <>
       <PageHeader title="More" />
+      <Flash msg={sp.msg} tone="warn" />
       <Section title="Go to">
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
           {links.map((l) => (
@@ -55,13 +57,27 @@ export default async function MorePage() {
           <div className="font-semibold">{user.display_name}</div>
           <div className="text-muted">{user.email}</div>
           <div className="text-muted">Access: {ROLE_LABELS[user.role]}</div>
-          <p className="hint pt-2">To change your contact information, contact the elders quorum presidency.</p>
+          <p className="hint pt-2">
+            This app keeps only your name, email and what you post.{" "}
+            <Link href="/privacy" className="link">
+              Privacy details
+            </Link>
+          </p>
           <form action={signOut} className="pt-3">
             <SubmitButton className="btn-secondary" pendingText="Signing out…">
               Sign out
             </SubmitButton>
           </form>
         </div>
+      </Section>
+      <Section title="Delete my account">
+        <form action={deleteMyAccount} className="card space-y-3 text-sm">
+          <p className="text-muted">Permanently removes your name, email, comments, sign-ups and everything else you&apos;ve posted. You can join again later.</p>
+          <input name="confirm" placeholder="Type DELETE to confirm" className="input max-w-56" autoComplete="off" />
+          <SubmitButton className="btn-danger btn-sm" pendingText="Deleting…" confirm="Delete your account permanently?">
+            Delete my account
+          </SubmitButton>
+        </form>
       </Section>
     </>
   );

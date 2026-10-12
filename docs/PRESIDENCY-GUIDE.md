@@ -47,16 +47,36 @@ notification; anyone without notifications turned on gets an email.
 Check "Also email members who haven't signed in yet" to reach everyone on the
 list.
 
-## Members
+## Members joining
 
-- **Import from LCR** any time. It adds new people, updates phone, email and
-  address, and never erases information. You can mark people who aren't in
-  the file as moved out.
-- People not on the LCR list (for example part-member family) use **Request
-  access** on the sign-in page. Approve them in **Access requests**.
-- To give someone admin or presidency access, open them in **Members** and
-  change **Access level**.
-- Someone without an email in LCR? Open them and type one in so they can sign in.
+The app never uses Church records. Members join themselves:
+
+- **With the join code** (Admin → Settings → Join code): they're in right away.
+  Announce the code in quorum meeting; make a new one if it gets shared
+  outside the quorum.
+- **Without a code:** their request appears in **Admin → Access requests** for
+  the presidency to approve. Declined requests are deleted. Part-member family
+  members can be approved at the presidency's discretion.
+- **Admin → Members** lists everyone who joined (name and email only). Open a
+  person to change their **Access level**, turn off their access, or delete
+  their account.
+- For addresses and phone numbers, use Member Tools.
+
+## Privacy and automatic clean-up
+
+The app keeps only name, email and what members choose to post, and deletes
+old information automatically:
+
+| What | Deleted |
+|---|---|
+| Sign-ups, RSVPs, event requests | 30 days after the event |
+| Offers to teach | 30 days after the lesson |
+| Lesson comments | 6 months after the lesson |
+| Join requests nobody answered | after 60 days |
+| Member accounts not used | after 12 months (leaders are kept) |
+
+Members can delete their own account any time under **More**. Deleting an
+account also removes any presidency visit records about that person.
 
 ## Home visits (presidency only)
 
@@ -64,13 +84,15 @@ list.
 and their last home visit, with those never visited at the top. **Follow-ups**
 lists visits marked "follow-up needed".
 
-Keep notes brief: record nothing you wouldn't text to another presidency
-member. Ministering interviews and assignments stay in LCR.
+Visits can only be recorded for people who have joined the app. Keep notes
+brief: record nothing you wouldn't text to another presidency member, and
+never health, financial or worthiness details. Ministering interviews and
+assignments stay in LCR.
 
 ## Assignments (presidency only)
 
 **Admin → Assignments**: add a to-do, assign it to a presidency member with a
-due date. They're notified, then reminded at 8 AM the day before and the day
+due date. Don't put member names or personal details in assignments. They're notified, then reminded at 8 AM the day before and the day
 it's due.
 
 ## Sign-ups

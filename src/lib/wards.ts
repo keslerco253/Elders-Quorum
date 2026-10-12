@@ -4,11 +4,11 @@ import type { Ward } from "./types";
 export const DEFAULT_APP_NAME = "Elders Quorum";
 
 export function listWards(): Ward[] {
-  return db().prepare("SELECT id, name, timezone FROM wards ORDER BY name").all() as Ward[];
+  return db().prepare("SELECT id, name, timezone, join_code FROM wards ORDER BY name").all() as Ward[];
 }
 
 export function getWard(id: number): Ward | undefined {
-  return db().prepare("SELECT id, name, timezone FROM wards WHERE id = ?").get(id) as Ward | undefined;
+  return db().prepare("SELECT id, name, timezone, join_code FROM wards WHERE id = ?").get(id) as Ward | undefined;
 }
 
 /** Name shown before sign-in: the single ward's name, or a generic name if there are several. */
@@ -20,4 +20,10 @@ export function publicAppName() {
 export function needsSetup() {
   const row = db().prepare("SELECT COUNT(*) AS n FROM members WHERE role = 'presidency' AND status = 'active'").get() as { n: number };
   return row.n === 0;
+}
+
+export function wardByJoinCode(code: string): Ward | undefined {
+  const c = code.trim();
+  if (!c) return undefined;
+  return db().prepare("SELECT id, name, timezone, join_code FROM wards WHERE join_code = ? COLLATE NOCASE").get(c) as Ward | undefined;
 }

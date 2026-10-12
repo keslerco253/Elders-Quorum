@@ -110,7 +110,7 @@ export function userForSession(sessionId: string | undefined): CurrentUser | nul
     )
     .get(sha256(sessionId), nowIso()) as Member | undefined;
   if (!member) return null;
-  const ward = d.prepare("SELECT id, name, timezone FROM wards WHERE id = ?").get(member.ward_id) as Ward;
+  const ward = d.prepare("SELECT id, name, timezone, join_code FROM wards WHERE id = ?").get(member.ward_id) as Ward;
   return { ...member, ward };
 }
 

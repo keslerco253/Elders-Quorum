@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { publicAppName } from "@/lib/wards";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -10,6 +11,12 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <h1 className="text-xl font-bold text-text">{name}</h1>
       </div>
       <div className="w-full max-w-sm">{children}</div>
+      <p className="mt-8 max-w-sm text-center text-xs text-muted">
+        An unofficial quorum app. Not an official website of The Church of Jesus Christ of Latter-day Saints. ·{" "}
+        <Link href="/privacy" className="underline">
+          Privacy
+        </Link>
+      </p>
     </div>
   );
 }
