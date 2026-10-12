@@ -46,9 +46,7 @@ $envPath = Join-Path $Root ".env"
 $existing = Read-EnvFile
 if ($existing.Count -gt 0 -and $existing["SMTP_PASS"]) {
   Say "Found existing settings (.env). Keeping them, and updating the web address."
-  $existing["APP_URL"] = $appUrl
-  $lines = $existing.GetEnumerator() | Sort-Object Name | ForEach-Object { "$($_.Name)=$($_.Value)" }
-  Write-Utf8NoBom $envPath (($lines -join "`n") + "`n")
+  Set-EnvValue "APP_URL" $appUrl
   $setupCode = $existing["SETUP_CODE"]
 } else {
   $gmail = Read-Host "Gmail address that sends sign-in emails [villaseldersquorum@gmail.com]"
@@ -71,33 +69,51 @@ SMTP_USER=$gmail
 SMTP_PASS=$plain
 MAIL_FROM_NAME=$name
 SETUP_CODE=$setupCode
+APP_PORT=3000
 CLOUDFLARE_TUNNEL_TOKEN=
 "@
   Write-Utf8NoBom $envPath (($content -replace "`r", "") + "`n")
   Say "Saved settings to .env (keep this file private)." "Green"
 }
 
-# 4. Build and start
+# 4. Pick a port that nothing else is using
+Step "Checking that the app's port is free"
+docker compose down 2>&1 | Out-Null   # stops an earlier copy of this app, if any
+$port = Get-AppPort
+$owner = Get-PortOwner $port
+if ($owner) {
+  Say "Port $port is already used by another program on this computer:" "Yellow"
+  Say "   $owner" "Yellow"
+  $port = Find-FreePort
+  if (-not $port) { Fail "Couldn't find a free port. Close other programs that run web servers and try again." }
+  Say "The app will use port $port instead." "Green"
+} else {
+  Say "Port $port is free." "Green"
+}
+Set-EnvValue "APP_PORT" $port
+
+# 5. Build and start
 Step "Building and starting the app (the first time takes 5-10 minutes)"
 docker compose up -d --build
-if ($LASTEXITCODE -ne 0) { Fail "The app didn't start. Copy the messages above and send them to whoever helps you with the app." }
-if (-not (Wait-ForApp 240)) { Fail "The app started but isn't answering. Run 'docker compose logs app' in this folder to see why." }
-Say "The app is running on this computer." "Green"
+if ($LASTEXITCODE -ne 0) { Show-Diagnostics $port; Fail "The app didn't start. Copy the messages above and send them to whoever helps you with the app." }
+Say "Waiting for the app to answer..."
+if (-not (Wait-ForApp $port 240)) { Show-Diagnostics $port; Fail "The app started but isn't answering on port $port. Copy the diagnostics above and send them to whoever helps you with the app." }
+Say "The app is running on this computer (port $port)." "Green"
 
-# 5. Public address
+# 6. Public address
 Step "Turning on the public address (Tailscale Funnel)"
-& $ts funnel --bg 3000
+& $ts funnel --bg $port
 if ($LASTEXITCODE -ne 0) {
   Say ""
   Say "Tailscale needs you to allow Funnel. A page should have opened (or open the link printed above)." "Yellow"
   Say "Approve it, then press Enter."
   Read-Host | Out-Null
-  & $ts funnel --bg 3000
+  & $ts funnel --bg $port
   if ($LASTEXITCODE -ne 0) { Fail "Funnel still isn't on. In the Tailscale admin console, enable HTTPS and Funnel for this computer, then run INSTALL.bat again." }
 }
 Say "Public address is on." "Green"
 
-# 6. Done
+# 7. Done
 Step "All set!"
 Say ""
 Say "  App address:  $appUrl" "Green"

@@ -187,6 +187,7 @@ the app).
 
 | Problem | Fix |
 |---|---|
+| Installer says the app "isn't answering" | Another program may be using port 3000. Run INSTALL.bat again: it now detects this, picks a free port and saves it as `APP_PORT` in `.env`. To see who uses the port: `Get-NetTCPConnection -State Listen -LocalPort 3000` in PowerShell. |
 | Site doesn't load | Is Docker Desktop running? Run `docker compose ps`. Run `tailscale funnel status` to check the address. |
 | No sign-in emails | Admin → Settings → Send me a test email. Check `SMTP_USER`/`SMTP_PASS` in `.env`, then `docker compose up -d`. |
 | See what the app is doing | `docker compose logs -f app` |

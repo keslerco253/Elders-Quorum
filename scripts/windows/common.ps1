@@ -45,14 +45,72 @@ function Write-Utf8NoBom($path, $text) {
   [System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))
 }
 
-function Wait-ForApp($seconds = 180) {
+# The port the app listens on (APP_PORT in .env, default 3000).
+function Get-AppPort {
+  $v = (Read-EnvFile)["APP_PORT"]
+  if ($v -match '^\d+$') { return [int]$v }
+  return 3000
+}
+
+# Which program (if any) is listening on a port. Returns $null when free.
+function Get-PortOwner([int]$port) {
+  try {
+    $conns = Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction Stop
+  } catch {
+    return $null
+  }
+  $owners = foreach ($c in $conns) {
+    $name = "unknown"
+    try { $name = (Get-Process -Id $c.OwningProcess -ErrorAction Stop).ProcessName } catch { }
+    "$name (process $($c.OwningProcess)) on $($c.LocalAddress)"
+  }
+  return (($owners | Sort-Object -Unique) -join "; ")
+}
+
+# First port in the list that nothing is listening on.
+function Find-FreePort {
+  foreach ($p in 3000, 3300, 8300, 8380, 18300, 28300) {
+    if (-not (Get-PortOwner $p)) { return $p }
+  }
+  return $null
+}
+
+# Asks the app itself on 127.0.0.1 (not "localhost", which Windows may send to
+# a different program listening on the IPv6 address ::1).
+# Sets one KEY=value line in .env, keeping everything else as it is.
+function Set-EnvValue($key, $value) {
+  $path = Join-Path $Root ".env"
+  $lines = @()
+  if (Test-Path $path) { $lines = @(Get-Content $path) }
+  $found = $false
+  $lines = foreach ($line in $lines) {
+    if ($line -match "^\s*$key\s*=") { $found = $true; "$key=$value" } else { $line }
+  }
+  if (-not $found) { $lines = @($lines) + "$key=$value" }
+  Write-Utf8NoBom $path ((@($lines) -join "`n") + "`n")
+}
+
+function Wait-ForApp([int]$port, [int]$seconds = 180) {
   $deadline = (Get-Date).AddSeconds($seconds)
   while ((Get-Date) -lt $deadline) {
     try {
-      $r = Invoke-WebRequest -Uri "http://localhost:3000/login" -UseBasicParsing -TimeoutSec 5 -MaximumRedirection 5
-      if ($r.StatusCode -eq 200) { return $true }
+      $r = Invoke-WebRequest -Uri "http://127.0.0.1:$port/api/health" -UseBasicParsing -TimeoutSec 5
+      if ($r.StatusCode -eq 200 -and $r.Content -match "elders-quorum") { return $true }
     } catch { }
     Start-Sleep -Seconds 3
   }
   return $false
+}
+
+# Prints what's needed to figure out why the app isn't answering.
+function Show-Diagnostics([int]$port) {
+  Say ""
+  Say "---- Diagnostics (send this to whoever helps you with the app) ----" "Yellow"
+  $owner = Get-PortOwner $port
+  if ($owner) { Say "Listening on port ${port}: $owner" } else { Say "Nothing is listening on port $port." }
+  Say ""
+  docker compose ps
+  Say ""
+  docker compose logs --tail 40 app
+  Say "--------------------------------------------------------------------" "Yellow"
 }

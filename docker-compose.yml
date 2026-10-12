@@ -12,7 +12,8 @@ services:
     environment:
       - BACKUP_DIR=/backups
     ports:
-      - "127.0.0.1:3000:3000"
+      # Change APP_PORT in .env if something else on this computer uses 3000.
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
     volumes:
       # The live database stays inside Docker (more reliable for SQLite on Windows).
       - eqdata:/data

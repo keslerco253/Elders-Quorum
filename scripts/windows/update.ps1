@@ -12,6 +12,7 @@ if (Test-Path (Join-Path $Root ".git")) {
 }
 Step "Rebuilding and restarting (your data is kept)"
 docker compose up -d --build
-if ($LASTEXITCODE -ne 0) { Fail "The update didn't start. Copy the messages above for whoever helps you with the app." }
-if (Wait-ForApp 240) { Say "Updated and running." "Green" } else { Fail "The app isn't answering. Run 'docker compose logs app' to see why." }
+if ($LASTEXITCODE -ne 0) { Show-Diagnostics (Get-AppPort); Fail "The update didn't start. Copy the messages above for whoever helps you with the app." }
+$port = Get-AppPort
+if (Wait-ForApp $port 240) { Say "Updated and running." "Green" } else { Show-Diagnostics $port; Fail "The app isn't answering. Send the diagnostics above to whoever helps you with the app." }
 Read-Host "Press Enter to close"
