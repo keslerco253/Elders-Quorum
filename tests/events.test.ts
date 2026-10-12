@@ -26,3 +26,15 @@ describe("calendar", () => {
     expect(sundays("2026-10-18", 1)).toEqual(["2026-10-18"]);
   });
 });
+
+import { parseSlotLines } from "@/lib/signups";
+
+describe("sign-up slots", () => {
+  it("parses label | count lines", () => {
+    expect(parseSlotLines("Helpers | 6\nMonday dinner\n\nTruck: 2\n")).toEqual([
+      { label: "Helpers", capacity: 6 },
+      { label: "Monday dinner", capacity: 1 },
+      { label: "Truck", capacity: 2 },
+    ]);
+  });
+});

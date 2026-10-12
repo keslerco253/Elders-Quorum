@@ -1,0 +1,75 @@
+import Link from "next/link";
+import { requireAdmin } from "@/lib/auth";
+import { adminCounts } from "@/lib/admin-counts";
+import { isPresidency } from "@/lib/permissions";
+import { PageHeader, Section } from "@/components/ui";
+
+export const metadata = { title: "Admin" };
+
+type Tile = { href: string; label: string; desc: string; count?: number; show?: boolean };
+
+function Tiles({ tiles }: { tiles: Tile[] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {tiles
+        .filter((t) => t.show !== false)
+        .map((t) => (
+          <Link key={t.href} href={t.href} className="card flex items-start justify-between gap-3 hover:bg-surface-2">
+            <span>
+              <span className="block font-semibold">{t.label}</span>
+              <span className="text-sm text-muted">{t.desc}</span>
+            </span>
+            {!!t.count && <span className="rounded-full bg-danger px-2 py-0.5 text-xs font-bold text-white">{t.count}</span>}
+          </Link>
+        ))}
+    </div>
+  );
+}
+
+export default async function AdminPage() {
+  const user = await requireAdmin();
+  const c = adminCounts(user);
+  const p = isPresidency(user);
+  const waiting: Tile[] = [
+    { href: "/admin/comments", label: "Comments to approve", desc: "Lesson comments and replies", count: c.comments },
+    { href: "/admin/access", label: "Access requests", desc: "People not on the LCR list", count: c.access, show: p },
+    { href: "/admin/event-requests", label: "Event requests", desc: "Suggested by members", count: c.eventRequests },
+    { href: "/admin/lessons", label: "Teaching volunteers", desc: "Lessons with volunteers to assign", count: c.volunteers, show: p },
+  ];
+  return (
+    <>
+      <PageHeader title="Admin" subtitle={p ? "Presidency tools" : "Admin tools"} />
+      {c.total > 0 && (
+        <Section title="Waiting on you">
+          <Tiles tiles={waiting.filter((t) => t.count)} />
+        </Section>
+      )}
+      <Section title="Quorum">
+        <Tiles
+          tiles={[
+            { href: "/admin/messages", label: "Send a message", desc: "Push notification or email to a group" },
+            { href: "/admin/lessons", label: "Lessons", desc: "Six-month schedule and teachers" },
+            { href: "/admin/events/new", label: "Add an event", desc: "Activities and meetings" },
+            { href: "/signups", label: "Sign-ups", desc: "Service projects and meals" },
+            { href: "/plans", label: "Ward plans", desc: "Temple & family history, ward mission" },
+            { href: "/admin/members", label: "Members", desc: "Directory and LCR import" },
+          ]}
+        />
+      </Section>
+      {p && (
+        <Section title="Presidency only">
+          <Tiles
+            tiles={[
+              { href: "/admin/visits", label: "Home visits", desc: "Who we've visited and when" },
+              { href: "/admin/todos", label: "Assignments", desc: "Presidency to-dos with due dates" },
+              { href: "/admin/settings", label: "Settings", desc: "App name, time zone, email" },
+            ]}
+          />
+        </Section>
+      )}
+      <Section title="Approvals and groups">
+        <Tiles tiles={[{ href: "/admin/comments", label: "Comment queue", desc: "Approve study comments" }, { href: "/admin/event-requests", label: "Event requests", desc: "Approve or decline" }, { href: "/admin/groups", label: "Message groups", desc: "Custom groups for messages" }, ...(p ? [{ href: "/admin/access", label: "Access requests", desc: "Approve new people" }] : [])]} />
+      </Section>
+    </>
+  );
+}
