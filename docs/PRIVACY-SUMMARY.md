@@ -49,8 +49,9 @@ own action.
 ## Security
 
 - Sign-in uses one-time email codes (no passwords to steal).
-- The app runs on a computer in the elders quorum president's home, reachable
-  only over encrypted HTTPS. Nothing is sold or shared.
+- The app runs on a computer in the elders quorum president's home. It is
+  reached only over encrypted HTTPS, and only signed-in members see anything.
+  Nothing is sold or shared.
 - Nightly backups stay on that computer.
 
 ## Questions for leadership
@@ -58,3 +59,4 @@ own action.
 1. Is this approach acceptable under Church guidelines for an unofficial quorum app?
 2. Is it acceptable to post the Temple & Family History and Ward Mission plans in the app?
 3. Should the presidency home-visit records stay in the app, or be kept only in LCR?
+4. Should the stake be consulted before the app is shared with the quorum?
