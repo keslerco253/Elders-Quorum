@@ -7,7 +7,9 @@ import { requireAdmin } from "@/lib/auth";
 import { localInputToUtc, formatDateTime } from "@/lib/time";
 import { notify, type Recipient } from "@/lib/notify";
 
-const go = (path: string, text: string): never => redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);
+function go(path: string, text: string): never {
+  redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);
+}
 
 function readEvent(fd: FormData, tz: string) {
   const start = localInputToUtc(String(fd.get("starts_at") || ""), tz);

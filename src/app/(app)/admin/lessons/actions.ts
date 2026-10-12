@@ -11,7 +11,9 @@ import { formatDate, sundays } from "@/lib/time";
 import type { LessonKind, Member } from "@/lib/types";
 
 const KINDS: LessonKind[] = ["talk", "general_conference", "stake_conference"];
-const go = (path: string, text: string): never => redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);
+function go(path: string, text: string): never {
+  redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);
+}
 
 function refresh() {
   revalidatePath("/lessons", "layout");
