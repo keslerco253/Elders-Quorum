@@ -1,5 +1,15 @@
 # Setting up the app on the Windows computer
 
+**Quick way:** follow `START-HERE.txt`. It covers getting the computer ready,
+then **INSTALL.bat** does the rest: it checks Docker and Tailscale, asks for
+the Gmail app password, writes the settings file, builds and starts the app,
+turns on the public address, and opens the app.
+
+The rest of this guide explains each step, how to do it by hand, backups,
+updates and troubleshooting.
+
+---
+
 Plan for about an hour the first time. You only do this once.
 
 What you'll end up with:
@@ -35,18 +45,20 @@ The app sends sign-in emails from `villaseldersquorum@gmail.com`.
 3. Set Windows to sign in automatically after a restart, or make sure someone
    signs in after power outages. Docker only runs after sign-in.
 
-## 4. Download the app
+## 4. Get the app
 
-1. Install **Git for Windows** from <https://git-scm.com/download/win> (default options).
-2. Open **PowerShell** and run:
+Either unzip the package you were given into a permanent folder (for example
+`Documents\Elders-Quorum`), or, to make updates easier, install **Git for
+Windows** (<https://git-scm.com/download/win>) and in PowerShell run:
 
 ```powershell
 cd $HOME
-git clone https://github.com/keslerco253/Elders-Quorum.git
+git clone -b main https://github.com/keslerco253/Elders-Quorum.git
 cd Elders-Quorum
 ```
 
-Sign in to GitHub if asked.
+Sign in to GitHub if asked. With Git, **UPDATE.bat** downloads new versions by
+itself.
 
 ## 5. Get the public web address (Tailscale Funnel, free)
 
@@ -149,7 +161,8 @@ link opens in Safari, not the app.
 
 Every night after 2 AM a copy of the database is saved to the `backups` folder
 inside `Elders-Quorum` (the last 30 days are kept, plus uploaded PDFs).
-Once a month, copy that folder to a USB drive or OneDrive.
+Double-click **BACKUP-NOW.bat** for an extra copy any time. Once a month, copy
+that folder to a USB drive or OneDrive.
 
 ### Restoring a backup
 
@@ -163,11 +176,12 @@ docker compose up -d
 
 ## Updating the app
 
-```powershell
-cd $HOME\Elders-Quorum
-git pull
-docker compose up -d --build
-```
+Double-click **UPDATE.bat**. With a Git copy it downloads the newest version;
+with a zip copy, unzip the new version over the folder first (keep `.env` and
+`backups`). Your data is kept either way.
+
+If you change `APP_URL` in `.env`, run UPDATE.bat (the address is built into
+the app).
 
 ## Troubleshooting
 

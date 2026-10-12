@@ -18,6 +18,10 @@ themselves and only their name, email and what they post are kept; old
 information is deleted automatically and members can delete their account at
 any time. See [Privacy summary](docs/PRIVACY-SUMMARY.md).
 
+## Install
+
+On the Windows computer: read `START-HERE.txt`, then double-click `INSTALL.bat`.
+
 ## Guides
 
 | Guide | For |

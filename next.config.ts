@@ -1,10 +1,24 @@
 import type { NextConfig } from "next";
 
+// Form submissions are only accepted from the app's own address. Behind
+// Tailscale Funnel or Cloudflare the proxy can change the Host header, so the
+// public address is listed explicitly (APP_URL is passed in at build time).
+const publicHost = (() => {
+  try {
+    return process.env.APP_URL ? new URL(process.env.APP_URL).host : undefined;
+  } catch {
+    return undefined;
+  }
+})();
+
 const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["better-sqlite3"],
   experimental: {
-    serverActions: { bodySizeLimit: "12mb" },
+    serverActions: {
+      bodySizeLimit: "12mb",
+      allowedOrigins: ["*.ts.net", ...(publicHost ? [publicHost] : [])],
+    },
   },
 };
 

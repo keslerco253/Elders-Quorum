@@ -1,0 +1,39 @@
+VILLAS WARD ELDERS QUORUM APP
+=============================
+
+Installing on the Windows computer (about 30 minutes the first time)
+
+BEFORE YOU START
+  1. Plug the computer in. Settings > System > Power: set sleep to "Never"
+     when plugged in.
+  2. Sign in to villaseldersquorum@gmail.com and turn on 2-Step Verification
+     (myaccount.google.com > Security). The installer will ask you to make an
+     "app password".
+  3. Install Docker Desktop: https://www.docker.com/products/docker-desktop/
+     Restart when asked, open it once, and in Settings > General check
+     "Start Docker Desktop when you sign in".
+  4. Install Tailscale: https://tailscale.com/download/windows
+     Sign in with the quorum Gmail account. (Optional: at
+     login.tailscale.com > Machines, rename this computer to "villas-eq" so
+     the web address is shorter.)
+
+INSTALL
+  5. Put this folder somewhere permanent, for example Documents\Elders-Quorum.
+  6. Double-click INSTALL.bat and answer its questions.
+     It shows your app address and a setup code when it finishes.
+  7. In the app: First-time setup > enter the setup code, your name and email.
+  8. Admin > Settings > Join code > Create a code. Then "Send me a test email".
+  9. Announce the app address and the join code in quorum meeting.
+
+LATER
+  UPDATE.bat      install a new version (your data is kept)
+  BACKUP-NOW.bat  save a backup right now (backups also happen every night
+                  into the "backups" folder; copy it to a USB drive monthly)
+
+MORE HELP
+  docs\SETUP-WINDOWS.md     full setup guide and troubleshooting
+  docs\PRESIDENCY-GUIDE.md  how to use the app week to week
+  docs\HANDOFF.md           passing the app to the next presidency
+  docs\PRIVACY-SUMMARY.md   what the app keeps (approved by ward leadership)
+
+Never share the .env file. It contains the email password.

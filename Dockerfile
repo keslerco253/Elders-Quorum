@@ -8,7 +8,8 @@ RUN npm ci
 
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
+ARG APP_URL
+ENV NEXT_TELEMETRY_DISABLED=1 APP_URL=${APP_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build \
