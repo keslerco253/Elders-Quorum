@@ -1,6 +1,8 @@
 // Fills an EMPTY database with made-up demo data for previewing the app.
-// Usage: npm run seed            (refuses if the database already has data)
-//        npm run seed -- --session  also prints a sign-in cookie for testing
+// Usage: npm run seed                         (refuses if the database already has data)
+//        npm run seed -- --email you@gmail.com  makes you the demo presidency member
+//        npm run seed -- --session              also prints sign-in cookies (testing)
+// In Docker: docker compose exec app node seed.js --email you@gmail.com
 import { DateTime } from "luxon";
 import { db } from "../src/lib/db";
 import { createSession } from "../src/lib/auth-core";
@@ -40,6 +42,11 @@ people.forEach(([name, role = "member"], i) => {
   );
 });
 d.prepare("UPDATE members SET is_site_owner = 1 WHERE id = ?").run(ids[0]);
+const emailArg = process.argv.indexOf("--email");
+if (emailArg > 0 && process.argv[emailArg + 1]) {
+  d.prepare("UPDATE members SET email = ? WHERE id = ?").run(process.argv[emailArg + 1].toLowerCase(), ids[0]);
+  console.log(`You can sign in as the demo president (Daniel Carter) with ${process.argv[emailArg + 1]}.`);
+}
 d.prepare("INSERT INTO members (ward_id, name, display_name, email, status, source, request_note) VALUES (?, ?, ?, ?, 'pending', 'request', ?)").run(
   ward, "Ramirez, Sofia", "Sofia Ramirez", "sofia.ramirez@example.com", "My husband is in the quorum and I'd like to follow the lessons too.",
 );

@@ -1,13 +1,14 @@
 # Villas Ward Elders Quorum App: Requirements
 
-Status: requirements complete; awaiting approval of the build plan.
+Status: version 1 built; awaiting the president's review.
 The president reviews the whole first version before launch. Nothing is shown to members without the president's approval.
 
 ## Platform & Hosting
 - Progressive Web App (PWA): works on phones (installs to the home screen) and on computers.
 - Push notifications. No text messaging for now (may return later).
 - Self-hosted on a computer at home, packaged as a Docker container,
-  reached through a free Cloudflare Tunnel (no router ports opened). Free domain is fine.
+  reached through a free Tailscale Funnel address (`*.ts.net`, no router ports opened).
+  Cloudflare Tunnel with a paid domain is an optional alternative.
 - Outgoing email (login links, notices) sent from villaseldersquorum@gmail.com (Gmail app password).
 - Time zone: Mountain, Idaho (America/Boise), editable in settings.
 - Host computer: Windows (Docker Desktop with WSL2; set to never sleep).

@@ -1,0 +1,33 @@
+# Start:   docker compose up -d
+# Stop:    docker compose down
+# Update:  git pull, then docker compose up -d --build
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - BACKUP_DIR=/backups
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      # The live database stays inside Docker (more reliable for SQLite on Windows).
+      - eqdata:/data
+      # Nightly backups appear in the "backups" folder next to this file.
+      - ./backups:/backups
+
+  # Optional: only if you use Cloudflare Tunnel with your own domain instead of
+  # Tailscale Funnel. Start with: docker compose --profile cloudflare up -d
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: ["cloudflare"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - app
+
+volumes:
+  eqdata:
+    name: elders-quorum-data

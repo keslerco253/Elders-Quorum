@@ -13,8 +13,9 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const today = todayIn(user.ward.timezone);
   const past = sp.show === "past";
-  const lessons = past ? pastLessons(user.ward_id, today) : upcomingLessons(user.ward_id, today);
+  // After 1 PM on Sunday, that day's lesson moves to "Past".
   const nextSunday = currentLessonDate(user.ward.timezone);
+  const lessons = past ? pastLessons(user.ward_id, nextSunday) : upcomingLessons(user.ward_id, nextSunday);
 
   return (
     <>

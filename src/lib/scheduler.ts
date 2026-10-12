@@ -89,17 +89,27 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   return wards.flatMap((w) => [...lessonReminders(w, now), ...eventReminders(w, now), ...todoReminders(w, now)]);
 }
 
-/** Nightly copy of the database into data/backups, keeping the last 14. */
+/**
+ * Nightly copy of the database (keeping the last 30) plus any uploaded PDFs.
+ * BACKUP_DIR points at a folder you can see on the host computer.
+ */
 export async function backupIfDue(now: DateTime = DateTime.local()) {
   if (now.hour < 2) return;
-  const day = now.toISODate()!;
-  const dir = path.join(DATA_DIR, "backups");
-  const file = path.join(dir, `app-${day}.db`);
+  const dir = process.env.BACKUP_DIR || path.join(DATA_DIR, "backups");
+  const file = path.join(dir, `app-${now.toISODate()}.db`);
   if (fs.existsSync(file)) return;
   fs.mkdirSync(dir, { recursive: true });
   await db().backup(file);
-  const old = fs.readdirSync(dir).filter((f) => /^app-\d{4}-\d{2}-\d{2}\.db$/.test(f)).sort().slice(0, -14);
+  const old = fs.readdirSync(dir).filter((f) => /^app-\d{4}-\d{2}-\d{2}\.db$/.test(f)).sort().slice(0, -30);
   for (const f of old) fs.rmSync(path.join(dir, f), { force: true });
+  const uploads = path.join(DATA_DIR, "uploads");
+  if (fs.existsSync(uploads)) {
+    fs.mkdirSync(path.join(dir, "uploads"), { recursive: true });
+    for (const f of fs.readdirSync(uploads)) {
+      const dest = path.join(dir, "uploads", f);
+      if (!fs.existsSync(dest)) fs.copyFileSync(path.join(uploads, f), dest);
+    }
+  }
   console.log(`[backup] wrote ${file}`);
 }
 

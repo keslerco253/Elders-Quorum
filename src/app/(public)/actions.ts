@@ -64,6 +64,9 @@ export async function requestAccess(formData: FormData) {
   if (findLoginMember(email)) redirect("/login?" + q({ error: "You already have access. Enter your email to sign in." }));
 
   const d = db();
+  // Simple guard against someone flooding the presidency with fake requests.
+  const recent = d.prepare("SELECT COUNT(*) AS n FROM members WHERE source = 'request' AND updated_at > datetime('now', '-1 hour')").get() as { n: number };
+  if (recent.n >= 10) redirect("/request-access?" + q({ email, error: "Too many requests right now. Please try again later or contact the presidency." }));
   const existing = d.prepare("SELECT * FROM members WHERE lower(email) = ? AND ward_id = ?").get(email, wardId) as Member | undefined;
   if (existing) {
     d.prepare("UPDATE members SET status = 'pending', request_note = ?, phone = coalesce(nullif(?, ''), phone), updated_at = datetime('now') WHERE id = ?").run(note, phone, existing.id);
