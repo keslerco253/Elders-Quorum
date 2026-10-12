@@ -13,7 +13,7 @@ function go(text: string): never {
 
 export async function saveTodo(fd: FormData) {
   const user = await requirePresidency();
-  const id = Number(fd.get("id")) || null;
+  const id = Number(fd.get("item_id")) || null;
   const title = String(fd.get("title") || "").trim().slice(0, 200);
   const notes = String(fd.get("notes") || "").trim().slice(0, 2000);
   const due = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("due_date"))) ? String(fd.get("due_date")) : null;
@@ -41,14 +41,14 @@ export async function saveTodo(fd: FormData) {
 export async function toggleTodo(fd: FormData) {
   const user = await requirePresidency();
   const done = fd.get("done") === "1" ? 1 : 0;
-  db().prepare("UPDATE todos SET done = ?, done_at = CASE WHEN ? = 1 THEN datetime('now') ELSE NULL END WHERE id = ? AND ward_id = ?").run(done, done, Number(fd.get("id")), user.ward_id);
+  db().prepare("UPDATE todos SET done = ?, done_at = CASE WHEN ? = 1 THEN datetime('now') ELSE NULL END WHERE id = ? AND ward_id = ?").run(done, done, Number(fd.get("item_id")), user.ward_id);
   revalidatePath("/admin/todos");
   redirect("/admin/todos");
 }
 
 export async function deleteTodo(fd: FormData) {
   const user = await requirePresidency();
-  db().prepare("DELETE FROM todos WHERE id = ? AND ward_id = ?").run(Number(fd.get("id")), user.ward_id);
+  db().prepare("DELETE FROM todos WHERE id = ? AND ward_id = ?").run(Number(fd.get("item_id")), user.ward_id);
   revalidatePath("/admin/todos");
   go("Assignment deleted.");
 }

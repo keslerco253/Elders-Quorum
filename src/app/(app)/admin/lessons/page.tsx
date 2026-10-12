@@ -46,7 +46,7 @@ export default async function AdminLessonsPage({ searchParams }: { searchParams:
         <form action={fillTalks} className="card space-y-3">
           <h2 className="h2">2. Paste talk links</h2>
           <p className="text-sm text-muted">
-            First mark General and Stake Conference Sundays (step 3). Then paste Gospel Library talk links in order, one per line. They fill the open Sundays in date order, and titles and speakers are looked up automatically.
+            Paste Gospel Library talk links in order, one per line. They fill the open Sundays in date order, and titles and speakers are looked up automatically. Tip: first mark General and Stake Conference Sundays (tap a Sunday below) so they&apos;re skipped.
           </p>
           <textarea name="urls" rows={4} className="input font-mono text-xs" placeholder="https://www.churchofjesuschrist.org/study/general-conference/…" />
           <div>
@@ -59,7 +59,8 @@ export default async function AdminLessonsPage({ searchParams }: { searchParams:
         </form>
       </div>
 
-      <h2 className="h2 mb-2">3. Review each Sunday</h2>
+      <h2 className="h2 mb-2">Each Sunday</h2>
+      <p className="mb-2 text-sm text-muted">Tap a Sunday to change the talk, mark a conference, or assign a teacher.</p>
       {lessons.length === 0 ? (
         <Empty>No upcoming lessons yet. Start with step 1.</Empty>
       ) : (

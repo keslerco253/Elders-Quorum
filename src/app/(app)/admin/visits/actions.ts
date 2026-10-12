@@ -13,7 +13,7 @@ function go(path: string, text: string): never {
 
 export async function saveVisit(fd: FormData) {
   const user = await requirePresidency();
-  const id = Number(fd.get("id")) || null;
+  const id = Number(fd.get("item_id")) || null;
   const memberId = Number(fd.get("member_id"));
   const date = String(fd.get("date") || "");
   const type = String(fd.get("type") || "");
@@ -53,14 +53,14 @@ export async function saveVisit(fd: FormData) {
 
 export async function deleteVisit(fd: FormData) {
   const user = await requirePresidency();
-  db().prepare("DELETE FROM visits WHERE id = ? AND ward_id = ?").run(Number(fd.get("id")), user.ward_id);
+  db().prepare("DELETE FROM visits WHERE id = ? AND ward_id = ?").run(Number(fd.get("item_id")), user.ward_id);
   revalidatePath("/admin/visits", "layout");
   go("/admin/visits", "Visit deleted.");
 }
 
 export async function markFollowUpDone(fd: FormData) {
   const user = await requirePresidency();
-  db().prepare("UPDATE visits SET follow_up_done = 1 WHERE id = ? AND ward_id = ?").run(Number(fd.get("id")), user.ward_id);
+  db().prepare("UPDATE visits SET follow_up_done = 1 WHERE id = ? AND ward_id = ?").run(Number(fd.get("item_id")), user.ward_id);
   revalidatePath("/admin/visits", "layout");
   go("/admin/visits?view=followups", "Follow-up marked done.");
 }

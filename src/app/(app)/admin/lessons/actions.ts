@@ -61,7 +61,7 @@ export async function fillTalks(fd: FormData) {
 
 export async function saveLesson(fd: FormData) {
   const user = await requireAdmin();
-  const lesson = getLesson(user.ward_id, Number(fd.get("id")));
+  const lesson = getLesson(user.ward_id, Number(fd.get("item_id")));
   if (!lesson) redirect("/admin/lessons");
   const kind = KINDS.includes(fd.get("kind") as LessonKind) ? (fd.get("kind") as LessonKind) : "talk";
   const url = String(fd.get("url") || "").trim();
@@ -105,7 +105,7 @@ export async function assignTeacher(fd: FormData) {
 
 export async function deleteLesson(fd: FormData) {
   const user = await requireAdmin();
-  db().prepare("DELETE FROM lessons WHERE id = ? AND ward_id = ?").run(Number(fd.get("id")), user.ward_id);
+  db().prepare("DELETE FROM lessons WHERE id = ? AND ward_id = ?").run(Number(fd.get("item_id")), user.ward_id);
   refresh();
   go("/admin/lessons", "Lesson deleted.");
 }

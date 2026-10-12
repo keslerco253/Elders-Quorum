@@ -10,10 +10,12 @@ export function SubmitButton({ children, className = "btn-primary", pendingText,
       type="submit"
       name={name}
       value={value}
-      className={className}
-      disabled={pending}
+      // Not `disabled`: React marks the form pending during the click, and a
+      // disabled button's name/value would be left out of the submitted form.
+      aria-disabled={pending}
+      className={`${className} ${pending ? "pointer-events-none opacity-60" : ""}`}
       onClick={(e) => {
-        if (confirm && !window.confirm(confirm)) e.preventDefault();
+        if (pending || (confirm && !window.confirm(confirm))) e.preventDefault();
       }}
     >
       {pending ? (pendingText ?? "Saving…") : children}

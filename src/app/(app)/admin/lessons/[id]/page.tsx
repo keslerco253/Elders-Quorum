@@ -29,7 +29,7 @@ export default async function EditLessonPage({ params, searchParams }: { params:
       <Flash msg={sp.msg} />
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <form action={saveLesson} className="card space-y-4">
-          <input type="hidden" name="id" value={lesson.id} />
+          <input type="hidden" name="item_id" value={lesson.id} />
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="label" htmlFor="kind">
@@ -127,7 +127,7 @@ export default async function EditLessonPage({ params, searchParams }: { params:
             </div>
           )}
           <form action={deleteLesson} className="card">
-            <input type="hidden" name="id" value={lesson.id} />
+            <input type="hidden" name="item_id" value={lesson.id} />
             <SubmitButton className="btn-danger btn-sm" confirm="Delete this lesson and its comments?">
               Delete this Sunday
             </SubmitButton>

@@ -45,7 +45,7 @@ export async function createGroup(fd: FormData) {
 
 export async function saveGroup(fd: FormData) {
   const user = await requireAdmin();
-  const id = Number(fd.get("id"));
+  const id = Number(fd.get("item_id"));
   const g = db().prepare("SELECT id FROM groups WHERE id = ? AND ward_id = ?").get(id, user.ward_id);
   if (!g) redirect("/admin/groups");
   const name = String(fd.get("name") || "").trim();
@@ -63,7 +63,7 @@ export async function saveGroup(fd: FormData) {
 
 export async function deleteGroup(fd: FormData) {
   const user = await requireAdmin();
-  db().prepare("DELETE FROM groups WHERE id = ? AND ward_id = ?").run(Number(fd.get("id")), user.ward_id);
+  db().prepare("DELETE FROM groups WHERE id = ? AND ward_id = ?").run(Number(fd.get("item_id")), user.ward_id);
   revalidatePath("/admin/groups");
   go("/admin/groups", "Group deleted.");
 }

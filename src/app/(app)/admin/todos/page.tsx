@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, todayIn } from "@/lib/time";
@@ -36,7 +37,7 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
 
   const form = (t?: Todo) => (
     <form action={saveTodo} className="card space-y-3">
-      {t && <input type="hidden" name="id" value={t.id} />}
+      {t && <input type="hidden" name="item_id" value={t.id} />}
       <h2 className="h2">{t ? "Edit assignment" : "New assignment"}</h2>
       <input name="title" required maxLength={200} className="input" placeholder="What needs to be done?" defaultValue={t?.title} />
       <div className="grid gap-3 sm:grid-cols-2">
@@ -54,9 +55,9 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
       <div className="flex gap-2">
         <SubmitButton>{t ? "Save" : "Add"}</SubmitButton>
         {t && (
-          <a href="/admin/todos" className="btn-secondary">
+          <Link href="/admin/todos" className="btn-secondary">
             Cancel
-          </a>
+          </Link>
         )}
       </div>
       <p className="hint">The person assigned gets a notification and reminders the day before and the day it&apos;s due.</p>
@@ -68,7 +69,7 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
     return (
       <li key={t.id} className="flex items-start gap-3 px-4 py-3">
         <form action={toggleTodo}>
-          <input type="hidden" name="id" value={t.id} />
+          <input type="hidden" name="item_id" value={t.id} />
           <input type="hidden" name="done" value={t.done ? "0" : "1"} />
           <button aria-label={t.done ? "Mark not done" : "Mark done"} className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-md border-2 ${t.done ? "border-success bg-success text-white" : "border-border hover:border-accent"}`}>
             {t.done ? "✓" : ""}
@@ -83,11 +84,11 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
           {t.notes && <p className="mt-1 text-sm whitespace-pre-wrap text-muted">{t.notes}</p>}
         </div>
         <div className="flex gap-1">
-          <a href={`/admin/todos?edit=${t.id}`} className="btn-secondary btn-sm">
+          <Link href={`/admin/todos?edit=${t.id}`} className="btn-secondary btn-sm">
             Edit
-          </a>
+          </Link>
           <form action={deleteTodo}>
-            <input type="hidden" name="id" value={t.id} />
+            <input type="hidden" name="item_id" value={t.id} />
             <SubmitButton className="btn-secondary btn-sm" confirm="Delete this assignment?" pendingText="…">
               ✕
             </SubmitButton>
@@ -103,9 +104,9 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
         title="Presidency assignments"
         back={{ href: "/admin", label: "Admin" }}
         actions={
-          <a href={mineOnly ? "/admin/todos" : "/admin/todos?mine=1"} className="btn-secondary">
+          <Link href={mineOnly ? "/admin/todos" : "/admin/todos?mine=1"} className="btn-secondary">
             {mineOnly ? "Show everyone's" : "Only mine"}
-          </a>
+          </Link>
         }
       />
       <Flash msg={sp.msg} />

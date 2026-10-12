@@ -19,8 +19,10 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
   const today = DateTime.fromISO(todayIn(user.ward.timezone));
   const ago = (d: string | null) => {
     if (!d) return null;
-    const months = Math.floor(today.diff(DateTime.fromISO(d), "months").months);
-    return months < 1 ? "this month" : `${months} mo ago`;
+    const days = Math.round(today.diff(DateTime.fromISO(d), "days").days);
+    if (days < 1) return "today";
+    if (days < 60) return `${days} day${days === 1 ? "" : "s"} ago`;
+    return `${Math.floor(today.diff(DateTime.fromISO(d), "months").months)} months ago`;
   };
   const tab = (v: string, label: string) => (
     <Link href={`/admin/visits${v === "recent" ? "" : `?view=${v}`}`} className={`rounded-full px-3 py-1 text-sm font-medium ${view === v ? "bg-primary text-primary-text" : "bg-surface-2 text-muted"}`}>
@@ -98,7 +100,7 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
                   {v.notes && <p className="mt-2 text-sm whitespace-pre-wrap">{v.notes}</p>}
                   {!!v.follow_up && !v.follow_up_done && (
                     <form action={markFollowUpDone} className="mt-2">
-                      <input type="hidden" name="id" value={v.id} />
+                      <input type="hidden" name="item_id" value={v.id} />
                       <SubmitButton className="btn-secondary btn-sm">Mark follow-up done</SubmitButton>
                     </form>
                   )}

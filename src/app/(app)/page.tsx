@@ -5,7 +5,7 @@ import { adminCounts } from "@/lib/admin-counts";
 import { eventsBetween } from "@/lib/events";
 import { upcomingLessons } from "@/lib/lessons";
 import { listSignups } from "@/lib/signups";
-import { formatDate, formatDateTime, sundayOnOrAfter, todayIn } from "@/lib/time";
+import { currentLessonDate, formatDate, formatDateTime, todayIn } from "@/lib/time";
 import { Badge, Section } from "@/components/ui";
 import { conferenceLabel, DateChip } from "@/components/lesson-bits";
 import { QuickLinks } from "@/components/quick-links";
@@ -15,7 +15,7 @@ export default async function HomePage() {
   const user = await requireUser();
   const tz = user.ward.timezone;
   const today = todayIn(tz);
-  const lessons = upcomingLessons(user.ward_id, sundayOnOrAfter(today), 3);
+  const lessons = upcomingLessons(user.ward_id, currentLessonDate(tz), 3);
   const [next, ...later] = lessons;
   const now = DateTime.now();
   const events = eventsBetween(user, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!).slice(0, 4);
@@ -43,7 +43,7 @@ export default async function HomePage() {
       </div>
 
       <Section
-        title="This Sunday"
+        title={next && next.date === today ? "Today" : "This Sunday"}
         actions={
           <Link href="/lessons" className="link text-sm">
             All lessons

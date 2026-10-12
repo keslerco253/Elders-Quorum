@@ -42,7 +42,7 @@ export async function createMember(fd: FormData) {
 
 export async function updateMember(fd: FormData) {
   const user = await requireAdmin();
-  const id = Number(fd.get("id"));
+  const id = Number(fd.get("item_id"));
   const m = db().prepare("SELECT * FROM members WHERE id = ? AND ward_id = ?").get(id, user.ward_id) as Member | undefined;
   if (!m) redirect("/admin/members");
   const c = readContact(fd);
@@ -71,7 +71,7 @@ export async function updateMember(fd: FormData) {
 
 export async function decideAccess(fd: FormData) {
   const user = await requirePresidency();
-  const id = Number(fd.get("id"));
+  const id = Number(fd.get("item_id"));
   const approve = fd.get("decision") === "approve";
   const m = db().prepare("SELECT * FROM members WHERE id = ? AND ward_id = ? AND status = 'pending'").get(id, user.ward_id) as Member | undefined;
   if (!m) redirect("/admin/access");

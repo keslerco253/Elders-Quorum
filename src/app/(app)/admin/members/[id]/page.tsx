@@ -37,7 +37,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
       <Flash msg={sp.msg} />
       <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
         <form action={updateMember} className="card space-y-4">
-          <input type="hidden" name="id" value={m.id} />
+          <input type="hidden" name="item_id" value={m.id} />
           <ContactFields m={m} />
           {presidency && (
             <div className="grid gap-4 sm:grid-cols-2">

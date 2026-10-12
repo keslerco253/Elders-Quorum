@@ -61,7 +61,8 @@ export function PushToggle({ compact }: { compact?: boolean }) {
   }
 
   if (state === "loading") return null;
-  if (compact && (state === "on" || state === "unsupported")) return null;
+  // On the home screen only nudge people who can still turn notifications on.
+  if (compact && state !== "off" && state !== "ios-install") return null;
 
   const box = "rounded-xl border border-border bg-surface p-4 text-sm";
   if (state === "ios-install")

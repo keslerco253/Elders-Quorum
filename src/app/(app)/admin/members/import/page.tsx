@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { loadImport } from "@/lib/import-store";
 import { Badge, Flash, PageHeader } from "@/components/ui";
@@ -108,9 +109,9 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
           </div>
           <div className="flex gap-2">
             <SubmitButton pendingText="Importing…">Import</SubmitButton>
-            <a href="/admin/members/import" className="btn-secondary">
+            <Link href="/admin/members/import" className="btn-secondary">
               Start over
-            </a>
+            </Link>
           </div>
         </form>
       )}

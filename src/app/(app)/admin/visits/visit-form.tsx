@@ -5,7 +5,7 @@ import { saveVisit } from "./actions";
 export function VisitForm({ v, members, presidency, defaultMember, defaultVisitors, today }: { v?: VisitRow; members: { id: number; display_name: string }[]; presidency: { id: number; display_name: string }[]; defaultMember?: number; defaultVisitors: number[]; today: string }) {
   return (
     <form action={saveVisit} className="card max-w-2xl space-y-4">
-      {v && <input type="hidden" name="id" value={v.id} />}
+      {v && <input type="hidden" name="item_id" value={v.id} />}
       <div>
         <label className="label" htmlFor="member_id">
           Who was visited

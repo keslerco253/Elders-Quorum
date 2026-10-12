@@ -7,7 +7,7 @@ import { saveEvent } from "./actions";
 export function EventForm({ e, tz }: { e?: EventRow; tz: string }) {
   return (
     <form action={saveEvent} className="card max-w-2xl space-y-4">
-      {e && <input type="hidden" name="id" value={e.id} />}
+      {e && <input type="hidden" name="item_id" value={e.id} />}
       <div>
         <label className="label" htmlFor="title">
           Title

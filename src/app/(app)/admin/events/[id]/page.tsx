@@ -19,7 +19,7 @@ export default async function EditEventPage({ params, searchParams }: { params: 
       <Flash msg={sp.msg} />
       <EventForm e={e} tz={user.ward.timezone} />
       <form action={deleteEvent} className="mt-4">
-        <input type="hidden" name="id" value={e.id} />
+        <input type="hidden" name="item_id" value={e.id} />
         <SubmitButton className="btn-danger btn-sm" confirm="Delete this event?">
           Delete event
         </SubmitButton>

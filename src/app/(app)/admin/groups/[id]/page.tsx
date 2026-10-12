@@ -20,7 +20,7 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
       <PageHeader title={g.name} back={{ href: "/admin/groups", label: "Groups" }} />
       <Flash msg={sp.msg} />
       <form action={saveGroup} className="card space-y-4">
-        <input type="hidden" name="id" value={g.id} />
+        <input type="hidden" name="item_id" value={g.id} />
         <div>
           <label className="label" htmlFor="name">
             Group name
@@ -41,7 +41,7 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
         <SubmitButton>Save group</SubmitButton>
       </form>
       <form action={deleteGroup} className="mt-4">
-        <input type="hidden" name="id" value={g.id} />
+        <input type="hidden" name="item_id" value={g.id} />
         <SubmitButton className="btn-danger btn-sm" confirm="Delete this group?">
           Delete group
         </SubmitButton>

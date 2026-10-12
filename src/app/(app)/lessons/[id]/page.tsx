@@ -36,7 +36,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
       <div className="mt-1 flex gap-3">
         {c.member_id === user.id && (
           <form action={deleteOwnComment}>
-            <input type="hidden" name="id" value={c.id} />
+            <input type="hidden" name="item_id" value={c.id} />
             <SubmitButton className="text-xs text-muted hover:text-danger" pendingText="Deleting…" confirm="Delete your comment?">
               Delete
             </SubmitButton>
@@ -44,7 +44,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
         )}
         {admin && c.member_id !== user.id && c.status === "approved" && (
           <form action={moderateComment}>
-            <input type="hidden" name="id" value={c.id} />
+            <input type="hidden" name="item_id" value={c.id} />
             <input type="hidden" name="return" value={`/lessons/${lesson.id}#comments`} />
             <SubmitButton name="decision" value="reject" className="text-xs text-muted hover:text-danger" pendingText="Hiding…" confirm="Hide this comment from everyone?">
               Hide

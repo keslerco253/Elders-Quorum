@@ -42,7 +42,7 @@ export default async function EventRequestsPage({ searchParams }: { searchParams
               <div className="text-sm text-muted">Requested by {r.display_name}</div>
               {r.description && <p className="mt-2 text-sm whitespace-pre-wrap">{r.description}</p>}
               <form action={decideEventRequest} className="mt-3 space-y-2">
-                <input type="hidden" name="id" value={r.id} />
+                <input type="hidden" name="item_id" value={r.id} />
                 <input name="note" className="input" placeholder="Optional note to the member" />
                 <div className="flex gap-2">
                   <SubmitButton name="decision" value="approve" className="btn-primary btn-sm">

@@ -27,7 +27,7 @@ export default async function EditVisitPage({ params, searchParams }: { params: 
       <Flash msg={sp.msg} tone="danger" />
       <VisitForm v={v} members={members} presidency={presidency} defaultVisitors={visitors} today={todayIn(user.ward.timezone)} />
       <form action={deleteVisit} className="mt-4">
-        <input type="hidden" name="id" value={v.id} />
+        <input type="hidden" name="item_id" value={v.id} />
         <SubmitButton className="btn-danger btn-sm" confirm="Delete this visit record?">
           Delete visit
         </SubmitButton>

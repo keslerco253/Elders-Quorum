@@ -5,7 +5,7 @@ import { saveSignup } from "./actions";
 export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
   return (
     <form action={saveSignup} className="card max-w-2xl space-y-4">
-      {s && <input type="hidden" name="id" value={s.id} />}
+      {s && <input type="hidden" name="item_id" value={s.id} />}
       <div>
         <label className="label" htmlFor="title">
           Title

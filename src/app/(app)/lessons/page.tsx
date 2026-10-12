@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { pastLessons, upcomingLessons } from "@/lib/lessons";
-import { sundayOnOrAfter, todayIn } from "@/lib/time";
+import { currentLessonDate, todayIn } from "@/lib/time";
 import { isAdmin } from "@/lib/permissions";
 import { Badge, Empty, PageHeader } from "@/components/ui";
 import { conferenceLabel, DateChip } from "@/components/lesson-bits";
@@ -14,7 +14,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
   const today = todayIn(user.ward.timezone);
   const past = sp.show === "past";
   const lessons = past ? pastLessons(user.ward_id, today) : upcomingLessons(user.ward_id, today);
-  const nextSunday = sundayOnOrAfter(today);
+  const nextSunday = currentLessonDate(user.ward.timezone);
 
   return (
     <>
@@ -49,7 +49,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
                 <Link href={`/lessons/${l.id}`} className={`flex items-center gap-3 rounded-xl border bg-surface p-3 hover:bg-surface-2 ${isNext ? "border-primary/50" : "border-border"}`}>
                   <DateChip date={l.date} highlight={isNext} />
                   <div className="min-w-0 flex-1">
-                    {isNext && <div className="text-xs font-semibold uppercase tracking-wide text-accent">This Sunday</div>}
+                    {isNext && <div className="text-xs font-semibold uppercase tracking-wide text-accent">{l.date === today ? "Today" : "This Sunday"}</div>}
                     {conf ? (
                       <div className="font-semibold">{conf}</div>
                     ) : (

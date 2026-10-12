@@ -28,7 +28,7 @@ export default async function AccessPage({ searchParams }: { searchParams: Promi
               </div>
               {m.request_note && <p className="mt-2 rounded-lg bg-surface-2 p-3 text-sm">{m.request_note}</p>}
               <form action={decideAccess} className="mt-3 flex gap-2">
-                <input type="hidden" name="id" value={m.id} />
+                <input type="hidden" name="item_id" value={m.id} />
                 <SubmitButton name="decision" value="approve">
                   Approve
                 </SubmitButton>

@@ -29,7 +29,7 @@ function readEvent(fd: FormData, tz: string) {
 
 export async function saveEvent(fd: FormData) {
   const user = await requireAdmin();
-  const id = Number(fd.get("id")) || null;
+  const id = Number(fd.get("item_id")) || null;
   const e = readEvent(fd, user.ward.timezone);
   const back = id ? `/admin/events/${id}` : "/admin/events/new";
   if (!e.title || !e.start || !e.end) go(back, "Please give a title, start and end.");
@@ -52,7 +52,7 @@ export async function saveEvent(fd: FormData) {
 
 export async function deleteEvent(fd: FormData) {
   const user = await requireAdmin();
-  db().prepare("DELETE FROM events WHERE id = ? AND ward_id = ?").run(Number(fd.get("id")), user.ward_id);
+  db().prepare("DELETE FROM events WHERE id = ? AND ward_id = ?").run(Number(fd.get("item_id")), user.ward_id);
   revalidatePath("/calendar", "layout");
   go("/calendar", "Event deleted.");
 }
@@ -71,7 +71,7 @@ interface RequestRow {
 
 export async function decideEventRequest(fd: FormData) {
   const user = await requireAdmin();
-  const id = Number(fd.get("id"));
+  const id = Number(fd.get("item_id"));
   const approve = fd.get("decision") === "approve";
   const note = String(fd.get("note") || "").trim();
   const r = db()

@@ -19,7 +19,7 @@ export default async function EditSignupPage({ params, searchParams }: { params:
       <Flash msg={sp.msg} tone="danger" />
       <SignupForm s={s} />
       <form action={deleteSignup} className="mt-4">
-        <input type="hidden" name="id" value={s.id} />
+        <input type="hidden" name="item_id" value={s.id} />
         <SubmitButton className="btn-danger btn-sm" confirm="Delete this sign-up and everyone's spots?">
           Delete sign-up
         </SubmitButton>

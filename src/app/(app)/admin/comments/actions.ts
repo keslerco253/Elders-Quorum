@@ -12,7 +12,7 @@ function safeReturn(v: FormDataEntryValue | null) {
 
 export async function moderateComment(fd: FormData) {
   const user = await requireAdmin();
-  const id = Number(fd.get("id"));
+  const id = Number(fd.get("item_id"));
   const status = fd.get("decision") === "approve" ? "approved" : "rejected";
   db()
     .prepare(

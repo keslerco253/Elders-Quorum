@@ -75,7 +75,7 @@ export default async function CommentsPage({ searchParams }: { searchParams: Pro
               <div className="mt-2 font-semibold">{c.author}</div>
               <p className="mt-1 whitespace-pre-wrap">{c.body}</p>
               <form action={moderateComment} className="mt-3 flex gap-2">
-                <input type="hidden" name="id" value={c.id} />
+                <input type="hidden" name="item_id" value={c.id} />
                 <SubmitButton name="decision" value="approve" className="btn-primary btn-sm">
                   Approve
                 </SubmitButton>

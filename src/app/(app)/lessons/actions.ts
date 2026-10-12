@@ -54,7 +54,7 @@ export async function addComment(fd: FormData) {
 
 export async function deleteOwnComment(fd: FormData) {
   const user = await requireUser();
-  const id = Number(fd.get("id"));
+  const id = Number(fd.get("item_id"));
   const c = db().prepare("SELECT lesson_id FROM comments WHERE id = ? AND member_id = ?").get(id, user.id) as { lesson_id: number } | undefined;
   if (!c) redirect("/lessons");
   db().prepare("DELETE FROM comments WHERE id = ?").run(id);

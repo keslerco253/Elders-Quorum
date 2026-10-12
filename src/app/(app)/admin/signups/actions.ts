@@ -13,7 +13,7 @@ function go(path: string, text: string): never {
 
 export async function saveSignup(fd: FormData) {
   const user = await requireAdmin();
-  const id = Number(fd.get("id")) || null;
+  const id = Number(fd.get("item_id")) || null;
   const title = String(fd.get("title") || "").trim();
   const description = String(fd.get("description") || "").trim();
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("date"))) ? String(fd.get("date")) : null;
@@ -54,7 +54,7 @@ export async function saveSignup(fd: FormData) {
 
 export async function deleteSignup(fd: FormData) {
   const user = await requireAdmin();
-  db().prepare("DELETE FROM signups WHERE id = ? AND ward_id = ?").run(Number(fd.get("id")), user.ward_id);
+  db().prepare("DELETE FROM signups WHERE id = ? AND ward_id = ?").run(Number(fd.get("item_id")), user.ward_id);
   revalidatePath("/signups", "layout");
   go("/signups", "Sign-up deleted.");
 }
