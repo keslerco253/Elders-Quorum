@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { parseContact, type ContactPref } from "@/lib/contact";
 import { confirmContactVerification, startContactVerification } from "@/lib/contact-verify";
-import { phoneEnabled } from "@/lib/sms";
+import { phoneEnabled, phoneOptInVisible } from "@/lib/sms";
 
 function go(text: string, extra = ""): never {
   redirect(`/more/contact?msg=${encodeURIComponent(text)}${extra}`);
@@ -63,12 +63,12 @@ export async function setDelivery(fd: FormData) {
   const user = await requireUser();
   const pref = String(fd.get("pref") || user.contact_pref) as ContactPref;
   const allowed: ContactPref[] = ["none"];
-  if (user.phone && phoneEnabled()) allowed.push("text");
+  if (user.phone && phoneOptInVisible()) allowed.push("text");
   if (user.email) allowed.push("email");
-  if (user.phone && user.email && phoneEnabled()) allowed.push("both");
+  if (user.phone && user.email && phoneOptInVisible()) allowed.push("both");
   if (!allowed.includes(pref)) go("Choose one of the options shown.");
   const alwaysEmail = fd.get("always_email") === "on" && !!user.email ? 1 : 0;
-  const alwaysText = fd.get("always_text") === "on" && !!user.phone && phoneEnabled() ? 1 : 0;
+  const alwaysText = fd.get("always_text") === "on" && !!user.phone && phoneOptInVisible() ? 1 : 0;
   // Choosing any texts here (where the disclosure is shown) is their consent.
   const consent = alwaysText === 1 || pref === "text" || pref === "both";
   db()

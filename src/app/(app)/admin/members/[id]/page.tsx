@@ -11,7 +11,7 @@ import { CALLING_LABELS, ROLE_LABELS, type Member } from "@/lib/types";
 import { formatPhone } from "@/lib/contact";
 import { emailInvite, removeMember, updateMember } from "../actions";
 import { inviteLink, inviteText } from "@/lib/invite";
-import { phoneEnabled } from "@/lib/sms";
+import { phoneEnabled, phoneOptInVisible } from "@/lib/sms";
 import { CopyButton } from "@/components/copy-button";
 
 export const metadata = { title: "Member" };
@@ -96,7 +96,9 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             <p className="hint -mt-2">
               {m.sms_consent_at
                 ? `Agreed to quorum texts ${formatDateTime(m.sms_consent_at, user.ward.timezone, "LLL d, yyyy")}.`
-                : "Hasn't agreed to quorum texts, so the app only texts them sign-in codes they ask for. They can agree at first sign-in or under More → Contact & notifications."}
+                : phoneOptInVisible()
+                  ? "Hasn't agreed to quorum texts, so the app only texts them sign-in codes they ask for. They can agree at first sign-in or under More → Contact & notifications (by choosing Text)."
+                  : "Hasn't agreed to quorum texts. Texting isn't set up yet."}
             </p>
           )}
           <p className="hint -mt-2">

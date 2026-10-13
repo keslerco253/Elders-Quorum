@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { formatPhone } from "@/lib/contact";
-import { phoneEnabled, SMS_DISCLOSURE } from "@/lib/sms";
+import { phoneOptInVisible, SMS_DISCLOSURE } from "@/lib/sms";
 import { Flash } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { acceptWelcome } from "./actions";
@@ -14,7 +14,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
   if (!user) redirect("/login");
   if (user.welcomed_at) redirect("/");
   const sp = await searchParams;
-  const canText = !!user.phone && phoneEnabled();
+  const canText = !!user.phone && phoneOptInVisible();
   const options: [string, string][] = [
     ...(canText ? ([["text", `Text me at ${formatPhone(user.phone)}`]] as [string, string][]) : []),
     ...(user.email ? ([["email", `Email me at ${user.email}`]] as [string, string][]) : []),

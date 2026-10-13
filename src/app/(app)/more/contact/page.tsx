@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { formatContact, formatPhone } from "@/lib/contact";
 import { pendingVerification } from "@/lib/contact-verify";
-import { phoneEnabled, SMS_DISCLOSURE } from "@/lib/sms";
+import { phoneEnabled, phoneOptInVisible, SMS_DISCLOSURE } from "@/lib/sms";
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { addContact, confirmContact, removeContact, setDelivery } from "./actions";
@@ -14,10 +14,12 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const verifying = sp.verify ? pendingVerification(user.id, Number(sp.verify)) : undefined;
   const textingOn = phoneEnabled();
+  // While carriers review the quorum's texting registration, members can already opt in.
+  const canChooseText = phoneOptInVisible();
   const prefOptions: [string, string][] = [
-    ...(user.phone && textingOn ? ([["text", "Text"]] as [string, string][]) : []),
+    ...(user.phone && canChooseText ? ([["text", "Text"]] as [string, string][]) : []),
     ...(user.email ? ([["email", "Email"]] as [string, string][]) : []),
-    ...(user.phone && user.email && textingOn ? ([["both", "Both"]] as [string, string][]) : []),
+    ...(user.phone && user.email && canChooseText ? ([["both", "Both"]] as [string, string][]) : []),
     ["none", "Nothing"],
   ];
 
@@ -93,7 +95,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
               <input type="checkbox" name="always_email" defaultChecked={!!user.always_email} disabled={!user.email} />
               Email{user.email ? ` to ${user.email}` : ": add an email above first"}
             </label>
-            {textingOn && (
+            {canChooseText && (
               <label className={`flex items-center gap-2 text-sm ${user.phone ? "" : "opacity-50"}`}>
                 <input type="checkbox" name="always_text" defaultChecked={!!user.always_text && !!user.sms_consent_at} disabled={!user.phone} />
                 Text{user.phone ? ` to ${formatPhone(user.phone)}` : ": add a mobile number above first"}
@@ -114,7 +116,10 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             </div>
           </div>
           <SubmitButton className="btn-primary btn-sm">Save</SubmitButton>
-          {user.phone && textingOn && (
+          {user.phone && canChooseText && !textingOn && (
+            <p className="rounded-lg bg-accent-soft px-3 py-2 text-xs text-accent">Texting starts once the phone carriers approve the quorum&apos;s number. You can choose it now; until then you&apos;ll get email instead.</p>
+          )}
+          {user.phone && canChooseText && (
             <p className="hint">
               Choosing to get texts means you agree to receive reminders and quorum messages by text from the quorum&apos;s number. {SMS_DISCLOSURE}
             </p>
