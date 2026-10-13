@@ -10,10 +10,12 @@ export async function sendLoginCode(member: Member, via: ContactKind, token: str
   const ward = getWard(member.ward_id);
   const appName = ward?.name ?? "Elders Quorum";
   if (via === "phone" && member.phone) {
-    // Their first text doubles as the opt-in confirmation, with the full disclosure.
-    const body = member.last_login_at
-      ? `${code} is your ${appName} sign-in code. It expires in 20 minutes. Reply STOP to opt out.`
-      : `${appName}: ${code} is your sign-in code (expires in 20 minutes). You're signed up for quorum texts. ${SMS_DISCLOSURE}`;
+    // After joining with a phone number, the first text confirms the opt-in with the full disclosure.
+    // Someone the presidency added hasn't agreed to texts yet, so they just get the code they asked for.
+    const body =
+      member.sms_consent_at && !member.last_login_at
+        ? `${appName}: ${code} is your sign-in code (expires in 20 minutes). You're signed up for quorum texts. ${SMS_DISCLOSURE}`
+        : `${code} is your ${appName} sign-in code. It expires in 20 minutes. Reply STOP to opt out.`;
     const res = await sendSms(member.ward_id, member.phone, body, "code");
     return res === "sent";
   }
@@ -36,7 +38,7 @@ export async function sendAccountNotice(member: Member, subject: string, text: s
   if (member.email) {
     return sendMail({ to: member.email, subject, text: `${text}\n\n${link.url}`, html: emailHtml(subject, text, link) });
   }
-  if (member.phone) {
+  if (member.phone && member.sms_consent_at) {
     const ward = getWard(member.ward_id);
     return (await sendSms(member.ward_id, member.phone, `${ward?.name ?? "Elders Quorum"}: ${text.replace(/\s+/g, " ").replace(/^Hi [^,]+, /, "")} ${link.url}`, "code")) === "sent";
   }

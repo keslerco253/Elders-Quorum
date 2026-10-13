@@ -1,4 +1,5 @@
 import { requirePresidency } from "@/lib/auth";
+import { firstName } from "@/lib/names";
 import { formatPhone } from "@/lib/contact";
 import { formatDateTime } from "@/lib/time";
 import { REQUEST_KINDS, REQUEST_STATUS, wardVisitRequests } from "@/lib/visit-requests";
@@ -60,7 +61,7 @@ export default async function VisitRequestsPage({ searchParams }: { searchParams
               <form action={replyToVisitRequest} className="space-y-2 border-t border-border pt-3">
                 <input type="hidden" name="item_id" value={r.id} />
                 <label className="label" htmlFor={`reply-${r.id}`}>
-                  Reply to {r.member_name.split(" ")[0]}
+                  Reply to {firstName(r.member_name)}
                 </label>
                 <input id={`reply-${r.id}`} name="reply" maxLength={500} className="input" placeholder="e.g. Brother Smith and I can come Tuesday at 7 PM. Does that work?" />
                 <SubmitButton className="btn-primary btn-sm" pendingText="Sending…">

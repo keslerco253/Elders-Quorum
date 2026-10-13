@@ -39,6 +39,8 @@ export async function confirmContact(fd: FormData) {
   const pref: ContactPref = hadOther ? "email" : confirmed.kind === "phone" ? "text" : "email";
   try {
     db().prepare(`UPDATE members SET ${confirmed.kind} = ?, contact_pref = ?, updated_at = datetime('now') WHERE id = ?`).run(confirmed.value, pref, user.id);
+    // Adding and confirming their own number (with the disclosure in the code text) is their consent to texts.
+    if (confirmed.kind === "phone") db().prepare("UPDATE members SET sms_consent_at = datetime('now') WHERE id = ?").run(user.id);
   } catch {
     go("That number is already used by another account.");
   }
@@ -52,7 +54,7 @@ export async function removeContact(fd: FormData) {
   const other = kind === "phone" ? user.email : user.phone;
   if (!other) go("You need at least one way to sign in, so this one can't be removed.");
   const pref: ContactPref = user.contact_pref === "none" ? "none" : kind === "phone" ? "email" : "text";
-  db().prepare(`UPDATE members SET ${kind} = NULL, contact_pref = ?, updated_at = datetime('now') WHERE id = ?`).run(pref, user.id);
+  db().prepare(`UPDATE members SET ${kind} = NULL, contact_pref = ?, ${kind === "phone" ? "sms_consent_at = NULL, " : ""}updated_at = datetime('now') WHERE id = ?`).run(pref, user.id);
   revalidatePath("/more");
   go(kind === "phone" ? "Phone number removed." : "Email removed.", "&ok=1");
 }
@@ -65,7 +67,11 @@ export async function setContactPref(fd: FormData) {
   if (user.email) allowed.push("email");
   if (user.phone && user.email) allowed.push("both");
   if (!allowed.includes(pref)) go("Choose one of the options shown.");
-  db().prepare("UPDATE members SET contact_pref = ?, updated_at = datetime('now') WHERE id = ?").run(pref, user.id);
+  // Choosing texts here (where the disclosure is shown) is their consent.
+  const consent = pref === "text" || pref === "both";
+  db()
+    .prepare(`UPDATE members SET contact_pref = ?, ${consent ? "sms_consent_at = coalesce(sms_consent_at, datetime('now')), " : ""}updated_at = datetime('now') WHERE id = ?`)
+    .run(pref, user.id);
   revalidatePath("/more/contact");
   go("Saved.", "&ok=1");
 }

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { firstName } from "@/lib/names";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { conversation, markRead } from "@/lib/conversations";
@@ -30,7 +31,7 @@ export default async function ConversationPage({ params, searchParams }: { param
         subtitle={[member.phone && formatPhone(member.phone), member.email].filter(Boolean).join(" · ") || undefined}
       />
       {thread.length === 0 ? (
-        <p className="mb-4 text-sm text-muted">No messages yet. Anything you send here goes to {member.display_name.split(" ")[0]} privately.</p>
+        <p className="mb-4 text-sm text-muted">No messages yet. Anything you send here goes to {firstName(member.display_name)} privately.</p>
       ) : (
         <ul className="mb-4 space-y-2">
           {thread.map((c) => (
@@ -52,7 +53,7 @@ export default async function ConversationPage({ params, searchParams }: { param
       <form action={answerMember} className="card space-y-3">
         <input type="hidden" name="member_id" value={member.id} />
         <label className="label" htmlFor="body">
-          Reply to {member.display_name.split(" ")[0]}
+          Reply to {firstName(member.display_name)}
         </label>
         <textarea id="body" name="body" rows={3} maxLength={1000} required className="input" />
         <div className="flex flex-wrap items-center justify-between gap-2">

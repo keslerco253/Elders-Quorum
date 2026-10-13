@@ -58,7 +58,7 @@ list.
 
 ## Members joining
 
-The app never uses Church records. Members join themselves:
+The app never uses Church records. Members join themselves, or the presidency adds them by hand:
 
 - **With the join code** (Admin → Settings → Join code): they're in right away.
   Announce the code in quorum meeting; make a new one if it gets shared
@@ -66,6 +66,14 @@ The app never uses Church records. Members join themselves:
 - **Without a code:** their request appears in **Admin → Access requests** for
   the presidency to approve. Declined requests are deleted. Part-member family
   members can be approved at the presidency's discretion.
+- **Added by the presidency:** on **Admin → Members → Add a member**, enter
+  their name and a mobile number or email. For an email, the app can send them
+  an invite. For a phone number, tap **Text invite** to send one from **your
+  own phone**: the app never texts a number you typed in until that person
+  agrees to texts themselves (carrier rules). The first time they sign in, a
+  welcome screen has them confirm their name, agree to what the app keeps, and
+  choose whether to get texts. Members marked **No texts** get only the sign-in
+  codes they ask for.
 - **Admin → Members** lists everyone who joined (name and email only). Open a
   person to change their **Access level**, turn off their access, or delete
   their account.

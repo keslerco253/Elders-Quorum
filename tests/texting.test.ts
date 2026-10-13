@@ -18,9 +18,10 @@ describe("texting", () => {
     const d = dbm.useTestDb();
     d.exec(`
       INSERT INTO wards (id, name, sms_monthly_limit) VALUES (1, 'Test Ward EQ', 1);
-      INSERT INTO members (id, ward_id, name, display_name, email, phone, contact_pref) VALUES
-        (1, 1, 'Both', 'Both Person', 'both@test.local', '+12085550101', 'text'),
-        (2, 1, 'Phone', 'Phone Only', NULL, '+12085550102', 'text');
+      INSERT INTO members (id, ward_id, name, display_name, email, phone, contact_pref, sms_consent_at) VALUES
+        (1, 1, 'Both', 'Both Person', 'both@test.local', '+12085550101', 'text', datetime('now')),
+        (2, 1, 'Phone', 'Phone Only', NULL, '+12085550102', 'text', datetime('now')),
+        (3, 1, 'Added', 'Added By Presidency', 'added@test.local', '+12085550103', 'text', NULL);
     `);
     ({ notify, recipientById } = await import("@/lib/notify"));
     ({ textsThisMonth } = await import("@/lib/sms"));
@@ -40,5 +41,12 @@ describe("texting", () => {
     const body = fs.readFileSync(path.join(dir, "outbox", sms[0]), "utf8");
     expect(body).toContain("Test Ward EQ: Reminder. Lesson Sunday");
     expect(body).toContain("/lessons/1");
+  });
+
+  it("never texts someone who hasn't agreed to texts", async () => {
+    const before = fs.readdirSync(path.join(dir, "outbox")).filter((f) => f.includes("sms-")).length;
+    const r = await notify([recipientById(3)!], { title: "Hello", body: "Welcome", url: "/" });
+    expect(r).toEqual({ push: 0, email: 1, text: 0 });
+    expect(fs.readdirSync(path.join(dir, "outbox")).filter((f) => f.includes("sms-")).length).toBe(before);
   });
 });

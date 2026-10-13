@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { firstName } from "@/lib/names";
 import { DateTime } from "luxon";
 import { requireUser } from "@/lib/auth";
 import { adminCounts } from "@/lib/admin-counts";
@@ -25,7 +26,7 @@ export default async function HomePage() {
   const pending = adminCounts(user).total;
   const hour = DateTime.now().setZone(tz).hour;
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const first = user.display_name.split(" ")[0];
+  const first = firstName(user.display_name);
 
   return (
     <>

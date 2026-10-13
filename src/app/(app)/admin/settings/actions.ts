@@ -95,6 +95,7 @@ export async function saveTextLimit(fd: FormData) {
 export async function sendTestText() {
   const user = await requirePresidency();
   if (!user.phone) go("Add your mobile number under More → My contact info first.");
+  if (!user.sms_consent_at) go("Choose Text or Both under More → My contact info first, so the app may text you.");
   const res = await sendSms(user.ward_id, user.phone, `${user.ward.name}: test text. Texting from the app is working.`, "notice");
   go(res === "sent" ? `Test text sent to ${formatPhone(user.phone)}.` : "The text didn't send. Check the TWILIO_ settings in your .env file.");
 }

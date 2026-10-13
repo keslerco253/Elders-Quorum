@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { formatContact, formatPhone } from "@/lib/contact";
 import { pendingVerification } from "@/lib/contact-verify";
-import { phoneEnabled } from "@/lib/sms";
+import { phoneEnabled, SMS_DISCLOSURE } from "@/lib/sms";
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { addContact, confirmContact, removeContact, setContactPref } from "./actions";
@@ -49,6 +49,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           <SubmitButton className="btn-primary btn-sm" pendingText="Sending…">
             Send code
           </SubmitButton>
+          {kind === "phone" && <p className="hint w-full">Adding your number means you agree to receive quorum texts. {SMS_DISCLOSURE}</p>}
         </form>
       )}
     </div>
@@ -90,7 +91,11 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             ))}
           </div>
           <SubmitButton className="btn-primary btn-sm">Save</SubmitButton>
-          {user.phone && <p className="hint">Texts come from the quorum&apos;s number. Reply STOP anytime to stop them.</p>}
+          {user.phone && (
+            <p className="hint">
+              Choosing Text or Both means you agree to receive reminders and quorum messages by text from the quorum&apos;s number. {SMS_DISCLOSURE}
+            </p>
+          )}
         </form>
       </Section>
     </>

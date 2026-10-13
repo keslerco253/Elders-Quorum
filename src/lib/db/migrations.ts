@@ -372,4 +372,17 @@ ALTER TABLE sms_log_new RENAME TO sms_log;
 CREATE INDEX sms_log_ward_time ON sms_log(ward_id, sent_at);
 `,
   },
+  {
+    // The presidency can add members by name and phone or email. Texts other than
+    // sign-in codes need the member's own consent, given when they join or on the
+    // welcome screen at their first sign-in.
+    id: 7,
+    sql: `
+ALTER TABLE members ADD COLUMN sms_consent_at TEXT;
+ALTER TABLE members ADD COLUMN welcomed_at TEXT;
+-- Everyone so far joined themselves (agreeing on the join form) or has signed in.
+UPDATE members SET welcomed_at = datetime('now') WHERE source IN ('request','setup') OR last_login_at IS NOT NULL;
+UPDATE members SET sms_consent_at = updated_at WHERE phone IS NOT NULL AND (source IN ('request','setup') OR last_login_at IS NOT NULL);
+`,
+  },
 ];

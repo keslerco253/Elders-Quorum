@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { firstName } from "@/lib/names";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -8,7 +9,10 @@ import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { ROLE_LABELS, type Member } from "@/lib/types";
 import { formatPhone } from "@/lib/contact";
-import { removeMember, updateMember } from "../actions";
+import { emailInvite, removeMember, updateMember } from "../actions";
+import { inviteLink, inviteText } from "@/lib/invite";
+import { phoneEnabled } from "@/lib/sms";
+import { CopyButton } from "@/components/copy-button";
 
 export const metadata = { title: "Member" };
 
@@ -35,6 +39,34 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
         }
       />
       <Flash msg={sp.msg} />
+      {presidency && !m.welcomed_at && m.status === "active" && (
+        <div className="card mb-5 space-y-3 text-sm">
+          <div className="font-semibold">Invite {firstName(m.display_name)}</div>
+          <p className="text-muted">They haven&apos;t signed in yet. At their first sign-in they&apos;ll agree to what the app keeps and choose whether to get texts.</p>
+          {m.phone && (
+            <>
+              {!phoneEnabled() && <p className="rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">Texting isn&apos;t live yet, so they can&apos;t sign in with a phone number until it is. Add an email too if they need in sooner.</p>}
+              <p className="text-muted">Text them this invite from your own phone (the app won&apos;t text them until they agree):</p>
+              <p className="rounded-lg bg-surface-2 px-3 py-2">{inviteText(m, user.ward.name)}</p>
+              <div className="flex flex-wrap gap-2">
+                <a className="btn-primary btn-sm" href={`sms:${m.phone}?&body=${encodeURIComponent(inviteText(m, user.ward.name))}`}>
+                  Text invite
+                </a>
+                <CopyButton text={inviteText(m, user.ward.name)} />
+              </div>
+            </>
+          )}
+          {m.email && (
+            <form action={emailInvite}>
+              <input type="hidden" name="item_id" value={m.id} />
+              <SubmitButton className={m.phone ? "btn-secondary btn-sm" : "btn-primary btn-sm"} pendingText="Sending…">
+                Email invite to {m.email}
+              </SubmitButton>
+            </form>
+          )}
+          <p className="text-xs break-all text-muted">Sign-in link: {inviteLink(m)}</p>
+        </div>
+      )}
       <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
         <form action={updateMember} className="card space-y-4">
           <input type="hidden" name="item_id" value={m.id} />
@@ -60,6 +92,13 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
               <input id="email" name="email" type="email" className="input" defaultValue={m.email ?? ""} />
             </div>
           </div>
+          {m.phone && (
+            <p className="hint -mt-2">
+              {m.sms_consent_at
+                ? `Agreed to quorum texts ${formatDateTime(m.sms_consent_at, user.ward.timezone, "LLL d, yyyy")}.`
+                : "Hasn't agreed to quorum texts, so the app only texts them sign-in codes they ask for. They can agree at first sign-in or under More → My contact info."}
+            </p>
+          )}
           <p className="hint -mt-2">
             Either one can be used to sign in. Change these only to help a member (for example, a new phone number). They contact you by:{" "}
             {{ text: "text", email: "email", both: "text and email", none: "no texts or emails" }[m.contact_pref]}.

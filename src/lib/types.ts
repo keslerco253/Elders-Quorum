@@ -16,6 +16,10 @@ export interface Member {
   is_site_owner: number;
   theme: "system" | "light" | "dark";
   last_login_at: string | null;
+  /** When the member agreed to quorum texts (null: sign-in codes only). */
+  sms_consent_at: string | null;
+  /** When the member saw the welcome screen and agreed to what the app keeps. */
+  welcomed_at: string | null;
   created_at: string;
   updated_at: string;
 }

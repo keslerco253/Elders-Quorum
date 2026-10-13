@@ -15,9 +15,10 @@ export interface Recipient {
   phone: string | null;
   contact_pref: ContactPref;
   display_name: string;
+  sms_consent_at: string | null;
 }
 
-export const RECIPIENT_COLUMNS = "id, ward_id, email, phone, contact_pref, display_name";
+export const RECIPIENT_COLUMNS = "id, ward_id, email, phone, contact_pref, display_name, sms_consent_at";
 const BASE = `SELECT ${RECIPIENT_COLUMNS} FROM members WHERE ward_id = ? AND status = 'active'`;
 
 export function recipientById(id: number | null | undefined): Recipient | undefined {
@@ -86,7 +87,8 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
       continue;
     }
     if (!fallback) continue;
-    for (const channel of fallbackChannels(r, canSendNotice(r.ward_id))) {
+    // Texts only go to members who agreed to them themselves.
+    for (const channel of fallbackChannels(r, !!r.sms_consent_at && canSendNotice(r.ward_id))) {
       if (channel === "email" && r.email) {
         const ok = await sendMail({
           to: r.email,

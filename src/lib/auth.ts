@@ -17,6 +17,8 @@ export const getUser = cache(async (): Promise<CurrentUser | null> => {
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getUser();
   if (!user) redirect("/login");
+  // Members the presidency added see the welcome screen (what the app keeps, text consent) first.
+  if (!user.welcomed_at) redirect("/welcome");
   return user;
 }
 

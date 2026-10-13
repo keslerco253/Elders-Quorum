@@ -100,17 +100,19 @@ export async function joinApp(formData: FormData) {
   const status = code ? "active" : "pending";
   const pref = c.kind === "phone" ? "text" : "email";
   let memberId: number;
+  // The join form's checkbox covers what the app keeps and, for a phone number, consent to texts.
   if (existing) {
-    d.prepare("UPDATE members SET name = ?, display_name = ?, status = ?, request_note = ?, updated_at = datetime('now') WHERE id = ?").run(name, name, status, code ? null : note, existing.id);
+    d.prepare("UPDATE members SET name = ?, display_name = ?, status = ?, request_note = ?, welcomed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(name, name, status, code ? null : note, existing.id);
     memberId = existing.id;
   } else {
     memberId = Number(
       d
-        .prepare(`INSERT INTO members (ward_id, name, display_name, ${c.kind}, contact_pref, status, source, request_note) VALUES (?, ?, ?, ?, ?, ?, 'request', ?)`)
+        .prepare(`INSERT INTO members (ward_id, name, display_name, ${c.kind}, contact_pref, status, source, request_note, welcomed_at) VALUES (?, ?, ?, ?, ?, ?, 'request', ?, datetime('now'))`)
         .run(ward.id, name, name, c.value, pref, status, code ? null : note).lastInsertRowid,
     );
   }
 
+  if (c.kind === "phone") d.prepare("UPDATE members SET sms_consent_at = datetime('now') WHERE id = ?").run(memberId);
   if (code) {
     const res = createLoginToken(memberId, "month");
     if (res.ok) await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, c.kind, res.token, res.code);
@@ -134,7 +136,7 @@ export async function runSetup(formData: FormData) {
   const memberId = d.transaction(() => {
     const ward = d.prepare("INSERT INTO wards (name, timezone) VALUES (?, ?)").run(wardName, timezone);
     const m = d
-      .prepare("INSERT INTO members (ward_id, name, display_name, email, role, status, source, is_site_owner) VALUES (?, ?, ?, ?, 'presidency', 'active', 'setup', 1)")
+      .prepare("INSERT INTO members (ward_id, name, display_name, email, role, status, source, is_site_owner, welcomed_at) VALUES (?, ?, ?, ?, 'presidency', 'active', 'setup', 1, datetime('now'))")
       .run(ward.lastInsertRowid, name, name, c.value);
     return Number(m.lastInsertRowid);
   })();
