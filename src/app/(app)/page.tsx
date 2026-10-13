@@ -12,6 +12,7 @@ import { Badge, Section } from "@/components/ui";
 import { conferenceLabel, DateChip } from "@/components/lesson-bits";
 import { QuickLinks } from "@/components/quick-links";
 import { PushToggle } from "@/components/push-toggle";
+import { askPath, pendingRequestsFor } from "@/lib/teaching-requests";
 
 export default async function HomePage() {
   const user = await requireUser();
@@ -24,6 +25,7 @@ export default async function HomePage() {
   const events = eventsBetween(user, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!).slice(0, 4);
   const signups = listSignups(user.ward_id, false, today).slice(0, 3);
   const pending = adminCounts(user).total;
+  const asks = pendingRequestsFor(user.id, today);
   const hour = DateTime.now().setZone(tz).hour;
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const first = firstName(user.display_name);
@@ -40,6 +42,16 @@ export default async function HomePage() {
           {pending} item{pending === 1 ? "" : "s"} waiting for your approval <span>›</span>
         </Link>
       )}
+
+      {asks.map((r) => (
+        <Link key={r.id} href={askPath(r)} className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">
+          <span>
+            <span className="block font-semibold">Will you teach on {formatDate(r.lesson_date, "short")}?</span>
+            {r.asked_by_name ?? "The presidency"} asked{r.lesson_title ? ` about "${r.lesson_title}"` : ""}. Tap to answer.
+          </span>
+          <span>›</span>
+        </Link>
+      ))}
 
       <div className="mb-5">
         <PushToggle compact />

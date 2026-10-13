@@ -6,6 +6,8 @@ import { receiveReply, recentMessageFor, recentReplies, threadForTextReply } fro
 import { twilioConfigured } from "./sms";
 import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching";
 import { getWard } from "./wards";
+import { answerRequest, latestPendingRequest } from "./teaching-requests";
+import { DateTime } from "luxon";
 
 /** The address set as "A message comes in" in Twilio. */
 export const inboundUrl = () => process.env.TWILIO_WEBHOOK_URL || `${appUrl()}/api/sms/inbound`;
@@ -22,12 +24,24 @@ export function validTwilioSignature(url: string, params: Record<string, string>
 const STOP_WORDS = ["STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "OPTOUT", "REVOKE"];
 const SKIP_WORDS = ["HELP", "INFO", "START", "UNSTOP"];
 
-export type InboundResult = "saved" | "opted_out" | "ignored" | "unknown_sender" | "teacher_confirmed" | "teacher_declined";
+export type InboundResult =
+  | "saved"
+  | "opted_out"
+  | "ignored"
+  | "unknown_sender"
+  | "teacher_confirmed"
+  | "teacher_declined"
+  | "request_accepted"
+  | "request_declined"
+  | "request_taken";
 
 /** What the app texts back after a teacher's TEACH / CANT reply. */
 export const AUTO_REPLIES: Partial<Record<InboundResult, string>> = {
   teacher_confirmed: "Thanks! You're confirmed to teach. See you Sunday.",
   teacher_declined: "Thanks for letting us know. The presidency will find another teacher.",
+  request_accepted: "Thank you! You're down to teach. You can add notes on the lesson page.",
+  request_declined: "Thanks for letting us know. The presidency has your answer.",
+  request_taken: "Thanks! Someone else is already teaching that lesson.",
 };
 
 /** "TEACH" / "teaching" confirms; "CANT ...", "can't, out of town", "cannot ..." declines with a reason. */
@@ -63,9 +77,16 @@ export async function handleInboundText(params: Record<string, string>): Promise
 
   if (twilioConfigured()) db().prepare("INSERT INTO sms_log (ward_id, kind) VALUES (?, 'reply')").run(member.ward_id);
 
-  // A teacher answering their reminder.
   const teach = parseTeachReply(body);
-  const lesson = teach ? nextLessonTaughtBy(member.id, getWard(member.ward_id)?.timezone ?? "America/Boise") : undefined;
+  const tz = getWard(member.ward_id)?.timezone ?? "America/Boise";
+  // Answering "Will you teach?" (a waiting request comes first).
+  const request = teach ? latestPendingRequest(member.id, DateTime.now().setZone(tz).toISODate()!) : undefined;
+  if (teach && request) {
+    const result = await answerRequest(request.id, member.id, teach.answer === "teach", teach.answer === "cant" ? teach.reason : "");
+    return result === "accepted" ? "request_accepted" : result === "taken" ? "request_taken" : "request_declined";
+  }
+  // A teacher answering their reminder.
+  const lesson = teach ? nextLessonTaughtBy(member.id, tz) : undefined;
   if (teach && lesson) {
     if (teach.answer === "teach") {
       confirmTeaching(lesson.id, member.id);

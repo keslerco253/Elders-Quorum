@@ -1,13 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { askToTeach, cancelRequest } from "@/lib/teaching-requests";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin, requirePresidency } from "@/lib/auth";
 import { getLesson } from "@/lib/lessons";
 import { fetchTalkInfo } from "@/lib/talk-info";
 import { notify } from "@/lib/notify";
-import { formatDate, sundays } from "@/lib/time";
+import { formatDate, sundays, todayIn } from "@/lib/time";
 import type { LessonKind, Member } from "@/lib/types";
 
 const KINDS: LessonKind[] = ["talk", "general_conference", "stake_conference"];
@@ -109,4 +110,20 @@ export async function deleteLesson(fd: FormData) {
   db().prepare("DELETE FROM lessons WHERE id = ? AND ward_id = ?").run(Number(fd.get("item_id")), user.ward_id);
   refresh();
   go("/admin/lessons", "Lesson deleted.");
+}
+
+/** Asks a member if they'll teach this lesson. */
+export async function askTeacher(fd: FormData) {
+  const user = await requirePresidency();
+  const lessonId = Number(fd.get("lesson_id"));
+  const error = await askToTeach(user, lessonId, Number(fd.get("member_id")), String(fd.get("message") || ""), todayIn(user.ward.timezone));
+  refresh();
+  go(`/admin/lessons/${lessonId}`, error ?? "Request sent. You'll be notified when they answer.");
+}
+
+export async function cancelTeachingRequest(fd: FormData) {
+  const user = await requirePresidency();
+  cancelRequest(user.ward_id, Number(fd.get("item_id")));
+  refresh();
+  go(`/admin/lessons/${Number(fd.get("lesson_id"))}`, "Request withdrawn.");
 }

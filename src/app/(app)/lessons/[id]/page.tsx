@@ -11,6 +11,7 @@ import { conferenceLabel } from "@/components/lesson-bits";
 import { addComment, cantTeach, confirmTeach, deleteOwnComment, saveTeacherNotes, volunteer } from "../actions";
 import { getNotes } from "@/lib/lesson-notes";
 import { renderMarkdown } from "@/lib/markdown";
+import { askPath, pendingRequestsFor } from "@/lib/teaching-requests";
 import { moderateComment } from "../../admin/comments/actions";
 
 export const metadata = { title: "Lesson" };
@@ -76,6 +77,19 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
         </div>
       ) : (
         <>
+          {pendingRequestsFor(user.id, todayIn(tz))
+            .filter((r) => r.lesson_id === lesson.id)
+            .map((r) => (
+              <div key={r.id} className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">
+                <span>
+                  <strong>{r.asked_by_name ?? "The presidency"} asked if you&apos;d teach this lesson.</strong>
+                  {r.message && <span className="block">&quot;{r.message}&quot;</span>}
+                </span>
+                <Link href={askPath(r)} className="btn-primary btn-sm">
+                  Answer
+                </Link>
+              </div>
+            ))}
           <div className="card mb-5 space-y-4">
             {lesson.speaker && <p className="text-muted">{lesson.speaker}</p>}
             {lesson.url ? (

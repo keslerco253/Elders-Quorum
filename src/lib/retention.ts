@@ -19,6 +19,7 @@ export function runRetention() {
     run("event_requests", `DELETE FROM event_requests WHERE starts_at < ${ISO_NOW_MINUS("-30 days")}`);
     // Offers to teach: 30 days after the lesson.
     run("volunteers", `DELETE FROM lesson_volunteers WHERE lesson_id IN (SELECT id FROM lessons WHERE date < date('now', '-30 days'))`);
+    run("teaching_requests", `DELETE FROM teaching_requests WHERE lesson_id IN (SELECT id FROM lessons WHERE date < date('now', '-30 days'))`);
     run("declines", `DELETE FROM lesson_declines WHERE lesson_id IN (SELECT id FROM lessons WHERE date < date('now', '-30 days'))`);
     // Comments: 6 months after the lesson; comments that weren't posted after 30 days.
     run("comments", `DELETE FROM comments WHERE lesson_id IN (SELECT id FROM lessons WHERE date < date('now', '-6 months')) OR (status = 'rejected' AND created_at < datetime('now', '-30 days'))`);

@@ -1,13 +1,14 @@
 import Link from "next/link";
+import { requestsForLesson } from "@/lib/teaching-requests";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getLesson } from "@/lib/lessons";
 import { isPresidency } from "@/lib/permissions";
-import { formatDate } from "@/lib/time";
-import { Flash, PageHeader } from "@/components/ui";
+import { formatDate, todayIn } from "@/lib/time";
+import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { assignTeacher, deleteLesson, saveLesson } from "../actions";
+import { askTeacher, assignTeacher, cancelTeachingRequest, deleteLesson, saveLesson } from "../actions";
 
 export const metadata = { title: "Edit lesson" };
 
@@ -22,6 +23,7 @@ export default async function EditLessonPage({ params, searchParams }: { params:
     .prepare("SELECT m.id, m.display_name FROM lesson_volunteers v JOIN members m ON m.id = v.member_id WHERE v.lesson_id = ? ORDER BY v.created_at")
     .all(lesson.id) as { id: number; display_name: string }[];
   const members = db().prepare("SELECT id, display_name FROM members WHERE ward_id = ? AND status = 'active' ORDER BY display_name").all(user.ward_id) as { id: number; display_name: string }[];
+  const requests = presidency ? requestsForLesson(lesson.id) : [];
   const declines = presidency
     ? (db()
         .prepare("SELECT d.id, m.display_name, d.reason, d.created_at FROM lesson_declines d JOIN members m ON m.id = d.member_id WHERE d.lesson_id = ? ORDER BY d.id DESC")
@@ -140,6 +142,57 @@ export default async function EditLessonPage({ params, searchParams }: { params:
                     <SubmitButton className="btn-secondary btn-sm">Save teacher</SubmitButton>
                     <p className="hint">The new teacher gets a notification.</p>
                   </form>
+                  {lesson.date >= todayIn(user.ward.timezone) && (
+                    <form id="ask" action={askTeacher} className="scroll-mt-20 space-y-2 border-t border-border pt-3">
+                      <input type="hidden" name="lesson_id" value={lesson.id} />
+                      <label className="label" htmlFor="ask_member">
+                        Ask someone to teach
+                      </label>
+                      <select id="ask_member" name="member_id" required defaultValue="" className="input">
+                        <option value="">Choose a member…</option>
+                        {members
+                          .filter((m) => m.id !== lesson.teacher_id)
+                          .map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.display_name}
+                            </option>
+                          ))}
+                      </select>
+                      <input name="message" maxLength={500} className="input" placeholder="Optional note, e.g. We'd love to have you teach this one." />
+                      <SubmitButton className="btn-primary btn-sm" pendingText="Sending…">
+                        Send request
+                      </SubmitButton>
+                      <p className="hint">They can accept (and are assigned) or decline with a reason. You&apos;re notified either way.</p>
+                    </form>
+                  )}
+                  {requests.length > 0 && (
+                    <div className="space-y-2 border-t border-border pt-3">
+                      <div className="text-sm text-muted">Asked to teach:</div>
+                      <ul className="space-y-2 text-sm">
+                        {requests.map((r) => (
+                          <li key={r.id} className="flex flex-wrap items-center justify-between gap-2">
+                            <span>
+                              <span className="font-medium">{r.member_name}</span>{" "}
+                              {r.status === "pending" && <Badge tone="info">Waiting for answer</Badge>}
+                              {r.status === "accepted" && <Badge tone="success">Accepted</Badge>}
+                              {r.status === "declined" && <Badge tone="warn">Declined</Badge>}
+                              {r.status === "cancelled" && <Badge>Withdrawn</Badge>}
+                              {r.reason && <span className="block text-muted">&quot;{r.reason}&quot;</span>}
+                            </span>
+                            {r.status === "pending" && (
+                              <form action={cancelTeachingRequest}>
+                                <input type="hidden" name="item_id" value={r.id} />
+                                <input type="hidden" name="lesson_id" value={lesson.id} />
+                                <SubmitButton className="btn-secondary btn-sm" confirm="Withdraw this request?" pendingText="…">
+                                  Withdraw
+                                </SubmitButton>
+                              </form>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="text-sm">

@@ -154,6 +154,7 @@ export default async function AdminLessonsPage({
                             {l.volunteer_count} volunteered
                           </Badge>
                         )}
+                        {l.asked_names && !l.teacher_name && <Badge tone="info">Asked {l.asked_names}</Badge>}
                       </div>
                     )}
                   </div>

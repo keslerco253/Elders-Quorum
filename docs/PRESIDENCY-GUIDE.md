@@ -24,6 +24,14 @@ lesson and **Saturday 8 AM** about tomorrow's.
 - **Admin → Lessons**: lessons with volunteers show "2 volunteered". Open the
   lesson and tap **Assign** next to a name, or choose anyone from the list.
 - The assigned teacher is notified. Only the presidency can assign teachers.
+- **Ask someone to teach:** on a lesson's page in **Admin → Lessons**, choose a
+  member, add an optional note and tap **Send request**. They get "Will you
+  teach on Sun, Nov 1?" and can answer **Yes, I'll teach** or **I can't** (with
+  an optional reason) from the notification, a card on their Home page, the
+  lesson page, or by texting **TEACH** / **CANT**. Saying yes assigns them as
+  the (already confirmed) teacher and withdraws anyone else you asked. You're
+  notified either way; the lesson shows who was asked and their answers, and a
+  "no" shows under **Waiting on you → Teacher needed**.
 - The teacher gets their own reminder **Sunday at 7 PM** the week before and
   **Saturday at 8 AM** the day before ("You're teaching this Sunday" /
   "You're teaching tomorrow"), with the lesson title and whether their notes

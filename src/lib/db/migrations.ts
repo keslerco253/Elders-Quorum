@@ -491,4 +491,25 @@ ALTER TABLE events ADD COLUMN series_id INTEGER REFERENCES event_series(id) ON D
 CREATE INDEX events_series ON events(series_id, starts_at);
 `,
   },
+  {
+    // The presidency can ask a member to teach a lesson; the member accepts
+    // (and is assigned) or declines with an optional reason.
+    id: 16,
+    sql: `
+CREATE TABLE teaching_requests (
+  id INTEGER PRIMARY KEY,
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  message TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined','cancelled')),
+  reason TEXT NOT NULL DEFAULT '',
+  asked_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  responded_at TEXT
+);
+CREATE INDEX teaching_requests_lesson ON teaching_requests(lesson_id);
+CREATE INDEX teaching_requests_member ON teaching_requests(member_id, status);
+`,
+  },
 ];

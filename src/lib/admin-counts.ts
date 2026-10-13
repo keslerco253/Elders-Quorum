@@ -21,7 +21,10 @@ export function adminCounts(user: CurrentUser) {
   // (and no one has volunteered, which the volunteers count already covers).
   const teacherNeeded = isPresidency(user)
     ? one(
-        "SELECT COUNT(*) AS n FROM lessons l WHERE l.ward_id = ? AND l.teacher_id IS NULL AND l.date >= date('now') AND EXISTS (SELECT 1 FROM lesson_declines d WHERE d.lesson_id = l.id) AND NOT EXISTS (SELECT 1 FROM lesson_volunteers v WHERE v.lesson_id = l.id)",
+        `SELECT COUNT(*) AS n FROM lessons l WHERE l.ward_id = ? AND l.teacher_id IS NULL AND l.date >= date('now')
+           AND (EXISTS (SELECT 1 FROM lesson_declines d WHERE d.lesson_id = l.id) OR EXISTS (SELECT 1 FROM teaching_requests r WHERE r.lesson_id = l.id AND r.status = 'declined'))
+           AND NOT EXISTS (SELECT 1 FROM lesson_volunteers v WHERE v.lesson_id = l.id)
+           AND NOT EXISTS (SELECT 1 FROM teaching_requests r WHERE r.lesson_id = l.id AND r.status = 'pending')`,
       )
     : 0;
   return {
