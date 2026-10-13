@@ -181,6 +181,12 @@ and time, and who's going. A visit gets there two ways:
   Home page. You're notified, and Upcoming visits shows **Invited, waiting**,
   **✓ Confirmed** or **Asked for another time** with their suggestion and a
   **Pick a new time** button that sends an updated invitation.
+- **Invitations stay out of Upcoming visits until agreed.** They're listed under
+  **Invitations** (waiting for a reply, asked for another time, or would rather
+  not). If you settle it by phone or in person, open **Talked with them? Record
+  their answer**: **They said yes** (set the agreed date and time; optionally
+  send them a confirmation) moves it to Upcoming visits; you can also record
+  **They want another time** or **They'd rather not right now**.
 
 Whoever is going gets a reminder the morning of the visit. Afterwards tap
 **Record visit** (the form is filled in from the plan); that moves it to the

@@ -6,8 +6,8 @@ import { lastVisitByMember, listVisits, VISIT_TYPES } from "@/lib/visits";
 import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { cancelPlannedVisit, markFollowUpDone } from "./actions";
-import { upcomingVisits, whenText } from "@/lib/planned-visits";
+import { cancelPlannedVisit, markFollowUpDone, markInvitation } from "./actions";
+import { openInvitations, upcomingVisits, whenText } from "@/lib/planned-visits";
 
 export const metadata = { title: "Presidency visits" };
 
@@ -50,6 +50,90 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
       />
       <Flash msg={sp.msg} />
       {(() => {
+        const invites = openInvitations(user.ward_id, memberId);
+        if (!invites.length) return null;
+        return (
+          <section className="mb-6">
+            <h2 className="h2 mb-1">Invitations</h2>
+            <p className="mb-2 text-sm text-muted">Visits move to Upcoming once the member says yes, or you mark that they did.</p>
+            <ul className="space-y-2">
+              {invites.map((p) => (
+                <li key={p.id} className="card space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link href={`/admin/visits?member=${p.member_id}`} className="font-semibold hover:underline">
+                      {p.member_name}
+                    </Link>
+                    {p.invite_status === "pending" && <Badge tone="info">Waiting for a reply</Badge>}
+                    {p.invite_status === "new_time" && <Badge tone="warn">Asked for another time</Badge>}
+                    {p.invite_status === "declined" && <Badge>Would rather not</Badge>}
+                  </div>
+                  <div className="text-sm">
+                    Invited for <span className="font-medium">{whenText(p.date, p.time)}</span>
+                    {p.visitors && <span className="text-muted"> · {p.visitors}</span>}
+                  </div>
+                  {p.member_reply && (
+                    <div className="rounded-lg bg-surface-2 px-3 py-2 text-sm">
+                      {p.invite_status === "new_time" ? "Better time: " : "They said: "}&quot;{p.member_reply}&quot;
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {p.invite_status !== "declined" && (
+                      <Link href={`/admin/visits/plan?id=${p.id}`} className={p.invite_status === "new_time" ? "btn-primary btn-sm" : "btn-secondary btn-sm"}>
+                        {p.invite_status === "new_time" ? "Send a new time" : "Change"}
+                      </Link>
+                    )}
+                    <form action={cancelPlannedVisit}>
+                      <input type="hidden" name="item_id" value={p.id} />
+                      <SubmitButton className="btn-secondary btn-sm" confirm="Remove this invitation?" pendingText="…">
+                        Remove
+                      </SubmitButton>
+                    </form>
+                  </div>
+                  {p.invite_status !== "declined" && (
+                    <details className="rounded-lg border border-border p-3 text-sm">
+                      <summary className="cursor-pointer font-medium">Talked with them? Record their answer</summary>
+                      <form action={markInvitation} className="mt-3 space-y-2">
+                        <input type="hidden" name="item_id" value={p.id} />
+                        <input type="hidden" name="answer" value="accepted" />
+                        <div className="font-medium">They said yes</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input type="date" name="date" required defaultValue={p.date} aria-label="Agreed date" className="input" />
+                          <input type="time" name="time" defaultValue={p.time ?? ""} aria-label="Agreed time" className="input" />
+                        </div>
+                        <label className="flex items-center gap-2">
+                          <input type="checkbox" name="confirm" defaultChecked /> Send them a confirmation with the date and time
+                        </label>
+                        <SubmitButton className="btn-primary btn-sm" pendingText="Saving…">
+                          Confirm and move to Upcoming
+                        </SubmitButton>
+                      </form>
+                      <form action={markInvitation} className="mt-4 space-y-2 border-t border-border pt-3">
+                        <input type="hidden" name="item_id" value={p.id} />
+                        <input type="hidden" name="answer" value="new_time" />
+                        <div className="font-medium">They want another time</div>
+                        <input name="note" className="input" placeholder="What works for them, e.g. Thursday after 6" />
+                        <SubmitButton className="btn-secondary btn-sm" pendingText="Saving…">
+                          Save
+                        </SubmitButton>
+                      </form>
+                      <form action={markInvitation} className="mt-4 space-y-2 border-t border-border pt-3">
+                        <input type="hidden" name="item_id" value={p.id} />
+                        <input type="hidden" name="answer" value="declined" />
+                        <div className="font-medium">They&apos;d rather not right now</div>
+                        <input name="note" className="input" placeholder="Optional note" />
+                        <SubmitButton className="btn-secondary btn-sm" pendingText="Saving…">
+                          Save
+                        </SubmitButton>
+                      </form>
+                    </details>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })()}
+      {(() => {
         const upcoming = upcomingVisits(user.ward_id, memberId);
         const todayIso = todayIn(user.ward.timezone);
         return (
@@ -88,7 +172,8 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
                         {p.note && <div className="mt-1 text-sm">{p.note}</div>}
                         {p.member_reply && (
                           <div className="mt-2 rounded-lg bg-surface-2 px-3 py-2 text-sm">
-                            {p.invite_status === "new_time" ? "Better time: " : "They said: "}&quot;{p.member_reply}&quot;
+                            {/* Confirmed by the presidency (e.g. by phone) vs. the member's own words. */}
+                            {p.member_reply.startsWith("Arranged by ") ? p.member_reply : <>They said: &quot;{p.member_reply}&quot;</>}
                           </div>
                         )}
                       </div>

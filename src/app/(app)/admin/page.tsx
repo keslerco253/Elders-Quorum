@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { adminCounts } from "@/lib/admin-counts";
 import { isPresidency } from "@/lib/permissions";
 import { PageHeader, Section } from "@/components/ui";
-import { upcomingVisits } from "@/lib/planned-visits";
+import { openInvitations, upcomingVisits } from "@/lib/planned-visits";
 
 export const metadata = { title: "Admin" };
 
@@ -32,9 +32,11 @@ export default async function AdminPage() {
   const c = adminCounts(user);
   const p = isPresidency(user);
   const planned = p ? upcomingVisits(user.ward_id).length : 0;
+  const inviting = p ? openInvitations(user.ward_id).filter((v) => v.invite_status !== "declined").length : 0;
   const waiting: Tile[] = [
     { href: "/admin/replies", label: "Replies", desc: "Members writing back to the presidency", count: c.replies, show: p },
     { href: "/admin/visit-requests", label: "Visit requests", desc: "Members asking for a visit", count: c.visitRequests, show: p },
+    { href: "/admin/visits", label: "Visit invitations", desc: "Members asked for another time", count: c.newTimes, show: p },
     { href: "/admin/notes", label: "Teacher notes to approve", desc: "Notes for the quorum before Sunday", count: c.notes },
     { href: "/admin/comments", label: "Comments to approve", desc: "Lesson comments and replies", count: c.comments },
     { href: "/admin/access", label: "Access requests", desc: "Requests to join without a code", count: c.access, show: p },
@@ -69,7 +71,7 @@ export default async function AdminPage() {
             tiles={[
               { href: "/admin/replies", label: "Replies", desc: "Conversations with members" },
               { href: "/admin/visit-requests", label: "Visit requests", desc: "Members asking for a visit" },
-              { href: "/admin/visits", label: "Home visits", desc: planned ? `${planned} upcoming · plan and record visits` : "Plan visits and record who we've visited" },
+              { href: "/admin/visits", label: "Home visits", desc: [planned && `${planned} upcoming`, inviting && `${inviting} invitation${inviting === 1 ? "" : "s"} open`].filter(Boolean).join(" · ") || "Plan visits and record who we've visited" },
               { href: "/admin/todos", label: "Assignments", desc: "Presidency to-dos with due dates" },
               { href: "/admin/settings", label: "Settings", desc: "App name, time zone, email" },
             ]}

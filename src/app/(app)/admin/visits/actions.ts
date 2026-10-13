@@ -122,3 +122,40 @@ export async function cancelPlannedVisit(fd: FormData) {
   go("/admin/visits", `Planned visit with ${plan.member_name} cancelled.${plan.request_id ? " Their request is back under Visit requests." : ""}`);
 }
 
+
+/**
+ * The presidency records the member's answer to an invitation themselves (e.g.
+ * they talked on the phone). "Yes" can set the agreed date and time and moves
+ * the visit to Upcoming visits.
+ */
+export async function markInvitation(fd: FormData) {
+  const user = await requirePresidency();
+  const plan = getPlannedVisit(user.ward_id, Number(fd.get("item_id")));
+  if (!plan) redirect("/admin/visits");
+  const answer = String(fd.get("answer"));
+  const note = String(fd.get("note") || "").trim().slice(0, 500);
+  const d = db();
+  if (answer === "accepted") {
+    const date = String(fd.get("date") || plan.date);
+    const time = String(fd.get("time") || "").trim() || null;
+    if (!isDate(date) || (time && !isTime(time))) go("/admin/visits", "Choose the date and time you agreed on.");
+    d.prepare("UPDATE planned_visits SET date = ?, time = ?, invite_status = 'accepted', member_reply = ?, responded_at = datetime('now') WHERE id = ?").run(
+      date,
+      time,
+      note || `Arranged by ${user.display_name}`,
+      plan.id,
+    );
+    if (fd.get("confirm") === "on") {
+      const names = plan.visitors ? plan.visitors.split(", ") : [];
+      await sendAnswer(user, plan.member_id, `Thank you! ${names.length ? `${names.join(" and ")} will` : "We'll"} see you ${whenText(date, time)}.`);
+    }
+    revalidatePath("/admin", "layout");
+    go("/admin/visits", `${plan.member_name}'s visit is set for ${whenText(date, time)} and is now under Upcoming visits.`);
+  }
+  if (answer === "new_time" || answer === "declined") {
+    d.prepare("UPDATE planned_visits SET invite_status = ?, member_reply = ?, responded_at = datetime('now') WHERE id = ?").run(answer, note, plan.id);
+    revalidatePath("/admin", "layout");
+    go("/admin/visits", answer === "new_time" ? "Noted. Pick a new time when you're ready and send an updated invitation." : "Noted that they'd rather not have a visit right now.");
+  }
+  redirect("/admin/visits");
+}

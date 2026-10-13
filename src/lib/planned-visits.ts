@@ -29,10 +29,25 @@ const SELECT = `SELECT p.*, m.display_name AS member_name,
     (SELECT group_concat(pm.display_name, ', ') FROM planned_visit_visitors vv JOIN members pm ON pm.id = vv.member_id WHERE vv.planned_id = p.id) AS visitors
   FROM planned_visits p JOIN members m ON m.id = p.member_id`;
 
-/** Planned visits, soonest first (including ones whose date has passed but weren't recorded). */
+/**
+ * Agreed visits, soonest first (including ones whose date has passed but weren't
+ * recorded). A visit sent as an invitation only counts once the member said yes.
+ */
 export function upcomingVisits(wardId: number, memberId?: number): PlannedVisit[] {
   return db()
-    .prepare(`${SELECT} WHERE p.ward_id = ? ${memberId ? "AND p.member_id = ?" : ""} ORDER BY p.date, coalesce(p.time, '99:99'), p.id`)
+    .prepare(
+      `${SELECT} WHERE p.ward_id = ? AND (p.invite_status IS NULL OR p.invite_status = 'accepted') ${memberId ? "AND p.member_id = ?" : ""} ORDER BY p.date, coalesce(p.time, '99:99'), p.id`,
+    )
+    .all(...(memberId ? [wardId, memberId] : [wardId])) as PlannedVisit[];
+}
+
+/** Invitations not settled yet: waiting for a reply, asked for another time, or declined. */
+export function openInvitations(wardId: number, memberId?: number): PlannedVisit[] {
+  return db()
+    .prepare(
+      `${SELECT} WHERE p.ward_id = ? AND p.invite_status IN ('pending','new_time','declined') ${memberId ? "AND p.member_id = ?" : ""}
+       ORDER BY CASE p.invite_status WHEN 'new_time' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END, p.date, p.id`,
+    )
     .all(...(memberId ? [wardId, memberId] : [wardId])) as PlannedVisit[];
 }
 

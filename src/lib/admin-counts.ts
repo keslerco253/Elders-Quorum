@@ -7,7 +7,7 @@ export function adminCounts(user: CurrentUser) {
   const d = db();
   const w = user.ward_id;
   const one = (sql: string) => (d.prepare(sql).get(w) as { n: number }).n;
-  if (!isAdmin(user)) return { comments: 0, notes: 0, eventRequests: 0, access: 0, volunteers: 0, visitRequests: 0, replies: 0, teacherNeeded: 0, total: 0 };
+  if (!isAdmin(user)) return { comments: 0, notes: 0, eventRequests: 0, access: 0, volunteers: 0, visitRequests: 0, replies: 0, teacherNeeded: 0, newTimes: 0, total: 0 };
   const comments = one("SELECT COUNT(*) AS n FROM comments c JOIN lessons l ON l.id = c.lesson_id WHERE l.ward_id = ? AND c.status = 'pending'");
   const notes = one("SELECT COUNT(*) AS n FROM lesson_notes n JOIN lessons l ON l.id = n.lesson_id WHERE l.ward_id = ? AND n.status = 'pending'");
   const eventRequests = one("SELECT COUNT(*) AS n FROM event_requests WHERE ward_id = ? AND status = 'pending'");
@@ -27,7 +27,10 @@ export function adminCounts(user: CurrentUser) {
            AND NOT EXISTS (SELECT 1 FROM teaching_requests r WHERE r.lesson_id = l.id AND r.status = 'pending')`,
       )
     : 0;
+  // Visit invitations where the member asked for another time.
+  const newTimes = isPresidency(user) ? one("SELECT COUNT(*) AS n FROM planned_visits WHERE ward_id = ? AND invite_status = 'new_time'") : 0;
   return {
+    newTimes,
     comments,
     notes,
     eventRequests,
@@ -36,6 +39,6 @@ export function adminCounts(user: CurrentUser) {
     visitRequests,
     replies,
     teacherNeeded,
-    total: comments + notes + eventRequests + access + volunteers + visitRequests + replies + teacherNeeded,
+    total: comments + notes + eventRequests + access + volunteers + visitRequests + replies + teacherNeeded + newTimes,
   };
 }
