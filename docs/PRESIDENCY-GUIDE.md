@@ -60,6 +60,14 @@ from the lesson page.
 
 ## Calendar
 
+**Repeating events:** when adding an event, choose **Repeats**: every week,
+every 2 weeks, every month on (for example) the third Friday or the last
+Friday, or every month on the same date. Choose when it **Ends**: never (dates
+are kept filled a year ahead automatically), on a date, or after a number of
+times. Each date is its own event, so RSVPs and reminders work per date. When
+you edit or delete one, choose **only this date** or **this and all future
+dates**. An existing one-time event can be made repeating by editing it.
+
 - **Calendar → Add event.** Check **Presidency only** for meetings members
   shouldn't see. Choose a reminder (default: the day before). Check **Ask people
   to RSVP** for a headcount.

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { getEvent } from "@/lib/events";
+import { getSeries } from "@/lib/event-series";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { EventForm } from "../event-form";
@@ -13,16 +14,28 @@ export default async function EditEventPage({ params, searchParams }: { params: 
   const e = getEvent(user, Number((await params).id));
   if (!e) notFound();
   const sp = await searchParams;
+  const series = getSeries(user.ward_id, e.series_id);
   return (
     <>
       <PageHeader title="Edit event" back={{ href: `/calendar/${e.id}`, label: "Event" }} />
       <Flash msg={sp.msg} />
-      <EventForm e={e} tz={user.ward.timezone} />
+      <EventForm e={e} tz={user.ward.timezone} series={series} />
       <form action={deleteEvent} className="mt-4">
         <input type="hidden" name="item_id" value={e.id} />
-        <SubmitButton className="btn-danger btn-sm" confirm="Delete this event?">
-          Delete event
-        </SubmitButton>
+        {series ? (
+          <div className="flex flex-wrap gap-2">
+            <SubmitButton name="scope" value="this" className="btn-danger btn-sm" confirm="Delete only this date?">
+              Delete only this date
+            </SubmitButton>
+            <SubmitButton name="scope" value="future" className="btn-danger btn-sm" confirm="Delete this and all future dates?">
+              Delete this and all future dates
+            </SubmitButton>
+          </div>
+        ) : (
+          <SubmitButton className="btn-danger btn-sm" confirm="Delete this event?">
+            Delete event
+          </SubmitButton>
+        )}
       </form>
     </>
   );

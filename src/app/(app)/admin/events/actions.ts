@@ -6,6 +6,10 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { localInputToUtc, formatDateTime } from "@/lib/time";
 import { notify, recipientById } from "@/lib/notify";
+import { DateTime } from "luxon";
+import { createSeries, endSeriesBefore, getSeries, type SeriesInput } from "@/lib/event-series";
+import { describeRecurrence, patternOptions, type Pattern } from "@/lib/recurrence";
+import type { EventRow } from "@/lib/types";
 
 function go(path: string, text: string): never {
   redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);
@@ -27,32 +31,152 @@ function readEvent(fd: FormData, tz: string) {
   };
 }
 
+/** Reads the Repeats fields. Returns null for "Does not repeat" (or an invalid choice). */
+function readRepeat(fd: FormData, startLocal: DateTime) {
+  const pattern = String(fd.get("repeat") || "") as Pattern;
+  if (!patternOptions(startLocal.toISODate()!).some((o) => o.value === pattern)) return null;
+  const endKind = String(fd.get("repeat_end") || "never");
+  const until = String(fd.get("repeat_until") || "");
+  const count = Math.round(Number(fd.get("repeat_count")));
+  return {
+    pattern,
+    until: endKind === "until" && /^\d{4}-\d{2}-\d{2}$/.test(until) && until >= startLocal.toISODate()! ? until : null,
+    count: endKind === "count" && count >= 2 && count <= 200 ? count : null,
+  };
+}
+
+function seriesInput(user: { id: number; ward_id: number }, e: ReturnType<typeof readEvent>, startLocal: DateTime, endLocal: DateTime, r: NonNullable<ReturnType<typeof readRepeat>>): SeriesInput {
+  return {
+    ward_id: user.ward_id,
+    pattern: r.pattern,
+    start_date: startLocal.toISODate()!,
+    start_time: startLocal.toFormat("HH:mm"),
+    duration_minutes: Math.round(endLocal.diff(startLocal, "minutes").minutes),
+    until_date: r.until,
+    max_count: r.count,
+    title: e.title,
+    description: e.description,
+    location: e.location,
+    presidency_only: e.presidencyOnly,
+    rsvp_enabled: e.rsvp,
+    reminder_minutes: e.reminder,
+    created_by: user.id,
+  };
+}
+
+const firstEventOf = (seriesId: number) => (db().prepare("SELECT id FROM events WHERE series_id = ? ORDER BY starts_at LIMIT 1").get(seriesId) as { id: number } | undefined)?.id;
+
 export async function saveEvent(fd: FormData) {
   const user = await requireAdmin();
+  const tz = user.ward.timezone;
   const id = Number(fd.get("item_id")) || null;
-  const e = readEvent(fd, user.ward.timezone);
+  const e = readEvent(fd, tz);
   const back = id ? `/admin/events/${id}` : "/admin/events/new";
   if (!e.title || !e.start || !e.end) go(back, "Please give a title, start and end.");
   if (e.end! < e.start!) go(back, "The end must be after the start.");
-  let eventId = id;
-  if (id) {
-    const r = db()
+  const startLocal = DateTime.fromISO(e.start!, { zone: "utc" }).setZone(tz);
+  const endLocal = DateTime.fromISO(e.end!, { zone: "utc" }).setZone(tz);
+  const repeat = readRepeat(fd, startLocal);
+  const d = db();
+  const update = (eventId: number) =>
+    d
       .prepare("UPDATE events SET title = ?, description = ?, location = ?, starts_at = ?, ends_at = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ? WHERE id = ? AND ward_id = ?")
-      .run(e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, id, user.ward_id);
-    if (!r.changes) redirect("/calendar");
+      .run(e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, eventId, user.ward_id);
+  let eventId = id;
+  let note = "Event saved.";
+
+  if (!id) {
+    if (repeat) {
+      const seriesId = createSeries(seriesInput(user, e, startLocal, endLocal, repeat));
+      eventId = firstEventOf(seriesId) ?? null;
+      const n = (d.prepare("SELECT COUNT(*) AS n FROM events WHERE series_id = ?").get(seriesId) as { n: number }).n;
+      note = `Repeating event saved: ${describeRecurrence({ pattern: repeat.pattern, start: startLocal.toISODate()!, until: repeat.until, count: repeat.count })}. ${n} dates added to the calendar.`;
+      if (!eventId) go("/calendar", "No dates matched that pattern.");
+    } else {
+      eventId = Number(
+        d
+          .prepare("INSERT INTO events (ward_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+          .run(user.ward_id, e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, user.id).lastInsertRowid,
+      );
+    }
   } else {
-    const r = db()
-      .prepare("INSERT INTO events (ward_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .run(user.ward_id, e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, user.id);
-    eventId = Number(r.lastInsertRowid);
+    const existing = d.prepare("SELECT * FROM events WHERE id = ? AND ward_id = ?").get(id, user.ward_id) as EventRow | undefined;
+    if (!existing) redirect("/calendar");
+    const series = getSeries(user.ward_id, existing.series_id);
+    const exLocal = DateTime.fromISO(existing.starts_at, { zone: "utc" }).setZone(tz);
+    if (series && fd.get("scope") === "future") {
+      const sameShape =
+        !!repeat &&
+        repeat.pattern === series.pattern &&
+        repeat.until === series.until_date &&
+        repeat.count === series.max_count &&
+        startLocal.toISODate() === exLocal.toISODate() &&
+        startLocal.toFormat("HH:mm") === series.start_time &&
+        Math.round(endLocal.diff(startLocal, "minutes").minutes) === series.duration_minutes;
+      if (sameShape) {
+        // Same dates and times: update the details on this and later dates, keeping RSVPs.
+        d.transaction(() => {
+          d.prepare("UPDATE events SET title = ?, description = ?, location = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ? WHERE series_id = ? AND starts_at >= ?").run(
+            e.title,
+            e.description,
+            e.location,
+            e.presidencyOnly,
+            e.rsvp,
+            e.reminder,
+            series.id,
+            existing.starts_at,
+          );
+          d.prepare("UPDATE event_series SET title = ?, description = ?, location = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ? WHERE id = ?").run(
+            e.title,
+            e.description,
+            e.location,
+            e.presidencyOnly,
+            e.rsvp,
+            e.reminder,
+            series.id,
+          );
+        })();
+        note = "Saved for this and all future dates.";
+      } else if (repeat) {
+        // New time or pattern: end the old series here and start a new one from this date.
+        endSeriesBefore(series, existing.starts_at, exLocal.minus({ days: 1 }).toISODate()!);
+        const seriesId = createSeries(seriesInput(user, e, startLocal, endLocal, repeat));
+        eventId = firstEventOf(seriesId) ?? null;
+        note = "Saved for this and all future dates.";
+        if (!eventId) go("/calendar", "No dates matched that pattern.");
+      } else {
+        // "Does not repeat" from here: keep this date as a one-time event, drop later ones.
+        endSeriesBefore(series, DateTime.fromISO(existing.starts_at).plus({ seconds: 1 }).toUTC().toISO()!, exLocal.toISODate()!);
+        update(id);
+        d.prepare("UPDATE events SET series_id = NULL WHERE id = ?").run(id);
+        note = "Saved. Later dates were removed; this event no longer repeats.";
+      }
+    } else if (!series && repeat) {
+      // A one-time event that should now repeat: it becomes the first date.
+      update(id);
+      createSeries(seriesInput(user, e, startLocal, endLocal, repeat), id);
+      note = `Saved. It now repeats: ${describeRecurrence({ pattern: repeat.pattern, start: startLocal.toISODate()!, until: repeat.until, count: repeat.count })}.`;
+    } else {
+      update(id);
+    }
   }
   revalidatePath("/calendar", "layout");
-  go(`/calendar/${eventId}`, "Event saved.");
+  go(`/calendar/${eventId}`, note);
 }
 
 export async function deleteEvent(fd: FormData) {
   const user = await requireAdmin();
-  db().prepare("DELETE FROM events WHERE id = ? AND ward_id = ?").run(Number(fd.get("item_id")), user.ward_id);
+  const id = Number(fd.get("item_id"));
+  const existing = db().prepare("SELECT * FROM events WHERE id = ? AND ward_id = ?").get(id, user.ward_id) as EventRow | undefined;
+  if (!existing) redirect("/calendar");
+  const series = getSeries(user.ward_id, existing.series_id);
+  if (series && fd.get("scope") === "future") {
+    const day = DateTime.fromISO(existing.starts_at, { zone: "utc" }).setZone(user.ward.timezone);
+    endSeriesBefore(series, existing.starts_at, day.minus({ days: 1 }).toISODate()!);
+    revalidatePath("/calendar", "layout");
+    go("/calendar", "This and all future dates were deleted.");
+  }
+  db().prepare("DELETE FROM events WHERE id = ? AND ward_id = ?").run(id, user.ward_id);
   revalidatePath("/calendar", "layout");
   go("/calendar", "Event deleted.");
 }

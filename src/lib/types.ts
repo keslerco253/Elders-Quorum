@@ -79,6 +79,7 @@ export interface EventRow {
   presidency_only: number;
   rsvp_enabled: number;
   reminder_minutes: number | null;
+  series_id: number | null;
 }
 
 export type Calling = "president" | "first_counselor" | "second_counselor" | "secretary" | "assistant_secretary" | "stake_high_council";

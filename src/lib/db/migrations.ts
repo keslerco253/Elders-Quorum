@@ -463,4 +463,32 @@ CREATE INDEX lesson_declines_lesson ON lesson_declines(lesson_id);
     id: 14,
     sql: `ALTER TABLE members ADD COLUMN calendar_alerts TEXT NOT NULL DEFAULT '60';`,
   },
+  {
+    // Repeating events: a series holds the pattern and the details; each date
+    // is a normal event (series_id) so RSVPs, reminders and calendars just work.
+    id: 15,
+    sql: `
+CREATE TABLE event_series (
+  id INTEGER PRIMARY KEY,
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  pattern TEXT NOT NULL CHECK (pattern IN ('weekly','biweekly','monthly_nth','monthly_last','monthly_day')),
+  start_date TEXT NOT NULL,
+  start_time TEXT NOT NULL,
+  duration_minutes INTEGER NOT NULL,
+  until_date TEXT,
+  max_count INTEGER,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  location TEXT NOT NULL DEFAULT '',
+  presidency_only INTEGER NOT NULL DEFAULT 0,
+  rsvp_enabled INTEGER NOT NULL DEFAULT 0,
+  reminder_minutes INTEGER,
+  generated_until TEXT,
+  created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+ALTER TABLE events ADD COLUMN series_id INTEGER REFERENCES event_series(id) ON DELETE SET NULL;
+CREATE INDEX events_series ON events(series_id, starts_at);
+`,
+  },
 ];

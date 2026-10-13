@@ -10,6 +10,7 @@ import { formatDate, formatDateTime } from "./time";
 import type { PushPayload } from "./push";
 import type { EventRow, Ward } from "./types";
 import { runRetention } from "./retention";
+import { extendAllSeries } from "./event-series";
 import { upcomingVisits, visitorIds, whenText } from "./planned-visits";
 import { VISIT_TYPES } from "./visits";
 
@@ -188,6 +189,11 @@ export async function tick(now: DateTime = DateTime.utc()) {
       console.log(`[scheduler] ${n.key}: ${res.push} push, ${res.email} email`);
     }
     await backupIfDue();
+    // Keep repeating events filled a year ahead.
+    if (claimOnce(`series:${DateTime.local().toISODate()}`)) {
+      const added = extendAllSeries();
+      if (added) console.log(`[series] added ${added} event dates`);
+    }
     if (claimOnce(`retention:${DateTime.local().toISODate()}`)) {
       const removed = Object.entries(runRetention()).filter(([, n]) => n > 0);
       if (removed.length) console.log("[retention] deleted", Object.fromEntries(removed));

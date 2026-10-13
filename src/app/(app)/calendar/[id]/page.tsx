@@ -6,6 +6,8 @@ import { db } from "@/lib/db";
 import { getEvent, googleCalendarUrl, icsPath, isAppleMobile } from "@/lib/events";
 import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, formatTime, parseUtc } from "@/lib/time";
+import { getSeries, recurrenceOf } from "@/lib/event-series";
+import { describeRecurrence } from "@/lib/recurrence";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { rsvp } from "../actions";
@@ -20,6 +22,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
   const sp = await searchParams;
   const e = getEvent(user, Number(id));
   if (!e) notFound();
+  const series = getSeries(user.ward_id, e.series_id);
   const tz = user.ward.timezone;
   const admin = isAdmin(user);
   const sameDay = parseUtc(e.starts_at).setZone(tz).hasSame(parseUtc(e.ends_at).setZone(tz), "day");
@@ -50,6 +53,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
           <div className="text-muted">
             {formatTime(e.starts_at, tz)} – {sameDay ? formatTime(e.ends_at, tz) : formatDateTime(e.ends_at, tz)}
           </div>
+          {series && <div className="mt-1 text-sm text-muted">↻ {describeRecurrence(recurrenceOf(series))}</div>}
         </div>
         {e.location && (
           <div>
