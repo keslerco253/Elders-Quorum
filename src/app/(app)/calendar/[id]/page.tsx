@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getEvent, googleCalendarUrl, icsPath, isNonSafariIos } from "@/lib/events";
+import { getEvent, googleCalendarUrl, icsPath, isAppleMobile } from "@/lib/events";
 import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, formatTime, parseUtc } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
@@ -68,8 +68,8 @@ export default async function EventPage({ params, searchParams }: { params: Prom
             Add to Apple / Outlook calendar
           </a>
         </div>
-        {isNonSafariIos((await headers()).get("user-agent")) && (
-          <p className="text-sm text-muted">On iPhone, Apple Calendar only works from Safari or the app on your Home Screen. Open this page there to add it.</p>
+        {isAppleMobile((await headers()).get("user-agent")) && (
+          <p className="text-sm text-muted">On iPhone, tap <strong>Add to Calendar</strong> at the bottom of the event that opens (the check mark at the top only closes it).</p>
         )}
       </div>
 
