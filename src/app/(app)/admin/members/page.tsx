@@ -15,10 +15,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   const members = db()
     .prepare(
       `SELECT * FROM members WHERE ward_id = ? AND status = ?
-       AND (? = '' OR display_name LIKE '%' || ? || '%' OR email LIKE '%' || ? || '%')
+       AND (? = '' OR display_name LIKE '%' || ? || '%')
        ORDER BY role = 'member', display_name COLLATE NOCASE`,
     )
-    .all(user.ward_id, show, q, q, q) as Member[];
+    .all(user.ward_id, show, q, q) as Member[];
 
   return (
     <>
@@ -29,10 +29,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
       />
       <Flash msg={sp.msg} />
       <p className="mb-4 rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent">
-        Members join the app themselves. Only their name and email are stored. For addresses and phone numbers, use Member Tools.
+        Members join the app themselves with a mobile number or email. Open a member to see or fix their contact info. For addresses, use Member Tools.
       </p>
       <form className="mb-4 flex flex-wrap gap-2">
-        <input name="q" defaultValue={q} placeholder="Search name or email" className="input max-w-xs flex-1" />
+        <input name="q" defaultValue={q} placeholder="Search by name" className="input max-w-xs flex-1" />
         <select name="show" defaultValue={show} className="input w-auto">
           <option value="active">Active</option>
           <option value="inactive">Turned off</option>
@@ -51,8 +51,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                     <span className="font-medium">{m.display_name}</span>
                     {m.role !== "member" && <Badge tone="info">{ROLE_LABELS[m.role]}</Badge>}
                   </div>
-                  <div className="truncate text-sm text-muted">
-                    {m.email} · {m.last_login_at ? `last signed in ${formatDateTime(m.last_login_at, user.ward.timezone, "LLL d")}` : "hasn't signed in yet"}
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+                    {m.phone && <Badge>Phone</Badge>}
+                    {m.email && <Badge>Email</Badge>}
+                    <span>{m.last_login_at ? `last signed in ${formatDateTime(m.last_login_at, user.ward.timezone, "LLL d")}` : "hasn't signed in yet"}</span>
                   </div>
                 </div>
                 <span className="text-muted">›</span>

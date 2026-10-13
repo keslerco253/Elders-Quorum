@@ -275,4 +275,38 @@ CREATE TABLE lesson_notes (
 );
 `,
   },
+  {
+    // Members can use a phone number and/or an email, and choose how the app
+    // contacts them when push notifications aren't on.
+    id: 4,
+    sql: `
+ALTER TABLE members ADD COLUMN phone TEXT;
+ALTER TABLE members ADD COLUMN contact_pref TEXT NOT NULL DEFAULT 'email' CHECK (contact_pref IN ('text','email','both','none'));
+CREATE UNIQUE INDEX members_ward_phone ON members(ward_id, phone) WHERE phone IS NOT NULL;
+CREATE INDEX members_phone ON members(phone);
+ALTER TABLE wards ADD COLUMN sms_monthly_limit INTEGER NOT NULL DEFAULT 500;
+ALTER TABLE messages ADD COLUMN text_count INTEGER NOT NULL DEFAULT 0;
+
+-- A phone number or email a member is adding, waiting for its confirmation code.
+CREATE TABLE contact_verifications (
+  id INTEGER PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('phone','email')),
+  value TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Counts texts for the monthly limit. No phone numbers or message text kept.
+CREATE TABLE sms_log (
+  id INTEGER PRIMARY KEY,
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('code','notice')),
+  sent_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX sms_log_ward_time ON sms_log(ward_id, sent_at);
+`,
+  },
 ];

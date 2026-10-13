@@ -43,6 +43,8 @@ people.forEach(([name, role = "member"], i) => {
   );
 });
 d.prepare("UPDATE members SET is_site_owner = 1 WHERE id = ?").run(ids[0]);
+// Some demo members use a phone instead of (or as well as) email. Fake 555-01xx numbers.
+[7, 9, 11, 13].forEach((i, n) => d.prepare("UPDATE members SET phone = ?, contact_pref = 'text', email = CASE WHEN ? THEN NULL ELSE email END WHERE id = ?").run(`+1208555014${n}`, n % 2, ids[i]));
 const emailArg = process.argv.indexOf("--email");
 if (emailArg > 0 && process.argv[emailArg + 1]) {
   d.prepare("UPDATE members SET email = ? WHERE id = ?").run(process.argv[emailArg + 1].toLowerCase(), ids[0]);

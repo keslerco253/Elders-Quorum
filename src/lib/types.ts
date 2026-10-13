@@ -7,6 +7,8 @@ export interface Member {
   name: string;
   display_name: string;
   email: string | null;
+  phone: string | null;
+  contact_pref: "text" | "email" | "both" | "none";
   role: Role;
   status: MemberStatus;
   source: string;

@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { DateTime } from "luxon";
 import { db, DATA_DIR } from "./db";
-import { audienceMembers, claimOnce, notify, type Recipient } from "./notify";
+import { audienceMembers, claimOnce, notify, recipientById, type Recipient } from "./notify";
 import { lessonOn } from "./lessons";
 import { formatDate, formatDateTime } from "./time";
 import type { PushPayload } from "./push";
@@ -74,13 +74,13 @@ function todoReminders(ward: Ward, now: DateTime): DueNotification[] {
   const tomorrow = local.plus({ days: 1 }).toISODate()!;
   const rows = db()
     .prepare(
-      `SELECT t.id, t.title, t.due_date, m.id AS mid, m.email, m.display_name FROM todos t JOIN members m ON m.id = t.assignee_id
+      `SELECT t.id, t.title, t.due_date, m.id AS mid FROM todos t JOIN members m ON m.id = t.assignee_id
        WHERE t.ward_id = ? AND t.done = 0 AND t.due_date IN (?, ?) AND m.status = 'active'`,
     )
-    .all(ward.id, today, tomorrow) as { id: number; title: string; due_date: string; mid: number; email: string | null; display_name: string }[];
+    .all(ward.id, today, tomorrow) as { id: number; title: string; due_date: string; mid: number }[];
   return rows.map((t) => ({
     key: `todo-${t.due_date === today ? "due" : "pre"}:${t.id}:${t.due_date}`,
-    recipients: [{ id: t.mid, email: t.email, display_name: t.display_name }],
+    recipients: [recipientById(t.mid)].filter((r): r is Recipient => !!r),
     payload: { title: t.due_date === today ? "Assignment due today" : "Assignment due tomorrow", body: `${t.title} (due ${formatDate(t.due_date, "short")})`, url: "/admin/todos" },
   }));
 }

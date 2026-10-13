@@ -4,6 +4,7 @@ import { formatDateTime } from "@/lib/time";
 import { Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import type { Member } from "@/lib/types";
+import { formatPhone } from "@/lib/contact";
 import { decideAccess } from "../members/actions";
 
 export const metadata = { title: "Access requests" };
@@ -24,7 +25,7 @@ export default async function AccessPage({ searchParams }: { searchParams: Promi
             <div key={m.id} className="card">
               <div className="font-semibold">{m.display_name}</div>
               <div className="text-sm text-muted">
-                {m.email} · requested {formatDateTime(m.updated_at, user.ward.timezone, "LLL d")}
+                {m.email ?? formatPhone(m.phone)} · requested {formatDateTime(m.updated_at, user.ward.timezone, "LLL d")}
               </div>
               {m.request_note && <p className="mt-2 rounded-lg bg-surface-2 p-3 text-sm">{m.request_note}</p>}
               <form action={decideAccess} className="mt-3 flex gap-2">

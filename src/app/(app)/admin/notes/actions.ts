@@ -3,11 +3,10 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { getLesson } from "@/lib/lessons";
 import { getNotes, publishNotes, rejectNotes } from "@/lib/lesson-notes";
 import { announceNotes } from "@/lib/notes-notify";
-import { notify, type Recipient } from "@/lib/notify";
+import { notify, recipientById } from "@/lib/notify";
 import { formatDate } from "@/lib/time";
 
 function go(text: string): never {
@@ -19,9 +18,7 @@ export async function reviewNotes(fd: FormData) {
   const lesson = getLesson(user.ward_id, Number(fd.get("lesson_id")));
   const notes = lesson && getNotes(lesson.id);
   if (!lesson || !notes || notes.status !== "pending") go("Those notes were already handled.");
-  const teacher = notes.author_id
-    ? (db().prepare("SELECT id, email, display_name FROM members WHERE id = ?").get(notes.author_id) as Recipient | undefined)
-    : undefined;
+  const teacher = recipientById(notes.author_id);
 
   if (fd.get("decision") === "approve") {
     const first = publishNotes(lesson.id, user.id);

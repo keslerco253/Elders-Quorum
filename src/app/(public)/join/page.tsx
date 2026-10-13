@@ -3,18 +3,20 @@ import { listWards } from "@/lib/wards";
 import { Flash } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { joinApp } from "../actions";
+import { phoneEnabled } from "@/lib/sms";
 
 export const metadata = { title: "Join" };
 
 export default async function JoinPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
   const wards = listWards();
+  const phone = phoneEnabled();
   return (
     <div className="card">
       <h2 className="h2 mb-1">Join the app</h2>
       {sp.notfound ? (
         <p className="mb-4 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">
-          There&apos;s no account for <strong>{sp.email}</strong> yet. Join below.
+          There&apos;s no account for <strong>{sp.contact}</strong> yet. Join below.
         </p>
       ) : (
         <p className="mb-4 text-sm text-muted">Get lesson reminders, sign up to serve, and see quorum activities.</p>
@@ -29,11 +31,11 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
           <p className="hint">Shown with your comments and sign-ups.</p>
         </div>
         <div>
-          <label className="label" htmlFor="email">
-            Email
+          <label className="label" htmlFor="contact">
+            {phone ? "Mobile number or email" : "Email"}
           </label>
-          <input id="email" name="email" type="email" required className="input" defaultValue={sp.email} autoComplete="email" />
-          <p className="hint">Used only to sign you in and send quorum notices.</p>
+          <input id="contact" name="contact" type={phone ? "text" : "email"} required className="input" defaultValue={sp.contact} autoComplete={phone ? "username" : "email"} autoCapitalize="off" placeholder={phone ? "(208) 555-0142 or you@example.com" : undefined} />
+          <p className="hint">{phone ? "Use whichever you prefer. You can add the other later." : "Used only to sign you in and send quorum notices."}</p>
         </div>
         <div>
           <label className="label" htmlFor="join_code">
@@ -65,7 +67,8 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
         <label className="flex items-start gap-2 rounded-lg bg-surface-2 p-3 text-sm">
           <input type="checkbox" name="agree" required className="mt-1" />
           <span>
-            I understand this app keeps only my name, my email, and what I choose to post, and that I can delete my account at any time.{" "}
+            I understand this app keeps only my name, {phone ? "the phone number or email I give" : "my email"}, and what I choose to post, and that I can delete my account at any time.
+            {phone && " If I give a mobile number, I agree to receive sign-in codes and quorum messages by text. Message and data rates may apply. Reply STOP to opt out, HELP for help."}{" "}
             <Link href="/privacy" className="link" target="_blank">
               Details
             </Link>

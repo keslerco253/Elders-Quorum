@@ -16,6 +16,7 @@ interface Msg {
   body: string;
   push_count: number;
   email_count: number;
+  text_count: number;
   created_at: string;
   sender: string | null;
 }
@@ -39,7 +40,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader title="Send a message" back={{ href: "/admin", label: "Admin" }} subtitle="Sent as a push notification. Members without notifications turned on get it by email." />
+      <PageHeader title="Send a message" back={{ href: "/admin", label: "Admin" }} subtitle="Sent as a push notification. Members without notifications turned on get it by email or text, as they chose." />
       <Flash msg={sp.msg} />
       <form action={sendMessage} className="card mb-6 max-w-2xl space-y-4">
         <div>
@@ -99,7 +100,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                 <div className="font-semibold">{m.title}</div>
                 <p className="mt-1 whitespace-pre-wrap">{m.body}</p>
                 <div className="mt-2 text-xs text-muted">
-                  {formatDateTime(m.created_at, tz)} · {m.audience_label} · {m.sender} · {m.push_count} push, {m.email_count} email
+                  {formatDateTime(m.created_at, tz)} · {m.audience_label} · {m.sender} · {m.push_count} push, {m.email_count} email, {m.text_count} text
                 </div>
               </li>
             ))}

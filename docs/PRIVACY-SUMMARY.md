@@ -12,8 +12,9 @@ tools (Gospel Library, Member Tools, LCR) and does not replace them.
 
 - It does **not** import, copy or connect to LCR, Member Tools or any Church
   membership records.
-- It does **not** store addresses, phone numbers, birth dates, ordinance,
-  calling, or any other membership information.
+- It does **not** store addresses, birth dates, ordinance, calling, or any
+  other membership information. Phone numbers are kept only when a member
+  chooses to give one for sign-in and texts.
 - It does **not** keep ministering assignments or interviews (those stay in LCR).
 - It does **not** use Church logos or present itself as an official Church
   website. Every sign-in page says it is unofficial.
@@ -22,7 +23,7 @@ tools (Gospel Library, Member Tools, LCR) and does not replace them.
 
 | Information | Why | How long |
 |---|---|---|
-| Name and email, entered by the member when joining | Sign-in and quorum notices | Until they delete their account, or 12 months without signing in |
+| Name, plus a mobile number and/or email the member chooses | Sign-in codes and quorum notices (by text or email, as the member chooses) | Until they remove it or delete their account, or 12 months without signing in |
 | Lesson comments the member writes | Shared study (approved by the presidency before anyone sees them) | 6 months after the lesson |
 | Notes the assigned teacher writes for the lesson | Preparation before Sunday (approved by the presidency before anyone sees them) | 6 months after the lesson |
 | Sign-ups, RSVPs, offers to teach, event requests | Organizing service and activities | 30 days after the event or lesson |
@@ -34,9 +35,10 @@ account, and everything they posted, at any time from inside the app.
 ## Who can see what
 
 - **Members:** lessons, approved comments, the calendar, ward plans, sign-ups.
-  They cannot see other members' emails.
-- **Bishop, high councilor and presidency:** the names and emails of people who
-  joined, plus approval tools.
+  They cannot see other members' phone numbers or emails.
+- **Bishop, high councilor and presidency:** the names of people who joined, and
+  their phone number or email when helping someone with their account, plus
+  approval tools.
 - **Presidency only:** brief home-visit dates and notes (only for people who
   joined the app, with a reminder to record nothing sensitive), and presidency
   to-dos. These are deleted if the member deletes their account.

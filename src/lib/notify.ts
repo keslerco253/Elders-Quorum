@@ -2,17 +2,29 @@ import { db } from "./db";
 import { appUrl } from "./config";
 import { emailHtml, sendMail } from "./mail";
 import { pushToMember, type PushPayload } from "./push";
+import { canSendNotice, sendSms } from "./sms";
+import { fallbackChannels, type ContactPref } from "./contact";
 import { DateTime } from "luxon";
 
 export type Audience = "everyone" | "admins" | "presidency" | "teachers" | `group:${number}`;
 
 export interface Recipient {
   id: number;
+  ward_id: number;
   email: string | null;
+  phone: string | null;
+  contact_pref: ContactPref;
   display_name: string;
 }
 
-const BASE = "SELECT id, email, display_name FROM members WHERE ward_id = ? AND status = 'active'";
+export const RECIPIENT_COLUMNS = "id, ward_id, email, phone, contact_pref, display_name";
+const BASE = `SELECT ${RECIPIENT_COLUMNS} FROM members WHERE ward_id = ? AND status = 'active'`;
+
+export function recipientById(id: number | null | undefined): Recipient | undefined {
+  if (!id) return undefined;
+  return d().prepare(`SELECT ${RECIPIENT_COLUMNS} FROM members WHERE id = ? AND status = 'active'`).get(id) as Recipient | undefined;
+}
+const d = () => db();
 
 /** Active members (everyone who joined and was approved) in an audience. */
 export function audienceMembers(wardId: number, audience: Audience, opts: { tz?: string } = {}): Recipient[] {
@@ -51,32 +63,49 @@ export function audienceLabel(wardId: number, audience: Audience): string {
   return g ? `Group: ${g.name}` : "Group";
 }
 
+/** Short text for a notice, with the ward's name so people know who it's from. */
+function smsBody(wardName: string, payload: PushPayload, url: string) {
+  const text = `${wardName}: ${payload.title}. ${payload.body}`.replace(/\s+/g, " ").trim();
+  return `${text.length > 280 ? text.slice(0, 277) + "…" : text} ${url}`;
+}
+
 /**
- * Push to each recipient's devices; recipients with no working push
- * subscription get an email instead (when they have an address).
+ * Push to each recipient's devices. Anyone whose devices didn't get it is
+ * contacted the way they chose (email, text, both or neither).
  */
-export async function notify(recipients: Recipient[], payload: PushPayload, opts: { email?: boolean } = {}) {
-  const emailFallback = opts.email ?? true;
+export async function notify(recipients: Recipient[], payload: PushPayload, opts: { fallback?: boolean } = {}) {
+  const fallback = opts.fallback ?? true;
   let push = 0;
   let email = 0;
+  let text = 0;
   const url = payload.url ? appUrl() + payload.url : appUrl();
+  const wardNames = new Map<number, string>();
   for (const r of recipients) {
-    const delivered = await pushToMember(r.id, payload);
-    if (delivered > 0) {
+    if ((await pushToMember(r.id, payload)) > 0) {
       push++;
       continue;
     }
-    if (emailFallback && r.email) {
-      const ok = await sendMail({
-        to: r.email,
-        subject: payload.title,
-        text: `${payload.body}\n\n${url}`,
-        html: emailHtml(payload.title, payload.body, { url, label: "Open the app" }),
-      });
-      if (ok) email++;
+    if (!fallback) continue;
+    for (const channel of fallbackChannels(r, canSendNotice(r.ward_id))) {
+      if (channel === "email" && r.email) {
+        const ok = await sendMail({
+          to: r.email,
+          subject: payload.title,
+          text: `${payload.body}\n\n${url}`,
+          html: emailHtml(payload.title, payload.body, { url, label: "Open the app" }),
+        });
+        if (ok) email++;
+      }
+      if (channel === "text" && r.phone) {
+        if (!wardNames.has(r.ward_id)) wardNames.set(r.ward_id, (d().prepare("SELECT name FROM wards WHERE id = ?").get(r.ward_id) as { name: string }).name);
+        const res = await sendSms(r.ward_id, r.phone, smsBody(wardNames.get(r.ward_id)!, payload, url), "notice");
+        if (res === "sent") text++;
+        // They replied STOP: stop texting them; use email if they have one.
+        if (res === "opted_out") d().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END WHERE id = ?").run(r.id);
+      }
     }
   }
-  return { push, email };
+  return { push, email, text };
 }
 
 /** Records a dedupe key. Returns false if this notification was already sent. */

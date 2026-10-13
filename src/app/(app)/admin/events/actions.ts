@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { localInputToUtc, formatDateTime } from "@/lib/time";
-import { notify, type Recipient } from "@/lib/notify";
+import { notify, recipientById } from "@/lib/notify";
 
 function go(path: string, text: string): never {
   redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);
@@ -87,8 +87,8 @@ export async function decideEventRequest(fd: FormData) {
   }
   db().prepare("UPDATE event_requests SET status = ?, decision_note = ?, decided_by = ?, event_id = ? WHERE id = ?").run(approve ? "approved" : "declined", note || null, user.id, eventId, id);
   const when = formatDateTime(r.starts_at, user.ward.timezone);
-  const recipient: Recipient = { id: r.member_id, email: r.email, display_name: r.display_name };
-  await notify([recipient], {
+  const recipient = recipientById(r.member_id);
+  if (recipient) await notify([recipient], {
     title: approve ? "Your event was approved" : "About your event request",
     body: approve ? `"${r.title}" (${when}) is on the quorum calendar.${note ? `\n\n${note}` : ""}` : `"${r.title}" (${when}) wasn't added to the calendar.${note ? `\n\n${note}` : ""}`,
     url: eventId ? `/calendar/${eventId}` : "/calendar",

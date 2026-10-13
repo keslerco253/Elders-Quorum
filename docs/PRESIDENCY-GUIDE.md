@@ -71,6 +71,15 @@ The app never uses Church records. Members join themselves:
   their account.
 - For addresses and phone numbers, use Member Tools.
 
+## Phone or email
+
+Members join and sign in with a mobile number **or** an email (phone only after
+texting is set up; see the setup guide). Under **More → My contact info** they
+can add the other one (confirmed with a code) and choose how we reach them when
+push notifications are off: text, email, both, or neither. With both, email is
+the default because it's free. **Admin → Settings → Texting** shows how many
+texts went out this month and sets the monthly limit.
+
 ## Privacy and automatic clean-up
 
 The app keeps only name, email and what members choose to post, and deletes

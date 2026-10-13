@@ -6,7 +6,8 @@ import { listWards } from "@/lib/wards";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addWard, saveWardSettings, sendTestEmail, setJoinCode } from "./actions";
+import { addWard, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode } from "./actions";
+import { monthlyLimit, phoneEnabled, textsThisMonth, twilioConfigured } from "@/lib/sms";
 
 export const metadata = { title: "Settings" };
 
@@ -79,6 +80,45 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               Send me a test email
             </SubmitButton>
           </form>
+        </div>
+      </Section>
+      <Section title="Texting">
+        <div className="card max-w-xl space-y-3 text-sm">
+          <div className="flex items-center gap-2">
+            Status:{" "}
+            {twilioConfigured() ? (
+              <Badge tone="success">Connected to Twilio</Badge>
+            ) : phoneEnabled() ? (
+              <Badge tone="warn">Test mode: texts are saved to data/outbox</Badge>
+            ) : (
+              <Badge>Not set up: members sign in with email only</Badge>
+            )}
+          </div>
+          {phoneEnabled() ? (
+            <>
+              <p>
+                This month: <strong>{textsThisMonth(user.ward_id, "notice")}</strong> of {monthlyLimit(user.ward_id)} reminder and message texts, plus{" "}
+                <strong>{textsThisMonth(user.ward_id, "code")}</strong> sign-in codes (about 1.3¢ each).
+              </p>
+              <p className="text-muted">At the limit, reminder and message texts pause until next month and those members get email if they have one. Sign-in codes always send.</p>
+              <form action={saveTextLimit} className="flex flex-wrap items-end gap-2">
+                <div>
+                  <label className="label" htmlFor="limit">
+                    Monthly text limit
+                  </label>
+                  <input id="limit" name="limit" type="number" min={0} max={100000} defaultValue={monthlyLimit(user.ward_id)} className="input w-32" />
+                </div>
+                <SubmitButton className="btn-secondary btn-sm">Save limit</SubmitButton>
+              </form>
+              <form action={sendTestText}>
+                <SubmitButton className="btn-secondary btn-sm" pendingText="Sending…">
+                  Send me a test text
+                </SubmitButton>
+              </form>
+            </>
+          ) : (
+            <p className="text-muted">To let members sign in and get messages by text, follow &quot;Texting (optional)&quot; in docs/SETUP-WINDOWS.md.</p>
+          )}
         </div>
       </Section>
       {!!user.is_site_owner && (

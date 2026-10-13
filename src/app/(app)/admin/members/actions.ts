@@ -5,10 +5,10 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin, requirePresidency } from "@/lib/auth";
 import { isPresidency } from "@/lib/permissions";
-import { normalizeEmail } from "@/lib/auth-core";
+import { normalizeEmailAddress, normalizePhone } from "@/lib/contact";
 import { deleteAccount, isLastPresidency } from "@/lib/accounts";
 import { appUrl } from "@/lib/config";
-import { emailHtml, sendMail } from "@/lib/mail";
+import { sendAccountNotice } from "@/lib/login-code";
 import type { Member, Role } from "@/lib/types";
 
 const ROLES: Role[] = ["member", "admin", "presidency"];
@@ -23,8 +23,20 @@ export async function updateMember(fd: FormData) {
   const m = db().prepare("SELECT * FROM members WHERE id = ? AND ward_id = ?").get(id, user.ward_id) as Member | undefined;
   if (!m) redirect("/admin/members");
   const name = String(fd.get("name") || "").trim().slice(0, 100);
-  const email = normalizeEmail(String(fd.get("email") || ""));
-  if (!name || !email.includes("@")) go(`/admin/members/${id}`, "Name and email are required.");
+  const rawEmail = String(fd.get("email") || "").trim();
+  const rawPhone = String(fd.get("phone") || "").trim();
+  const email = rawEmail ? normalizeEmailAddress(rawEmail) : null;
+  const phone = rawPhone ? normalizePhone(rawPhone) : null;
+  if (!name) go(`/admin/members/${id}`, "Name is required.");
+  if ((rawEmail && !email) || (rawPhone && !phone)) go(`/admin/members/${id}`, "That phone number or email doesn't look right.");
+  if (!email && !phone) go(`/admin/members/${id}`, "Each member needs a phone number or an email to sign in.");
+  if (phone && db().prepare("SELECT 1 FROM members WHERE ward_id = ? AND phone = ? AND id != ?").get(user.ward_id, phone, id)) {
+    go(`/admin/members/${id}`, "Another member already uses that phone number.");
+  }
+  // Keep their contact choice valid for what they still have.
+  let pref = m.contact_pref;
+  if ((pref === "text" || pref === "both") && !phone) pref = email ? "email" : "none";
+  if ((pref === "email" || pref === "both") && !email) pref = phone ? "text" : "none";
 
   let role = m.role;
   let status = m.status;
@@ -38,8 +50,8 @@ export async function updateMember(fd: FormData) {
     }
   }
   db()
-    .prepare("UPDATE members SET name = ?, display_name = ?, email = ?, role = ?, status = ?, updated_at = datetime('now') WHERE id = ?")
-    .run(name, name, email, role, status, id);
+    .prepare("UPDATE members SET name = ?, display_name = ?, email = ?, phone = ?, contact_pref = ?, role = ?, status = ?, updated_at = datetime('now') WHERE id = ?")
+    .run(name, name, email, phone, pref, role, status, id);
   if (status !== "active") db().prepare("DELETE FROM sessions WHERE member_id = ?").run(id);
   revalidatePath("/admin/members");
   go(`/admin/members/${id}`, "Saved.");
@@ -69,10 +81,7 @@ export async function decideAccess(fd: FormData) {
     go("/admin/access", `${m.display_name}'s request was declined and removed.`);
   }
   db().prepare("UPDATE members SET status = 'active', request_note = NULL, updated_at = datetime('now') WHERE id = ?").run(id);
-  if (m.email) {
-    const text = `Hi ${m.display_name},\n\nYour request was approved. You can now sign in to ${user.ward.name} with this email address.`;
-    await sendMail({ to: m.email, subject: `You're approved: ${user.ward.name}`, text: `${text}\n\n${appUrl()}/login`, html: emailHtml("Welcome!", text, { url: `${appUrl()}/login`, label: "Sign in" }) });
-  }
+  await sendAccountNotice(m, `You're approved: ${user.ward.name}`, `Hi ${m.display_name},\n\nYour request was approved. You can now sign in to ${user.ward.name}.`, { url: `${appUrl()}/login`, label: "Sign in" });
   revalidatePath("/admin/access");
   go("/admin/access", `${m.display_name} was approved and emailed.`);
 }

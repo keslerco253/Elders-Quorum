@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { ROLE_LABELS } from "@/lib/types";
+import { formatPhone } from "@/lib/contact";
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { QuickLinks } from "@/components/quick-links";
@@ -16,6 +17,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const links = [
     { href: "/signups", label: "Sign-ups", desc: "Service projects, meals and more" },
+    { href: "/more/contact", label: "My contact info", desc: "Phone, email, and how we contact you" },
     ...(isAdmin(user) ? [{ href: "/admin", label: "Admin tools", desc: "Members, lessons, messages and approvals" }] : []),
   ];
   return (
@@ -55,7 +57,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
       <Section title="Account">
         <div className="card space-y-1 text-sm">
           <div className="font-semibold">{user.display_name}</div>
-          <div className="text-muted">{user.email}</div>
+          <div className="text-muted">{[formatPhone(user.phone), user.email].filter(Boolean).join(" · ")}</div>
           <div className="text-muted">Access: {ROLE_LABELS[user.role]}</div>
           <p className="hint pt-2">
             This app keeps only your name, email and what you post.{" "}

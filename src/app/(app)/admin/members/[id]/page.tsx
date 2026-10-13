@@ -7,6 +7,7 @@ import { formatDate, formatDateTime } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { ROLE_LABELS, type Member } from "@/lib/types";
+import { formatPhone } from "@/lib/contact";
 import { removeMember, updateMember } from "../actions";
 
 export const metadata = { title: "Member" };
@@ -44,13 +45,25 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
               </label>
               <input id="name" name="name" required className="input" defaultValue={m.display_name} />
             </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="phone">
+                Mobile number
+              </label>
+              <input id="phone" name="phone" type="tel" className="input" defaultValue={formatPhone(m.phone)} />
+            </div>
             <div>
               <label className="label" htmlFor="email">
-                Email (used to sign in)
+                Email
               </label>
-              <input id="email" name="email" type="email" required className="input" defaultValue={m.email ?? ""} />
+              <input id="email" name="email" type="email" className="input" defaultValue={m.email ?? ""} />
             </div>
           </div>
+          <p className="hint -mt-2">
+            Either one can be used to sign in. Change these only to help a member (for example, a new phone number). They contact you by:{" "}
+            {{ text: "text", email: "email", both: "text and email", none: "no texts or emails" }[m.contact_pref]}.
+          </p>
           {presidency && (
             <div className="grid gap-4 sm:grid-cols-2">
               <div>

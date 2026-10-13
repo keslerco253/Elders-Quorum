@@ -6,6 +6,7 @@ import { needsSetup } from "@/lib/wards";
 import { Flash } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { requestLogin } from "../actions";
+import { phoneEnabled } from "@/lib/sms";
 
 export const metadata = { title: "Sign in" };
 
@@ -13,18 +14,19 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   if (needsSetup()) redirect("/setup");
   if (await getUser()) redirect("/");
   const sp = await searchParams;
+  const phone = phoneEnabled();
   return (
     <div className="card">
       <h2 className="h2 mb-1">Sign in</h2>
-      <p className="mb-4 text-sm text-muted">We&apos;ll email you a sign-in link and code. No password needed.</p>
+      <p className="mb-4 text-sm text-muted">{phone ? "We'll text or email you a sign-in code." : "We'll email you a sign-in link and code."} No password needed.</p>
       <Flash msg={sp.error} tone="danger" />
       <Flash msg={sp.ok} />
       <form action={requestLogin} className="space-y-4">
         <div>
-          <label className="label" htmlFor="email">
-            Email
+          <label className="label" htmlFor="contact">
+            {phone ? "Mobile number or email" : "Email"}
           </label>
-          <input id="email" name="email" type="email" autoComplete="email" required className="input" defaultValue={sp.email} />
+          <input id="contact" name="contact" type={phone ? "text" : "email"} inputMode={phone ? "email" : undefined} autoComplete={phone ? "username" : "email"} autoCapitalize="off" required className="input" defaultValue={sp.contact} placeholder={phone ? "(208) 555-0142 or you@example.com" : undefined} />
         </div>
         <div>
           <label className="label" htmlFor="remember">
@@ -39,7 +41,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </select>
         </div>
         <SubmitButton className="btn-primary w-full" pendingText="Sending…">
-          Email me a sign-in link
+          {phone ? "Send me a code" : "Email me a sign-in link"}
         </SubmitButton>
       </form>
       <p className="mt-5 text-center text-sm text-muted">

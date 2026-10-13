@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePresidency } from "@/lib/auth";
-import { notify, type Recipient } from "@/lib/notify";
+import { notify, RECIPIENT_COLUMNS, type Recipient } from "@/lib/notify";
 import { formatDate } from "@/lib/time";
 
 function go(text: string): never {
@@ -20,7 +20,7 @@ export async function saveTodo(fd: FormData) {
   const assigneeId = Number(fd.get("assignee_id")) || null;
   if (!title) go("Give the assignment a title.");
   const assignee = assigneeId
-    ? (db().prepare("SELECT id, email, display_name FROM members WHERE id = ? AND ward_id = ? AND role = 'presidency' AND status = 'active'").get(assigneeId, user.ward_id) as Recipient | undefined)
+    ? (db().prepare(`SELECT ${RECIPIENT_COLUMNS} FROM members WHERE id = ? AND ward_id = ? AND role = 'presidency' AND status = 'active'`).get(assigneeId, user.ward_id) as Recipient | undefined)
     : undefined;
   let previousAssignee: number | null = null;
   if (id) {

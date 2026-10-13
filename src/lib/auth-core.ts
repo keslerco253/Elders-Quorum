@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { DateTime } from "luxon";
 import { db } from "./db";
 import type { CurrentUser, Member, Ward } from "./types";
+import { parseContact } from "./contact";
 
 export const REMEMBER_OPTIONS = {
   session: { label: "Just this time (until I close the browser)", days: 1 },
@@ -24,11 +25,24 @@ export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-/** Active members who can sign in with this email (normally exactly one). */
-export function findLoginMember(email: string): Member | undefined {
+/** The active member who signs in with this phone number or email, if any. */
+export function findLoginMember(contact: string): Member | undefined {
+  const c = parseContact(contact);
+  if (!c) return undefined;
+  const col = c.kind === "phone" ? "phone" : "lower(email)";
   return db()
-    .prepare("SELECT * FROM members WHERE lower(email) = ? AND status = 'active' ORDER BY updated_at DESC LIMIT 1")
-    .get(normalizeEmail(email)) as Member | undefined;
+    .prepare(`SELECT * FROM members WHERE ${col} = ? AND status = 'active' ORDER BY updated_at DESC LIMIT 1`)
+    .get(c.value) as Member | undefined;
+}
+
+/** Any member (any status) with this phone number or email, newest first. */
+export function findMemberByContact(contact: string, wardId?: number): Member | undefined {
+  const c = parseContact(contact);
+  if (!c) return undefined;
+  const col = c.kind === "phone" ? "phone" : "lower(email)";
+  return db()
+    .prepare(`SELECT * FROM members WHERE ${col} = ? ${wardId ? "AND ward_id = ?" : ""} ORDER BY updated_at DESC LIMIT 1`)
+    .get(...(wardId ? [c.value, wardId] : [c.value])) as Member | undefined;
 }
 
 export type CreateTokenResult = { ok: true; token: string; code: string } | { ok: false; reason: "rate_limited" };
@@ -71,9 +85,9 @@ export function redeemToken(token: string) {
   return consume(row);
 }
 
-/** Redeem the 6-digit code from the email (for when the link opens in a different browser). */
-export function redeemCode(email: string, code: string) {
-  const member = findLoginMember(email);
+/** Redeem the 6-digit code sent by email or text. */
+export function redeemCode(contact: string, code: string) {
+  const member = findLoginMember(contact);
   if (!member) return null;
   const d = db();
   const row = d

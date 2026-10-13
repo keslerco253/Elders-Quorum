@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePresidency } from "@/lib/auth";
 import { createLoginToken, normalizeEmail } from "@/lib/auth-core";
-import { sendLoginEmail } from "@/lib/login-email";
+import { sendLoginCode } from "@/lib/login-code";
 import { emailHtml, sendMail } from "@/lib/mail";
 import crypto from "crypto";
+import { sendSms } from "@/lib/sms";
+import { formatPhone } from "@/lib/contact";
 import type { Member } from "@/lib/types";
 
 function go(text: string): never {
@@ -54,7 +56,7 @@ export async function addWard(fd: FormData) {
     return Number(d.prepare("INSERT INTO members (ward_id, name, display_name, email, role, source) VALUES (?, ?, ?, ?, 'presidency', 'setup')").run(w.lastInsertRowid, name, name, email).lastInsertRowid);
   })();
   const res = createLoginToken(memberId, "month");
-  if (res.ok) await sendLoginEmail(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, res.token, res.code);
+  if (res.ok) await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, "email", res.token, res.code);
   go(`${wardName} was added. ${name} was emailed a sign-in link.`);
 }
 
@@ -79,4 +81,20 @@ export async function setJoinCode(fd: FormData) {
   const text = code ? `Join code is now ${code}.` : "Join code turned off. New members will need presidency approval.";
   if (fd.get("return") === "/admin/invite") redirect(`/admin/invite?msg=${encodeURIComponent(text)}`);
   go(text);
+}
+
+export async function saveTextLimit(fd: FormData) {
+  const user = await requirePresidency();
+  const limit = Math.round(Number(fd.get("limit")));
+  if (!Number.isFinite(limit) || limit < 0 || limit > 100_000) go("Enter a number of texts between 0 and 100,000.");
+  db().prepare("UPDATE wards SET sms_monthly_limit = ? WHERE id = ?").run(limit, user.ward_id);
+  revalidatePath("/admin/settings");
+  go(`Monthly text limit set to ${limit}.`);
+}
+
+export async function sendTestText() {
+  const user = await requirePresidency();
+  if (!user.phone) go("Add your mobile number under More → My contact info first.");
+  const res = await sendSms(user.ward_id, user.phone, `${user.ward.name}: test text. Texting from the app is working.`, "notice");
+  go(res === "sent" ? `Test text sent to ${formatPhone(user.phone)}.` : "The text didn't send. Check the TWILIO_ settings in your .env file.");
 }

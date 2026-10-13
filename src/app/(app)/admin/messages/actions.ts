@@ -26,13 +26,17 @@ export async function sendMessage(fd: FormData) {
   const link = LINKS.includes(String(fd.get("link"))) ? String(fd.get("link")) : "/";
   if (!audience || !title || !body) go("/admin/messages", "Please choose who to send to and fill in the title and message.");
   const recipients = audienceMembers(user.ward_id, audience, { tz: user.ward.timezone });
-  const { push, email } = await notify(recipients, { title, body, url: link });
+  const { push, email, text } = await notify(recipients, { title, body, url: link });
   db()
-    .prepare("INSERT INTO messages (ward_id, sender_id, audience, audience_label, title, body, push_count, email_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-    .run(user.ward_id, user.id, audience, audienceLabel(user.ward_id, audience), title, body, push, email);
+    .prepare("INSERT INTO messages (ward_id, sender_id, audience, audience_label, title, body, push_count, email_count, text_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .run(user.ward_id, user.id, audience, audienceLabel(user.ward_id, audience), title, body, push, email, text);
   revalidatePath("/admin/messages");
-  const missed = recipients.length - push - email;
-  go("/admin/messages", `Sent to ${recipients.length}: ${push} by notification, ${email} by email${missed ? `, ${missed} couldn't be reached (no email)` : ""}.`);
+  const reached = push + Math.min(recipients.length - push, email + text);
+  const missed = recipients.length - reached;
+  go(
+    "/admin/messages",
+    `Sent to ${recipients.length}: ${push} by notification, ${email} by email, ${text} by text${missed > 0 ? `. ${missed} have notifications off and chose not to get texts or emails` : ""}.`,
+  );
 }
 
 export async function createGroup(fd: FormData) {

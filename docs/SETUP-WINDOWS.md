@@ -157,6 +157,50 @@ link opens in Safari, not the app.
 
 ---
 
+## Texting (optional)
+
+Members can sign in and get reminders by text instead of (or as well as)
+email. Until this is set up, the app works with email only. Expect about $19 to
+register once, then roughly $3–8 a month (about 1.3¢ per text, a $1.15 number
+and $2 registration upkeep). Admin → Settings → Texting shows this month's count,
+and the **monthly text limit** (default 500) caps the bill.
+
+1. Create an account at <https://www.twilio.com> and upgrade it with $20 of
+   prepaid credit.
+2. **Phone Numbers → Buy a number**: pick a local (208) number with SMS.
+3. **Messaging → Regulatory Compliance → A2P 10DLC**: register a **Sole
+   Proprietor** brand in your own name (Twilio texts a code to your cell), then a
+   campaign. Paste these answers:
+   - **Use case:** Account notifications / 2FA (one-time passcodes)
+   - **Campaign description:** "Sign-in codes and reminders for members of a
+     volunteer church quorum group who sign up in our app. Members get a
+     one-time code to sign in, and may choose to receive weekly lesson reminders,
+     activity reminders and announcements by text."
+   - **Sample message 1:** "482913 is your Villas Ward Elders Quorum sign-in code.
+     It expires in 20 minutes. Reply STOP to opt out."
+   - **Sample message 2:** "Villas Ward Elders Quorum: Tomorrow's lesson: Abide in
+     My Love. Tap to read the talk and share your thoughts.
+     https://YOUR-ADDRESS/lessons/12"
+   - **How users opt in:** "Members join at https://YOUR-ADDRESS/join by
+     entering their own mobile number and checking a box that says: 'If I give a
+     mobile number, I agree to receive sign-in codes and quorum messages by text.
+     Message and data rates may apply. Reply STOP to opt out, HELP for help.'
+     Privacy policy: https://YOUR-ADDRESS/privacy"
+   - **Opt-out / help keywords:** STOP and HELP (Twilio's defaults).
+   (Replace YOUR-ADDRESS with your app address.)
+4. Wait for approval (usually 1–3 weeks). Twilio emails you.
+5. Put these three lines in `.env` (Account SID and Auth Token are on the Twilio
+   console home page):
+   ```
+   TWILIO_ACCOUNT_SID=AC...
+   TWILIO_AUTH_TOKEN=...
+   TWILIO_FROM=+12085550100
+   ```
+6. Double-click **UPDATE.bat**. Then add your own number under **More → My
+   contact info** and use **Admin → Settings → Send me a test text**.
+
+The sign-in and join pages then say "Mobile number or email".
+
 ## Backups
 
 Every night after 2 AM a copy of the database is saved to the `backups` folder

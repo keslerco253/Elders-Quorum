@@ -25,6 +25,9 @@ export function runRetention() {
     run("teacher_notes", `DELETE FROM lesson_notes WHERE lesson_id IN (SELECT id FROM lessons WHERE date < date('now', '-6 months'))`);
     // Unanswered join requests after 60 days.
     run("requests", `DELETE FROM members WHERE status = 'pending' AND updated_at < datetime('now', '-60 days')`);
+    // Text counts after 90 days (they hold no numbers or messages); unused confirmation codes after a day.
+    run("sms_log", `DELETE FROM sms_log WHERE sent_at < datetime('now', '-90 days')`);
+    run("contact_codes", `DELETE FROM contact_verifications WHERE created_at < datetime('now', '-1 day')`);
     // Message history after a year.
     run("messages", `DELETE FROM messages WHERE created_at < datetime('now', '-365 days')`);
   })();
