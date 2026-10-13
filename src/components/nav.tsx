@@ -27,8 +27,10 @@ function isActive(path: string, href: string) {
   return href === "/" ? path === "/" : path === href || path.startsWith(href + "/");
 }
 
-export function Nav({ appName, isAdmin, adminCount }: { appName: string; isAdmin: boolean; adminCount: number }) {
+export function Nav({ appName, isAdmin, adminCount, moreCount = 0 }: { appName: string; isAdmin: boolean; adminCount: number; moreCount?: number }) {
   const path = usePathname();
+  // The page being read clears these, so don't show the dot there.
+  if (path.startsWith("/messages")) moreCount = 0;
   const main: Item[] = [
     { href: "/", label: "Home", icon: "home" },
     { href: "/lessons", label: "Lessons", icon: "book" },
@@ -38,7 +40,7 @@ export function Nav({ appName, isAdmin, adminCount }: { appName: string; isAdmin
   const desktopExtra: Item[] = [
     { href: "/signups", label: "Sign-ups", icon: "list" },
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: "shield", badge: adminCount }] : []),
-    { href: "/more", label: "More", icon: "more" },
+    { href: "/more", label: "More", icon: "more", badge: moreCount },
   ];
 
   return (
@@ -73,8 +75,9 @@ export function Nav({ appName, isAdmin, adminCount }: { appName: string; isAdmin
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5">
-          {[...main, { href: "/more", label: "More", icon: "more" }].map((i) => (
-            <Link key={i.href} href={i.href} className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${isActive(path, i.href) ? "text-accent" : "text-muted"}`}>
+          {[...main, { href: "/more", label: "More", icon: "more", badge: moreCount }].map((i) => (
+            <Link key={i.href} href={i.href} className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${isActive(path, i.href) ? "text-accent" : "text-muted"}`}>
+              {!!i.badge && <span className="absolute top-1 left-1/2 ml-2 h-2.5 w-2.5 rounded-full bg-danger" aria-label={`${i.badge} new`} />}
               <Icon name={i.icon} />
               {i.label}
             </Link>

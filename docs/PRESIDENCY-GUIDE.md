@@ -92,6 +92,7 @@ old information automatically:
 | Offers to teach | 30 days after the lesson |
 | Lesson comments | 6 months after the lesson |
 | Visit requests | 30 days after they're finished (6 months at most) |
+| Replies and conversations with the presidency | after 6 months |
 | Join requests nobody answered | after 60 days |
 | Member accounts not used | after 12 months (leaders are kept) |
 
@@ -108,6 +109,22 @@ Visits can only be recorded for people who have joined the app. Keep notes
 brief: record nothing you wouldn't text to another presidency member, and
 never health, financial or worthiness details. Ministering interviews and
 assignments stay in LCR.
+
+## Replies (presidency only)
+
+Every message you send under **Admin → Send a message** also shows in each
+member's **More → Messages**, with a **Reply** button. Members can reply there,
+or simply text back if they got it by text. Replies go to **Admin → Replies**
+(and count in **Waiting on you**), and every presidency member is notified.
+
+Open a conversation to read it and answer. Your answer goes to that member only,
+signed with your name, as a notification (or by text/email if they turned
+notifications off). Under **Message one person** you can start a private
+conversation with any member.
+
+Replies are seen only by the presidency, even when the bishop or high councilor
+sent the original message. Replies to emails still go to the quorum Gmail inbox.
+Conversations are deleted after 6 months.
 
 ## Visit requests (presidency only)
 

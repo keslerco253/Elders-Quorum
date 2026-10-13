@@ -28,6 +28,8 @@ export async function replyToVisitRequest(fd: FormData) {
   const reply = String(fd.get("reply") || "").trim().slice(0, 500);
   if (!reply) go("Write a short reply to send, such as when someone will come by.");
   const r = update(Number(fd.get("item_id")), user.ward_id, "scheduled", reply, user.id);
+  // Also shown in the member's conversation, so a reply by text has context.
+  db().prepare("INSERT INTO member_messages (ward_id, member_id, direction, author_id, body, read_at) VALUES (?, ?, 'out', ?, ?, datetime('now'))").run(user.ward_id, r.member_id, user.id, `About your visit request: ${reply}`);
   const member = recipientById(r.member_id);
   if (member) await notify([member], { title: "Your visit request", body: `${user.display_name}: ${reply}`, url: "/more/visit" });
   go("Reply sent.");

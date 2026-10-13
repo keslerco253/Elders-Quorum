@@ -75,15 +75,16 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         </div>
         <div>
           <label className="label" htmlFor="link">
-            Tapping it opens
+            Add a button to
           </label>
           <select id="link" name="link" className="input">
-            <option value="/">Home</option>
+            <option value="/">No button</option>
             <option value="/lessons">Lessons</option>
             <option value="/calendar">Calendar</option>
             <option value="/plans">Plans</option>
             <option value="/signups">Sign-ups</option>
           </select>
+          <p className="mt-1 text-xs text-muted">Tapping the notification opens the message in the app, where members can reply to the presidency. Text replies come back to the presidency too.</p>
         </div>
         <SubmitButton pendingText="Sending…" confirm="Send this message now?">
           Send

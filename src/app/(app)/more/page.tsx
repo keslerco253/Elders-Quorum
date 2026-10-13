@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
+import { unreadAnswers } from "@/lib/conversations";
 import { ROLE_LABELS } from "@/lib/types";
 import { formatPhone } from "@/lib/contact";
 import { Flash, PageHeader, Section } from "@/components/ui";
@@ -15,7 +16,9 @@ export const metadata = { title: "More" };
 export default async function MorePage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
   const sp = await searchParams;
+  const unread = unreadAnswers(user.id);
   const links = [
+    { href: "/messages", label: unread ? `Messages (${unread} new)` : "Messages", desc: "Quorum messages and replies from the presidency" },
     { href: "/signups", label: "Sign-ups", desc: "Service projects, meals and more" },
     { href: "/more/visit", label: "Request a visit", desc: "Ask the presidency to come by, talk, or help" },
     { href: "/more/contact", label: "My contact info", desc: "Phone, email, and how we contact you" },

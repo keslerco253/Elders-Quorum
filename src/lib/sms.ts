@@ -26,7 +26,7 @@ export const phoneOptInVisible = () => phoneEnabled() || process.env.SMS_PENDING
 export const SMS_DISCLOSURE = "Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to opt out.";
 
 /** Texts sent this calendar month (UTC) for a ward. */
-export function textsThisMonth(wardId: number, kind?: "code" | "notice"): number {
+export function textsThisMonth(wardId: number, kind?: "code" | "notice" | "reply"): number {
   const row = db()
     .prepare(`SELECT COUNT(*) AS n FROM sms_log WHERE ward_id = ? AND sent_at >= strftime('%Y-%m-01 00:00:00', 'now') ${kind ? "AND kind = ?" : ""}`)
     .get(...(kind ? [wardId, kind] : [wardId])) as { n: number };
@@ -37,9 +37,12 @@ export function monthlyLimit(wardId: number): number {
   return (db().prepare("SELECT sms_monthly_limit AS n FROM wards WHERE id = ?").get(wardId) as { n: number } | undefined)?.n ?? 500;
 }
 
-/** Notices stop at the monthly limit. Sign-in codes are always sent so no one is locked out. */
+/**
+ * Notices stop at the monthly limit, which also counts texts members send back.
+ * Sign-in codes are always sent so no one is locked out.
+ */
 export function canSendNotice(wardId: number) {
-  return phoneEnabled() && textsThisMonth(wardId, "notice") < monthlyLimit(wardId);
+  return phoneEnabled() && textsThisMonth(wardId, "notice") + textsThisMonth(wardId, "reply") < monthlyLimit(wardId);
 }
 
 export type SmsResult = "sent" | "failed" | "opted_out";

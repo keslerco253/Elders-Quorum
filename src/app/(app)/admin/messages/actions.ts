@@ -26,10 +26,20 @@ export async function sendMessage(fd: FormData) {
   const link = LINKS.includes(String(fd.get("link"))) ? String(fd.get("link")) : "/";
   if (!audience || !title || !body) go("/admin/messages", "Please choose who to send to and fill in the title and message.");
   const recipients = audienceMembers(user.ward_id, audience, { tz: user.ward.timezone });
-  const { push, email, text } = await notify(recipients, { title, body, url: link });
-  db()
-    .prepare("INSERT INTO messages (ward_id, sender_id, audience, audience_label, title, body, push_count, email_count, text_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-    .run(user.ward_id, user.id, audience, audienceLabel(user.ward_id, audience), title, body, push, email, text);
+  // Saved first so members can find it under Messages and reply to it.
+  const d = db();
+  const messageId = d.transaction(() => {
+    const id = Number(
+      d
+        .prepare("INSERT INTO messages (ward_id, sender_id, audience, audience_label, title, body, link) VALUES (?, ?, ?, ?, ?, ?, ?)")
+        .run(user.ward_id, user.id, audience, audienceLabel(user.ward_id, audience), title, body, link).lastInsertRowid,
+    );
+    const ins = d.prepare("INSERT OR IGNORE INTO message_recipients (message_id, member_id) VALUES (?, ?)");
+    for (const r of recipients) ins.run(id, r.id);
+    return id;
+  })();
+  const { push, email, text } = await notify(recipients, { title, body, url: `/messages?re=${messageId}` });
+  d.prepare("UPDATE messages SET push_count = ?, email_count = ?, text_count = ? WHERE id = ?").run(push, email, text, messageId);
   revalidatePath("/admin/messages");
   const reached = push + Math.min(recipients.length - push, email + text);
   const missed = recipients.length - reached;

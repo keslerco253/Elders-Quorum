@@ -8,6 +8,7 @@ import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
 import { addWard, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode } from "./actions";
 import { monthlyLimit, phoneEnabled, textsThisMonth, twilioConfigured } from "@/lib/sms";
+import { inboundUrl } from "@/lib/sms-inbound";
 
 export const metadata = { title: "Settings" };
 
@@ -99,8 +100,18 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <p>
                 This month: <strong>{textsThisMonth(user.ward_id, "notice")}</strong> of {monthlyLimit(user.ward_id)} reminder and message texts, plus{" "}
                 <strong>{textsThisMonth(user.ward_id, "code")}</strong> sign-in codes (about 1.3¢ each).
+                {textsThisMonth(user.ward_id, "reply") > 0 && (
+                  <>
+                    {" "}
+                    Members texted back <strong>{textsThisMonth(user.ward_id, "reply")}</strong> times; those count toward the limit.
+                  </>
+                )}
               </p>
               <p className="text-muted">At the limit, reminder and message texts pause until next month and those members get email if they have one. Sign-in codes always send.</p>
+              <p className="text-muted">
+                So text replies reach the presidency, set Twilio&apos;s incoming-message webhook to{" "}
+                <code className="rounded bg-surface-2 px-1 break-all">{inboundUrl()}</code> (see the setup guide).
+              </p>
               <form action={saveTextLimit} className="flex flex-wrap items-end gap-2">
                 <div>
                   <label className="label" htmlFor="limit">

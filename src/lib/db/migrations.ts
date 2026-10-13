@@ -330,4 +330,46 @@ CREATE INDEX visit_requests_ward ON visit_requests(ward_id, status);
 CREATE INDEX visit_requests_member ON visit_requests(member_id);
 `,
   },
+  {
+    // Members can see the messages they were sent and reply to the presidency,
+    // in the app or by texting back.
+    id: 6,
+    sql: `
+ALTER TABLE messages ADD COLUMN link TEXT NOT NULL DEFAULT '/';
+CREATE TABLE message_recipients (
+  message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  PRIMARY KEY (message_id, member_id)
+);
+CREATE INDEX message_recipients_member ON message_recipients(member_id);
+
+-- One conversation per member with the presidency. 'in' = from the member, 'out' = from the presidency.
+CREATE TABLE member_messages (
+  id INTEGER PRIMARY KEY,
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  direction TEXT NOT NULL CHECK (direction IN ('in','out')),
+  author_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  message_id INTEGER REFERENCES messages(id) ON DELETE SET NULL,
+  body TEXT NOT NULL,
+  via TEXT NOT NULL DEFAULT 'app' CHECK (via IN ('app','text')),
+  read_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX member_messages_member ON member_messages(member_id, created_at);
+CREATE INDEX member_messages_ward ON member_messages(ward_id, direction, read_at);
+
+-- Texts members send back count toward the monthly limit too.
+CREATE TABLE sms_log_new (
+  id INTEGER PRIMARY KEY,
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('code','notice','reply')),
+  sent_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+INSERT INTO sms_log_new SELECT id, ward_id, kind, sent_at FROM sms_log;
+DROP TABLE sms_log;
+ALTER TABLE sms_log_new RENAME TO sms_log;
+CREATE INDEX sms_log_ward_time ON sms_log(ward_id, sent_at);
+`,
+  },
 ];

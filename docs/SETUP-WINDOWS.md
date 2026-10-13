@@ -208,6 +208,16 @@ can be handed to the next president.
    ```
 6. Double-click **UPDATE.bat**. Then add your own number under **More → My
    contact info** and use **Admin → Settings → Send me a test text**.
+7. **Let text replies reach the presidency.** In Twilio, go to **Messaging →
+   Services → (your service) → Integration**. Under **Incoming Messages**, choose
+   **Send a webhook**, set **Request URL** to
+   `https://YOUR-ADDRESS/api/sms/inbound` (Admin → Settings shows the exact
+   address), method **HTTP POST**, and click **Save**. Text yourself a reply to
+   the test text: it should show up under **Admin → Replies**.
+   If replies don't appear, check that `APP_URL` in `.env` exactly matches your
+   app address; Twilio signs each message with it, and the app ignores
+   anything that doesn't match. Texts members send back count toward the
+   monthly limit.
 
 The sign-in and join pages then say "Mobile number or email".
 
