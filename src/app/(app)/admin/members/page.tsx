@@ -59,7 +59,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                 </label>
                 <select id="add-role" name="role" className="input" defaultValue="member">
                   <option value="member">Member</option>
-                  <option value="admin">Admin (bishop, high councilor)</option>
+                  <option value="admin">Admin (bishop, Stake High Council)</option>
                   <option value="presidency">Presidency</option>
                 </select>
               </div>

@@ -136,7 +136,7 @@ docker compose up -d
 3. Check your email for the sign-in code.
 4. **Admin → Settings → Join code → Create a code.**
 5. **Admin → Settings → Send me a test email** to confirm email works.
-6. Have the counselors, secretary, bishop and high councilor join (with the
+6. Have the counselors, secretary, bishop and Stake High Council representative join (with the
    code), then open each of them in **Admin → Members** and set their
    **Access level**.
 7. Announce the address and join code in quorum meeting.

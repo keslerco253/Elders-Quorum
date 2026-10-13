@@ -49,7 +49,7 @@ export interface PresidencyContact {
 export type Thread = { private: false } | { private: true; withId: number };
 
 const MAX_BODY = 1000;
-const ORDER: Calling[] = ["president", "first_counselor", "second_counselor", "secretary"];
+const ORDER: Calling[] = ["president", "first_counselor", "second_counselor", "secretary", "assistant_secretary", "stake_high_council"];
 
 /** Active presidency members, president first, for members choosing who to write to. */
 export function presidencyContacts(wardId: number): PresidencyContact[] {

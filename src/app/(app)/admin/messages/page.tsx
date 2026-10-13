@@ -29,7 +29,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const groups = db().prepare("SELECT id, name FROM groups WHERE ward_id = ? ORDER BY name").all(w) as { id: number; name: string }[];
   const options: [Audience, string][] = [
     ["everyone", "Everyone"],
-    ["admins", "Admins (presidency, bishop, high councilor)"],
+    ["admins", "Admins (presidency, bishop, Stake High Council)"],
     ["presidency", "Presidency"],
     ["teachers", "Upcoming teachers (next 5 weeks)"],
     ...groups.map((g): [Audience, string] => [`group:${g.id}`, `Group: ${g.name}`]),

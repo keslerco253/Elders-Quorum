@@ -114,7 +114,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                 </label>
                 <select id="role" name="role" className="input" defaultValue={m.role}>
                   <option value="member">Member</option>
-                  <option value="admin">Admin (bishop, high councilor)</option>
+                  <option value="admin">Admin (bishop, Stake High Council)</option>
                   <option value="presidency">Presidency</option>
                 </select>
               </div>
@@ -127,7 +127,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   <option value="inactive">Turned off: can&apos;t sign in</option>
                 </select>
               </div>
-              {m.role === "presidency" && (
+              {m.role !== "member" && (
                 <div>
                   <label className="label" htmlFor="calling">
                     Calling
@@ -140,7 +140,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                       </option>
                     ))}
                   </select>
-                  <p className="hint">Shown to members choosing who to message privately.</p>
+                  <p className="hint">Shown next to their name. Members can message presidency members privately.</p>
                 </div>
               )}
             </div>

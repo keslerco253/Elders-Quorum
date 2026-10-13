@@ -56,7 +56,7 @@ export function audienceLabel(wardId: number, audience: Audience): string {
     case "everyone":
       return "Everyone";
     case "admins":
-      return "Admins (presidency, bishop, high councilor)";
+      return "Admins (presidency, bishop, Stake High Council)";
     case "presidency":
       return "Presidency";
     case "teachers":

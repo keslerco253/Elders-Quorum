@@ -149,10 +149,10 @@ private too. If that presidency member's account is deleted, their private
 conversations are deleted with it rather than shown to anyone else.
 
 Set each presidency member's **Calling** (President, First Counselor, Second
-Counselor, Secretary) on their page under **Admin → Members**, so members know
+Counselor, Secretary, Assistant Secretary; Stake High Council for that admin) on their page under **Admin → Members**, so members know
 who's who when choosing.
 
-Replies are seen only by the presidency, even when the bishop or high councilor
+Replies are seen only by the presidency, even when the bishop or Stake High Council representative
 sent the original message. Replies to emails still go to the quorum Gmail inbox.
 Conversations are deleted after 6 months.
 

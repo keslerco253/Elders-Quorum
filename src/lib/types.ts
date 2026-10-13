@@ -76,13 +76,15 @@ export interface EventRow {
   reminder_minutes: number | null;
 }
 
-export type Calling = "president" | "first_counselor" | "second_counselor" | "secretary";
+export type Calling = "president" | "first_counselor" | "second_counselor" | "secretary" | "assistant_secretary" | "stake_high_council";
 
 export const CALLING_LABELS: Record<Calling, string> = {
   president: "Elders Quorum President",
   first_counselor: "First Counselor",
   second_counselor: "Second Counselor",
   secretary: "Secretary",
+  assistant_secretary: "Assistant Secretary",
+  stake_high_council: "Stake High Council",
 };
 
 export const ROLE_LABELS: Record<Role, string> = {
