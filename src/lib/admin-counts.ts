@@ -16,6 +16,6 @@ export function adminCounts(user: CurrentUser) {
     ? one("SELECT COUNT(DISTINCT v.lesson_id) AS n FROM lesson_volunteers v JOIN lessons l ON l.id = v.lesson_id WHERE l.ward_id = ? AND l.teacher_id IS NULL AND l.date >= date('now')")
     : 0;
   const visitRequests = isPresidency(user) ? one("SELECT COUNT(*) AS n FROM visit_requests WHERE ward_id = ? AND status = 'open'") : 0;
-  const replies = isPresidency(user) ? unreadReplies(w) : 0;
+  const replies = isPresidency(user) ? unreadReplies(w, user.id) : 0;
   return { comments, notes, eventRequests, access, volunteers, visitRequests, replies, total: comments + notes + eventRequests + access + volunteers + visitRequests + replies };
 }

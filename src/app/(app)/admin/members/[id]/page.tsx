@@ -7,7 +7,7 @@ import { isPresidency } from "@/lib/permissions";
 import { formatDate, formatDateTime } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { ROLE_LABELS, type Member } from "@/lib/types";
+import { CALLING_LABELS, ROLE_LABELS, type Member } from "@/lib/types";
 import { formatPhone } from "@/lib/contact";
 import { emailInvite, removeMember, updateMember } from "../actions";
 import { inviteLink, inviteText } from "@/lib/invite";
@@ -32,7 +32,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
         back={{ href: "/admin/members", label: "Members" }}
         subtitle={
           <span className="flex flex-wrap items-center gap-2">
-            <Badge tone="info">{ROLE_LABELS[m.role]}</Badge>
+            <Badge tone="info">{m.calling ? CALLING_LABELS[m.calling] : ROLE_LABELS[m.role]}</Badge>
             {m.status !== "active" && <Badge tone="warn">Turned off</Badge>}
             <span>{m.last_login_at ? `Last signed in ${formatDateTime(m.last_login_at, user.ward.timezone, "LLL d, yyyy")}` : "Hasn't signed in yet"}</span>
           </span>
@@ -127,6 +127,22 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   <option value="inactive">Turned off: can&apos;t sign in</option>
                 </select>
               </div>
+              {m.role === "presidency" && (
+                <div>
+                  <label className="label" htmlFor="calling">
+                    Calling
+                  </label>
+                  <select id="calling" name="calling" className="input" defaultValue={m.calling ?? ""}>
+                    <option value="">Not set</option>
+                    {Object.entries(CALLING_LABELS).map(([v, label]) => (
+                      <option key={v} value={v}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="hint">Shown to members choosing who to message privately.</p>
+                </div>
+              )}
             </div>
           )}
           <SubmitButton>Save</SubmitButton>

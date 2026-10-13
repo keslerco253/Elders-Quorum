@@ -394,4 +394,15 @@ ALTER TABLE members ADD COLUMN always_email INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE members ADD COLUMN always_text INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    // Members can write to the whole presidency or privately to one presidency
+    // member (e.g. the president). Private messages are deleted with that
+    // person's account rather than ever becoming visible to the others.
+    id: 9,
+    sql: `
+ALTER TABLE member_messages ADD COLUMN recipient_id INTEGER REFERENCES members(id) ON DELETE CASCADE;
+CREATE INDEX member_messages_thread ON member_messages(member_id, recipient_id);
+ALTER TABLE members ADD COLUMN calling TEXT;
+`,
+  },
 ];

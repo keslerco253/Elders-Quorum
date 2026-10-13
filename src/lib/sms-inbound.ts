@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { db } from "./db";
 import { appUrl } from "./config";
 import { normalizePhone } from "./contact";
-import { receiveReply, recentMessageFor, recentReplies } from "./conversations";
+import { receiveReply, recentMessageFor, recentReplies, threadForTextReply } from "./conversations";
 import { twilioConfigured } from "./sms";
 
 /** The address set as "A message comes in" in Twilio. */
@@ -48,6 +48,6 @@ export async function handleInboundText(params: Record<string, string>): Promise
 
   if (twilioConfigured()) db().prepare("INSERT INTO sms_log (ward_id, kind) VALUES (?, 'reply')").run(member.ward_id);
   if (recentReplies(member.id) >= 20) return "ignored";
-  await receiveReply(member, body, "text", recentMessageFor(member.id));
+  await receiveReply(member, body, "text", recentMessageFor(member.id), threadForTextReply(member.id));
   return "saved";
 }

@@ -11,7 +11,7 @@ import { sendInviteEmail } from "@/lib/invite";
 import { deleteAccount, isLastPresidency } from "@/lib/accounts";
 import { appUrl } from "@/lib/config";
 import { sendAccountNotice } from "@/lib/login-code";
-import type { Member, Role } from "@/lib/types";
+import { CALLING_LABELS, type Calling, type Member, type Role } from "@/lib/types";
 
 const ROLES: Role[] = ["member", "admin", "presidency"];
 
@@ -57,6 +57,13 @@ export async function updateMember(fd: FormData) {
   // A new number hasn't agreed to texts; the member can agree under More → Contact & notifications.
   if (phone !== m.phone) db().prepare("UPDATE members SET sms_consent_at = NULL WHERE id = ?").run(id);
   if (status !== "active") db().prepare("DELETE FROM sessions WHERE member_id = ?").run(id);
+  if (isPresidency(user)) {
+    // Callings only apply to the presidency; there's one president at a time.
+    const raw = String(fd.get("calling") || "");
+    const calling = role === "presidency" && raw in CALLING_LABELS ? (raw as Calling) : null;
+    if (calling === "president") db().prepare("UPDATE members SET calling = NULL WHERE ward_id = ? AND calling = 'president' AND id != ?").run(user.ward_id, id);
+    db().prepare("UPDATE members SET calling = ? WHERE id = ?").run(calling, id);
+  }
   revalidatePath("/admin/members");
   go(`/admin/members/${id}`, "Saved.");
 }

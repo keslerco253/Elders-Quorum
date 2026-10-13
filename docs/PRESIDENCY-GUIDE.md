@@ -138,6 +138,20 @@ signed with your name, as a notification (or by text/email if they turned
 notifications off). Under **Message one person** you can start a private
 conversation with any member.
 
+**Private messages.** When writing, members choose **Send to**: the whole
+presidency, or **only** one presidency member (for example, the Elders Quorum
+President). A private message shows only to that person, under a **Private to
+you** label in Replies and a **Private with you** tab in the conversation; the
+rest of the presidency can't see it. Notifications for private messages say
+"Private message from …" without the words, in case someone else sees the phone
+or inbox. If the member texts back after a private reply, their text stays
+private too. If that presidency member's account is deleted, their private
+conversations are deleted with it rather than shown to anyone else.
+
+Set each presidency member's **Calling** (President, First Counselor, Second
+Counselor, Secretary) on their page under **Admin → Members**, so members know
+who's who when choosing.
+
 Replies are seen only by the presidency, even when the bishop or high councilor
 sent the original message. Replies to emails still go to the quorum Gmail inbox.
 Conversations are deleted after 6 months.

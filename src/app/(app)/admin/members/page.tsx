@@ -6,7 +6,7 @@ import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { isPresidency } from "@/lib/permissions";
 import { addMember } from "./actions";
-import { ROLE_LABELS, type Member } from "@/lib/types";
+import { CALLING_LABELS, ROLE_LABELS, type Member } from "@/lib/types";
 
 export const metadata = { title: "Members" };
 
@@ -92,7 +92,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{m.display_name}</span>
-                    {m.role !== "member" && <Badge tone="info">{ROLE_LABELS[m.role]}</Badge>}
+                    {m.role !== "member" && <Badge tone="info">{m.calling ? CALLING_LABELS[m.calling] : ROLE_LABELS[m.role]}</Badge>}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
                     {m.phone && <Badge>Phone</Badge>}

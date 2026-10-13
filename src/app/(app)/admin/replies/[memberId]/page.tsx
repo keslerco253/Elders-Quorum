@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { firstName } from "@/lib/names";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { conversation, markRead } from "@/lib/conversations";
+import { conversation, markThreadRead, type Thread } from "@/lib/conversations";
 import { formatPhone } from "@/lib/contact";
 import { formatDateTime } from "@/lib/time";
 import { Flash, PageHeader } from "@/components/ui";
@@ -20,8 +21,17 @@ export default async function ConversationPage({ params, searchParams }: { param
     | undefined;
   if (!member) notFound();
   const tz = user.ward.timezone;
-  const thread = conversation(member.id);
-  markRead(member.id, "in");
+  const privately = sp.private === "1";
+  const which: Thread = privately ? { private: true, withId: user.id } : { private: false };
+  const thread = conversation(member.id, which);
+  markThreadRead(member.id, which);
+  const unreadOther = (
+    db()
+      .prepare(`SELECT COUNT(*) AS n FROM member_messages WHERE member_id = ? AND direction = 'in' AND read_at IS NULL AND ${privately ? "recipient_id IS NULL" : "recipient_id = ?"}`)
+      .get(...(privately ? [member.id] : [member.id, user.id])) as { n: number }
+  ).n;
+  const first = firstName(member.display_name);
+  const tab = (on: boolean) => `rounded-lg px-3 py-1.5 text-sm font-medium ${on ? "bg-accent-soft text-accent" : "text-muted hover:bg-surface-2"}`;
 
   return (
     <>
@@ -30,8 +40,21 @@ export default async function ConversationPage({ params, searchParams }: { param
         back={{ href: "/admin/replies", label: "Replies" }}
         subtitle={[member.phone && formatPhone(member.phone), member.email].filter(Boolean).join(" · ") || undefined}
       />
+      <div className="mb-4 flex gap-2">
+        <Link href={`/admin/replies/${member.id}`} className={tab(!privately)}>
+          Whole presidency{!privately ? "" : unreadOther ? ` (${unreadOther})` : ""}
+        </Link>
+        <Link href={`/admin/replies/${member.id}?private=1`} className={tab(privately)}>
+          Private with you{privately ? "" : unreadOther ? ` (${unreadOther})` : ""}
+        </Link>
+      </div>
+      <p className="mb-4 text-xs text-muted">
+        {privately
+          ? `Only you and ${first} see this conversation. Other presidency members can't.`
+          : `Everyone in the presidency sees this conversation.`}
+      </p>
       {thread.length === 0 ? (
-        <p className="mb-4 text-sm text-muted">No messages yet. Anything you send here goes to {firstName(member.display_name)} privately.</p>
+        <p className="mb-4 text-sm text-muted">No messages yet. Anything you send here goes to {first}{privately ? ", privately from you" : ""}.</p>
       ) : (
         <ul className="mb-4 space-y-2">
           {thread.map((c) => (
@@ -52,13 +75,16 @@ export default async function ConversationPage({ params, searchParams }: { param
       <Flash msg={sp.msg} tone={sp.err ? "warn" : "success"} />
       <form action={answerMember} className="card space-y-3">
         <input type="hidden" name="member_id" value={member.id} />
+        {privately && <input type="hidden" name="private" value="1" />}
         <label className="label" htmlFor="body">
-          Reply to {firstName(member.display_name)}
+          {privately ? `Private reply to ${first}` : `Reply to ${first}`}
         </label>
         <textarea id="body" name="body" rows={3} maxLength={1000} required className="input" />
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs text-muted">
-            Sent as a notification{member.contact_pref !== "none" ? `, or by ${member.contact_pref === "both" ? "text and email" : member.contact_pref} if notifications are off` : ""}. Signed with your name.
+            {privately
+              ? "They'll be told they have a private message from you; the words stay in the app."
+              : `Sent as a notification${member.contact_pref !== "none" ? `, or by ${member.contact_pref === "both" ? "text and email" : member.contact_pref} if notifications are off` : ""}. Signed with your name.`}
           </span>
           <SubmitButton pendingText="Sending…">Send</SubmitButton>
         </div>

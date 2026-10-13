@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { conversation, inbox, markRead } from "@/lib/conversations";
+import { contactLabel, inbox, markAnswersRead, memberConversation, presidencyContacts } from "@/lib/conversations";
 import { formatDateTime } from "@/lib/time";
 import { Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -16,8 +16,13 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const tz = user.ward.timezone;
   const messages = inbox(user.id);
   const replyingTo = messages.find((m) => m.id === Number(sp.re));
-  const thread = conversation(user.id);
-  markRead(user.id, "out");
+  const thread = memberConversation(user.id);
+  markAnswersRead(user.id);
+  const contacts = presidencyContacts(user.ward_id);
+  // Default "Send to": whoever they asked for, else keep a private conversation private.
+  const last = thread[thread.length - 1];
+  const wanted = Number(sp.to) || (!replyingTo && last?.recipient_id) || 0;
+  const defaultTo = contacts.some((c) => c.id === wanted) ? wanted : 0;
 
   return (
     <>
@@ -31,6 +36,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
               {thread.map((c) => (
                 <li key={c.id} className={`flex ${c.direction === "in" ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${c.direction === "in" ? "bg-primary text-primary-text" : "border border-border bg-surface"}`}>
+                    {c.recipient_id && <div className="mb-0.5 text-xs font-semibold opacity-80">🔒 Private {c.direction === "in" ? `to ${c.recipient_name}` : ""}</div>}
                     {c.message_title && <div className="mb-0.5 text-xs opacity-80">Re: {c.message_title}</div>}
                     <div className="whitespace-pre-wrap">{c.body}</div>
                     <div className="mt-1 text-[11px] opacity-70">
@@ -56,12 +62,26 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                 <input type="hidden" name="message_id" value={replyingTo.id} />
               </div>
             )}
+            <div>
+              <label className="label" htmlFor="to">
+                Send to
+              </label>
+              <select id="to" name="to" className="input" defaultValue={defaultTo}>
+                <option value={0}>The whole presidency</option>
+                {contacts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    Only {contactLabel(c)}
+                  </option>
+                ))}
+              </select>
+              <p className="hint">Choose one person to keep it private: the rest of the presidency won&apos;t see it.</p>
+            </div>
             <label className="label" htmlFor="body">
-              {replyingTo ? "Your reply" : "Message the presidency"}
+              {replyingTo ? "Your reply" : "Message"}
             </label>
             <textarea id="body" name="body" rows={3} maxLength={1000} required className="input" autoFocus={!!replyingTo} />
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs text-muted">Only the elders quorum presidency sees this.</span>
+              <span className="text-xs text-muted">Only the person or people you chose will see this.</span>
               <SubmitButton pendingText="Sending…">Send</SubmitButton>
             </div>
           </form>

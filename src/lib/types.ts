@@ -18,6 +18,8 @@ export interface Member {
   last_login_at: string | null;
   /** When the member agreed to quorum texts (null: sign-in codes only). */
   sms_consent_at: string | null;
+  /** Presidency calling, shown to members choosing who to write to. */
+  calling: Calling | null;
   /** Send every notification by email / text too, not just when push misses. */
   always_email: number;
   always_text: number;
@@ -73,6 +75,15 @@ export interface EventRow {
   rsvp_enabled: number;
   reminder_minutes: number | null;
 }
+
+export type Calling = "president" | "first_counselor" | "second_counselor" | "secretary";
+
+export const CALLING_LABELS: Record<Calling, string> = {
+  president: "Elders Quorum President",
+  first_counselor: "First Counselor",
+  second_counselor: "Second Counselor",
+  secretary: "Secretary",
+};
 
 export const ROLE_LABELS: Record<Role, string> = {
   member: "Member",
