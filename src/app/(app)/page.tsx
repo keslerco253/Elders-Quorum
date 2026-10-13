@@ -142,6 +142,14 @@ export default async function HomePage() {
         </Section>
       )}
 
+      <Link href="/more/visit" className="card mb-6 flex items-center justify-between gap-3 hover:bg-surface-2">
+        <span>
+          <span className="block font-medium">Would you like a visit?</span>
+          <span className="text-sm text-muted">Ask the presidency to come by, talk, or help.</span>
+        </span>
+        <span className="text-muted">›</span>
+      </Link>
+
       <Section title="Church apps">
         <QuickLinks />
       </Section>

@@ -91,6 +91,7 @@ old information automatically:
 | Teacher notes | 6 months after the lesson |
 | Offers to teach | 30 days after the lesson |
 | Lesson comments | 6 months after the lesson |
+| Visit requests | 30 days after they're finished (6 months at most) |
 | Join requests nobody answered | after 60 days |
 | Member accounts not used | after 12 months (leaders are kept) |
 
@@ -107,6 +108,25 @@ Visits can only be recorded for people who have joined the app. Keep notes
 brief: record nothing you wouldn't text to another presidency member, and
 never health, financial or worthiness details. Ministering interviews and
 assignments stay in LCR.
+
+## Visit requests (presidency only)
+
+Members can ask for a visit from **Home → Would you like a visit?** or
+**More → Request a visit**. They choose a home visit, a chance to talk, or help
+with something, and can add their best times and a short note. Every
+presidency member is notified (the note itself stays in the app, not in the
+notification) and the request shows under **Admin → Waiting on you**.
+
+On **Admin → Visit requests**:
+
+- **Send reply**: a short message to the member, such as when you'll come by.
+  The member is notified and the request shows as Scheduled.
+- **Mark visited**: closes the request and opens **Record a visit** for that
+  member, so you can log it if you'd like.
+- **Close**: for requests handled another way.
+
+Members see the status and any reply, and can cancel. Bishops and high
+councilors don't see visit requests.
 
 ## Assignments (presidency only)
 

@@ -309,4 +309,25 @@ CREATE TABLE sms_log (
 CREATE INDEX sms_log_ward_time ON sms_log(ward_id, sent_at);
 `,
   },
+  {
+    // Members can ask the presidency for a visit. Seen by the presidency only.
+    id: 5,
+    sql: `
+CREATE TABLE visit_requests (
+  id INTEGER PRIMARY KEY,
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('home','talk','help')),
+  best_times TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','scheduled','done','closed','cancelled')),
+  reply TEXT NOT NULL DEFAULT '',
+  handled_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX visit_requests_ward ON visit_requests(ward_id, status);
+CREATE INDEX visit_requests_member ON visit_requests(member_id);
+`,
+  },
 ];

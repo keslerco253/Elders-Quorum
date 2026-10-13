@@ -31,6 +31,7 @@ export default async function AdminPage() {
   const c = adminCounts(user);
   const p = isPresidency(user);
   const waiting: Tile[] = [
+    { href: "/admin/visit-requests", label: "Visit requests", desc: "Members asking for a visit", count: c.visitRequests, show: p },
     { href: "/admin/notes", label: "Teacher notes to approve", desc: "Notes for the quorum before Sunday", count: c.notes },
     { href: "/admin/comments", label: "Comments to approve", desc: "Lesson comments and replies", count: c.comments },
     { href: "/admin/access", label: "Access requests", desc: "Requests to join without a code", count: c.access, show: p },
@@ -62,6 +63,7 @@ export default async function AdminPage() {
         <Section title="Presidency only">
           <Tiles
             tiles={[
+              { href: "/admin/visit-requests", label: "Visit requests", desc: "Members asking for a visit" },
               { href: "/admin/visits", label: "Home visits", desc: "Who we've visited and when" },
               { href: "/admin/todos", label: "Assignments", desc: "Presidency to-dos with due dates" },
               { href: "/admin/settings", label: "Settings", desc: "App name, time zone, email" },

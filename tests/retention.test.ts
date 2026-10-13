@@ -39,6 +39,26 @@ describe("privacy retention", () => {
     expect(d.prepare("SELECT created_by FROM events WHERE id = 1").get()).toEqual({ created_by: null });
   });
 
+  it("keeps active visit requests and deletes finished or very old ones", () => {
+    d.exec(`
+      INSERT INTO visit_requests (ward_id, member_id, kind, status, created_at, updated_at, handled_by) VALUES
+        (1, 2, 'home', 'open', datetime('now', '-20 days'), datetime('now', '-20 days'), NULL),
+        (1, 2, 'talk', 'done', datetime('now', '-50 days'), datetime('now', '-40 days'), 1),
+        (1, 2, 'help', 'closed', datetime('now', '-10 days'), datetime('now', '-5 days'), 1),
+        (1, 2, 'home', 'open', datetime('now', '-7 months'), datetime('now', '-7 months'), NULL);
+    `);
+    runRetention();
+    expect((d.prepare("SELECT kind, status FROM visit_requests ORDER BY id").all() as object[])).toEqual([
+      { kind: "home", status: "open" },
+      { kind: "help", status: "closed" },
+    ]);
+    // A presidency member being deleted leaves the request in place.
+    deleteAccount(1);
+    expect(count("visit_requests")).toBe(2);
+    deleteAccount(2);
+    expect(count("visit_requests")).toBe(0);
+  });
+
   it("deletes an account and everything the member posted", () => {
     deleteAccount(2);
     expect(count("comments")).toBe(0);
