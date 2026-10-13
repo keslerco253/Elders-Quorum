@@ -1,6 +1,6 @@
 import { getUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getEvent, icsFor, isAppleMobile, validIcsToken } from "@/lib/events";
+import { getEvent, icsFor, isAppleMobile, parseAlerts, validIcsToken } from "@/lib/events";
 import type { CurrentUser, Member, Ward } from "@/lib/types";
 
 /** The signed-in member, or the member named in the link's private token (iPhone opens it outside the app). */
@@ -23,7 +23,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   // Still checks the member may see the event (presidency-only events stay private).
   const e = getEvent(user, id);
   if (!e) return new Response("Not found", { status: 404 });
-  return new Response(icsFor(e), {
+  return new Response(icsFor(e, parseAlerts(user.calendar_alerts)), {
     headers: {
       "content-type": "text/calendar; charset=utf-8",
       // iPhones and iPads only offer "Add to Calendar" when the file is shown, not downloaded.

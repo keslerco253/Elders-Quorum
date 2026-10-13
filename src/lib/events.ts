@@ -70,7 +70,28 @@ function fold(line: string) {
   return out.join("\r\n");
 }
 
-function veventLines(e: EventRow, host: string, stamp: string) {
+/** Reminder choices for a member's calendar (minutes before the event). */
+export const CALENDAR_ALERT_OPTIONS: [number, string][] = [
+  [15, "15 minutes before"],
+  [30, "30 minutes before"],
+  [60, "1 hour before"],
+  [120, "2 hours before"],
+  [1440, "1 day before"],
+  [2880, "2 days before"],
+  [10080, "1 week before"],
+];
+
+/** "1440,60" -> [1440, 60] (only allowed values, at most two). */
+export function parseAlerts(value: string | null | undefined): number[] {
+  const allowed = new Set(CALENDAR_ALERT_OPTIONS.map(([m]) => m));
+  return [...new Set(String(value ?? "").split(",").map(Number))].filter((m) => allowed.has(m)).slice(0, 2);
+}
+
+function alarmLines(e: EventRow, minutes: number[]) {
+  return minutes.flatMap((m) => ["BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsEscape(e.title)}`, `TRIGGER:-PT${m}M`, "END:VALARM"]);
+}
+
+function veventLines(e: EventRow, host: string, stamp: string, alerts: number[] = []) {
   return [
     "BEGIN:VEVENT",
     `UID:event-${e.id}@${host}`,
@@ -81,19 +102,20 @@ function veventLines(e: EventRow, host: string, stamp: string) {
     e.location && `LOCATION:${icsEscape(e.location)}`,
     `DESCRIPTION:${icsEscape([e.description, `${appUrl()}/calendar/${e.id}`].filter(Boolean).join("\n\n"))}`,
     `URL:${appUrl()}/calendar/${e.id}`,
+    ...alarmLines(e, alerts),
     "END:VEVENT",
   ].filter(Boolean) as string[];
 }
 
 const HEADER = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Elders Quorum App//EN", "CALSCALE:GREGORIAN"];
 
-export function icsFor(e: EventRow, host = new URL(appUrl()).host) {
-  const lines = [...HEADER, "METHOD:PUBLISH", ...veventLines(e, host, gcal(DateTime.utc().toISO()!)), "END:VCALENDAR"];
+export function icsFor(e: EventRow, alerts: number[] = [], host = new URL(appUrl()).host) {
+  const lines = [...HEADER, "METHOD:PUBLISH", ...veventLines(e, host, gcal(DateTime.utc().toISO()!), alerts), "END:VCALENDAR"];
   return lines.map(fold).join("\r\n") + "\r\n";
 }
 
 /** A whole subscribed calendar: every event the member may see, refreshed by their calendar app. */
-export function icsFeed(events: EventRow[], calendarName: string, tz: string, host = new URL(appUrl()).host) {
+export function icsFeed(events: EventRow[], calendarName: string, tz: string, alerts: number[] = [], host = new URL(appUrl()).host) {
   const stamp = gcal(DateTime.utc().toISO()!);
   const lines = [
     ...HEADER,
@@ -102,7 +124,7 @@ export function icsFeed(events: EventRow[], calendarName: string, tz: string, ho
     // Ask calendar apps to check for changes every hour (they may check less often).
     "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
     "X-PUBLISHED-TTL:PT1H",
-    ...events.flatMap((e) => veventLines(e, host, stamp)),
+    ...events.flatMap((e) => veventLines(e, host, stamp, alerts)),
     "END:VCALENDAR",
   ];
   return lines.map(fold).join("\r\n") + "\r\n";

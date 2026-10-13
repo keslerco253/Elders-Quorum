@@ -11,7 +11,7 @@ describe("calendar", () => {
     expect(u.searchParams.get("text")).toBe(e.title);
   });
   it("builds an escaped .ics file", () => {
-    const ics = icsFor(e, "test");
+    const ics = icsFor(e, [], "test");
     expect(ics).toContain("SUMMARY:Service project\\; bring gloves");
     expect(ics).toContain("LOCATION:123 Main St\\, Boise");
     expect(ics).toContain("DTSTART:20261017T150000Z");
@@ -81,5 +81,24 @@ describe("calendar subscription", () => {
     expect((await fetchFeed(1, 0)).status).toBe(404);
     expect((await fetchFeed(1, 1)).status).toBe(200);
     expect(ev.feedUrls({ id: 1, feed_version: 1 }).webcal).toMatch(/^webcal:\/\/.*\/feed\/1\/.+\.ics$/);
+  });
+});
+
+describe("calendar reminders", () => {
+  it("only allows the listed choices, at most two", async () => {
+    const { parseAlerts } = await import("@/lib/events");
+    expect(parseAlerts("1440,60")).toEqual([1440, 60]);
+    expect(parseAlerts("60,60,999,15,30")).toEqual([60, 15]);
+    expect(parseAlerts("")).toEqual([]);
+  });
+
+  it("adds an alarm per reminder to each event", async () => {
+    const { icsFor } = await import("@/lib/events");
+    const e = { id: 3, title: "Move", location: "", description: "", starts_at: "2026-10-17T15:00:00.000Z", ends_at: "2026-10-17T17:00:00.000Z" } as never;
+    const ics = icsFor(e, [1440, 60], "test");
+    expect(ics.match(/BEGIN:VALARM/g)).toHaveLength(2);
+    expect(ics).toContain("TRIGGER:-PT1440M");
+    expect(ics).toContain("TRIGGER:-PT60M");
+    expect(icsFor(e, [], "test")).not.toContain("VALARM");
   });
 });

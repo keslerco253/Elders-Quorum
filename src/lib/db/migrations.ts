@@ -457,4 +457,10 @@ CREATE INDEX lesson_declines_lesson ON lesson_declines(lesson_id);
     id: 13,
     sql: `ALTER TABLE members ADD COLUMN feed_version INTEGER NOT NULL DEFAULT 0;`,
   },
+  {
+    // Reminders (minutes before, comma-separated) the member wants on events
+    // in their subscribed calendar and "Add to calendar" files.
+    id: 14,
+    sql: `ALTER TABLE members ADD COLUMN calendar_alerts TEXT NOT NULL DEFAULT '60';`,
+  },
 ];

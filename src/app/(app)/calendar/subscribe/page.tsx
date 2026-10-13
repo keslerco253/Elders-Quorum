@@ -1,11 +1,11 @@
 import { headers } from "next/headers";
 import { requireUser } from "@/lib/auth";
-import { feedUrls } from "@/lib/events";
+import { CALENDAR_ALERT_OPTIONS, feedUrls, parseAlerts } from "@/lib/events";
 import { isAdmin } from "@/lib/permissions";
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { CopyButton } from "@/components/copy-button";
-import { resetFeedLink } from "./actions";
+import { resetFeedLink, saveCalendarAlerts } from "./actions";
 
 export const metadata = { title: "Subscribe to the calendar" };
 
@@ -15,6 +15,22 @@ export default async function SubscribePage({ searchParams }: { searchParams: Pr
   const urls = feedUrls(user);
   const ua = (await headers()).get("user-agent") ?? "";
   const android = /Android/i.test(ua);
+  const [alert1, alert2] = parseAlerts(user.calendar_alerts);
+  const alertSelect = (name: string, value: number | undefined, label: string) => (
+    <div>
+      <label className="label" htmlFor={name}>
+        {label}
+      </label>
+      <select id={name} name={name} className="input" defaultValue={value ?? ""}>
+        <option value="">None</option>
+        {CALENDAR_ALERT_OPTIONS.map(([m, text]) => (
+          <option key={m} value={m}>
+            {text}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 
   const apple = (
     <div className="card space-y-2">
@@ -22,7 +38,9 @@ export default async function SubscribePage({ searchParams }: { searchParams: Pr
       <a href={urls.webcal} className="btn-primary">
         Subscribe in Apple Calendar
       </a>
-      <p className="text-sm text-muted">Tap it, then tap <strong>Subscribe</strong>, then <strong>Done</strong> (or <strong>Add</strong>). A &quot;{user.ward.name}&quot; calendar appears in your Calendar app.</p>
+      <p className="text-sm text-muted">
+        Tap it, then tap <strong>Subscribe</strong>. To get the reminders above, turn <strong>off &quot;Remove Alerts&quot;</strong> (on a Mac, uncheck <strong>Alerts</strong> next to Remove), then tap <strong>Add</strong> or <strong>Done</strong>. A &quot;{user.ward.name}&quot; calendar appears in your Calendar app.
+      </p>
     </div>
   );
   const google = (
@@ -31,7 +49,9 @@ export default async function SubscribePage({ searchParams }: { searchParams: Pr
       <a href={urls.google} target="_blank" rel="noreferrer" className={android ? "btn-primary" : "btn-secondary"}>
         Subscribe in Google Calendar
       </a>
-      <p className="text-sm text-muted">Opens Google Calendar on the web: tap <strong>Add</strong>. It then shows on your phone too. Google only checks for changes a few times a day.</p>
+      <p className="text-sm text-muted">
+        Opens Google Calendar on the web: tap <strong>Add</strong>. It then shows on your phone too. Google only checks for changes a few times a day and doesn&apos;t use the reminders above; set reminders in Google Calendar instead.
+      </p>
     </div>
   );
 
@@ -42,7 +62,20 @@ export default async function SubscribePage({ searchParams }: { searchParams: Pr
         back={{ href: "/calendar", label: "Calendar" }}
         subtitle={`Every quorum event shows up in your own calendar app and stays up to date: new events appear and changes or cancellations update by themselves.${isAdmin(user) ? " Yours includes presidency-only events." : ""}`}
       />
-      <Flash msg={sp.msg} tone="warn" />
+      <Flash msg={sp.msg} tone={sp.ok ? "success" : "warn"} />
+      <form id="reminders" action={saveCalendarAlerts} className="card mb-3 scroll-mt-20 space-y-3">
+        <div>
+          <div className="font-semibold">Reminders on your calendar events</div>
+          <p className="text-sm text-muted">Added to every quorum event in your subscribed calendar and to events you add one at a time.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {alertSelect("alert1", alert1, "Reminder")}
+          {alertSelect("alert2", alert2, "Second reminder")}
+        </div>
+        <SubmitButton className="btn-primary btn-sm" pendingText="Saving…">
+          Save reminders
+        </SubmitButton>
+      </form>
       <div className="space-y-3">
         {android ? (
           <>

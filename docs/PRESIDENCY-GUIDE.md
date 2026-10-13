@@ -70,7 +70,10 @@ from the lesson page.
 calendar to Apple Calendar, Google Calendar or Outlook once; every event then
 appears on its own and stays up to date (calendar apps check every hour or a
 few times a day). Each member's link is private; presidency and admin links
-include presidency-only events. **Reset my link** cancels an old link.
+include presidency-only events. **Reset my link** cancels an old link. Members choose up
+to two **reminders** (default 1 hour before) that are put on every event in
+their calendar. On iPhone they must turn off **Remove Alerts** when
+subscribing; Google Calendar ignores them (set reminders in Google instead).
 
 ## Messages
 

@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import { db } from "@/lib/db";
-import { eventsBetween, icsFeed, validFeedToken } from "@/lib/events";
+import { eventsBetween, icsFeed, parseAlerts, validFeedToken } from "@/lib/events";
 import type { CurrentUser, Member, Ward } from "@/lib/types";
 
 // A member's subscribed calendar (Apple Calendar, Google Calendar, Outlook).
@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ member:
   const user: CurrentUser = { ...member, ward };
   const now = DateTime.utc();
   const events = eventsBetween(user, now.minus({ days: 60 }).toISO()!, now.plus({ years: 1 }).toISO()!);
-  return new Response(icsFeed(events, ward.name, ward.timezone), {
+  return new Response(icsFeed(events, ward.name, ward.timezone, parseAlerts(member.calendar_alerts)), {
     headers: {
       "content-type": "text/calendar; charset=utf-8",
       "content-disposition": 'inline; filename="quorum-calendar.ics"',
