@@ -70,7 +70,11 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             I understand this app keeps only my name, {phone ? "the phone number or email I give" : "my email"}, and what I choose to post, and that I can delete my account at any time.
             {phone && " If I give a mobile number, I agree to receive sign-in codes and quorum messages by text. Message and data rates may apply. Reply STOP to opt out, HELP for help."}{" "}
             <Link href="/privacy" className="link" target="_blank">
-              Details
+              Privacy
+            </Link>{" "}
+            ·{" "}
+            <Link href="/terms" className="link" target="_blank">
+              Terms
             </Link>
           </span>
         </label>

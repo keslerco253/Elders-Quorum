@@ -15,6 +15,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         An unofficial quorum app. Not an official website of The Church of Jesus Christ of Latter-day Saints. ·{" "}
         <Link href="/privacy" className="underline">
           Privacy
+        </Link>{" "}
+        ·{" "}
+        <Link href="/terms" className="underline">
+          Terms
         </Link>
       </p>
     </div>
