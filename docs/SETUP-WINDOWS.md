@@ -165,8 +165,13 @@ register once, then roughly $3–8 a month (about 1.3¢ per text, a $1.15 number
 and $2 registration upkeep). Admin → Settings → Texting shows this month's count,
 and the **monthly text limit** (default 500) caps the bill.
 
-1. Create an account at <https://www.twilio.com> and upgrade it with $20 of
-   prepaid credit.
+Use a **separate Twilio account for the quorum** (signed up with the quorum
+Gmail), not a business account, so texts match who sends them and the account
+can be handed to the next president.
+
+1. Create an account at <https://www.twilio.com/try-twilio> with the quorum
+   Gmail, turn on two-factor login (User settings), and upgrade it with $20 of
+   prepaid credit (a trial account can't register for texting).
 2. **Phone Numbers → Buy a number**: pick a local (208) number with SMS.
 3. **Messaging → Regulatory Compliance → A2P 10DLC**: register a **Sole
    Proprietor** brand in your own name (Twilio texts a code to your cell), then a
@@ -187,7 +192,10 @@ and the **monthly text limit** (default 500) caps the bill.
      Message and data rates may apply. Reply STOP to opt out, HELP for help.'
      Privacy policy: https://YOUR-ADDRESS/privacy"
    - **Opt-out / help keywords:** STOP and HELP (Twilio's defaults).
-   (Replace YOUR-ADDRESS with your app address.)
+   (Replace YOUR-ADDRESS with your app address.) When creating the campaign,
+   create a Messaging Service, then in **Messaging → Services → (your service)
+   → Sender Pool**, add the number you bought. Keep the app running while
+   waiting: reviewers may open the Join and Privacy pages.
 4. Wait for approval (usually 1–3 weeks). Twilio emails you.
 5. Put these three lines in `.env` (Account SID and Auth Token are on the Twilio
    console home page):
