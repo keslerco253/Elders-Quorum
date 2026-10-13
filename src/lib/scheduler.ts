@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 import { db, DATA_DIR } from "./db";
 import { audienceMembers, claimOnce, notify, recipientById, type Recipient } from "./notify";
 import { lessonOn } from "./lessons";
+import { getNotes } from "./lesson-notes";
 import { formatDate, formatDateTime } from "./time";
 import type { PushPayload } from "./push";
 import type { EventRow, Ward } from "./types";
@@ -25,6 +26,15 @@ const LESSON_WINDOWS = [
   { weekday: 6, hour: 8, untilHour: 14, daysAhead: 1, tag: "sat" },
 ];
 
+/** Where the teacher's notes for the quorum stand. */
+function teacherNotesLine(lessonId: number) {
+  const n = getNotes(lessonId);
+  if (n?.published_body && n.status !== "pending") return "Your notes are posted for the quorum.";
+  if (n?.status === "pending") return "Your notes are waiting for the presidency to approve them.";
+  if (n?.status === "rejected") return "The presidency sent your notes back with a comment. Tap to see it.";
+  return "Want to share notes with the quorum before Sunday? Tap to add them on the lesson page.";
+}
+
 function lessonReminders(ward: Ward, now: DateTime): DueNotification[] {
   const local = now.setZone(ward.timezone);
   const out: DueNotification[] = [];
@@ -45,7 +55,21 @@ function lessonReminders(ward: Ward, now: DateTime): DueNotification[] {
         url: `/lessons/${lesson.id}`,
       };
     }
-    out.push({ key: `lesson-${w.tag}:${ward.id}:${date}`, recipients: audienceMembers(ward.id, "everyone"), payload });
+    // The teacher gets their own reminder instead of the general one.
+    const teacher = lesson.kind === "talk" ? recipientById(lesson.teacher_id) : undefined;
+    const everyone = audienceMembers(ward.id, "everyone").filter((r) => r.id !== teacher?.id);
+    out.push({ key: `lesson-${w.tag}:${ward.id}:${date}`, recipients: everyone, payload });
+    if (teacher) {
+      out.push({
+        key: `lesson-teacher-${w.tag}:${ward.id}:${date}:${teacher.id}`,
+        recipients: [teacher],
+        payload: {
+          title: w.tag === "sat" ? "You're teaching tomorrow" : "You're teaching this Sunday",
+          body: [lesson.title ? `"${lesson.title}"${lesson.speaker ? ` by ${lesson.speaker}` : ""}.` : "", teacherNotesLine(lesson.id)].filter(Boolean).join(" "),
+          url: `/lessons/${lesson.id}`,
+        },
+      });
+    }
   }
   return out;
 }

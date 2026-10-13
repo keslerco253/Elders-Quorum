@@ -24,6 +24,11 @@ lesson and **Saturday 8 AM** about tomorrow's.
 - **Admin → Lessons**: lessons with volunteers show "2 volunteered". Open the
   lesson and tap **Assign** next to a name, or choose anyone from the list.
 - The assigned teacher is notified. Only the presidency can assign teachers.
+- The teacher gets their own reminder **Sunday at 7 PM** the week before and
+  **Saturday at 8 AM** the day before ("You're teaching this Sunday" /
+  "You're teaching tomorrow"), with the lesson title and whether their notes
+  are posted, waiting for approval, or not added yet. They get this instead of
+  the general lesson reminder the rest of the quorum gets at those times.
 
 ## Teacher notes
 

@@ -27,15 +27,37 @@ describe("scheduler", () => {
   it("sends the Sunday 7 PM reminder for next Sunday's lesson to everyone who joined", () => {
     expect(collectDue(at("2026-10-11T18:59")).filter((n) => n.key.startsWith("lesson"))).toEqual([]);
     const due = collectDue(at("2026-10-11T19:00")).filter((n) => n.key.startsWith("lesson"));
-    expect(due).toHaveLength(1);
     expect(due[0].key).toBe("lesson-sun:1:2026-10-18");
     expect(due[0].payload.title).toBe("This Sunday's lesson: Abide in My Love");
-    expect(due[0].recipients.map((r) => r.id).sort()).toEqual([1, 2, 3]);
+    // Everyone except the teacher, who gets their own reminder.
+    expect(due[0].recipients.map((r) => r.id).sort()).toEqual([1, 3]);
+  });
+
+  it("reminds the teacher Sunday 7 PM and Saturday 8 AM before their lesson", () => {
+    const sun = collectDue(at("2026-10-11T19:00")).filter((n) => n.key.startsWith("lesson-teacher"));
+    expect(sun).toHaveLength(1);
+    expect(sun[0].key).toBe("lesson-teacher-sun:1:2026-10-18:2");
+    expect(sun[0].recipients.map((r) => r.id)).toEqual([2]);
+    expect(sun[0].payload.title).toBe("You're teaching this Sunday");
+    expect(sun[0].payload.body).toContain('"Abide in My Love" by Elder Christofferson.');
+    expect(sun[0].payload.body).toContain("Tap to add them");
+
+    const sat = collectDue(at("2026-10-17T08:00")).filter((n) => n.key.startsWith("lesson-teacher"));
+    expect(sat.map((n) => n.payload.title)).toEqual(["You're teaching tomorrow"]);
+    expect(collectDue(at("2026-10-17T07:59")).filter((n) => n.key.startsWith("lesson-teacher"))).toEqual([]);
+  });
+
+  it("tells the teacher where their notes stand", async () => {
+    const { db } = await import("@/lib/db");
+    db().exec("INSERT INTO lesson_notes (lesson_id, author_id, body, status) SELECT id, 2, 'My notes', 'pending' FROM lessons WHERE date = '2026-10-18'");
+    expect(collectDue(at("2026-10-17T08:00")).find((n) => n.key.startsWith("lesson-teacher"))!.payload.body).toContain("waiting for the presidency");
+    db().exec("UPDATE lesson_notes SET status = 'approved', published_body = 'My notes'");
+    expect(collectDue(at("2026-10-17T08:00")).find((n) => n.key.startsWith("lesson-teacher"))!.payload.body).toContain("posted for the quorum");
   });
 
   it("sends the Saturday 8 AM reminder for tomorrow", () => {
     const due = collectDue(at("2026-10-17T08:05")).filter((n) => n.key.startsWith("lesson"));
-    expect(due.map((d) => d.key)).toEqual(["lesson-sat:1:2026-10-18"]);
+    expect(due.map((d) => d.key)).toEqual(["lesson-sat:1:2026-10-18", "lesson-teacher-sat:1:2026-10-18:2"]);
     expect(due[0].payload.title).toBe("Tomorrow's lesson: Abide in My Love");
   });
 
