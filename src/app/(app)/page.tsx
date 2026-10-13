@@ -119,7 +119,7 @@ export default async function HomePage() {
 
       {signups.length > 0 && (
         <Section
-          title="Ways to help"
+          title="Ways to serve"
           actions={
             <Link href="/signups" className="link text-sm">
               All sign-ups

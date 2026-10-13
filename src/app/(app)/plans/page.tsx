@@ -10,7 +10,7 @@ export default async function PlansPage() {
   const user = await requireUser();
   return (
     <>
-      <PageHeader title="Ward plans" subtitle="Review our ward plans and look for ways to help." />
+      <PageHeader title="Ward plans" subtitle="Review our ward plans and look for ways to serve." />
       <div className="grid gap-4 md:grid-cols-2">
         {(Object.keys(PLAN_INFO) as PlanKind[]).map((k) => {
           const p = currentPlan(user.ward_id, k);

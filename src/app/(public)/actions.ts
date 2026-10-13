@@ -57,7 +57,7 @@ export async function joinApp(formData: FormData) {
   const code = String(formData.get("join_code") || "").trim();
   const note = String(formData.get("note") || "").trim().slice(0, 500);
   function back(error: string): never {
-    redirect("/join?" + q({ email, name, error }));
+    redirect("/join?" + q({ email, name, code, error }));
   }
   if (!name || !email.includes("@")) back("Please enter your name and email.");
   if (formData.get("agree") !== "on") back("Please check the box to show you've read what the app keeps.");

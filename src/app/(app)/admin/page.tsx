@@ -48,6 +48,7 @@ export default async function AdminPage() {
       <Section title="Quorum">
         <Tiles
           tiles={[
+            { href: "/admin/invite", label: "Invite members", desc: "QR code and join link for quorum meeting" },
             { href: "/admin/messages", label: "Send a message", desc: "Push notification or email to a group" },
             { href: "/admin/lessons", label: "Lessons", desc: "Six-month schedule and teachers" },
             { href: "/admin/events/new", label: "Add an event", desc: "Activities and meetings" },

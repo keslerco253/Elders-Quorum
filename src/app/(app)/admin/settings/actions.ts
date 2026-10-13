@@ -75,5 +75,8 @@ export async function setJoinCode(fd: FormData) {
     go("Another ward already uses that code. Pick a different one.");
   }
   revalidatePath("/admin/settings");
-  go(code ? `Join code is now ${code}.` : "Join code turned off. New members will need presidency approval.");
+  revalidatePath("/admin/invite");
+  const text = code ? `Join code is now ${code}.` : "Join code turned off. New members will need presidency approval.";
+  if (fd.get("return") === "/admin/invite") redirect(`/admin/invite?msg=${encodeURIComponent(text)}`);
+  go(text);
 }

@@ -17,7 +17,7 @@ export default async function SignupsPage({ searchParams }: { searchParams: Prom
     <>
       <PageHeader
         title="Sign-ups"
-        subtitle="Service projects, meals and other ways to help."
+        subtitle="Service projects, meals and other ways to serve."
         actions={
           admin && (
             <>

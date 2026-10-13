@@ -17,7 +17,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
           There&apos;s no account for <strong>{sp.email}</strong> yet. Join below.
         </p>
       ) : (
-        <p className="mb-4 text-sm text-muted">Get lesson reminders, sign up to help, and see quorum activities.</p>
+        <p className="mb-4 text-sm text-muted">Get lesson reminders, sign up to serve, and see quorum activities.</p>
       )}
       <Flash msg={sp.error} tone="danger" />
       <form action={joinApp} className="space-y-4">
@@ -39,7 +39,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
           <label className="label" htmlFor="join_code">
             Join code
           </label>
-          <input id="join_code" name="join_code" className="input" autoCapitalize="characters" autoComplete="off" />
+          <input id="join_code" name="join_code" className="input" autoCapitalize="characters" autoComplete="off" defaultValue={sp.code} />
           <p className="hint">Announced in elders quorum. No code? Leave it blank and the presidency will approve your request.</p>
         </div>
         {wards.length > 1 && (

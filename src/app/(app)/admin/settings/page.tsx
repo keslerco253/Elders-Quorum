@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requirePresidency } from "@/lib/auth";
 import { appUrl } from "@/lib/config";
 import { emailConfigured } from "@/lib/mail";
@@ -44,6 +45,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </p>
           ) : (
             <p className="text-sm text-muted">No join code. Everyone who joins needs presidency approval.</p>
+          )}
+          {user.ward.join_code && (
+            <Link href="/admin/invite" className="btn-primary btn-sm">
+              Show QR code to invite members
+            </Link>
           )}
           <form action={setJoinCode} className="flex flex-wrap gap-2">
             <SubmitButton name="mode" value="new" className="btn-primary btn-sm">
