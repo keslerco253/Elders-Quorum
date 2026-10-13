@@ -40,12 +40,12 @@ if (-not $dnsName) { Fail "Couldn't read this computer's Tailscale name. In the 
 $appUrl = "https://$dnsName"
 Say "This computer's address will be: $appUrl" "Green"
 
-# 3. Settings file
+# 3. Settings file (kept in $DataHome, outside the app folder)
 Step "Settings"
-$envPath = Join-Path $Root ".env"
+Initialize-Settings | Out-Null
 $existing = Read-EnvFile
 if ($existing.Count -gt 0 -and $existing["SMTP_PASS"]) {
-  Say "Found existing settings (.env). Keeping them, and updating the web address."
+  Say "Found existing settings. Keeping them, and updating the web address."
   Set-EnvValue "APP_URL" $appUrl
   $setupCode = $existing["SETUP_CODE"]
 } else {
@@ -72,13 +72,14 @@ SETUP_CODE=$setupCode
 APP_PORT=3000
 CLOUDFLARE_TUNNEL_TOKEN=
 "@
-  Write-Utf8NoBom $envPath (($content -replace "`r", "") + "`n")
-  Say "Saved settings to .env (keep this file private)." "Green"
+  Write-Utf8NoBom $SettingsFile (($content -replace "`r", "") + "`n")
+  Say "Saved settings to $SettingsFile (keep this file private)." "Green"
 }
 
 # 4. Pick a port that nothing else is using
 Step "Checking that the app's port is free"
-docker compose down 2>&1 | Out-Null   # stops an earlier copy of this app, if any
+Remove-OtherCopies                     # an earlier copy started from another folder
+Compose down 2>&1 | Out-Null           # an earlier copy of this app, if any
 $port = Get-AppPort
 $owner = Get-PortOwner $port
 if ($owner) {
@@ -94,7 +95,7 @@ Set-EnvValue "APP_PORT" $port
 
 # 5. Build and start
 Step "Building and starting the app (the first time takes 5-10 minutes)"
-docker compose up -d --build
+Compose up -d --build
 if ($LASTEXITCODE -ne 0) { Show-Diagnostics $port; Fail "The app didn't start. Copy the messages above and send them to whoever helps you with the app." }
 Say "Waiting for the app to answer..."
 if (-not (Wait-ForApp $port 240)) { Show-Diagnostics $port; Fail "The app started but isn't answering on port $port. Copy the diagnostics above and send them to whoever helps you with the app." }
@@ -124,6 +125,9 @@ Say "   1. The app is opening in your browser. Choose 'First-time setup', enter 
 Say "      your name and email, and sign in with the code emailed to you."
 Say "   2. Admin -> Settings -> Join code -> Create a code. Then 'Send me a test email'."
 Say "   3. Announce the address and join code in quorum meeting."
+Say ""
+Say "  Settings and backups are kept in $DataHome."
+Say "  To install a new version later: unzip it anywhere and run its UPDATE.bat."
 Say ""
 Say "  Keep this computer on and plugged in. Docker Desktop must be set to start when you sign in"
 Say "  (Docker Desktop -> Settings -> General)."

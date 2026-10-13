@@ -1,6 +1,8 @@
-# Start:   docker compose up -d
-# Stop:    docker compose down
-# Update:  git pull, then docker compose up -d --build
+# On Windows, use INSTALL.bat / UPDATE.bat: they keep the settings file and
+# backups in %USERPROFILE%\EldersQuorumApp (EQ_ENV_FILE / EQ_BACKUP_DIR), so a new
+# version can be unzipped into any folder.
+# Elsewhere:  docker compose up -d --build   (uses .env and ./backups here)
+name: elders-quorum
 services:
   app:
     build:
@@ -8,7 +10,7 @@ services:
       args:
         APP_URL: ${APP_URL:-}
     restart: unless-stopped
-    env_file: .env
+    env_file: ${EQ_ENV_FILE:-.env}
     environment:
       - BACKUP_DIR=/backups
     ports:
@@ -17,8 +19,12 @@ services:
     volumes:
       # The live database stays inside Docker (more reliable for SQLite on Windows).
       - eqdata:/data
-      # Nightly backups appear in the "backups" folder next to this file.
-      - ./backups:/backups
+      # Nightly backups go to the backups folder (see the top of this file).
+      - type: bind
+        source: ${EQ_BACKUP_DIR:-./backups}
+        target: /backups
+        bind:
+          create_host_path: true
 
   # Optional: only if you use Cloudflare Tunnel with your own domain instead of
   # Tailscale Funnel. Start with: docker compose --profile cloudflare up -d

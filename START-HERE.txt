@@ -18,7 +18,7 @@ BEFORE YOU START
      the web address is shorter.)
 
 INSTALL
-  5. Put this folder somewhere permanent, for example Documents\Elders-Quorum.
+  5. Unzip this folder anywhere (Downloads is fine).
   6. Double-click INSTALL.bat and answer its questions.
      It shows your app address and a setup code when it finishes.
   7. In the app: First-time setup > enter the setup code, your name and email.
@@ -26,9 +26,15 @@ INSTALL
   9. Announce the app address and the join code in quorum meeting.
 
 LATER
-  UPDATE.bat      install a new version (your data is kept)
-  BACKUP-NOW.bat  save a backup right now (backups also happen every night
-                  into the "backups" folder; copy it to a USB drive monthly)
+  New version?      Unzip it anywhere and double-click its UPDATE.bat.
+                    Nothing to copy: your data, settings and backups are kept.
+  OPEN-SETTINGS.bat edit settings (email password, texting keys), then run
+                    UPDATE.bat
+  BACKUP-NOW.bat    save a backup right now (backups also happen every night)
+
+WHERE THINGS ARE KEPT (outside this folder, so updates never touch them)
+  Settings  C:\Users\<you>\EldersQuorumApp\settings.env
+  Backups   C:\Users\<you>\EldersQuorumApp\backups  (copy to a USB drive monthly)
 
 MORE HELP
   docs\SETUP-WINDOWS.md     full setup guide and troubleshooting
@@ -36,4 +42,4 @@ MORE HELP
   docs\HANDOFF.md           passing the app to the next presidency
   docs\PRIVACY-SUMMARY.md   what the app keeps (approved by ward leadership)
 
-Never share the .env file. It contains the email password.
+Never share the settings file. It contains the email password.

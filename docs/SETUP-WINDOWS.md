@@ -47,9 +47,9 @@ The app sends sign-in emails from `villaseldersquorum@gmail.com`.
 
 ## 4. Get the app
 
-Either unzip the package you were given into a permanent folder (for example
-`Documents\Elders-Quorum`), or, to make updates easier, install **Git for
-Windows** (<https://git-scm.com/download/win>) and in PowerShell run:
+Either unzip the package you were given anywhere (for example `Downloads`;
+your settings and backups are kept separately in
+`C:\Users\<you>\EldersQuorumApp`), or install **Git for Windows** (<https://git-scm.com/download/win>) and in PowerShell run:
 
 ```powershell
 cd $HOME
@@ -196,10 +196,10 @@ can be handed to the next president.
    create a Messaging Service, then in **Messaging → Services → (your service)
    → Sender Pool**, add the number you bought. Keep the app running while
    waiting: reviewers may open the Join and Privacy pages.
-   **Before submitting**, add `SMS_PENDING=1` to `.env` and run UPDATE.bat, so
+   **Before submitting**, add `SMS_PENDING=1` to the settings file (double-click **OPEN-SETTINGS.bat**) and run UPDATE.bat, so
    the Join page shows the mobile-number consent wording reviewers check.
 4. Wait for approval (usually 1–3 weeks). Twilio emails you.
-5. Put these three lines in `.env` (Account SID and Auth Token are on the Twilio
+5. Put these three lines in the settings file (double-click **OPEN-SETTINGS.bat**) (Account SID and Auth Token are on the Twilio
    console home page):
    ```
    TWILIO_ACCOUNT_SID=AC...
@@ -214,7 +214,7 @@ can be handed to the next president.
    `https://YOUR-ADDRESS/api/sms/inbound` (Admin → Settings shows the exact
    address), method **HTTP POST**, and click **Save**. Text yourself a reply to
    the test text: it should show up under **Admin → Replies**.
-   If replies don't appear, check that `APP_URL` in `.env` exactly matches your
+   If replies don't appear, check that `APP_URL` in the settings file exactly matches your
    app address; Twilio signs each message with it, and the app ignores
    anything that doesn't match. Texts members send back count toward the
    monthly limit.
@@ -223,39 +223,51 @@ The sign-in and join pages then say "Mobile number or email".
 
 ## Backups
 
-Every night after 2 AM a copy of the database is saved to the `backups` folder
-inside `Elders-Quorum` (the last 30 days are kept, plus uploaded PDFs).
+Every night after 2 AM a copy of the database is saved to
+`C:\Users\<you>\EldersQuorumApp\backups` (the last 30 days are kept, plus
+uploaded PDFs). This is outside the app folder, so updates never touch it.
 Double-click **BACKUP-NOW.bat** for an extra copy any time. Once a month, copy
 that folder to a USB drive or OneDrive.
 
 ### Restoring a backup
 
 ```powershell
-docker compose down
-docker run --rm -v elders-quorum-data:/data -v ${PWD}/backups:/backups alpine sh -c "cp /backups/app-2026-10-10.db /data/app.db && rm -f /data/app.db-wal /data/app.db-shm && mkdir -p /data/uploads && cp -r /backups/uploads/. /data/uploads/"
-docker compose up -d
+docker rm -f elders-quorum-app-1
+docker run --rm -v elders-quorum-data:/data -v "$env:USERPROFILE\EldersQuorumApp\backups:/backups" alpine sh -c "cp /backups/app-2026-10-10.db /data/app.db && rm -f /data/app.db-wal /data/app.db-shm && mkdir -p /data/uploads && cp -r /backups/uploads/. /data/uploads/"
 ```
 
-(Change the date to the backup you want.)
+(Change the date to the backup you want.) Then double-click **UPDATE.bat** to
+start the app again.
 
 ## Updating the app
 
-Double-click **UPDATE.bat**. With a Git copy it downloads the newest version;
-with a zip copy, unzip the new version over the folder first (keep `.env` and
-`backups`). Your data is kept either way.
+Unzip the new version **anywhere** (Downloads is fine) and double-click its
+**UPDATE.bat**. That's all: your data, settings and backups live outside the app
+folder, so nothing needs copying. Afterwards you can delete folders from older
+versions. (With a Git copy, UPDATE.bat also downloads the newest code first.)
 
-If you change `APP_URL` in `.env`, run UPDATE.bat (the address is built into
-the app).
+Where things are kept:
+- **Settings** (email password, web address, texting keys):
+  `C:\Users\<you>\EldersQuorumApp\settings.env`. Double-click
+  **OPEN-SETTINGS.bat** to edit it, then run UPDATE.bat.
+- **Backups:** `C:\Users\<you>\EldersQuorumApp\backups`.
+- **The database itself:** inside Docker (volume `elders-quorum-data`).
+
+Versions before 1.19 kept settings as `.env` inside the app folder. The first
+time you run UPDATE.bat from 1.19 or later, it finds that file (and the old
+backups) and copies them to the new place automatically.
+
+If you change `APP_URL`, run UPDATE.bat (the address is built into the app).
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| Installer says the app "isn't answering" | Another program may be using port 3000. Run INSTALL.bat again: it now detects this, picks a free port and saves it as `APP_PORT` in `.env`. To see who uses the port: `Get-NetTCPConnection -State Listen -LocalPort 3000` in PowerShell. |
-| Site doesn't load | Is Docker Desktop running? Run `docker compose ps`. Run `tailscale funnel status` to check the address. |
-| No sign-in emails | Admin → Settings → Send me a test email. Check `SMTP_USER`/`SMTP_PASS` in `.env`, then `docker compose up -d`. |
-| See what the app is doing | `docker compose logs -f app` |
-| Changed `.env` | `docker compose up -d` (restarts with new settings) |
+| Installer says the app "isn't answering" | Another program may be using port 3000. Run INSTALL.bat again: it now detects this, picks a free port and saves it as `APP_PORT` in the settings file. To see who uses the port: `Get-NetTCPConnection -State Listen -LocalPort 3000` in PowerShell. |
+| Site doesn't load | Is Docker Desktop running? Run `docker ps` (look for `elders-quorum-app-1`). Run `tailscale funnel status` to check the address. |
+| No sign-in emails | Admin → Settings → Send me a test email. Check `SMTP_USER`/`SMTP_PASS` with OPEN-SETTINGS.bat, then run UPDATE.bat. |
+| See what the app is doing | `docker logs -f elders-quorum-app-1` |
+| Changed the settings file | Run UPDATE.bat (restarts with new settings) |
 
 ## Optional: Cloudflare instead of Tailscale
 
@@ -265,5 +277,5 @@ use a nicer address like `eq.villasward.org`:
 1. In the Cloudflare dashboard: **Zero Trust → Networks → Tunnels → Create a
    tunnel** (Cloudflared). Copy the token.
 2. Add a public hostname pointing to `http://app:3000`.
-3. Put the token in `.env` as `CLOUDFLARE_TUNNEL_TOKEN`, set `APP_URL` to your
+3. Put the token in the settings file (OPEN-SETTINGS.bat) as `CLOUDFLARE_TUNNEL_TOKEN`, set `APP_URL` to your
    new address, then run `docker compose --profile cloudflare up -d`.

@@ -97,5 +97,5 @@ export async function sendTestText() {
   if (!user.phone) go("Add your mobile number under More → Contact & notifications first.");
   if (!user.sms_consent_at) go("Turn on texts under More → Contact & notifications first, so the app may text you.");
   const res = await sendSms(user.ward_id, user.phone, `${user.ward.name}: test text. Texting from the app is working.`, "notice");
-  go(res === "sent" ? `Test text sent to ${formatPhone(user.phone)}.` : "The text didn't send. Check the TWILIO_ settings in your .env file.");
+  go(res === "sent" ? `Test text sent to ${formatPhone(user.phone)}.` : "The text didn't send. Check the TWILIO_ lines in the settings file (OPEN-SETTINGS.bat), then run UPDATE.bat.");
 }

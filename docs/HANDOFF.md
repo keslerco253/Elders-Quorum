@@ -11,7 +11,7 @@ When the presidency changes, here is everything the next person needs.
 | GitHub repository `keslerco253/Elders-Quorum` | The app's code and updates | Add the new person as a collaborator, or transfer the repository |
 | The home computer | Runs the app | See "Moving to a new computer" if it changes |
 
-Keep the `.env` file. It has the app password and settings.
+Keep the `EldersQuorumApp` folder in the Windows user folder (`C:\Users\<you>\EldersQuorumApp`). It has the settings file (email password, texting keys) and the backups.
 
 ## In the app
 
@@ -25,20 +25,20 @@ Keep the `.env` file. It has the app password and settings.
 
 ## Moving to a new computer
 
-1. On the old computer, make sure last night's backup is in `backups`, or make
-   a fresh one: `docker compose exec app node -e "require('better-sqlite3')('/data/app.db').backup('/backups/app-move.db')"`.
-2. Copy the whole `Elders-Quorum` folder (including `.env` and `backups`) to the
-   new computer.
+1. On the old computer, double-click **BACKUP-NOW.bat** for a fresh backup.
+2. Copy the `C:\Users\<you>\EldersQuorumApp` folder (settings and backups) to
+   the same place on the new computer, plus the newest app zip.
 3. On the new computer, follow [Windows setup](SETUP-WINDOWS.md) steps 1, 3 and
-   5, then restore the backup (see "Restoring a backup" in that guide) and run
-   `docker compose up -d --build`.
-4. If the Tailscale machine name changes, update `APP_URL` in `.env`.
+   5, restore the backup (see "Restoring a backup" in that guide), then unzip
+   the app and run **UPDATE.bat**.
+4. If the Tailscale machine name changes, update `APP_URL` with
+   **OPEN-SETTINGS.bat** and run UPDATE.bat.
    Members' installed app may need re-adding to the home screen if the address
    changes.
 
 ## Where things live
 
 - **Live data:** Docker volume `elders-quorum-data` (database, uploaded PDFs).
-- **Backups:** `Elders-Quorum\backups` (nightly, last 30 days).
-- **Settings:** `Elders-Quorum\.env`.
-- **Code:** GitHub, and the `Elders-Quorum` folder.
+- **Backups:** `C:\Users\<you>\EldersQuorumApp\backups` (nightly, last 30 days).
+- **Settings:** `C:\Users\<you>\EldersQuorumApp\settings.env` (open with OPEN-SETTINGS.bat).
+- **Code:** GitHub, and whichever folder the newest zip was unzipped into.
