@@ -3,14 +3,14 @@ import { listWards } from "@/lib/wards";
 import { Flash } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { joinApp } from "../actions";
-import { phoneEnabled } from "@/lib/sms";
+import { phoneOptInVisible } from "@/lib/sms";
 
 export const metadata = { title: "Join" };
 
 export default async function JoinPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
   const wards = listWards();
-  const phone = phoneEnabled();
+  const phone = phoneOptInVisible();
   return (
     <div className="card">
       <h2 className="h2 mb-1">Join the app</h2>

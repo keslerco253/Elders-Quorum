@@ -196,6 +196,8 @@ can be handed to the next president.
    create a Messaging Service, then in **Messaging → Services → (your service)
    → Sender Pool**, add the number you bought. Keep the app running while
    waiting: reviewers may open the Join and Privacy pages.
+   **Before submitting**, add `SMS_PENDING=1` to `.env` and run UPDATE.bat, so
+   the Join page shows the mobile-number consent wording reviewers check.
 4. Wait for approval (usually 1–3 weeks). Twilio emails you.
 5. Put these three lines in `.env` (Account SID and Auth Token are on the Twilio
    console home page):

@@ -1,6 +1,6 @@
 import { appUrl } from "./config";
 import { emailHtml, sendMail } from "./mail";
-import { sendSms } from "./sms";
+import { sendSms, SMS_DISCLOSURE } from "./sms";
 import type { ContactKind } from "./contact";
 import type { Member } from "./types";
 import { getWard } from "./wards";
@@ -10,7 +10,11 @@ export async function sendLoginCode(member: Member, via: ContactKind, token: str
   const ward = getWard(member.ward_id);
   const appName = ward?.name ?? "Elders Quorum";
   if (via === "phone" && member.phone) {
-    const res = await sendSms(member.ward_id, member.phone, `${code} is your ${appName} sign-in code. It expires in 20 minutes. Reply STOP to opt out.`, "code");
+    // Their first text doubles as the opt-in confirmation, with the full disclosure.
+    const body = member.last_login_at
+      ? `${code} is your ${appName} sign-in code. It expires in 20 minutes. Reply STOP to opt out.`
+      : `${appName}: ${code} is your sign-in code (expires in 20 minutes). You're signed up for quorum texts. ${SMS_DISCLOSURE}`;
+    const res = await sendSms(member.ward_id, member.phone, body, "code");
     return res === "sent";
   }
   if (!member.email) return false;

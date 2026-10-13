@@ -7,7 +7,7 @@ import { endSession, startSession } from "@/lib/auth";
 import { sendLoginCode } from "@/lib/login-code";
 import { audienceMembers, notify } from "@/lib/notify";
 import { formatContact, parseContact } from "@/lib/contact";
-import { phoneEnabled } from "@/lib/sms";
+import { phoneEnabled, phoneOptInVisible } from "@/lib/sms";
 import { listWards, needsSetup, wardByJoinCode } from "@/lib/wards";
 import { DEFAULT_TZ } from "@/lib/time";
 import type { Member } from "@/lib/types";
@@ -21,13 +21,20 @@ function readContact(raw: string) {
   return c;
 }
 
-const invalidContactMessage = () => (phoneEnabled() ? "Please enter a valid mobile number or email address." : "Please enter a valid email address.");
+function invalidContactMessage(raw: string) {
+  if (!phoneEnabled() && parseContact(raw)?.kind === "phone") {
+    return phoneOptInVisible()
+      ? "Texting is waiting for carrier approval and will be ready soon. Please use your email for now; you can add your mobile number later."
+      : "Please enter a valid email address.";
+  }
+  return phoneOptInVisible() ? "Please enter a valid mobile number or email address." : "Please enter a valid email address.";
+}
 
 export async function requestLogin(formData: FormData) {
   const raw = String(formData.get("contact") || "");
   const remember = String(formData.get("remember") || "month");
   const c = readContact(raw);
-  if (!c || !isRemember(remember)) redirect("/login?" + q({ contact: raw, error: invalidContactMessage() }));
+  if (!c || !isRemember(remember)) redirect("/login?" + q({ contact: raw, error: invalidContactMessage(raw) }));
 
   const member = findLoginMember(c.value);
   if (!member) {
@@ -74,7 +81,7 @@ export async function joinApp(formData: FormData) {
   }
   const c = readContact(raw);
   if (!name) back("Please enter your name.");
-  if (!c) back(invalidContactMessage());
+  if (!c) back(invalidContactMessage(raw));
   if (formData.get("agree") !== "on") back("Please check the box to show you've read what the app keeps.");
   if (findLoginMember(c.value)) redirect("/login?" + q({ contact: raw, error: "You already have an account. Enter it below to sign in." }));
 

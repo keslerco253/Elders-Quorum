@@ -6,7 +6,7 @@ import { needsSetup } from "@/lib/wards";
 import { Flash } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { requestLogin } from "../actions";
-import { phoneEnabled } from "@/lib/sms";
+import { phoneOptInVisible } from "@/lib/sms";
 
 export const metadata = { title: "Sign in" };
 
@@ -14,7 +14,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   if (needsSetup()) redirect("/setup");
   if (await getUser()) redirect("/");
   const sp = await searchParams;
-  const phone = phoneEnabled();
+  const phone = phoneOptInVisible();
   return (
     <div className="card">
       <h2 className="h2 mb-1">Sign in</h2>

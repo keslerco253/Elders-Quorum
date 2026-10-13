@@ -15,6 +15,16 @@ export const twilioConfigured = () => !!(SID() && TOKEN() && FROM());
  */
 export const phoneEnabled = () => twilioConfigured() || process.env.SMS_DEV_OUTBOX === "1";
 
+/**
+ * While carriers review the texting registration (SMS_PENDING=1), the join and
+ * sign-in pages already show the mobile-number option and consent wording, so
+ * reviewers can see how members opt in. Phone numbers aren't accepted yet.
+ */
+export const phoneOptInVisible = () => phoneEnabled() || process.env.SMS_PENDING === "1";
+
+/** Full opt-in disclosure, sent with a member's first text. */
+export const SMS_DISCLOSURE = "Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to opt out.";
+
 /** Texts sent this calendar month (UTC) for a ward. */
 export function textsThisMonth(wardId: number, kind?: "code" | "notice"): number {
   const row = db()
