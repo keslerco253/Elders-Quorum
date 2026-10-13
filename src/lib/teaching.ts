@@ -1,6 +1,7 @@
 import { DateTime } from "luxon";
 import { db } from "./db";
 import { signToken, validToken } from "./signed-links";
+import { removeTeacherNotes } from "./lesson-notes";
 import { audienceMembers, notify } from "./notify";
 import { formatDate } from "./time";
 import type { Lesson } from "./types";
@@ -52,6 +53,7 @@ export async function declineTeaching(member: { id: number; display_name: string
     d.prepare("UPDATE lessons SET teacher_id = NULL, teacher_confirmed_at = NULL WHERE id = ? AND teacher_id = ?").run(lesson.id, member.id);
     d.prepare("DELETE FROM lesson_volunteers WHERE lesson_id = ? AND member_id = ?").run(lesson.id, member.id);
     d.prepare("INSERT INTO lesson_declines (lesson_id, member_id, reason) VALUES (?, ?, ?)").run(lesson.id, member.id, why);
+    removeTeacherNotes(lesson.id, member.id);
   })();
   await notify(audienceMembers(lesson.ward_id, "presidency"), {
     title: "Teacher needed",

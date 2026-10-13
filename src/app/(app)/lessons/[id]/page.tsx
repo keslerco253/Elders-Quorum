@@ -127,7 +127,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
                         <SubmitButton className="btn-danger btn-sm" confirm="Let the presidency know you can't teach?" pendingText="Sending…">
                           I can&apos;t teach this lesson
                         </SubmitButton>
-                        <p className="hint">You&apos;ll be taken off this lesson and the presidency will find another teacher.</p>
+                        <p className="hint">You&apos;ll be taken off this lesson, any teacher notes you posted for it are removed, and the presidency will find another teacher.</p>
                       </form>
                     </details>
                   )}

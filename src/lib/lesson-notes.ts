@@ -52,3 +52,8 @@ export function rejectNotes(lessonId: number, reviewerId: number, note: string) 
     .prepare("UPDATE lesson_notes SET status = 'rejected', review_note = ?, reviewed_by = ?, updated_at = datetime('now') WHERE lesson_id = ?")
     .run(note || null, reviewerId, lessonId);
 }
+
+/** A teacher who's no longer teaching the lesson: their notes come off it too. */
+export function removeTeacherNotes(lessonId: number, memberId: number) {
+  return db().prepare("DELETE FROM lesson_notes WHERE lesson_id = ? AND author_id = ?").run(lessonId, memberId).changes > 0;
+}

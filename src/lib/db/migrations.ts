@@ -540,4 +540,18 @@ CREATE TABLE notification_log (
 CREATE INDEX notification_log_member ON notification_log(member_id, created_at);
 `,
   },
+  {
+    // Clean up notes left behind by teachers who are no longer teaching the
+    // lesson: anyone who said they couldn't teach it, and members (not leaders,
+    // who may write notes for a lesson) who aren't its teacher any more.
+    id: 19,
+    sql: `
+DELETE FROM lesson_notes WHERE author_id IS NOT NULL AND EXISTS (
+  SELECT 1 FROM lessons l WHERE l.id = lesson_notes.lesson_id AND (l.teacher_id IS NULL OR l.teacher_id != lesson_notes.author_id)
+) AND (
+  EXISTS (SELECT 1 FROM lesson_declines d WHERE d.lesson_id = lesson_notes.lesson_id AND d.member_id = lesson_notes.author_id)
+  OR author_id IN (SELECT id FROM members WHERE role = 'member')
+);
+`,
+  },
 ];

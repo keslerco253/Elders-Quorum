@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { removeTeacherNotes } from "@/lib/lesson-notes";
 import { askToTeach, cancelRequest } from "@/lib/teaching-requests";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -92,6 +93,8 @@ export async function assignTeacher(fd: FormData) {
     ? (db().prepare("SELECT * FROM members WHERE id = ? AND ward_id = ? AND status = 'active'").get(teacherId, user.ward_id) as Member | undefined)
     : undefined;
   if (teacherId && !teacher) go(`/admin/lessons/${lesson.id}`, "Choose a current member.");
+  // The previous teacher's notes go with them.
+  if (lesson.teacher_id && lesson.teacher_id !== (teacher?.id ?? null)) removeTeacherNotes(lesson.id, lesson.teacher_id);
   // A new teacher hasn't confirmed yet.
   db().prepare("UPDATE lessons SET teacher_id = ?, teacher_confirmed_at = CASE WHEN teacher_id IS ? THEN teacher_confirmed_at END WHERE id = ?").run(teacher?.id ?? null, teacher?.id ?? null, lesson.id);
   if (teacher && teacher.id !== lesson.teacher_id && fd.get("notify") !== "off") {

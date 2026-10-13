@@ -58,7 +58,9 @@ quorum"** on the lesson page. Their notes wait in **Admin → Teacher notes to
 approve**. **Approve and share** puts them on the lesson page and sends the quorum a
 notification (only the first time for each lesson; later edits are approved
 quietly). **Send back to teacher** lets you add a short note; the teacher is
-notified and can edit. Notes an admin writes or edits are shared right away.
+notified and can edit. Notes an admin writes or edits are shared right away. If the teacher
+withdraws (or you assign someone else or remove them), the notes they wrote
+for that lesson are removed; notes a leader wrote stay.
 
 ## Comments
 

@@ -77,7 +77,7 @@ export default async function TeachReplyPage({ params, searchParams }: { params:
           <SubmitButton className="btn-danger w-full" confirm="Let the presidency know you can't teach?" pendingText="Sending…">
             I can&apos;t teach this lesson
           </SubmitButton>
-          <p className="hint">You&apos;ll be taken off this lesson and the presidency will find another teacher.</p>
+          <p className="hint">You&apos;ll be taken off this lesson, any teacher notes you posted for it are removed, and the presidency will find another teacher.</p>
         </form>
       </details>
       <p className="text-center text-sm">
