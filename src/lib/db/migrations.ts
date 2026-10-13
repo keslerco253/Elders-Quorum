@@ -385,4 +385,13 @@ UPDATE members SET welcomed_at = datetime('now') WHERE source IN ('request','set
 UPDATE members SET sms_consent_at = updated_at WHERE phone IS NOT NULL AND (source IN ('request','setup') OR last_login_at IS NOT NULL);
 `,
   },
+  {
+    // Members can choose to get every notification by email and/or text as well
+    // as push. contact_pref stays the backup for when push doesn't reach them.
+    id: 8,
+    sql: `
+ALTER TABLE members ADD COLUMN always_email INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE members ADD COLUMN always_text INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];

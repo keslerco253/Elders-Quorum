@@ -96,12 +96,15 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             <p className="hint -mt-2">
               {m.sms_consent_at
                 ? `Agreed to quorum texts ${formatDateTime(m.sms_consent_at, user.ward.timezone, "LLL d, yyyy")}.`
-                : "Hasn't agreed to quorum texts, so the app only texts them sign-in codes they ask for. They can agree at first sign-in or under More → My contact info."}
+                : "Hasn't agreed to quorum texts, so the app only texts them sign-in codes they ask for. They can agree at first sign-in or under More → Contact & notifications."}
             </p>
           )}
           <p className="hint -mt-2">
-            Either one can be used to sign in. Change these only to help a member (for example, a new phone number). They contact you by:{" "}
-            {{ text: "text", email: "email", both: "text and email", none: "no texts or emails" }[m.contact_pref]}.
+            Either one can be used to sign in. Change these only to help a member (for example, a new phone number). They get notifications by push
+            {m.always_email || (m.always_text && m.sms_consent_at)
+              ? `, plus ${[m.always_email ? "email" : "", m.always_text && m.sms_consent_at ? "text" : ""].filter(Boolean).join(" and ")} every time`
+              : `, or ${{ text: "text", email: "email", both: "text and email", none: "nothing else" }[m.contact_pref]} if push doesn't reach them`}
+            .
           </p>
           {presidency && (
             <div className="grid gap-4 sm:grid-cols-2">

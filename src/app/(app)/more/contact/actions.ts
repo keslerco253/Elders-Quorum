@@ -54,24 +54,28 @@ export async function removeContact(fd: FormData) {
   const other = kind === "phone" ? user.email : user.phone;
   if (!other) go("You need at least one way to sign in, so this one can't be removed.");
   const pref: ContactPref = user.contact_pref === "none" ? "none" : kind === "phone" ? "email" : "text";
-  db().prepare(`UPDATE members SET ${kind} = NULL, contact_pref = ?, ${kind === "phone" ? "sms_consent_at = NULL, " : ""}updated_at = datetime('now') WHERE id = ?`).run(pref, user.id);
+  db().prepare(`UPDATE members SET ${kind} = NULL, contact_pref = ?, ${kind === "phone" ? "sms_consent_at = NULL, always_text = 0, " : "always_email = 0, "}updated_at = datetime('now') WHERE id = ?`).run(pref, user.id);
   revalidatePath("/more");
   go(kind === "phone" ? "Phone number removed." : "Email removed.", "&ok=1");
 }
 
-export async function setContactPref(fd: FormData) {
+export async function setDelivery(fd: FormData) {
   const user = await requireUser();
-  const pref = String(fd.get("pref")) as ContactPref;
+  const pref = String(fd.get("pref") || user.contact_pref) as ContactPref;
   const allowed: ContactPref[] = ["none"];
-  if (user.phone) allowed.push("text");
+  if (user.phone && phoneEnabled()) allowed.push("text");
   if (user.email) allowed.push("email");
-  if (user.phone && user.email) allowed.push("both");
+  if (user.phone && user.email && phoneEnabled()) allowed.push("both");
   if (!allowed.includes(pref)) go("Choose one of the options shown.");
-  // Choosing texts here (where the disclosure is shown) is their consent.
-  const consent = pref === "text" || pref === "both";
+  const alwaysEmail = fd.get("always_email") === "on" && !!user.email ? 1 : 0;
+  const alwaysText = fd.get("always_text") === "on" && !!user.phone && phoneEnabled() ? 1 : 0;
+  // Choosing any texts here (where the disclosure is shown) is their consent.
+  const consent = alwaysText === 1 || pref === "text" || pref === "both";
   db()
-    .prepare(`UPDATE members SET contact_pref = ?, ${consent ? "sms_consent_at = coalesce(sms_consent_at, datetime('now')), " : ""}updated_at = datetime('now') WHERE id = ?`)
-    .run(pref, user.id);
+    .prepare(
+      `UPDATE members SET contact_pref = ?, always_email = ?, always_text = ?, ${consent ? "sms_consent_at = coalesce(sms_consent_at, datetime('now')), " : ""}updated_at = datetime('now') WHERE id = ?`,
+    )
+    .run(pref, alwaysEmail, alwaysText, user.id);
   revalidatePath("/more/contact");
   go("Saved.", "&ok=1");
 }

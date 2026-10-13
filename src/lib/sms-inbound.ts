@@ -40,6 +40,8 @@ export async function handleInboundText(params: Record<string, string>): Promise
   const optOut = (params.OptOutType || "").toUpperCase();
   if (optOut === "STOP" || STOP_WORDS.includes(word)) {
     db().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END WHERE id = ? AND contact_pref IN ('text','both')").run(member.id);
+    // Replying STOP withdraws their consent; they can agree again under Contact & notifications.
+    db().prepare("UPDATE members SET always_text = 0, sms_consent_at = NULL WHERE id = ?").run(member.id);
     return "opted_out";
   }
   if (optOut === "HELP" || optOut === "START" || SKIP_WORDS.includes(word)) return "ignored";

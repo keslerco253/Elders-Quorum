@@ -38,14 +38,13 @@ export async function sendMessage(fd: FormData) {
     for (const r of recipients) ins.run(id, r.id);
     return id;
   })();
-  const { push, email, text } = await notify(recipients, { title, body, url: `/messages?re=${messageId}` });
+  const { push, email, text, reached } = await notify(recipients, { title, body, url: `/messages?re=${messageId}` });
   d.prepare("UPDATE messages SET push_count = ?, email_count = ?, text_count = ? WHERE id = ?").run(push, email, text, messageId);
   revalidatePath("/admin/messages");
-  const reached = push + Math.min(recipients.length - push, email + text);
   const missed = recipients.length - reached;
   go(
     "/admin/messages",
-    `Sent to ${recipients.length}: ${push} by notification, ${email} by email, ${text} by text${missed > 0 ? `. ${missed} have notifications off and chose not to get texts or emails` : ""}.`,
+    `Sent to ${recipients.length}: ${push} by notification, ${email} by email, ${text} by text${missed > 0 ? `. ${missed} couldn't be reached (notifications off and no texts or emails chosen)` : ""}.`,
   );
 }
 

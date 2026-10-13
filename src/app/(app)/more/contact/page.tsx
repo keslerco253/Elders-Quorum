@@ -4,9 +4,10 @@ import { pendingVerification } from "@/lib/contact-verify";
 import { phoneEnabled, SMS_DISCLOSURE } from "@/lib/sms";
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { addContact, confirmContact, removeContact, setContactPref } from "./actions";
+import { addContact, confirmContact, removeContact, setDelivery } from "./actions";
+import { PushToggle } from "@/components/push-toggle";
 
-export const metadata = { title: "My contact info" };
+export const metadata = { title: "Contact & notifications" };
 
 export default async function ContactPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
@@ -14,10 +15,10 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
   const verifying = sp.verify ? pendingVerification(user.id, Number(sp.verify)) : undefined;
   const textingOn = phoneEnabled();
   const prefOptions: [string, string][] = [
-    ...(user.phone ? ([["text", "Text"]] as [string, string][]) : []),
+    ...(user.phone && textingOn ? ([["text", "Text"]] as [string, string][]) : []),
     ...(user.email ? ([["email", "Email"]] as [string, string][]) : []),
-    ...(user.phone && user.email ? ([["both", "Both"]] as [string, string][]) : []),
-    ["none", "Don't contact me"],
+    ...(user.phone && user.email && textingOn ? ([["both", "Both"]] as [string, string][]) : []),
+    ["none", "Nothing"],
   ];
 
   const row = (kind: "phone" | "email", label: string, value: string | null) => (
@@ -57,7 +58,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <PageHeader title="My contact info" back={{ href: "/more", label: "More" }} subtitle="You can sign in with either one. Only you and the quorum leaders who run the app can see them." />
+      <PageHeader title="Contact & notifications" back={{ href: "/more", label: "More" }} subtitle="You can sign in with either one. Only you and the quorum leaders who run the app can see them." />
       <Flash msg={sp.msg} tone={sp.ok ? "success" : "warn"} />
 
       {verifying && (
@@ -79,21 +80,43 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
         </div>
       </Section>
 
-      <Section title="When notifications are off">
-        <form action={setContactPref} className="card space-y-3">
-          <p className="text-sm text-muted">If push notifications aren&apos;t turned on for your phone, how should we send reminders and quorum messages?</p>
-          <div className="flex flex-wrap gap-2">
-            {prefOptions.map(([v, label]) => (
-              <label key={v} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${user.contact_pref === v ? "border-accent bg-accent-soft" : "border-border"}`}>
-                <input type="radio" name="pref" value={v} defaultChecked={user.contact_pref === v} />
-                {label}
+      <Section title="How we reach you">
+        <div className="card mb-3 space-y-2">
+          <div className="font-medium">Push notifications</div>
+          <p className="text-sm text-muted">Free and instant. Turn them on for each phone or computer you use.</p>
+          <PushToggle />
+        </div>
+        <form action={setDelivery} className="card space-y-4">
+          <div className="space-y-2">
+            <div className="font-medium">Also send every reminder and message by</div>
+            <label className={`flex items-center gap-2 text-sm ${user.email ? "" : "opacity-50"}`}>
+              <input type="checkbox" name="always_email" defaultChecked={!!user.always_email} disabled={!user.email} />
+              Email{user.email ? ` to ${user.email}` : ": add an email above first"}
+            </label>
+            {textingOn && (
+              <label className={`flex items-center gap-2 text-sm ${user.phone ? "" : "opacity-50"}`}>
+                <input type="checkbox" name="always_text" defaultChecked={!!user.always_text && !!user.sms_consent_at} disabled={!user.phone} />
+                Text{user.phone ? ` to ${formatPhone(user.phone)}` : ": add a mobile number above first"}
               </label>
-            ))}
+            )}
+            <p className="hint">Leave these off to get just the push notification.</p>
+          </div>
+          <div className="space-y-2">
+            <div className="font-medium">If a notification doesn&apos;t reach you</div>
+            <p className="text-sm text-muted">For example, if notifications are turned off on your phone. Not used when one of the boxes above is checked.</p>
+            <div className="flex flex-wrap gap-2">
+              {prefOptions.map(([v, label]) => (
+                <label key={v} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${user.contact_pref === v ? "border-accent bg-accent-soft" : "border-border"}`}>
+                  <input type="radio" name="pref" value={v} defaultChecked={user.contact_pref === v} />
+                  {label}
+                </label>
+              ))}
+            </div>
           </div>
           <SubmitButton className="btn-primary btn-sm">Save</SubmitButton>
-          {user.phone && (
+          {user.phone && textingOn && (
             <p className="hint">
-              Choosing Text or Both means you agree to receive reminders and quorum messages by text from the quorum&apos;s number. {SMS_DISCLOSURE}
+              Choosing to get texts means you agree to receive reminders and quorum messages by text from the quorum&apos;s number. {SMS_DISCLOSURE}
             </p>
           )}
         </form>

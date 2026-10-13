@@ -54,7 +54,7 @@ export async function updateMember(fd: FormData) {
   db()
     .prepare("UPDATE members SET name = ?, display_name = ?, email = ?, phone = ?, contact_pref = ?, role = ?, status = ?, updated_at = datetime('now') WHERE id = ?")
     .run(name, name, email, phone, pref, role, status, id);
-  // A new number hasn't agreed to texts; the member can agree under More → My contact info.
+  // A new number hasn't agreed to texts; the member can agree under More → Contact & notifications.
   if (phone !== m.phone) db().prepare("UPDATE members SET sms_consent_at = NULL WHERE id = ?").run(id);
   if (status !== "active") db().prepare("DELETE FROM sessions WHERE member_id = ?").run(id);
   revalidatePath("/admin/members");

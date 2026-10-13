@@ -21,7 +21,7 @@ export default function TermsPage() {
       <h3>{brand} text messages (SMS)</h3>
       <ul>
         <li>
-          <strong>What you&apos;ll get:</strong> if you give a mobile number, we text you one-time sign-in codes. If you choose texts under More → My contact info, we also text
+          <strong>What you&apos;ll get:</strong> if you give a mobile number, we text you one-time sign-in codes. If you choose texts under More → Contact &amp; notifications, we also text
           lesson reminders (usually twice a week), activity reminders and quorum announcements.
         </li>
         <li>
@@ -31,7 +31,7 @@ export default function TermsPage() {
           <strong>Cost:</strong> message and data rates may apply from your mobile carrier. The quorum never charges you.
         </li>
         <li>
-          <strong>Stop anytime:</strong> reply <strong>STOP</strong> to stop texts, or change your choice under More → My contact info. Reply <strong>HELP</strong> for help, or contact
+          <strong>Stop anytime:</strong> reply <strong>STOP</strong> to stop texts, or change your choice under More → Contact &amp; notifications. Reply <strong>HELP</strong> for help, or contact
           the elders quorum presidency at villaseldersquorum@gmail.com.
         </li>
         <li>Carriers are not liable for delayed or undelivered messages.</li>

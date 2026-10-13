@@ -14,7 +14,7 @@ export default function PrivacyPage() {
       </p>
       <h3>Information we collect</h3>
       <ul>
-        <li>Your name, and the mobile number and/or email you choose to give when you join. You can add, change or remove them anytime under More → My contact info.</li>
+        <li>Your name, and the mobile number and/or email you choose to give when you join. You can add, change or remove them anytime under More → Contact &amp; notifications.</li>
         <li>Things you choose to post: lesson comments, teacher notes, offers to teach, sign-ups, RSVPs, event requests, visit requests, and messages you send the presidency (in the app or by texting back). Visit requests and messages to the presidency are seen only by the elders quorum presidency.</li>
         <li>If you turn on notifications, a technical address for your device so it can receive them.</li>
       </ul>

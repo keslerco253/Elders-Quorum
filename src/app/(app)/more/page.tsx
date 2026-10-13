@@ -21,7 +21,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
     { href: "/messages", label: unread ? `Messages (${unread} new)` : "Messages", desc: "Quorum messages and replies from the presidency" },
     { href: "/signups", label: "Sign-ups", desc: "Service projects, meals and more" },
     { href: "/more/visit", label: "Request a visit", desc: "Ask the presidency to come by, talk, or help" },
-    { href: "/more/contact", label: "My contact info", desc: "Phone, email, and how we contact you" },
+    { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },
     ...(isAdmin(user) ? [{ href: "/admin", label: "Admin tools", desc: "Members, lessons, messages and approvals" }] : []),
   ];
   return (

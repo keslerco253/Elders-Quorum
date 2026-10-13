@@ -82,11 +82,19 @@ The app never uses Church records. Members join themselves, or the presidency ad
 ## Phone or email
 
 Members join and sign in with a mobile number **or** an email (phone only after
-texting is set up; see the setup guide). Under **More → My contact info** they
-can add the other one (confirmed with a code) and choose how we reach them when
-push notifications are off: text, email, both, or neither. With both, email is
-the default because it's free. **Admin → Settings → Texting** shows how many
-texts went out this month and sets the monthly limit.
+texting is set up; see the setup guide). Under **More → Contact & notifications**
+they can add the other one (confirmed with a code) and choose how they hear from
+the quorum, in any combination:
+
+- **Push notifications** on each phone or computer (free).
+- **Email every time** and/or **Text every time**, in addition to push.
+- **If a notification doesn't reach them** (push off, nothing checked above):
+  text, email, both, or nothing. This backup is how everyone worked before.
+
+Everything sent also stays in the app: group messages and replies under
+**More → Messages** (a red dot on More means something new), visit replies on
+**More → Request a visit**. **Admin → Settings → Texting** shows how many texts
+went out this month and sets the monthly limit.
 
 ## Privacy and automatic clean-up
 

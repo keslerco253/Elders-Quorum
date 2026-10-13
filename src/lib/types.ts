@@ -18,6 +18,9 @@ export interface Member {
   last_login_at: string | null;
   /** When the member agreed to quorum texts (null: sign-in codes only). */
   sms_consent_at: string | null;
+  /** Send every notification by email / text too, not just when push misses. */
+  always_email: number;
+  always_text: number;
   /** When the member saw the welcome screen and agreed to what the app keeps. */
   welcomed_at: string | null;
   created_at: string;
