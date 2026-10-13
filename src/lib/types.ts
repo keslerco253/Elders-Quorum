@@ -20,6 +20,8 @@ export interface Member {
   sms_consent_at: string | null;
   /** Presidency calling, shown to members choosing who to write to. */
   calling: Calling | null;
+  /** Bumped to cancel the member's old calendar subscription link. */
+  feed_version: number;
   /** Send every notification by email / text too, not just when push misses. */
   always_email: number;
   always_text: number;

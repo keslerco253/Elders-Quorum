@@ -66,6 +66,12 @@ from the lesson page.
 - Member suggestions show in **Admin → Event requests**. Approving adds the
   event and notifies the member; you can then adjust it.
 
+**Subscribe:** on **Calendar → Subscribe**, members can add the whole quorum
+calendar to Apple Calendar, Google Calendar or Outlook once; every event then
+appears on its own and stays up to date (calendar apps check every hour or a
+few times a day). Each member's link is private; presidency and admin links
+include presidency-only events. **Reset my link** cancels an old link.
+
 ## Messages
 
 **Admin → Send a message**: choose Everyone, Admins, Presidency, Upcoming

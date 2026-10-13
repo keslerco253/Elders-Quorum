@@ -40,6 +40,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         title="Calendar"
         actions={
           <>
+            <Link href="/calendar/subscribe" className="btn-secondary">
+              Subscribe
+            </Link>
             {admin && (
               <Link href="/admin/events/new" className="btn-primary">
                 Add event

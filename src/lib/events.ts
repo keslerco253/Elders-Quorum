@@ -70,16 +70,11 @@ function fold(line: string) {
   return out.join("\r\n");
 }
 
-export function icsFor(e: EventRow, host = new URL(appUrl()).host) {
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Elders Quorum App//EN",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
+function veventLines(e: EventRow, host: string, stamp: string) {
+  return [
     "BEGIN:VEVENT",
     `UID:event-${e.id}@${host}`,
-    `DTSTAMP:${gcal(DateTime.utc().toISO()!)}`,
+    `DTSTAMP:${stamp}`,
     `DTSTART:${gcal(e.starts_at)}`,
     `DTEND:${gcal(e.ends_at)}`,
     `SUMMARY:${icsEscape(e.title)}`,
@@ -87,7 +82,44 @@ export function icsFor(e: EventRow, host = new URL(appUrl()).host) {
     `DESCRIPTION:${icsEscape([e.description, `${appUrl()}/calendar/${e.id}`].filter(Boolean).join("\n\n"))}`,
     `URL:${appUrl()}/calendar/${e.id}`,
     "END:VEVENT",
-    "END:VCALENDAR",
   ].filter(Boolean) as string[];
+}
+
+const HEADER = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Elders Quorum App//EN", "CALSCALE:GREGORIAN"];
+
+export function icsFor(e: EventRow, host = new URL(appUrl()).host) {
+  const lines = [...HEADER, "METHOD:PUBLISH", ...veventLines(e, host, gcal(DateTime.utc().toISO()!)), "END:VCALENDAR"];
   return lines.map(fold).join("\r\n") + "\r\n";
+}
+
+/** A whole subscribed calendar: every event the member may see, refreshed by their calendar app. */
+export function icsFeed(events: EventRow[], calendarName: string, tz: string, host = new URL(appUrl()).host) {
+  const stamp = gcal(DateTime.utc().toISO()!);
+  const lines = [
+    ...HEADER,
+    `X-WR-CALNAME:${icsEscape(calendarName)}`,
+    `X-WR-TIMEZONE:${tz}`,
+    // Ask calendar apps to check for changes every hour (they may check less often).
+    "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
+    "X-PUBLISHED-TTL:PT1H",
+    ...events.flatMap((e) => veventLines(e, host, stamp)),
+    "END:VCALENDAR",
+  ];
+  return lines.map(fold).join("\r\n") + "\r\n";
+}
+
+/** The member's private subscription link (path only; see feedUrls for the full addresses). */
+export function feedPath(member: { id: number; feed_version: number }) {
+  return `/feed/${member.id}/${signToken(`feed:${member.id}:${member.feed_version}`)}.ics`;
+}
+
+export function validFeedToken(member: { id: number; feed_version: number }, token: string) {
+  return validToken(`feed:${member.id}:${member.feed_version}`, token);
+}
+
+/** https (copy/Outlook), webcal (opens Apple Calendar's Subscribe), and Google Calendar's add-by-URL page. */
+export function feedUrls(member: { id: number; feed_version: number }) {
+  const https = appUrl() + feedPath(member);
+  const webcal = https.replace(/^https?:/, "webcal:");
+  return { https, webcal, google: `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}` };
 }

@@ -451,4 +451,10 @@ CREATE INDEX lesson_declines_lesson ON lesson_declines(lesson_id);
     id: 12,
     sql: `ALTER TABLE lessons ADD COLUMN teacher_confirmed_at TEXT;`,
   },
+  {
+    // Each member's private calendar subscription link includes this number;
+    // "Reset my link" bumps it so an old (shared) link stops working.
+    id: 13,
+    sql: `ALTER TABLE members ADD COLUMN feed_version INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];

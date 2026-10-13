@@ -71,6 +71,12 @@ export default async function EventPage({ params, searchParams }: { params: Prom
         {isAppleMobile((await headers()).get("user-agent")) && (
           <p className="text-sm text-muted">On iPhone, tap <strong>Add to Calendar</strong> at the bottom of the event that opens (the check mark at the top only closes it).</p>
         )}
+        <p className="text-sm text-muted">
+          Want every quorum event in your calendar automatically?{" "}
+          <Link href="/calendar/subscribe" className="link">
+            Subscribe to the calendar
+          </Link>
+        </p>
       </div>
 
       {!!e.rsvp_enabled && (

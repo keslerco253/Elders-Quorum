@@ -52,3 +52,34 @@ describe("calendar file links", () => {
     expect(validIcsToken(6, 9, t)).toBe(false);
   });
 });
+
+describe("calendar subscription", () => {
+  it("lists every event the member may see, and the link can be reset", async () => {
+    const d = (await import("@/lib/db")).useTestDb();
+    d.exec(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'Villas Ward Elders Quorum', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'M', 'Mem', 'm@x', 'member'), (2, 1, 'P', 'Pres', 'p@x', 'presidency');
+      INSERT INTO events (ward_id, title, starts_at, ends_at, presidency_only) VALUES
+        (1, 'Service project', strftime('%Y-%m-%dT%H:%M:%SZ','now','+3 days'), strftime('%Y-%m-%dT%H:%M:%SZ','now','+3 days','+2 hours'), 0),
+        (1, 'Presidency meeting', strftime('%Y-%m-%dT%H:%M:%SZ','now','+4 days'), strftime('%Y-%m-%dT%H:%M:%SZ','now','+4 days','+1 hours'), 1);
+    `);
+    const ev = await import("@/lib/events");
+    const { GET } = await import("@/app/feed/[member]/[token]/route");
+    const fetchFeed = async (id: number, version = 0) => {
+      const token = ev.feedPath({ id, feed_version: version }).split("/").pop()!;
+      const res = await GET(new Request("http://x"), { params: Promise.resolve({ member: String(id), token }) });
+      return { status: res.status, body: await res.text() };
+    };
+    const mem = await fetchFeed(1);
+    expect(mem.status).toBe(200);
+    expect(mem.body).toContain("X-WR-CALNAME:Villas Ward Elders Quorum");
+    expect(mem.body).toContain("SUMMARY:Service project");
+    expect(mem.body).not.toContain("Presidency meeting");
+    expect((await fetchFeed(2)).body).toContain("SUMMARY:Presidency meeting");
+    // After "Reset my link", the old link stops working.
+    d.exec("UPDATE members SET feed_version = 1 WHERE id = 1");
+    expect((await fetchFeed(1, 0)).status).toBe(404);
+    expect((await fetchFeed(1, 1)).status).toBe(200);
+    expect(ev.feedUrls({ id: 1, feed_version: 1 }).webcal).toMatch(/^webcal:\/\/.*\/feed\/1\/.+\.ics$/);
+  });
+});
