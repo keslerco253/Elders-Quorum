@@ -34,6 +34,27 @@ export async function volunteer(fd: FormData) {
   back(lesson.id, "Thank you! The presidency will let you know who is assigned.");
 }
 
+/** The assigned teacher can't teach: they're taken off the lesson and the presidency is told why. */
+export async function cantTeach(fd: FormData) {
+  const user = await requireUser();
+  const lesson = getLesson(user.ward_id, Number(fd.get("lesson_id")));
+  if (!lesson || lesson.teacher_id !== user.id) redirect("/lessons");
+  const reason = String(fd.get("reason") || "").trim().slice(0, 500);
+  const d = db();
+  d.transaction(() => {
+    d.prepare("UPDATE lessons SET teacher_id = NULL WHERE id = ? AND teacher_id = ?").run(lesson.id, user.id);
+    d.prepare("DELETE FROM lesson_volunteers WHERE lesson_id = ? AND member_id = ?").run(lesson.id, user.id);
+    d.prepare("INSERT INTO lesson_declines (lesson_id, member_id, reason) VALUES (?, ?, ?)").run(lesson.id, user.id, reason);
+  })();
+  await notify(audienceMembers(user.ward_id, "presidency"), {
+    title: "Teacher needed",
+    body: `${user.display_name} can't teach on ${formatDate(lesson.date, "short")}${lesson.title ? ` ("${lesson.title}")` : ""}.${reason ? ` Reason: ${reason}` : ""}`,
+    url: `/admin/lessons/${lesson.id}`,
+  });
+  revalidatePath("/", "layout");
+  back(lesson.id, "Thanks for letting us know. The presidency has been told and will find another teacher.");
+}
+
 export async function addComment(fd: FormData) {
   const user = await requireUser();
   const lesson = getLesson(user.ward_id, Number(fd.get("lesson_id")));

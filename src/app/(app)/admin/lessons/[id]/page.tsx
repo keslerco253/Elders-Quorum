@@ -22,6 +22,11 @@ export default async function EditLessonPage({ params, searchParams }: { params:
     .prepare("SELECT m.id, m.display_name FROM lesson_volunteers v JOIN members m ON m.id = v.member_id WHERE v.lesson_id = ? ORDER BY v.created_at")
     .all(lesson.id) as { id: number; display_name: string }[];
   const members = db().prepare("SELECT id, display_name FROM members WHERE ward_id = ? AND status = 'active' ORDER BY display_name").all(user.ward_id) as { id: number; display_name: string }[];
+  const declines = presidency
+    ? (db()
+        .prepare("SELECT d.id, m.display_name, d.reason, d.created_at FROM lesson_declines d JOIN members m ON m.id = d.member_id WHERE d.lesson_id = ? ORDER BY d.id DESC")
+        .all(lesson.id) as { id: number; display_name: string; reason: string; created_at: string }[])
+    : [];
 
   return (
     <>
@@ -78,6 +83,15 @@ export default async function EditLessonPage({ params, searchParams }: { params:
               <h2 className="h2">Teacher</h2>
               {presidency ? (
                 <>
+                  {declines.length > 0 && (
+                    <div className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">
+                      {declines.map((d) => (
+                        <div key={d.id}>
+                          <strong>{d.display_name}</strong> can&apos;t teach{d.reason ? `: ${d.reason}` : "."}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {volunteers.length > 0 && (
                     <div>
                       <div className="mb-2 text-sm text-muted">Volunteered to teach:</div>

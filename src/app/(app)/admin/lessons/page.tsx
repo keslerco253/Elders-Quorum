@@ -75,7 +75,7 @@ export default async function AdminLessonsPage({ searchParams }: { searchParams:
                     <div className="truncate">{conf ?? (l.title || <span className="text-muted">No talk yet</span>)}</div>
                     {!conf && (
                       <div className="flex flex-wrap gap-2 text-xs text-muted">
-                        {l.teacher_name ? <span>Teacher: {l.teacher_name}</span> : <Badge tone="warn">No teacher</Badge>}
+                        {l.teacher_name ? <span>Teacher: {l.teacher_name}</span> : <Badge tone="warn">{l.decline_count > 0 ? "Teacher can't teach" : "No teacher"}</Badge>}
                         {l.volunteer_count > 0 && !l.teacher_name && <Badge tone="info">{l.volunteer_count} volunteered</Badge>}
                       </div>
                     )}

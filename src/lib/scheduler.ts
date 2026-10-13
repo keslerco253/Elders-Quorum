@@ -65,7 +65,7 @@ function lessonReminders(ward: Ward, now: DateTime): DueNotification[] {
         recipients: [teacher],
         payload: {
           title: w.tag === "sat" ? "You're teaching tomorrow" : "You're teaching this Sunday",
-          body: [lesson.title ? `"${lesson.title}"${lesson.speaker ? ` by ${lesson.speaker}` : ""}.` : "", teacherNotesLine(lesson.id)].filter(Boolean).join(" "),
+          body: [lesson.title ? `"${lesson.title}"${lesson.speaker ? ` by ${lesson.speaker}` : ""}.` : "", teacherNotesLine(lesson.id), "Can't teach? Let us know on the lesson page."].filter(Boolean).join(" "),
           url: `/lessons/${lesson.id}`,
         },
       });

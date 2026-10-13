@@ -430,4 +430,19 @@ CREATE TABLE planned_visit_visitors (
 );
 `,
   },
+  {
+    // An assigned teacher can say they can't teach, with an optional reason
+    // for the presidency. Removed 30 days after the lesson, like volunteers.
+    id: 11,
+    sql: `
+CREATE TABLE lesson_declines (
+  id INTEGER PRIMARY KEY,
+  lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX lesson_declines_lesson ON lesson_declines(lesson_id);
+`,
+  },
 ];

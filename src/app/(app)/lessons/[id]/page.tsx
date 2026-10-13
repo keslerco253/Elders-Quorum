@@ -3,12 +3,12 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { commentThread, getLesson, type CommentView } from "@/lib/lessons";
-import { formatDate, formatDateTime } from "@/lib/time";
+import { formatDate, formatDateTime, todayIn } from "@/lib/time";
 import { isAdmin } from "@/lib/permissions";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { conferenceLabel } from "@/components/lesson-bits";
-import { addComment, deleteOwnComment, saveTeacherNotes, volunteer } from "../actions";
+import { addComment, cantTeach, deleteOwnComment, saveTeacherNotes, volunteer } from "../actions";
 import { getNotes } from "@/lib/lesson-notes";
 import { renderMarkdown } from "@/lib/markdown";
 import { moderateComment } from "../../admin/comments/actions";
@@ -88,7 +88,25 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
             <div className="border-t border-border pt-4">
               <div className="text-sm text-muted">Teacher</div>
               {lesson.teacher_name ? (
-                <div className="font-semibold">{lesson.teacher_name}</div>
+                <>
+                  <div className="font-semibold">{lesson.teacher_name}</div>
+                  {isTeacher && lesson.date >= todayIn(tz) && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-sm text-muted underline">I can&apos;t teach this lesson</summary>
+                      <form action={cantTeach} className="mt-2 space-y-2 rounded-lg bg-surface-2 p-3">
+                        <input type="hidden" name="lesson_id" value={lesson.id} />
+                        <label className="label" htmlFor="reason">
+                          Reason (optional, only the presidency sees it)
+                        </label>
+                        <input id="reason" name="reason" maxLength={500} className="input" placeholder="e.g. Out of town that weekend" />
+                        <SubmitButton className="btn-danger btn-sm" confirm="Let the presidency know you can't teach?" pendingText="Sending…">
+                          I can&apos;t teach this lesson
+                        </SubmitButton>
+                        <p className="hint">You&apos;ll be taken off this lesson and the presidency will find another teacher.</p>
+                      </form>
+                    </details>
+                  )}
+                </>
               ) : (
                 <div className="mt-1 flex flex-wrap items-center gap-3">
                   <Badge tone="warn">Teacher needed</Badge>

@@ -40,6 +40,7 @@ export default async function AdminPage() {
     { href: "/admin/access", label: "Access requests", desc: "Requests to join without a code", count: c.access, show: p },
     { href: "/admin/event-requests", label: "Event requests", desc: "Suggested by members", count: c.eventRequests },
     { href: "/admin/lessons", label: "Teaching volunteers", desc: "Lessons with volunteers to assign", count: c.volunteers, show: p },
+    { href: "/admin/lessons", label: "Teacher needed", desc: "A teacher said they can't teach", count: c.teacherNeeded, show: p },
   ];
   return (
     <>

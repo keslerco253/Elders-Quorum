@@ -29,6 +29,12 @@ lesson and **Saturday 8 AM** about tomorrow's.
   "You're teaching tomorrow"), with the lesson title and whether their notes
   are posted, waiting for approval, or not added yet. They get this instead of
   the general lesson reminder the rest of the quorum gets at those times.
+- If the teacher can't make it, they tap **I can't teach this lesson** on the
+  lesson page and can add a reason (only the presidency sees it). They're taken
+  off the lesson, it shows **Teacher needed** again so others can volunteer, and
+  the presidency is notified with the reason. It shows under **Waiting on you →
+  Teacher needed** until someone is assigned, and the lesson's admin page shows
+  who couldn't teach and why.
 
 ## Teacher notes
 

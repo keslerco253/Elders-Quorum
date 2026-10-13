@@ -5,12 +5,14 @@ export interface LessonListItem extends Lesson {
   teacher_name: string | null;
   comment_count: number;
   volunteer_count: number;
+  decline_count: number;
 }
 
 const LIST_SQL = `
   SELECT l.*, t.display_name AS teacher_name,
     (SELECT COUNT(*) FROM comments c WHERE c.lesson_id = l.id AND c.status = 'approved') AS comment_count,
-    (SELECT COUNT(*) FROM lesson_volunteers v WHERE v.lesson_id = l.id) AS volunteer_count
+    (SELECT COUNT(*) FROM lesson_volunteers v WHERE v.lesson_id = l.id) AS volunteer_count,
+    (SELECT COUNT(*) FROM lesson_declines d WHERE d.lesson_id = l.id) AS decline_count
   FROM lessons l LEFT JOIN members t ON t.id = l.teacher_id
   WHERE l.ward_id = ?`;
 
