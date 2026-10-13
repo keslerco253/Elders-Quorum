@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { adminCounts } from "@/lib/admin-counts";
 import { eventsBetween } from "@/lib/events";
 import { upcomingLessons } from "@/lib/lessons";
+import { getNotes } from "@/lib/lesson-notes";
 import { listSignups } from "@/lib/signups";
 import { currentLessonDate, formatDate, formatDateTime, todayIn } from "@/lib/time";
 import { Badge, Section } from "@/components/ui";
@@ -17,6 +18,7 @@ export default async function HomePage() {
   const today = todayIn(tz);
   const lessons = upcomingLessons(user.ward_id, currentLessonDate(tz), 3);
   const [next, ...later] = lessons;
+  const nextHasNotes = !!(next && getNotes(next.id)?.published_body);
   const now = DateTime.now();
   const events = eventsBetween(user, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!).slice(0, 4);
   const signups = listSignups(user.ward_id, false, today).slice(0, 3);
@@ -62,6 +64,7 @@ export default async function HomePage() {
                   {next.speaker && <div className="text-sm text-muted">{next.speaker}</div>}
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                     {next.teacher_name ? <span className="text-muted">Teacher: {next.teacher_name}</span> : <Badge tone="warn">Teacher needed</Badge>}
+                    {nextHasNotes && <Badge tone="info">Teacher&apos;s notes posted</Badge>}
                     {next.comment_count > 0 && <span className="text-muted">· {next.comment_count} comments</span>}
                   </div>
                   <div className="mt-3 text-sm font-semibold text-accent">Study and share your thoughts ›</div>

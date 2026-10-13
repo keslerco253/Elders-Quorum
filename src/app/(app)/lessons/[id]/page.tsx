@@ -8,7 +8,9 @@ import { isAdmin } from "@/lib/permissions";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { conferenceLabel } from "@/components/lesson-bits";
-import { addComment, deleteOwnComment, volunteer } from "../actions";
+import { addComment, deleteOwnComment, saveTeacherNotes, volunteer } from "../actions";
+import { getNotes } from "@/lib/lesson-notes";
+import { renderMarkdown } from "@/lib/markdown";
 import { moderateComment } from "../../admin/comments/actions";
 
 export const metadata = { title: "Lesson" };
@@ -24,6 +26,9 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
   const comments = conf ? [] : commentThread(lesson.id, user.id);
   const tz = user.ward.timezone;
   const admin = isAdmin(user);
+  const notes = conf ? undefined : getNotes(lesson.id);
+  const isTeacher = lesson.teacher_id === user.id;
+  const canEditNotes = isTeacher || admin;
 
   const CommentItem = ({ c, reply }: { c: CommentView; reply?: boolean }) => (
     <div className={reply ? "mt-3 border-l-2 border-border pl-4" : ""}>
@@ -111,6 +116,48 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
               </Link>
             )}
           </div>
+
+          <section id="notes" className="mb-6 scroll-mt-20">
+            {notes?.published_body && (
+              <div className="card mb-3 border-accent/40">
+                <h2 className="h2 mb-1">Notes from {notes.author ?? "the teacher"}</h2>
+                <p className="mb-3 text-xs text-muted">Please read before Sunday.</p>
+                <div className="prose-eq" dangerouslySetInnerHTML={{ __html: renderMarkdown(notes.published_body) }} />
+              </div>
+            )}
+            {canEditNotes && notes?.status === "pending" && notes.body !== notes.published_body && (
+              <p className="mb-3 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">The latest notes are waiting for presidency approval.</p>
+            )}
+            {canEditNotes && notes?.status === "rejected" && (
+              <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+                Notes sent back for changes{notes.review_note ? `: ${notes.review_note}` : "."}
+              </p>
+            )}
+            {canEditNotes && (
+              <details className="card" open={isTeacher && (!notes || notes.status === "rejected")}>
+                <summary className="cursor-pointer font-semibold">
+                  {notes ? "Edit the lesson notes" : isTeacher ? "You're teaching this lesson: share notes with the quorum" : "Add lesson notes"}
+                </summary>
+                <form action={saveTeacherNotes} className="mt-3 space-y-3">
+                  <input type="hidden" name="lesson_id" value={lesson.id} />
+                  <textarea
+                    name="notes"
+                    rows={8}
+                    required
+                    maxLength={10000}
+                    className="input"
+                    defaultValue={notes?.body ?? ""}
+                    placeholder={"What should the quorum read or think about before Sunday?\n\n- Read the talk, especially the part about…\n- Come ready to share an experience with…"}
+                  />
+                  <p className="hint">
+                    {admin ? "Saving shares the notes right away." : "A presidency member approves notes before they're shared."} The first time notes are shared, the quorum gets a notification.
+                    Use <code>- </code> for bullets and <code>**bold**</code>.
+                  </p>
+                  <SubmitButton pendingText="Saving…">{admin ? "Save and share" : "Submit for approval"}</SubmitButton>
+                </form>
+              </details>
+            )}
+          </section>
 
           <section id="comments" className="scroll-mt-20">
             <h2 className="h2 mb-1">Study thoughts</h2>

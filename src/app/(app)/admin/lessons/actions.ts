@@ -95,7 +95,7 @@ export async function assignTeacher(fd: FormData) {
   if (teacher && teacher.id !== lesson.teacher_id && fd.get("notify") !== "off") {
     await notify([teacher], {
       title: "You're teaching in elders quorum",
-      body: `Thank you for teaching on ${formatDate(lesson.date)}${lesson.title ? `: "${lesson.title}"` : ""}${lesson.speaker ? ` by ${lesson.speaker}` : ""}.`,
+      body: `Thank you for teaching on ${formatDate(lesson.date)}${lesson.title ? `: "${lesson.title}"` : ""}${lesson.speaker ? ` by ${lesson.speaker}` : ""}. You can post notes for the quorum to read beforehand on the lesson page.`,
       url: `/lessons/${lesson.id}`,
     });
   }

@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       <h3>What we keep</h3>
       <ul>
         <li>Your name and email, which you enter when you join.</li>
-        <li>Things you choose to post: lesson comments, offers to teach, sign-ups, RSVPs and event requests.</li>
+        <li>Things you choose to post: lesson comments, teacher notes, offers to teach, sign-ups, RSVPs and event requests.</li>
         <li>If you turn on notifications, a technical address for your device so it can receive them.</li>
       </ul>
       <h3>What we never keep</h3>
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
       <ul>
         <li>Sign-ups, RSVPs and event requests: deleted 30 days after the event.</li>
         <li>Offers to teach: deleted 30 days after the lesson.</li>
-        <li>Lesson comments: deleted 6 months after the lesson.</li>
+        <li>Lesson comments and teacher notes: deleted 6 months after the lesson.</li>
         <li>Your account: deleted if you don&apos;t sign in for 12 months, or any time you choose.</li>
       </ul>
       <h3>Your choices</h3>

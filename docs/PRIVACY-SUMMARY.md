@@ -24,6 +24,7 @@ tools (Gospel Library, Member Tools, LCR) and does not replace them.
 |---|---|---|
 | Name and email, entered by the member when joining | Sign-in and quorum notices | Until they delete their account, or 12 months without signing in |
 | Lesson comments the member writes | Shared study (approved by the presidency before anyone sees them) | 6 months after the lesson |
+| Notes the assigned teacher writes for the lesson | Preparation before Sunday (approved by the presidency before anyone sees them) | 6 months after the lesson |
 | Sign-ups, RSVPs, offers to teach, event requests | Organizing service and activities | 30 days after the event or lesson |
 | Device notification address (only if the member turns notifications on) | Push reminders | Until they turn notifications off |
 

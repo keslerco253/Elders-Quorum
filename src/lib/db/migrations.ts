@@ -256,4 +256,23 @@ ALTER TABLE wards ADD COLUMN join_code TEXT;
 CREATE UNIQUE INDEX wards_join_code ON wards(join_code COLLATE NOCASE) WHERE join_code IS NOT NULL;
 `,
   },
+  {
+    // Notes the assigned teacher writes for the quorum to read before Sunday.
+    // Members see published_body; edits wait in body until an admin approves.
+    id: 3,
+    sql: `
+CREATE TABLE lesson_notes (
+  lesson_id INTEGER PRIMARY KEY REFERENCES lessons(id) ON DELETE CASCADE,
+  author_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  published_body TEXT,
+  published_at TEXT,
+  notified INTEGER NOT NULL DEFAULT 0,
+  review_note TEXT,
+  reviewed_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`,
+  },
 ];

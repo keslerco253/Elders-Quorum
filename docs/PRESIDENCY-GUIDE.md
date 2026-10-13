@@ -25,6 +25,15 @@ lesson and **Saturday 8 AM** about tomorrow's.
   lesson and tap **Assign** next to a name, or choose anyone from the list.
 - The assigned teacher is notified. Only the presidency can assign teachers.
 
+## Teacher notes
+
+The assigned teacher sees **"You're teaching this lesson: share notes with the
+quorum"** on the lesson page. Their notes wait in **Admin → Teacher notes to
+approve**. **Approve and share** puts them on the lesson page and sends the quorum a
+notification (only the first time for each lesson; later edits are approved
+quietly). **Send back to teacher** lets you add a short note; the teacher is
+notified and can edit. Notes an admin writes or edits are shared right away.
+
 ## Comments
 
 New comments and replies wait in **Admin → Comments to approve**. Tap
@@ -70,6 +79,7 @@ old information automatically:
 | What | Deleted |
 |---|---|
 | Sign-ups, RSVPs, event requests | 30 days after the event |
+| Teacher notes | 6 months after the lesson |
 | Offers to teach | 30 days after the lesson |
 | Lesson comments | 6 months after the lesson |
 | Join requests nobody answered | after 60 days |

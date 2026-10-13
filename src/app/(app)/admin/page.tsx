@@ -31,6 +31,7 @@ export default async function AdminPage() {
   const c = adminCounts(user);
   const p = isPresidency(user);
   const waiting: Tile[] = [
+    { href: "/admin/notes", label: "Teacher notes to approve", desc: "Notes for the quorum before Sunday", count: c.notes },
     { href: "/admin/comments", label: "Comments to approve", desc: "Lesson comments and replies", count: c.comments },
     { href: "/admin/access", label: "Access requests", desc: "Requests to join without a code", count: c.access, show: p },
     { href: "/admin/event-requests", label: "Event requests", desc: "Suggested by members", count: c.eventRequests },
@@ -68,7 +69,7 @@ export default async function AdminPage() {
         </Section>
       )}
       <Section title="Approvals and groups">
-        <Tiles tiles={[{ href: "/admin/comments", label: "Comment queue", desc: "Approve study comments" }, { href: "/admin/event-requests", label: "Event requests", desc: "Approve or decline" }, { href: "/admin/groups", label: "Message groups", desc: "Custom groups for messages" }, ...(p ? [{ href: "/admin/access", label: "Access requests", desc: "Approve new people" }] : [])]} />
+        <Tiles tiles={[{ href: "/admin/notes", label: "Teacher notes", desc: "Approve notes before they're shared" }, { href: "/admin/comments", label: "Comment queue", desc: "Approve study comments" }, { href: "/admin/event-requests", label: "Event requests", desc: "Approve or decline" }, { href: "/admin/groups", label: "Message groups", desc: "Custom groups for messages" }, ...(p ? [{ href: "/admin/access", label: "Access requests", desc: "Approve new people" }] : [])]} />
       </Section>
     </>
   );

@@ -7,6 +7,9 @@ import { requireUser } from "@/lib/auth";
 import { getLesson } from "@/lib/lessons";
 import { audienceMembers, notify } from "@/lib/notify";
 import { formatDate } from "@/lib/time";
+import { isAdmin } from "@/lib/permissions";
+import { getNotes, publishNotes, submitNotes } from "@/lib/lesson-notes";
+import { announceNotes } from "@/lib/notes-notify";
 
 const back = (id: number, text: string, anchor = "") => redirect(`/lessons/${id}?msg=${encodeURIComponent(text)}${anchor}`);
 
@@ -60,4 +63,33 @@ export async function deleteOwnComment(fd: FormData) {
   db().prepare("DELETE FROM comments WHERE id = ?").run(id);
   revalidatePath(`/lessons/${c.lesson_id}`);
   back(c.lesson_id, "Comment deleted.", "#comments");
+}
+
+export async function saveTeacherNotes(fd: FormData) {
+  const user = await requireUser();
+  const lesson = getLesson(user.ward_id, Number(fd.get("lesson_id")));
+  if (!lesson || lesson.kind !== "talk") redirect("/lessons");
+  const admin = isAdmin(user);
+  if (lesson.teacher_id !== user.id && !admin) back(lesson.id, "Only this lesson's teacher can post notes.");
+  const body = String(fd.get("notes") || "").trim().slice(0, 10_000);
+  if (!body) back(lesson.id, "Please write your notes first.", "#notes");
+  const existing = getNotes(lesson.id);
+  // Keep the teacher as the author when an admin fixes their notes.
+  submitNotes(lesson.id, existing?.author_id ?? user.id, body);
+
+  if (admin) {
+    // An admin's own save counts as approval.
+    const first = publishNotes(lesson.id, user.id);
+    const teacherName = getNotes(lesson.id)?.author ?? user.display_name;
+    if (first) await announceNotes(user.ward_id, lesson, teacherName);
+    revalidatePath(`/lessons/${lesson.id}`);
+    back(lesson.id, first ? "Notes posted, and the quorum has been notified." : "Notes updated.", "#notes");
+  }
+
+  await notify(
+    audienceMembers(user.ward_id, "admins").filter((m) => m.id !== user.id),
+    { title: "Teacher notes to approve", body: `${user.display_name} posted notes for ${formatDate(lesson.date, "short")}. Approve them to share with the quorum.`, url: "/admin/notes" },
+  );
+  revalidatePath(`/lessons/${lesson.id}`);
+  back(lesson.id, "Thanks! Your notes will be shared with the quorum once a member of the presidency approves them.", "#notes");
 }
