@@ -81,6 +81,16 @@ export default async function EditLessonPage({ params, searchParams }: { params:
           {lesson.kind === "talk" && (
             <div className="card space-y-3">
               <h2 className="h2">Teacher</h2>
+              {lesson.teacher_name && (
+                <p className="text-sm">
+                  <span className="font-medium">{lesson.teacher_name}</span>{" "}
+                  {lesson.teacher_confirmed_at ? (
+                    <span className="text-success">✓ confirmed they&apos;re teaching</span>
+                  ) : (
+                    <span className="text-muted">hasn&apos;t confirmed yet (their reminders ask)</span>
+                  )}
+                </p>
+              )}
               {presidency ? (
                 <>
                   {declines.length > 0 && (

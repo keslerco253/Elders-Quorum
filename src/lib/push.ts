@@ -28,6 +28,12 @@ export interface PushPayload {
   title: string;
   body: string;
   url?: string;
+  /** Buttons on the notification (Android and computers; iPhones show none). */
+  actions?: { action: string; title: string; url: string }[];
+  /** Label for the email's button (default "Open the app"). */
+  linkLabel?: string;
+  /** Replaces body in a text message, e.g. to add "Reply TEACH…". */
+  textBody?: string;
 }
 
 interface SubRow {

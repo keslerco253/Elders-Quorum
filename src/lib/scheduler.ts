@@ -5,6 +5,7 @@ import { db, DATA_DIR } from "./db";
 import { audienceMembers, claimOnce, notify, recipientById, type Recipient } from "./notify";
 import { lessonOn } from "./lessons";
 import { getNotes } from "./lesson-notes";
+import { respondPath } from "./teaching";
 import { formatDate, formatDateTime } from "./time";
 import type { PushPayload } from "./push";
 import type { EventRow, Ward } from "./types";
@@ -60,14 +61,30 @@ function lessonReminders(ward: Ward, now: DateTime): DueNotification[] {
     const everyone = audienceMembers(ward.id, "everyone").filter((r) => r.id !== teacher?.id);
     out.push({ key: `lesson-${w.tag}:${ward.id}:${date}`, recipients: everyone, payload });
     if (teacher) {
+      const confirmed = !!lesson.teacher_confirmed_at;
+      const about = [lesson.title ? `"${lesson.title}"${lesson.speaker ? ` by ${lesson.speaker}` : ""}.` : "", teacherNotesLine(lesson.id)].filter(Boolean).join(" ");
       out.push({
         key: `lesson-teacher-${w.tag}:${ward.id}:${date}:${teacher.id}`,
         recipients: [teacher],
-        payload: {
-          title: w.tag === "sat" ? "You're teaching tomorrow" : "You're teaching this Sunday",
-          body: [lesson.title ? `"${lesson.title}"${lesson.speaker ? ` by ${lesson.speaker}` : ""}.` : "", teacherNotesLine(lesson.id), "Can't teach? Let us know on the lesson page."].filter(Boolean).join(" "),
-          url: `/lessons/${lesson.id}`,
-        },
+        payload: confirmed
+          ? {
+              title: w.tag === "sat" ? "You're teaching tomorrow" : "You're teaching this Sunday",
+              body: `${about} Thanks for confirming. Plans changed? Tap to let us know.`,
+              url: respondPath(lesson.id, teacher.id),
+              linkLabel: "Open",
+              textBody: `${about} Thanks for confirming. Plans changed? Reply CANT and a reason.`,
+            }
+          : {
+              title: w.tag === "sat" ? "You're teaching tomorrow" : "You're teaching this Sunday",
+              body: `${about} Still planning to teach? Tap to let us know either way.`,
+              url: respondPath(lesson.id, teacher.id),
+              linkLabel: "Reply: teaching or not",
+              textBody: `${about} Reply TEACH if you're still teaching, or CANT and a reason if you can't.`,
+              actions: [
+                { action: "teach", title: "I'll be teaching", url: respondPath(lesson.id, teacher.id, "teach") },
+                { action: "cant", title: "I can't teach", url: respondPath(lesson.id, teacher.id, "cant") },
+              ],
+            },
       });
     }
   }

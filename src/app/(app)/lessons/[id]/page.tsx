@@ -8,7 +8,7 @@ import { isAdmin } from "@/lib/permissions";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { conferenceLabel } from "@/components/lesson-bits";
-import { addComment, cantTeach, deleteOwnComment, saveTeacherNotes, volunteer } from "../actions";
+import { addComment, cantTeach, confirmTeach, deleteOwnComment, saveTeacherNotes, volunteer } from "../actions";
 import { getNotes } from "@/lib/lesson-notes";
 import { renderMarkdown } from "@/lib/markdown";
 import { moderateComment } from "../../admin/comments/actions";
@@ -89,9 +89,20 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
               <div className="text-sm text-muted">Teacher</div>
               {lesson.teacher_name ? (
                 <>
-                  <div className="font-semibold">{lesson.teacher_name}</div>
+                  <div className="font-semibold">
+                    {lesson.teacher_name}
+                    {lesson.teacher_confirmed_at && <span className="ml-2 text-sm font-normal text-success">✓ confirmed</span>}
+                  </div>
+                  {isTeacher && lesson.date >= todayIn(tz) && !lesson.teacher_confirmed_at && (
+                    <form action={confirmTeach} className="mt-2">
+                      <input type="hidden" name="lesson_id" value={lesson.id} />
+                      <SubmitButton className="btn-primary btn-sm" pendingText="Saving…">
+                        Yes, I&apos;m still teaching
+                      </SubmitButton>
+                    </form>
+                  )}
                   {isTeacher && lesson.date >= todayIn(tz) && (
-                    <details className="mt-2">
+                    <details className="mt-2" open={sp.a === "cant"}>
                       <summary className="cursor-pointer text-sm text-muted underline">I can&apos;t teach this lesson</summary>
                       <form action={cantTeach} className="mt-2 space-y-2 rounded-lg bg-surface-2 p-3">
                         <input type="hidden" name="lesson_id" value={lesson.id} />

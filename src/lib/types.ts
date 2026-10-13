@@ -51,6 +51,7 @@ export interface Lesson {
   speaker: string;
   url: string;
   teacher_id: number | null;
+  teacher_confirmed_at: string | null;
 }
 
 export interface Comment {

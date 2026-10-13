@@ -29,6 +29,13 @@ lesson and **Saturday 8 AM** about tomorrow's.
   "You're teaching tomorrow"), with the lesson title and whether their notes
   are posted, waiting for approval, or not added yet. They get this instead of
   the general lesson reminder the rest of the quorum gets at those times.
+- The reminders ask the teacher to answer: **I'll be teaching** or **I can't
+  teach** (with an optional reason). They can answer with the buttons on the
+  notification (Android and computers), by tapping the notification or the
+  email's **Reply** button (opens a page that works without signing in), or by
+  texting back **TEACH** or **CANT** and a reason. The app texts a short
+  thank-you back. You'll see **✓ confirmed** next to the teacher in
+  **Admin → Lessons**; after confirming, later reminders just thank them.
 - If the teacher can't make it, they tap **I can't teach this lesson** on the
   lesson page and can add a reason (only the presidency sees it). They're taken
   off the lesson, it shows **Teacher needed** again so others can volunteer, and

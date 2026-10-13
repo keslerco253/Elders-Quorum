@@ -14,14 +14,31 @@ self.addEventListener("push", (event) => {
       body: data.body || "",
       icon: "/icon-192.png",
       badge: "/icon-192.png",
-      data: { url: data.url || "/" },
+      // Buttons show on Android and computers; iPhones open data.url instead.
+      actions: (data.actions || []).slice(0, 2).map((a) => ({ action: a.action, title: a.title })),
+      data: { url: data.url || "/", actions: data.actions || [] },
     }),
   );
 });
 
+// "I'll be teaching" confirms right from the notification, without opening the app.
+async function confirmTeaching(target) {
+  const u = new URL(target, self.location.origin);
+  const id = Number(u.pathname.split("/")[2]);
+  const res = await fetch("/api/teach", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, t: u.searchParams.get("t") }) });
+  if (!res.ok) throw new Error("not confirmed");
+  await self.registration.showNotification("Thanks for confirming!", { body: "You're down to teach. See you Sunday.", icon: "/icon-192.png", badge: "/icon-192.png", data: { url: `/lessons/${id}` } });
+}
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  const action = (event.notification.data?.actions || []).find((a) => a.action === event.action);
+  if (action && action.action === "teach") {
+    // If confirming fails (offline, expired link), open the reply page instead.
+    event.waitUntil(confirmTeaching(action.url).catch(() => self.clients.openWindow(new URL(action.url, self.location.origin).href)));
+    return;
+  }
+  const url = new URL(action?.url || event.notification.data?.url || "/", self.location.origin).href;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
       for (const w of wins) {

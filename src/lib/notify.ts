@@ -68,7 +68,7 @@ export function audienceLabel(wardId: number, audience: Audience): string {
 
 /** Short text for a notice, with the ward's name so people know who it's from. */
 function smsBody(wardName: string, payload: PushPayload, url: string) {
-  const text = `${wardName}: ${payload.title}. ${payload.body}`.replace(/\s+/g, " ").trim();
+  const text = `${wardName}: ${payload.title}. ${payload.textBody ?? payload.body}`.replace(/\s+/g, " ").trim();
   return `${text.length > 280 ? text.slice(0, 277) + "…" : text} ${url}`;
 }
 
@@ -93,7 +93,7 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
       to: r.email,
       subject: payload.title,
       text: `${payload.body}\n\n${url}`,
-      html: emailHtml(payload.title, payload.body, { url, label: "Open the app" }),
+      html: emailHtml(payload.title, payload.body, { url, label: payload.linkLabel ?? "Open the app" }),
     }));
   const sendText = async (r: Recipient) => {
     if (!r.phone) return false;

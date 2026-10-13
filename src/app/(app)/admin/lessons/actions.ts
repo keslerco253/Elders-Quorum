@@ -91,7 +91,8 @@ export async function assignTeacher(fd: FormData) {
     ? (db().prepare("SELECT * FROM members WHERE id = ? AND ward_id = ? AND status = 'active'").get(teacherId, user.ward_id) as Member | undefined)
     : undefined;
   if (teacherId && !teacher) go(`/admin/lessons/${lesson.id}`, "Choose a current member.");
-  db().prepare("UPDATE lessons SET teacher_id = ? WHERE id = ?").run(teacher?.id ?? null, lesson.id);
+  // A new teacher hasn't confirmed yet.
+  db().prepare("UPDATE lessons SET teacher_id = ?, teacher_confirmed_at = CASE WHEN teacher_id IS ? THEN teacher_confirmed_at END WHERE id = ?").run(teacher?.id ?? null, teacher?.id ?? null, lesson.id);
   if (teacher && teacher.id !== lesson.teacher_id && fd.get("notify") !== "off") {
     await notify([teacher], {
       title: "You're teaching in elders quorum",

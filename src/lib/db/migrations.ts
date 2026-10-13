@@ -445,4 +445,10 @@ CREATE TABLE lesson_declines (
 CREATE INDEX lesson_declines_lesson ON lesson_declines(lesson_id);
 `,
   },
+  {
+    // When the assigned teacher confirmed they're still teaching (cleared when
+    // the teacher changes).
+    id: 12,
+    sql: `ALTER TABLE lessons ADD COLUMN teacher_confirmed_at TEXT;`,
+  },
 ];
