@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { isAdmin } from "@/lib/permissions";
 
 function go(id: number, text: string): never {
   redirect(`/signups/${id}?msg=${encodeURIComponent(text)}`);
@@ -33,9 +34,14 @@ export async function takeSlot(fd: FormData) {
 export async function leaveSlot(fd: FormData) {
   const user = await requireUser();
   const slotId = Number(fd.get("slot_id"));
+  // Admins can take someone else off (e.g. when a member asks); everyone else only themselves.
+  const memberId = isAdmin(user) && fd.get("member_id") ? Number(fd.get("member_id")) : user.id;
   const row = db().prepare("SELECT sl.signup_id FROM signup_slots sl JOIN signups s ON s.id = sl.signup_id WHERE sl.id = ? AND s.ward_id = ?").get(slotId, user.ward_id) as { signup_id: number } | undefined;
   if (!row) redirect("/signups");
-  db().prepare("DELETE FROM signup_entries WHERE slot_id = ? AND member_id = ?").run(slotId, user.id);
+  const r = db().prepare("DELETE FROM signup_entries WHERE slot_id = ? AND member_id = ?").run(slotId, memberId);
   revalidatePath(`/signups/${row.signup_id}`);
-  go(row.signup_id, "You've been removed from that spot.");
+  revalidatePath("/signups");
+  revalidatePath("/");
+  if (!r.changes) go(row.signup_id, "That name wasn't on this spot anymore.");
+  go(row.signup_id, memberId === user.id ? "You've been removed from that spot." : "Removed from that spot.");
 }
