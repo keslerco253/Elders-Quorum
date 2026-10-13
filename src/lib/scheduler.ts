@@ -134,7 +134,7 @@ function visitReminders(ward: Ward, now: DateTime): DueNotification[] {
   const local = now.setZone(ward.timezone);
   if (local.hour < 8 || local.hour >= 20) return [];
   return upcomingVisits(ward.id)
-    .filter((p) => p.date === local.toISODate())
+    .filter((p) => p.date === local.toISODate() && p.invite_status !== "declined")
     .map((p) => ({
       key: `visit-day:${p.id}:${p.date}:${p.time ?? ""}`,
       recipients: visitorIds(p)
@@ -142,7 +142,7 @@ function visitReminders(ward: Ward, now: DateTime): DueNotification[] {
         .filter((r): r is Recipient => !!r),
       payload: {
         title: `Visit today: ${p.member_name}`,
-        body: `${whenText(p.date, p.time)} (${VISIT_TYPES[p.type]?.toLowerCase() ?? p.type})${p.visitors ? `, with ${p.visitors}` : ""}.`,
+        body: `${whenText(p.date, p.time)} (${VISIT_TYPES[p.type]?.toLowerCase() ?? p.type})${p.visitors ? `, with ${p.visitors}` : ""}.${p.invite_status === "pending" ? " They haven't answered the invitation yet." : p.invite_status === "new_time" ? " They asked for another time." : ""}`,
         url: "/admin/visits",
       },
     }));

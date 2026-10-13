@@ -13,6 +13,7 @@ import { conferenceLabel, DateChip } from "@/components/lesson-bits";
 import { QuickLinks } from "@/components/quick-links";
 import { PushToggle } from "@/components/push-toggle";
 import { askPath, pendingRequestsFor } from "@/lib/teaching-requests";
+import { invitePath, pendingInvitesFor, whenText } from "@/lib/planned-visits";
 
 export default async function HomePage() {
   const user = await requireUser();
@@ -26,6 +27,7 @@ export default async function HomePage() {
   const signups = listSignups(user.ward_id, false, today).slice(0, 3);
   const pending = adminCounts(user).total;
   const asks = pendingRequestsFor(user.id, today);
+  const invites = pendingInvitesFor(user.id, today);
   const hour = DateTime.now().setZone(tz).hour;
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const first = firstName(user.display_name);
@@ -43,6 +45,15 @@ export default async function HomePage() {
         </Link>
       )}
 
+      {invites.map((p) => (
+        <Link key={p.id} href={invitePath(p)} className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">
+          <span>
+            <span className="block font-semibold">The presidency would love to visit you</span>
+            {whenText(p.date, p.time)}. Tap to reply.
+          </span>
+          <span>›</span>
+        </Link>
+      ))}
       {asks.map((r) => (
         <Link key={r.id} href={askPath(r)} className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">
           <span>

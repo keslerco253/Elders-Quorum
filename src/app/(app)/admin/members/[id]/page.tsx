@@ -155,7 +155,10 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
               <div className="font-semibold">Presidency visits</div>
               <p className="mt-1 text-muted">{lastVisit ? `Last: ${formatDate(lastVisit.date)}` : "No visits recorded."}</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Link href={`/admin/visits/new?member=${m.id}`} className="btn-primary btn-sm">
+                <Link href={`/admin/visits/plan?member=${m.id}&invite=1`} className="btn-primary btn-sm">
+                  Invite to a home visit
+                </Link>
+                <Link href={`/admin/visits/new?member=${m.id}`} className="btn-secondary btn-sm">
                   Record a visit
                 </Link>
                 <Link href={`/admin/visits?member=${m.id}`} className="btn-secondary btn-sm">

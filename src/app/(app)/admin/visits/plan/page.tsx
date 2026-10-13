@@ -6,6 +6,7 @@ import { VISIT_TYPES } from "@/lib/visits";
 import { getPlannedVisit, visitorIds } from "@/lib/planned-visits";
 import { REQUEST_KINDS, type RequestKind } from "@/lib/visit-requests";
 import { firstName } from "@/lib/names";
+import { InviteMessage } from "@/components/invite-message";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { cancelPlannedVisit, savePlannedVisit } from "../actions";
@@ -29,10 +30,14 @@ export default async function PlanVisitPage({ searchParams }: { searchParams: Pr
   const presidency = d.prepare("SELECT id, display_name FROM members WHERE ward_id = ? AND role = 'presidency' AND status = 'active' ORDER BY display_name").all(user.ward_id) as { id: number; display_name: string }[];
   const going = plan ? visitorIds(plan) : [user.id];
   const defaultType = plan?.type ?? (request?.kind === "talk" ? "phone" : "home");
+  const inviting = sp.invite === "1";
+  const defaultMode = (inviting || (request && !plan) || plan?.invite_status ? "invite" : "none") as "invite" | "datetime" | "none";
+  // Members list includes the request's member so the invitation can greet them by name.
+  if (request && !members.some((m) => m.id === request.member_id)) members.push({ id: request.member_id, display_name: request.display_name });
 
   return (
     <>
-      <PageHeader title={plan ? "Change planned visit" : "Plan a visit"} back={{ href: request && !plan ? "/admin/visit-requests" : "/admin/visits", label: request && !plan ? "Visit requests" : "Visits" }} subtitle="It shows under Upcoming visits until you record it. Visible to the presidency only." />
+      <PageHeader title={plan ? "Change planned visit" : inviting ? "Invite to a home visit" : "Plan a visit"} back={{ href: request && !plan ? "/admin/visit-requests" : "/admin/visits", label: request && !plan ? "Visit requests" : "Visits" }} subtitle="It shows under Upcoming visits until you record it. Visible to the presidency only." />
       <Flash msg={sp.msg} tone="danger" />
       {request && (
         <div className="card mb-4 text-sm">
@@ -40,7 +45,7 @@ export default async function PlanVisitPage({ searchParams }: { searchParams: Pr
           {request.best_times && <div className="text-muted">Best times: {request.best_times}</div>}
         </div>
       )}
-      <form action={savePlannedVisit} className="card max-w-2xl space-y-4">
+      <form id="plan-form" action={savePlannedVisit} className="card max-w-2xl space-y-4">
         {plan && <input type="hidden" name="item_id" value={plan.id} />}
         {request && <input type="hidden" name="request_id" value={request.id} />}
         <div>
@@ -107,13 +112,28 @@ export default async function PlanVisitPage({ searchParams }: { searchParams: Pr
           </label>
           <input id="note" name="note" maxLength={1000} className="input" defaultValue={plan?.note} placeholder="e.g. Bring the sacrament meeting program" />
         </div>
-        <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" name="tell_member" defaultChecked={!!request && !plan} className="mt-1" />
-          <span>
-            Send {memberId ? firstName(members.find((m) => m.id === memberId)?.display_name ?? request?.display_name ?? "them") : "them"} the date and time in the app
-            <span className="block text-xs text-muted">They&apos;ll get a message like &quot;Brother Smith and Brother Jones plan to visit you Tue, Oct 14 at 7:00 PM.&quot; with your names. Leave off if you&apos;ll call them yourself.</span>
-          </span>
-        </label>
+        <fieldset className="space-y-2">
+          <legend className="label">Let them know</legend>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="radio" name="notify_mode" value="invite" defaultChecked={defaultMode === "invite"} className="mt-1" />
+            <span>
+              <strong>Send a personal invitation they can answer</strong>
+              <span className="block text-xs text-muted">They can reply &quot;Yes, that works&quot;, suggest another time, or say not right now. You&apos;re notified of their answer.</span>
+            </span>
+          </label>
+          <InviteMessage members={members.map((m) => ({ id: m.id, first: firstName(m.display_name) }))} presidency={presidency.map((p) => ({ id: p.id, name: p.display_name }))} />
+          <label className="flex items-start gap-2 text-sm">
+            <input type="radio" name="notify_mode" value="datetime" defaultChecked={defaultMode === "datetime"} className="mt-1" />
+            <span>
+              Just send the date and time
+              <span className="block text-xs text-muted">e.g. &quot;Brother Smith and Brother Jones plan to visit you Tue, Oct 14 at 7:00 PM.&quot; with your names.</span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="radio" name="notify_mode" value="none" defaultChecked={defaultMode === "none"} className="mt-1" />
+            <span>Don&apos;t send anything (I&apos;ll contact them myself)</span>
+          </label>
+        </fieldset>
         <SubmitButton pendingText="Saving…">{plan ? "Save changes" : "Plan visit"}</SubmitButton>
       </form>
       {plan && (

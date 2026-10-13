@@ -75,6 +75,10 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
                           {p.date === todayIso && <Badge tone="info">Today</Badge>}
                           {p.date < todayIso && <Badge tone="warn">Not recorded yet</Badge>}
                           {p.request_id && <Badge>Requested</Badge>}
+                          {p.invite_status === "pending" && <Badge tone="info">Invited, waiting</Badge>}
+                          {p.invite_status === "accepted" && <Badge tone="success">✓ Confirmed</Badge>}
+                          {p.invite_status === "new_time" && <Badge tone="warn">Asked for another time</Badge>}
+                          {p.invite_status === "declined" && <Badge tone="warn">Said not right now</Badge>}
                         </div>
                         <div className="text-sm font-medium">{whenText(p.date, p.time)}</div>
                         <div className="text-sm text-muted">
@@ -82,14 +86,19 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
                           {p.visitors && ` · ${p.visitors}`}
                         </div>
                         {p.note && <div className="mt-1 text-sm">{p.note}</div>}
+                        {p.member_reply && (
+                          <div className="mt-2 rounded-lg bg-surface-2 px-3 py-2 text-sm">
+                            {p.invite_status === "new_time" ? "Better time: " : "They said: "}&quot;{p.member_reply}&quot;
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Link href={`/admin/visits/new?plan=${p.id}`} className="btn-primary btn-sm">
                         Record visit
                       </Link>
-                      <Link href={`/admin/visits/plan?id=${p.id}`} className="btn-secondary btn-sm">
-                        Change
+                      <Link href={`/admin/visits/plan?id=${p.id}`} className={p.invite_status === "new_time" ? "btn-primary btn-sm" : "btn-secondary btn-sm"}>
+                        {p.invite_status === "new_time" ? "Pick a new time" : "Change"}
                       </Link>
                       <form action={cancelPlannedVisit}>
                         <input type="hidden" name="item_id" value={p.id} />

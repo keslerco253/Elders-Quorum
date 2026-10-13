@@ -512,4 +512,15 @@ CREATE INDEX teaching_requests_lesson ON teaching_requests(lesson_id);
 CREATE INDEX teaching_requests_member ON teaching_requests(member_id, status);
 `,
   },
+  {
+    // A planned visit can be sent to the member as a personal invitation they
+    // answer: yes, another time (with their suggestion), or not right now.
+    id: 17,
+    sql: `
+ALTER TABLE planned_visits ADD COLUMN invite_status TEXT CHECK (invite_status IN ('pending','accepted','new_time','declined'));
+ALTER TABLE planned_visits ADD COLUMN invite_message TEXT NOT NULL DEFAULT '';
+ALTER TABLE planned_visits ADD COLUMN member_reply TEXT NOT NULL DEFAULT '';
+ALTER TABLE planned_visits ADD COLUMN responded_at TEXT;
+`,
+  },
 ];

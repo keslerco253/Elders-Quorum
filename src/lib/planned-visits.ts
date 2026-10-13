@@ -1,6 +1,7 @@
 import { DateTime } from "luxon";
 import { db } from "./db";
-import { notify, recipientById, type Recipient } from "./notify";
+import { audienceMembers, notify, recipientById, type Recipient } from "./notify";
+import { signToken, validToken } from "./signed-links";
 
 // Visits the presidency has scheduled but not yet made. Shown as "Upcoming
 // visits"; once one happens it's recorded in the visits table like any other.
@@ -17,6 +18,10 @@ export interface PlannedVisit {
   request_id: number | null;
   visitor_ids: string | null;
   visitors: string | null;
+  invite_status: "pending" | "accepted" | "new_time" | "declined" | null;
+  invite_message: string;
+  member_reply: string;
+  responded_at: string | null;
 }
 
 const SELECT = `SELECT p.*, m.display_name AS member_name,
@@ -96,4 +101,56 @@ export async function notifyVisitorsOfCancel(plan: PlannedVisit) {
     .map((v) => recipientById(v))
     .filter((r): r is Recipient => !!r);
   if (recipients.length) await notify(recipients, { title: "Visit cancelled", body: `${plan.member_name} cancelled the visit planned for ${whenText(plan.date, plan.time)}.`, url: "/admin/visits" });
+}
+
+// ----- Personal visit invitations -----
+
+export const inviteToken = (planId: number, memberId: number) => signToken(`visit:${planId}:${memberId}`);
+export const validInviteToken = (planId: number, memberId: number, token: string) => validToken(`visit:${planId}:${memberId}`, token);
+export const invitePath = (p: { id: number; member_id: number }) => `/visit-invite/${p.id}?t=${inviteToken(p.id, p.member_id)}`;
+
+export { inviteMessage, joinNames } from "./invite-text";
+
+/** Sends (or re-sends) the invitation and waits for the member's answer. */
+export async function sendInvitation(plan: PlannedVisit, message: string, authorId: number) {
+  const text = message.trim().slice(0, 1000);
+  const d = db();
+  d.prepare("UPDATE planned_visits SET invite_status = 'pending', invite_message = ?, member_reply = '', responded_at = NULL WHERE id = ?").run(text, plan.id);
+  // Also in the member's Messages, so a text reply has context.
+  d.prepare("INSERT INTO member_messages (ward_id, member_id, direction, author_id, body) VALUES (?, ?, 'out', ?, ?)").run(plan.ward_id, plan.member_id, authorId, text);
+  const member = recipientById(plan.member_id);
+  if (member) {
+    await notify([member], {
+      title: "An invitation from the elders quorum presidency",
+      body: text,
+      url: invitePath(plan),
+      linkLabel: "Reply to the invitation",
+      textBody: `${text} Tap to reply:`,
+    });
+  }
+}
+
+export type InviteAnswer = "accepted" | "new_time" | "declined";
+
+/** The member's answer. Tells the presidency. */
+export async function answerInvitation(plan: PlannedVisit, answer: InviteAnswer, reply: string) {
+  const text = reply.trim().slice(0, 500);
+  db().prepare("UPDATE planned_visits SET invite_status = ?, member_reply = ?, responded_at = datetime('now') WHERE id = ?").run(answer, text, plan.id);
+  const when = whenText(plan.date, plan.time);
+  const body =
+    answer === "accepted"
+      ? `${plan.member_name} said ${when} works.${text ? ` "${text}"` : ""}`
+      : answer === "new_time"
+        ? `${plan.member_name} asked for another time than ${when}${text ? `: "${text}"` : "."}`
+        : `${plan.member_name} would rather not have a visit right now.${text ? ` "${text}"` : ""}`;
+  await notify(audienceMembers(plan.ward_id, "presidency"), {
+    title: answer === "accepted" ? "Visit confirmed" : answer === "new_time" ? "Another time, please" : "Visit invitation declined",
+    body,
+    url: "/admin/visits",
+  });
+}
+
+/** Invitations waiting for this member's answer. */
+export function pendingInvitesFor(memberId: number, today: string): PlannedVisit[] {
+  return db().prepare(`${SELECT} WHERE p.member_id = ? AND p.invite_status = 'pending' AND p.date >= ? ORDER BY p.date`).all(memberId, today) as PlannedVisit[];
 }

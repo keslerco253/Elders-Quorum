@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePresidency } from "@/lib/auth";
-import { deletePlan, getPlannedVisit, isDate, isTime, savePlan, whenText } from "@/lib/planned-visits";
+import { deletePlan, getPlannedVisit, inviteMessage, isDate, isTime, savePlan, sendInvitation, whenText } from "@/lib/planned-visits";
+import { firstName } from "@/lib/names";
 import { sendAnswer } from "@/lib/conversations";
 
 const TYPES = ["home", "church", "phone", "text"];
@@ -92,18 +93,22 @@ export async function savePlannedVisit(fd: FormData) {
   if (!visitors.length) go(back, "Choose who's going.");
   const request = requestId ? (d.prepare("SELECT id, member_id FROM visit_requests WHERE id = ? AND ward_id = ?").get(requestId, user.ward_id) as { id: number; member_id: number } | undefined) : undefined;
 
-  savePlan({ id, wardId: user.ward_id, memberId, date, time, type, note, requestId: request?.id ?? null, visitors, createdBy: user.id });
+  const planId = savePlan({ id, wardId: user.ward_id, memberId, date, time, type, note, requestId: request?.id ?? null, visitors, createdBy: user.id });
 
   const names = (d.prepare(`SELECT display_name FROM members WHERE id IN (${visitors.map(() => "?").join(",")}) ORDER BY display_name`).all(...visitors) as { display_name: string }[]).map((r) => r.display_name);
   const who = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
   const when = whenText(date, time);
   const message = type === "phone" ? `${who} will call you ${when}.` : type === "church" ? `${who} would like to meet with you at church ${when}.` : `${who} ${names.length > 1 ? "plan" : "plans"} to visit you ${when}.`;
+  const mode = String(fd.get("notify_mode") || (fd.get("tell_member") === "on" ? "datetime" : "none"));
+  const invitation = mode === "invite" ? String(fd.get("invite_message") || "").trim() || inviteMessage(firstName(member.display_name), date, time, names) : "";
   if (request) {
-    d.prepare("UPDATE visit_requests SET status = 'scheduled', reply = ?, handled_by = ?, updated_at = datetime('now') WHERE id = ?").run(message, user.id, request.id);
+    d.prepare("UPDATE visit_requests SET status = 'scheduled', reply = ?, handled_by = ?, updated_at = datetime('now') WHERE id = ?").run(invitation || message, user.id, request.id);
   }
-  if (fd.get("tell_member") === "on") await sendAnswer(user, memberId, message);
+  if (mode === "invite") await sendInvitation(getPlannedVisit(user.ward_id, planId)!, invitation, user.id);
+  else if (mode === "datetime") await sendAnswer(user, memberId, message);
   revalidatePath("/admin", "layout");
-  go("/admin/visits", `${id ? "Planned visit updated" : "Visit planned"}: ${member.display_name}, ${when}.${fd.get("tell_member") === "on" ? " They were sent the date and time." : ""}`);
+  const sent = mode === "invite" ? " Your invitation was sent; you'll be told when they answer." : mode === "datetime" ? " They were sent the date and time." : "";
+  go("/admin/visits", `${id ? "Planned visit updated" : "Visit planned"}: ${member.display_name}, ${when}.${sent}`);
 }
 
 /** Cancels a planned visit. Its request (if any) goes back to waiting. */

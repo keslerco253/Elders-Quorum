@@ -170,6 +170,16 @@ and time, and who's going. A visit gets there two ways:
   "Send them the date and time" if you want the app to tell them; leave it off
   if you'll call them yourself.
 
+- **Invite a member:** on their page in **Admin → Members**, tap **Invite to a
+  home visit**. Pick the date, time and who's going; a personal message is
+  written for you ("We would love to come visit you and your family in your
+  home on Tuesday, October 20 at 7:00 PM…") and you can change it. They answer
+  **Yes, that works**, **That time doesn't work** (with a better time), or
+  **Not right now**, from the notification, email, text link or a card on their
+  Home page. You're notified, and Upcoming visits shows **Invited, waiting**,
+  **✓ Confirmed** or **Asked for another time** with their suggestion and a
+  **Pick a new time** button that sends an updated invitation.
+
 Whoever is going gets a reminder the morning of the visit. Afterwards tap
 **Record visit** (the form is filled in from the plan); that moves it to the
 visit history and closes the member's request. **Change** reschedules it and
