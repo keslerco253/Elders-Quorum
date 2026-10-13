@@ -1,10 +1,27 @@
 import { getUser } from "@/lib/auth";
-import { getEvent, icsFor, isAppleMobile } from "@/lib/events";
+import { db } from "@/lib/db";
+import { getEvent, icsFor, isAppleMobile, validIcsToken } from "@/lib/events";
+import type { CurrentUser, Member, Ward } from "@/lib/types";
+
+/** The signed-in member, or the member named in the link's private token (iPhone opens it outside the app). */
+async function whoIsAsking(req: Request, eventId: number): Promise<CurrentUser | null> {
+  const user = await getUser();
+  if (user) return user;
+  const url = new URL(req.url);
+  const memberId = Number(url.searchParams.get("m"));
+  if (!memberId || !validIcsToken(eventId, memberId, url.searchParams.get("t") ?? "")) return null;
+  const member = db().prepare("SELECT * FROM members WHERE id = ? AND status = 'active'").get(memberId) as Member | undefined;
+  if (!member) return null;
+  const ward = db().prepare("SELECT id, name, timezone, join_code FROM wards WHERE id = ?").get(member.ward_id) as Ward;
+  return { ...member, ward };
+}
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getUser();
-  if (!user) return new Response("Sign in required", { status: 401 });
-  const e = getEvent(user, Number((await params).id));
+  const id = Number((await params).id);
+  const user = await whoIsAsking(req, id);
+  if (!user) return new Response("This calendar link has expired. Open the event in the app and try again.", { status: 401 });
+  // Still checks the member may see the event (presidency-only events stay private).
+  const e = getEvent(user, id);
   if (!e) return new Response("Not found", { status: 404 });
   return new Response(icsFor(e), {
     headers: {

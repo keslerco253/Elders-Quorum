@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { signToken, validToken } from "./signed-links";
 import { db } from "./db";
 import { appUrl } from "./config";
 import { isAdmin } from "./permissions";
@@ -18,6 +19,15 @@ export function eventsBetween(user: CurrentUser, fromUtc: string, toUtc: string)
   return db()
     .prepare(`SELECT * FROM events WHERE ward_id = ? AND starts_at < ? AND ends_at >= ? ${isAdmin(user) ? "" : "AND presidency_only = 0"} ORDER BY starts_at`)
     .all(user.ward_id, toUtc, fromUtc) as EventRow[];
+}
+
+/** The "Add to Apple / Outlook calendar" link. It works without signing in, because iPhone opens it outside the installed app. */
+export function icsPath(eventId: number, memberId: number) {
+  return `/calendar/${eventId}/ics?m=${memberId}&t=${signToken(`ics:${eventId}:${memberId}`)}`;
+}
+
+export function validIcsToken(eventId: number, memberId: number, token: string) {
+  return validToken(`ics:${eventId}:${memberId}`, token);
 }
 
 export function getEvent(user: CurrentUser, id: number): EventRow | undefined {

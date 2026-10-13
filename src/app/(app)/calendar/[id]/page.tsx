@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getEvent, googleCalendarUrl, isNonSafariIos } from "@/lib/events";
+import { getEvent, googleCalendarUrl, icsPath, isNonSafariIos } from "@/lib/events";
 import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, formatTime, parseUtc } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
@@ -64,7 +64,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
           <a href={googleCalendarUrl(e)} target="_blank" rel="noreferrer" className="btn-primary">
             Add to Google Calendar
           </a>
-          <a href={`/calendar/${e.id}/ics`} className="btn-secondary">
+          <a href={icsPath(e.id, user.id)} className="btn-secondary">
             Add to Apple / Outlook calendar
           </a>
         </div>

@@ -1,6 +1,6 @@
-import crypto from "crypto";
 import { DateTime } from "luxon";
-import { db, getSetting, setSetting } from "./db";
+import { db } from "./db";
+import { signToken, validToken } from "./signed-links";
 import { audienceMembers, notify } from "./notify";
 import { formatDate } from "./time";
 import type { Lesson } from "./types";
@@ -8,24 +8,13 @@ import type { Lesson } from "./types";
 // An assigned teacher can confirm they're still teaching or say they can't,
 // from the lesson page, a reminder's buttons, its private link, or by text.
 
-function secret() {
-  let s = getSetting("link_secret");
-  if (!s) {
-    s = crypto.randomBytes(32).toString("base64url");
-    setSetting("link_secret", s);
-  }
-  return s;
-}
-
 /** A private token for one teacher and one lesson, so a reminder's link works without signing in. */
 export function teachToken(lessonId: number, teacherId: number) {
-  return crypto.createHmac("sha256", secret()).update(`teach:${lessonId}:${teacherId}`).digest("base64url").slice(0, 32);
+  return signToken(`teach:${lessonId}:${teacherId}`);
 }
 
 export function validTeachToken(lessonId: number, teacherId: number, token: string) {
-  const a = Buffer.from(teachToken(lessonId, teacherId));
-  const b = Buffer.from(String(token || ""));
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+  return validToken(`teach:${lessonId}:${teacherId}`, token);
 }
 
 /** The reply page for a teacher's reminder. */

@@ -38,3 +38,17 @@ describe("sign-up slots", () => {
     ]);
   });
 });
+
+describe("calendar file links", () => {
+  it("work only for the member and event they were made for", async () => {
+    const { useTestDb } = await import("@/lib/db");
+    useTestDb();
+    const { icsPath, validIcsToken } = await import("@/lib/events");
+    const link = new URL(icsPath(5, 9), "http://x");
+    const t = link.searchParams.get("t")!;
+    expect(link.pathname).toBe("/calendar/5/ics");
+    expect(validIcsToken(5, 9, t)).toBe(true);
+    expect(validIcsToken(5, 8, t)).toBe(false);
+    expect(validIcsToken(6, 9, t)).toBe(false);
+  });
+});
