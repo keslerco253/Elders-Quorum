@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 type Item = { href: string; label: string; icon: string; badge?: number };
 
@@ -23,12 +24,71 @@ function Icon({ name }: { name: string }) {
   );
 }
 
+const isTyping = () => {
+  const el = document.activeElement as HTMLElement | null;
+  return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
+};
+
+/**
+ * Keeps the bottom tab bar on the bottom of the screen. In iPhone Home Screen
+ * apps, after the keyboard opens and closes the page's own height can stay
+ * shrunk, so a "fixed to the bottom" bar ends up halfway up and scrolls with the
+ * page. The visible area (visualViewport) is still right, so the bar is moved
+ * to match it. While typing, the bar is hidden instead of floating over the keyboard.
+ */
+function useStickToBottom(ref: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const el = ref.current;
+    if (!vv || !el) return;
+    let frame = 0;
+    const place = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const keyboardOpen = isTyping() && vv.height < window.innerHeight - 120;
+        el.style.opacity = keyboardOpen ? "0" : "";
+        el.style.pointerEvents = keyboardOpen ? "none" : "";
+        // Distance between the bottom of the page's box and the bottom of what's visible.
+        const gap = window.innerHeight - (vv.offsetTop + vv.height);
+        el.style.transform = !keyboardOpen && Math.abs(gap) > 1 ? `translateY(${-gap}px)` : "";
+      });
+    };
+    // After the keyboard closes, nudge iPhone into recalculating the page size.
+    const afterTyping = () => setTimeout(() => {
+      window.scrollTo(window.scrollX, window.scrollY);
+      place();
+    }, 300);
+    vv.addEventListener("resize", place);
+    vv.addEventListener("scroll", place);
+    window.addEventListener("scroll", place, { passive: true });
+    window.addEventListener("resize", place);
+    window.addEventListener("orientationchange", place);
+    document.addEventListener("focusin", place);
+    document.addEventListener("focusout", afterTyping);
+    document.addEventListener("visibilitychange", place);
+    place();
+    return () => {
+      cancelAnimationFrame(frame);
+      vv.removeEventListener("resize", place);
+      vv.removeEventListener("scroll", place);
+      window.removeEventListener("scroll", place);
+      window.removeEventListener("resize", place);
+      window.removeEventListener("orientationchange", place);
+      document.removeEventListener("focusin", place);
+      document.removeEventListener("focusout", afterTyping);
+      document.removeEventListener("visibilitychange", place);
+    };
+  }, [ref]);
+}
+
 function isActive(path: string, href: string) {
   return href === "/" ? path === "/" : path === href || path.startsWith(href + "/");
 }
 
 export function Nav({ appName, isAdmin, adminCount, moreCount = 0 }: { appName: string; isAdmin: boolean; adminCount: number; moreCount?: number }) {
   const path = usePathname();
+  const tabBar = useRef<HTMLElement>(null);
+  useStickToBottom(tabBar);
   // The page being read clears these, so don't show the dot there.
   if (path.startsWith("/messages") || path.startsWith("/notifications")) moreCount = 0;
   const main: Item[] = [
@@ -73,7 +133,7 @@ export function Nav({ appName, isAdmin, adminCount, moreCount = 0 }: { appName: 
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav ref={tabBar} className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur transition-opacity md:hidden">
         <div className="mx-auto grid max-w-md grid-cols-5">
           {[...main, { href: "/more", label: "More", icon: "more", badge: moreCount }].map((i) => (
             <Link key={i.href} href={i.href} className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${isActive(path, i.href) ? "text-accent" : "text-muted"}`}>
