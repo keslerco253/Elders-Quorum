@@ -2,10 +2,11 @@ import { SubmitButton } from "@/components/client";
 import { PRIVACY_NOTE, VISIT_TYPES, type VisitRow } from "@/lib/visits";
 import { saveVisit } from "./actions";
 
-export function VisitForm({ v, members, presidency, defaultMember, defaultVisitors, today }: { v?: VisitRow; members: { id: number; display_name: string }[]; presidency: { id: number; display_name: string }[]; defaultMember?: number; defaultVisitors: number[]; today: string }) {
+export function VisitForm({ v, members, presidency, defaultMember, defaultVisitors, today, planId, defaultDate, defaultType }: { v?: VisitRow; members: { id: number; display_name: string }[]; presidency: { id: number; display_name: string }[]; defaultMember?: number; defaultVisitors: number[]; today: string; planId?: number; defaultDate?: string; defaultType?: string }) {
   return (
     <form action={saveVisit} className="card max-w-2xl space-y-4">
       {v && <input type="hidden" name="item_id" value={v.id} />}
+      {planId && <input type="hidden" name="plan_id" value={planId} />}
       <div>
         <label className="label" htmlFor="member_id">
           Who was visited
@@ -24,13 +25,13 @@ export function VisitForm({ v, members, presidency, defaultMember, defaultVisito
           <label className="label" htmlFor="date">
             Date
           </label>
-          <input id="date" name="date" type="date" required className="input" defaultValue={v?.date ?? today} />
+          <input id="date" name="date" type="date" required className="input" defaultValue={v?.date ?? defaultDate ?? today} />
         </div>
         <div>
           <label className="label" htmlFor="type">
             Type of visit
           </label>
-          <select id="type" name="type" className="input" defaultValue={v?.type ?? "home"}>
+          <select id="type" name="type" className="input" defaultValue={v?.type ?? defaultType ?? "home"}>
             {Object.entries(VISIT_TYPES).map(([k, label]) => (
               <option key={k} value={k}>
                 {label}

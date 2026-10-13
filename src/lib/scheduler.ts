@@ -8,6 +8,8 @@ import { formatDate, formatDateTime } from "./time";
 import type { PushPayload } from "./push";
 import type { EventRow, Ward } from "./types";
 import { runRetention } from "./retention";
+import { upcomingVisits, visitorIds, whenText } from "./planned-visits";
+import { VISIT_TYPES } from "./visits";
 
 export interface DueNotification {
   key: string;
@@ -85,9 +87,28 @@ function todoReminders(ward: Ward, now: DateTime): DueNotification[] {
   }));
 }
 
+/** The morning of a planned visit (8 AM-8 PM if the server was off), remind whoever is going. */
+function visitReminders(ward: Ward, now: DateTime): DueNotification[] {
+  const local = now.setZone(ward.timezone);
+  if (local.hour < 8 || local.hour >= 20) return [];
+  return upcomingVisits(ward.id)
+    .filter((p) => p.date === local.toISODate())
+    .map((p) => ({
+      key: `visit-day:${p.id}:${p.date}:${p.time ?? ""}`,
+      recipients: visitorIds(p)
+        .map((id) => recipientById(id))
+        .filter((r): r is Recipient => !!r),
+      payload: {
+        title: `Visit today: ${p.member_name}`,
+        body: `${whenText(p.date, p.time)} (${VISIT_TYPES[p.type]?.toLowerCase() ?? p.type})${p.visitors ? `, with ${p.visitors}` : ""}.`,
+        url: "/admin/visits",
+      },
+    }));
+}
+
 export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   const wards = db().prepare("SELECT id, name, timezone, join_code FROM wards").all() as Ward[];
-  return wards.flatMap((w) => [...lessonReminders(w, now), ...eventReminders(w, now), ...todoReminders(w, now)]);
+  return wards.flatMap((w) => [...lessonReminders(w, now), ...eventReminders(w, now), ...todoReminders(w, now), ...visitReminders(w, now)]);
 }
 
 /**

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePresidency } from "@/lib/auth";
+import { deletePlan, getPlannedVisit, isDate, isTime, savePlan, whenText } from "@/lib/planned-visits";
+import { sendAnswer } from "@/lib/conversations";
 
 const TYPES = ["home", "church", "phone", "text"];
 
@@ -20,7 +22,8 @@ export async function saveVisit(fd: FormData) {
   const notes = String(fd.get("notes") || "").trim().slice(0, 2000);
   const followUp = fd.get("follow_up") === "on" ? 1 : 0;
   const followUpDone = fd.get("follow_up_done") === "on" ? 1 : 0;
-  const back = id ? `/admin/visits/${id}` : `/admin/visits/new?member=${memberId || ""}`;
+  const plan = Number(fd.get("plan_id")) ? getPlannedVisit(user.ward_id, Number(fd.get("plan_id"))) : undefined;
+  const back = id ? `/admin/visits/${id}` : `/admin/visits/new?member=${memberId || ""}${Number(fd.get("plan_id")) ? `&plan=${Number(fd.get("plan_id"))}` : ""}`;
   const member = db().prepare("SELECT id FROM members WHERE id = ? AND ward_id = ?").get(memberId, user.ward_id);
   if (!member || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !TYPES.includes(type)) go(back, "Choose who was visited, the date and the type of visit.");
   // Allowed visitors: current presidency, plus anyone already on this visit (e.g. a released counselor).
@@ -47,6 +50,11 @@ export async function saveVisit(fd: FormData) {
     return vid;
   })();
   if (!visitId) redirect("/admin/visits");
+  // A planned visit that's now recorded leaves Upcoming; its request (if any) is done.
+  if (plan) {
+    deletePlan(user.ward_id, plan.id);
+    if (plan.request_id) d.prepare("UPDATE visit_requests SET status = 'done', handled_by = ?, updated_at = datetime('now') WHERE id = ? AND status IN ('open','scheduled')").run(user.id, plan.request_id);
+  }
   revalidatePath("/admin/visits", "layout");
   go(`/admin/visits?member=${memberId}`, "Visit saved.");
 }
@@ -64,3 +72,48 @@ export async function markFollowUpDone(fd: FormData) {
   revalidatePath("/admin/visits", "layout");
   go("/admin/visits?view=followups", "Follow-up marked done.");
 }
+
+/** Plans a visit (or changes a planned one): who, when, and who's going. */
+export async function savePlannedVisit(fd: FormData) {
+  const user = await requirePresidency();
+  const id = Number(fd.get("item_id")) || null;
+  const requestId = Number(fd.get("request_id")) || null;
+  const memberId = Number(fd.get("member_id"));
+  const date = String(fd.get("date") || "");
+  const time = String(fd.get("time") || "").trim() || null;
+  const type = String(fd.get("type") || "home");
+  const note = String(fd.get("note") || "").trim().slice(0, 1000);
+  const back = `/admin/visits/plan?${id ? `id=${id}` : requestId ? `request=${requestId}` : `member=${memberId || ""}`}`;
+  const d = db();
+  const member = d.prepare("SELECT id, display_name FROM members WHERE id = ? AND ward_id = ?").get(memberId, user.ward_id) as { id: number; display_name: string } | undefined;
+  if (!member || !isDate(date) || !TYPES.includes(type) || (time && !isTime(time))) go(back, "Choose who to visit, the date and the kind of visit.");
+  const presidency = new Set((d.prepare("SELECT id FROM members WHERE ward_id = ? AND role = 'presidency'").all(user.ward_id) as { id: number }[]).map((r) => r.id));
+  const visitors = fd.getAll("visitor_id").map(Number).filter((v) => presidency.has(v));
+  if (!visitors.length) go(back, "Choose who's going.");
+  const request = requestId ? (d.prepare("SELECT id, member_id FROM visit_requests WHERE id = ? AND ward_id = ?").get(requestId, user.ward_id) as { id: number; member_id: number } | undefined) : undefined;
+
+  savePlan({ id, wardId: user.ward_id, memberId, date, time, type, note, requestId: request?.id ?? null, visitors, createdBy: user.id });
+
+  const names = (d.prepare(`SELECT display_name FROM members WHERE id IN (${visitors.map(() => "?").join(",")}) ORDER BY display_name`).all(...visitors) as { display_name: string }[]).map((r) => r.display_name);
+  const who = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+  const when = whenText(date, time);
+  const message = type === "phone" ? `${who} will call you ${when}.` : type === "church" ? `${who} would like to meet with you at church ${when}.` : `${who} ${names.length > 1 ? "plan" : "plans"} to visit you ${when}.`;
+  if (request) {
+    d.prepare("UPDATE visit_requests SET status = 'scheduled', reply = ?, handled_by = ?, updated_at = datetime('now') WHERE id = ?").run(message, user.id, request.id);
+  }
+  if (fd.get("tell_member") === "on") await sendAnswer(user, memberId, message);
+  revalidatePath("/admin", "layout");
+  go("/admin/visits", `${id ? "Planned visit updated" : "Visit planned"}: ${member.display_name}, ${when}.${fd.get("tell_member") === "on" ? " They were sent the date and time." : ""}`);
+}
+
+/** Cancels a planned visit. Its request (if any) goes back to waiting. */
+export async function cancelPlannedVisit(fd: FormData) {
+  const user = await requirePresidency();
+  const plan = getPlannedVisit(user.ward_id, Number(fd.get("item_id")));
+  if (!plan) redirect("/admin/visits");
+  deletePlan(user.ward_id, plan.id);
+  if (plan.request_id) db().prepare("UPDATE visit_requests SET status = 'open', updated_at = datetime('now') WHERE id = ? AND status = 'scheduled'").run(plan.request_id);
+  revalidatePath("/admin", "layout");
+  go("/admin/visits", `Planned visit with ${plan.member_name} cancelled.${plan.request_id ? " Their request is back under Visit requests." : ""}`);
+}
+

@@ -6,7 +6,8 @@ import { lastVisitByMember, listVisits, VISIT_TYPES } from "@/lib/visits";
 import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { markFollowUpDone } from "./actions";
+import { cancelPlannedVisit, markFollowUpDone } from "./actions";
+import { upcomingVisits, whenText } from "@/lib/planned-visits";
 
 export const metadata = { title: "Presidency visits" };
 
@@ -37,12 +38,74 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
         back={memberId ? { href: "/admin/visits", label: "All visits" } : { href: "/admin", label: "Admin" }}
         subtitle="Visible to the presidency only."
         actions={
-          <Link href={`/admin/visits/new${memberId ? `?member=${memberId}` : ""}`} className="btn-primary">
-            Record a visit
-          </Link>
+          <>
+            <Link href={`/admin/visits/plan${memberId ? `?member=${memberId}` : ""}`} className="btn-primary">
+              Plan a visit
+            </Link>
+            <Link href={`/admin/visits/new${memberId ? `?member=${memberId}` : ""}`} className="btn-secondary">
+              Record a visit
+            </Link>
+          </>
         }
       />
       <Flash msg={sp.msg} />
+      {(() => {
+        const upcoming = upcomingVisits(user.ward_id, memberId);
+        const todayIso = todayIn(user.ward.timezone);
+        return (
+          <section className="mb-6">
+            <h2 className="h2 mb-2">Upcoming visits</h2>
+            {upcoming.length === 0 ? (
+              <p className="card text-sm text-muted">
+                Nothing planned.{" "}
+                <Link href={`/admin/visits/plan${memberId ? `?member=${memberId}` : ""}`} className="link">
+                  Plan a visit
+                </Link>
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {upcoming.map((p) => (
+                  <li key={p.id} className={`card ${p.date < todayIso ? "border-warn" : ""}`}>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link href={`/admin/visits?member=${p.member_id}`} className="font-semibold hover:underline">
+                            {p.member_name}
+                          </Link>
+                          {p.date === todayIso && <Badge tone="info">Today</Badge>}
+                          {p.date < todayIso && <Badge tone="warn">Not recorded yet</Badge>}
+                          {p.request_id && <Badge>Requested</Badge>}
+                        </div>
+                        <div className="text-sm font-medium">{whenText(p.date, p.time)}</div>
+                        <div className="text-sm text-muted">
+                          {VISIT_TYPES[p.type]}
+                          {p.visitors && ` · ${p.visitors}`}
+                        </div>
+                        {p.note && <div className="mt-1 text-sm">{p.note}</div>}
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Link href={`/admin/visits/new?plan=${p.id}`} className="btn-primary btn-sm">
+                        Record visit
+                      </Link>
+                      <Link href={`/admin/visits/plan?id=${p.id}`} className="btn-secondary btn-sm">
+                        Change
+                      </Link>
+                      <form action={cancelPlannedVisit}>
+                        <input type="hidden" name="item_id" value={p.id} />
+                        <SubmitButton className="btn-secondary btn-sm" confirm="Cancel this planned visit?" pendingText="…">
+                          Cancel
+                        </SubmitButton>
+                      </form>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })()}
+      <h2 className="h2 mb-2">Visits made</h2>
       {!memberId && (
         <div className="mb-4 flex flex-wrap gap-2">
           {tab("recent", "Recent")}

@@ -30,6 +30,8 @@ export function runRetention() {
     run("contact_codes", `DELETE FROM contact_verifications WHERE created_at < datetime('now', '-1 day')`);
     // Visit requests: 30 days after they're finished; unanswered ones after 6 months.
     run("visit_requests", `DELETE FROM visit_requests WHERE (status IN ('done','closed','cancelled') AND updated_at < datetime('now', '-30 days')) OR created_at < datetime('now', '-6 months')`);
+    // Planned visits that were never recorded or cancelled: 30 days after their date.
+    run("planned_visits", `DELETE FROM planned_visits WHERE date < date('now', '-30 days')`);
     // Conversations between members and the presidency after 6 months.
     run("member_messages", `DELETE FROM member_messages WHERE created_at < datetime('now', '-6 months')`);
     // Message history after a year.

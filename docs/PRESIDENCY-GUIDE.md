@@ -117,6 +117,23 @@ account also removes any presidency visit records about that person.
 
 ## Home visits (presidency only)
 
+**Upcoming visits** are at the top of **Admin → Home visits**: who, the date
+and time, and who's going. A visit gets there two ways:
+
+- **From a request:** on **Admin → Visit requests**, tap **Schedule visit**,
+  pick the date, time and who's going. The member is sent the date and time
+  ("Brother Smith and Brother Jones plan to visit you Tue, Oct 14 at 7:00 PM").
+- **On your own:** **Plan a visit**, choose the member, date and time. Tick
+  "Send them the date and time" if you want the app to tell them; leave it off
+  if you'll call them yourself.
+
+Whoever is going gets a reminder the morning of the visit. Afterwards tap
+**Record visit** (the form is filled in from the plan); that moves it to the
+visit history and closes the member's request. **Change** reschedules it and
+**Cancel** removes it (a request goes back to Visit requests). If the member
+cancels their request, the planned visit is removed and whoever was going is
+told. Planned visits never recorded are deleted 30 days after their date.
+
 **Admin → Home visits → Record a visit.** The **By member** tab shows everyone
 and their last home visit, with those never visited at the top. **Follow-ups**
 lists visits marked "follow-up needed".

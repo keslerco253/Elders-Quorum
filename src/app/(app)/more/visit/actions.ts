@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { audienceMembers, notify } from "@/lib/notify";
 import { REQUEST_KINDS } from "@/lib/visit-requests";
+import { deletePlan, notifyVisitorsOfCancel, planForRequest } from "@/lib/planned-visits";
 
 function back(msg: string, ok = false): never {
   redirect(`/more/visit?msg=${encodeURIComponent(msg)}${ok ? "&ok=1" : ""}`);
@@ -31,8 +32,15 @@ export async function requestVisit(fd: FormData) {
 
 export async function cancelVisitRequest(fd: FormData) {
   const user = await requireUser();
-  db()
+  const id = Number(fd.get("item_id"));
+  const r = db()
     .prepare("UPDATE visit_requests SET status = 'cancelled', updated_at = datetime('now') WHERE id = ? AND member_id = ? AND status IN ('open','scheduled')")
-    .run(Number(fd.get("item_id")), user.id);
+    .run(id, user.id);
+  // A visit was already planned: take it off Upcoming visits and tell whoever was going.
+  const plan = r.changes ? planForRequest(user.ward_id, id) : undefined;
+  if (plan) {
+    deletePlan(user.ward_id, plan.id);
+    await notifyVisitorsOfCancel(plan);
+  }
   back("Your request was cancelled.", true);
 }

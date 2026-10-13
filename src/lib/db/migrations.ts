@@ -405,4 +405,29 @@ CREATE INDEX member_messages_thread ON member_messages(member_id, recipient_id);
 ALTER TABLE members ADD COLUMN calling TEXT;
 `,
   },
+  {
+    // Visits the presidency has planned (from a member's request or on their
+    // own). Once a planned visit happens it's recorded in visits as usual.
+    id: 10,
+    sql: `
+CREATE TABLE planned_visits (
+  id INTEGER PRIMARY KEY,
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  time TEXT,
+  type TEXT NOT NULL DEFAULT 'home' CHECK (type IN ('home','church','phone','text')),
+  note TEXT NOT NULL DEFAULT '',
+  request_id INTEGER REFERENCES visit_requests(id) ON DELETE SET NULL,
+  created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX planned_visits_ward ON planned_visits(ward_id, date);
+CREATE TABLE planned_visit_visitors (
+  planned_id INTEGER NOT NULL REFERENCES planned_visits(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  PRIMARY KEY (planned_id, member_id)
+);
+`,
+  },
 ];
