@@ -273,3 +273,11 @@ attach a PDF. Older versions are kept under "See earlier versions".
 **Admin → Settings**: change the app name or time zone, send a test email, and
 (site owner only) add another ward in the stake. Each ward gets its own
 members, lessons and calendar.
+
+## Notifications
+
+Tapping a notification opens the app on the right page. **More → Notifications**
+keeps the full text of everything the app sent you for 30 days (a red dot on
+More means something unread). On Android and computers notifications stay on
+screen until tapped. On iPhone each person can choose that themselves:
+**Settings → Notifications → (the app) → Banner Style → Persistent**.

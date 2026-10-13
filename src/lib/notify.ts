@@ -84,10 +84,9 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
   let email = 0;
   let text = 0;
   let reached = 0;
-  const url = payload.url ? appUrl() + payload.url : appUrl();
   const wardNames = new Map<number, string>();
 
-  const sendEmail = async (r: Recipient) =>
+  const sendEmail = async (r: Recipient, url: string) =>
     !!r.email &&
     (await sendMail({
       to: r.email,
@@ -95,7 +94,7 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
       text: `${payload.body}\n\n${url}`,
       html: emailHtml(payload.title, payload.body, { url, label: payload.linkLabel ?? "Open the app" }),
     }));
-  const sendText = async (r: Recipient) => {
+  const sendText = async (r: Recipient, url: string) => {
     if (!r.phone) return false;
     if (!wardNames.has(r.ward_id)) wardNames.set(r.ward_id, (d().prepare("SELECT name FROM wards WHERE id = ?").get(r.ward_id) as { name: string }).name);
     const res = await sendSms(r.ward_id, r.phone, smsBody(wardNames.get(r.ward_id)!, payload, url), "notice");
@@ -105,9 +104,15 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
   };
 
   for (const r of recipients) {
+    // Kept for the member's Notifications list; the link marks it read when they open it.
+    const logId = Number(
+      d().prepare("INSERT INTO notification_log (member_id, title, body, url) VALUES (?, ?, ?, ?)").run(r.id, payload.title, payload.body, payload.url ?? "/").lastInsertRowid,
+    );
+    const p = { ...payload, url: withSeen(payload.url ?? "/", logId) };
+    const url = appUrl() + p.url;
     const canText = !!r.sms_consent_at && !!r.phone && canSendNotice(r.ward_id);
     let got = false;
-    if ((await pushToMember(r.id, payload)) > 0) {
+    if ((await pushToMember(r.id, p)) > 0) {
       push++;
       got = true;
     }
@@ -115,8 +120,8 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
       const always = [...(r.always_email && r.email ? ["email" as const] : []), ...(r.always_text && canText ? ["text" as const] : [])];
       const channels = always.length ? always : got ? [] : fallbackChannels(r, canText);
       const deliver = async (channel: "email" | "text") => {
-        if (channel === "email" && (await sendEmail(r))) email++;
-        else if (channel === "text" && (await sendText(r))) text++;
+        if (channel === "email" && (await sendEmail(r, url))) email++;
+        else if (channel === "text" && (await sendText(r, url))) text++;
         else return;
         got = true;
       };
@@ -129,6 +134,12 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
     if (got) reached++;
   }
   return { push, email, text, reached };
+}
+
+/** Adds ?n=<id> so opening the link marks that notification read. */
+function withSeen(path: string, id: number) {
+  const [base, hash] = path.split("#");
+  return `${base}${base.includes("?") ? "&" : "?"}n=${id}${hash ? `#${hash}` : ""}`;
 }
 
 /** Records a dedupe key. Returns false if this notification was already sent. */

@@ -36,6 +36,8 @@ export function runRetention() {
     run("planned_visits", `DELETE FROM planned_visits WHERE date < date('now', '-30 days')`);
     // Conversations between members and the presidency after 6 months.
     run("member_messages", `DELETE FROM member_messages WHERE created_at < datetime('now', '-6 months')`);
+    // The Notifications list after 30 days.
+    run("notification_log", `DELETE FROM notification_log WHERE created_at < datetime('now', '-30 days')`);
     // Message history after a year.
     run("messages", `DELETE FROM messages WHERE created_at < datetime('now', '-365 days')`);
   })();

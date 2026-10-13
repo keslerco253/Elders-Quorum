@@ -14,6 +14,8 @@ self.addEventListener("push", (event) => {
       body: data.body || "",
       icon: "/icon-192.png",
       badge: "/icon-192.png",
+      // Stay on screen until tapped or dismissed (Android and computers; iPhones use their own setting).
+      requireInteraction: true,
       // Buttons show on Android and computers; iPhones open data.url instead.
       actions: (data.actions || []).slice(0, 2).map((a) => ({ action: a.action, title: a.title })),
       data: { url: data.url || "/", actions: data.actions || [] },
@@ -43,27 +45,39 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const action = (event.notification.data?.actions || []).find((a) => a.action === event.action);
   if (action && action.action === "accept") {
-    event.waitUntil(acceptTeachingRequest(action.url).catch(() => self.clients.openWindow(new URL(action.url, self.location.origin).href)));
+    event.waitUntil(acceptTeachingRequest(action.url).catch(() => openPage(new URL(action.url, self.location.origin).href)));
     return;
   }
   if (action && action.action === "teach") {
     // If confirming fails (offline, expired link), open the reply page instead.
-    event.waitUntil(confirmTeaching(action.url).catch(() => self.clients.openWindow(new URL(action.url, self.location.origin).href)));
+    event.waitUntil(confirmTeaching(action.url).catch(() => openPage(new URL(action.url, self.location.origin).href)));
     return;
   }
   const url = new URL(action?.url || event.notification.data?.url || "/", self.location.origin).href;
-  event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
-      for (const w of wins) {
-        if ("focus" in w) {
-          w.navigate(url);
-          return w.focus();
-        }
-      }
-      return self.clients.openWindow(url);
-    }),
-  );
+  event.waitUntil(openPage(url));
 });
+
+// Brings the app forward on the right page. If the app is already open, it's
+// focused and told where to go (iPhones don't support moving an open window
+// from here); otherwise a new window opens on that page.
+async function openPage(url) {
+  const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  const win = wins.find((w) => "focus" in w);
+  if (win) {
+    win.postMessage({ type: "open", url });
+    try {
+      await win.focus();
+      return;
+    } catch {
+      // Couldn't bring it forward: try opening it instead.
+    }
+  }
+  try {
+    await self.clients.openWindow(url);
+  } catch {
+    // Not allowed outside a notification tap; nothing more to do.
+  }
+}
 
 // A fetch handler keeps the app installable in all browsers; requests go to the network as normal.
 self.addEventListener("fetch", () => {});

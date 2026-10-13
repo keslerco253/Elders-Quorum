@@ -30,7 +30,7 @@ function isActive(path: string, href: string) {
 export function Nav({ appName, isAdmin, adminCount, moreCount = 0 }: { appName: string; isAdmin: boolean; adminCount: number; moreCount?: number }) {
   const path = usePathname();
   // The page being read clears these, so don't show the dot there.
-  if (path.startsWith("/messages")) moreCount = 0;
+  if (path.startsWith("/messages") || path.startsWith("/notifications")) moreCount = 0;
   const main: Item[] = [
     { href: "/", label: "Home", icon: "home" },
     { href: "/lessons", label: "Lessons", icon: "book" },

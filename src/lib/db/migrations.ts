@@ -523,4 +523,21 @@ ALTER TABLE planned_visits ADD COLUMN member_reply TEXT NOT NULL DEFAULT '';
 ALTER TABLE planned_visits ADD COLUMN responded_at TEXT;
 `,
   },
+  {
+    // Every notification sent to a member, so the full text can be read in the
+    // app (More > Notifications). Deleted after 30 days.
+    id: 18,
+    sql: `
+CREATE TABLE notification_log (
+  id INTEGER PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  url TEXT NOT NULL DEFAULT '/',
+  read_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX notification_log_member ON notification_log(member_id, created_at);
+`,
+  },
 ];
