@@ -1,7 +1,7 @@
 import { getUser } from "@/lib/auth";
-import { getEvent, icsFor } from "@/lib/events";
+import { getEvent, icsFor, isAppleMobile } from "@/lib/events";
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getUser();
   if (!user) return new Response("Sign in required", { status: 401 });
   const e = getEvent(user, Number((await params).id));
@@ -9,7 +9,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return new Response(icsFor(e), {
     headers: {
       "content-type": "text/calendar; charset=utf-8",
-      "content-disposition": `attachment; filename="event-${e.id}.ics"`,
+      // iPhones and iPads only offer "Add to Calendar" when the file is shown, not downloaded.
+      "content-disposition": `${isAppleMobile(req.headers.get("user-agent")) ? "inline" : "attachment"}; filename="event-${e.id}.ics"`,
     },
   });
 }

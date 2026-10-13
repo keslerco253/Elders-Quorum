@@ -12,7 +12,7 @@ describe("calendar", () => {
   });
   it("builds an escaped .ics file", () => {
     const ics = icsFor(e, "test");
-    expect(ics).toContain("SUMMARY:Service project\; bring gloves");
+    expect(ics).toContain("SUMMARY:Service project\\; bring gloves");
     expect(ics).toContain("LOCATION:123 Main St\\, Boise");
     expect(ics).toContain("DTSTART:20261017T150000Z");
     expect(ics.split("\r\n").every((l) => Buffer.byteLength(l) <= 75)).toBe(true);

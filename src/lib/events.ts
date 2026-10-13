@@ -39,7 +39,17 @@ export function googleCalendarUrl(e: EventRow) {
   return `https://calendar.google.com/calendar/render?${p}`;
 }
 
-const icsEscape = (s: string) => s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\;");
+/** iPhone or iPad. */
+export function isAppleMobile(ua: string | null) {
+  return !!ua && /iPhone|iPad|iPod/.test(ua);
+}
+
+/** iPhone browsers other than Safari (Chrome, Firefox, Edge) can't hand a calendar file to the Calendar app. */
+export function isNonSafariIos(ua: string | null) {
+  return isAppleMobile(ua) && /CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(ua!);
+}
+
+const icsEscape = (s: string) => s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
 
 /** Folds long lines to 75 octets as the iCalendar spec requires. */
 function fold(line: string) {
