@@ -11,7 +11,7 @@ export default async function NewEventPage({ searchParams }: { searchParams: Pro
     <>
       <PageHeader title="Add event" back={{ href: "/calendar", label: "Calendar" }} />
       <Flash msg={sp.msg} tone="danger" />
-      <EventForm tz={user.ward.timezone} />
+      <EventForm tz={user.ward.timezone} date={/^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date : undefined} />
     </>
   );
 }

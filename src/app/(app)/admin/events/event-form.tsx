@@ -4,7 +4,8 @@ import type { EventRow } from "@/lib/types";
 import { SubmitButton } from "@/components/client";
 import { saveEvent } from "./actions";
 
-export function EventForm({ e, tz }: { e?: EventRow; tz: string }) {
+/** `date` (yyyy-mm-dd) pre-fills a new event for that day, 7–8 PM. */
+export function EventForm({ e, tz, date }: { e?: EventRow; tz: string; date?: string }) {
   return (
     <form action={saveEvent} className="card max-w-2xl space-y-4">
       {e && <input type="hidden" name="item_id" value={e.id} />}
@@ -19,13 +20,13 @@ export function EventForm({ e, tz }: { e?: EventRow; tz: string }) {
           <label className="label" htmlFor="starts_at">
             Starts
           </label>
-          <input id="starts_at" name="starts_at" type="datetime-local" required className="input" defaultValue={e ? utcToLocalInput(e.starts_at, tz) : undefined} />
+          <input id="starts_at" name="starts_at" type="datetime-local" required className="input" defaultValue={e ? utcToLocalInput(e.starts_at, tz) : date && `${date}T19:00`} />
         </div>
         <div>
           <label className="label" htmlFor="ends_at">
             Ends
           </label>
-          <input id="ends_at" name="ends_at" type="datetime-local" required className="input" defaultValue={e ? utcToLocalInput(e.ends_at, tz) : undefined} />
+          <input id="ends_at" name="ends_at" type="datetime-local" required className="input" defaultValue={e ? utcToLocalInput(e.ends_at, tz) : date && `${date}T20:00`} />
         </div>
       </div>
       <div>
