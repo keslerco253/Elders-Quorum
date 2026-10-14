@@ -1,6 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { removeAppToken } from "@/lib/push";
+import { APP_TOKEN_COOKIE } from "@/lib/native-app";
 import { db } from "@/lib/db";
 import { createLoginToken, findLoginMember, findMemberByContact, isRemember, redeemCode, redeemToken } from "@/lib/auth-core";
 import { endSession, startSession } from "@/lib/auth";
@@ -30,6 +33,17 @@ function invalidContactMessage(raw: string) {
   return phoneOptInVisible() ? "Please enter a valid mobile number or email address." : "Please enter a valid email address.";
 }
 
+/**
+ * A test account for Apple and Google app review: REVIEW_LOGIN=email:123456.
+ * That email signs in with that code (no email is sent). Leave it unset
+ * except while an app version is in review.
+ */
+function reviewLogin() {
+  const [email, code] = (process.env.REVIEW_LOGIN || "").split(":").map((s) => s.trim());
+  const c = parseContact(email || "");
+  return c?.kind === "email" && /^\d{6}$/.test(code || "") ? { email: c.value, code } : null;
+}
+
 export async function requestLogin(formData: FormData) {
   const raw = String(formData.get("contact") || "");
   const remember = String(formData.get("remember") || "month");
@@ -43,6 +57,8 @@ export async function requestLogin(formData: FormData) {
     if (other?.status === "inactive") redirect("/login?" + q({ error: "This account's access is turned off. Please contact your ward leaders." }));
     redirect("/join?" + q({ contact: raw, notfound: "1" }));
   }
+  // The app stores' reviewers sign in with a fixed code (REVIEW_LOGIN); nothing is sent.
+  if (reviewLogin()?.email === c.value) redirect("/login/check?" + q({ to: c.value }));
   const res = createLoginToken(member.id, remember);
   if (!res.ok) redirect("/login?" + q({ error: "Too many sign-in codes. Please wait an hour or use the most recent code." }));
   const sent = await sendLoginCode(member, c.kind, res.token, res.code);
@@ -53,6 +69,14 @@ export async function requestLogin(formData: FormData) {
 export async function verifyCode(formData: FormData) {
   const to = String(formData.get("to") || "");
   const code = String(formData.get("code") || "");
+  const review = reviewLogin();
+  if (review && review.email === parseContact(to)?.value && review.code === code.replace(/\D/g, "")) {
+    const member = findLoginMember(review.email);
+    if (member) {
+      await startSession(member.id, "month");
+      redirect("/");
+    }
+  }
   const result = redeemCode(to, code);
   if (!result) redirect("/login/check?" + q({ to, error: "That code didn't work. Check the newest code and try again." }));
   await startSession(result.memberId, result.remember);
@@ -67,6 +91,13 @@ export async function verifyToken(formData: FormData) {
 }
 
 export async function signOut() {
+  // In the phone app: stop sending this phone the member's notifications.
+  const jar = await cookies();
+  const appToken = jar.get(APP_TOKEN_COOKIE)?.value;
+  if (appToken) {
+    removeAppToken(decodeURIComponent(appToken));
+    jar.delete(APP_TOKEN_COOKIE);
+  }
   await endSession();
   redirect("/login");
 }

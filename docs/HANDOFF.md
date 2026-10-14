@@ -43,6 +43,12 @@ To move off a home computer onto Northflank (or another host), see
 **Admin → Settings → Backup**, restore it on the new server's setup page, then
 set `MOVED_TO` on the old one so old links and Home Screen icons follow.
 
+## The phone app
+
+The iPhone and Android app is in `mobile/` (React Native / Expo, built in the
+cloud with EAS). See [The phone app](MOBILE-APP.md) for accounts, building,
+store listings and app review.
+
 ## Where things live
 
 - **Live data:** Docker volume `elders-quorum-data` (database, uploaded PDFs).

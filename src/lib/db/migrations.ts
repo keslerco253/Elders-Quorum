@@ -686,4 +686,19 @@ CREATE INDEX members_phone ON members(phone);
     id: 21,
     sql: `ALTER TABLE wards ADD COLUMN texting_enabled INTEGER NOT NULL DEFAULT 1;`,
   },
+  {
+    // Phones running the My Ward Link app get notifications through Expo's push
+    // service (one token per phone), alongside browser push subscriptions.
+    id: 22,
+    sql: `
+CREATE TABLE native_push_tokens (
+  token TEXT PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX native_push_tokens_member ON native_push_tokens(member_id);
+`,
+  },
 ];

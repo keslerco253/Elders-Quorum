@@ -1,0 +1,38 @@
+# Builds the My Ward Link phone apps in Expo's cloud (EAS), so no Mac is
+# needed. Run it from GitHub: Actions → "Build phone apps" → Run workflow.
+# Needs the EXPO_TOKEN secret (see docs/MOBILE-APP.md).
+name: Build phone apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Which apps
+        type: choice
+        options: [all, ios, android]
+        default: all
+      submit:
+        description: Send them to App Store Connect / Google Play when built
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - name: Start the builds (they run on Expo's servers; follow them at expo.dev)
+        run: eas build --platform ${{ inputs.platform }} --profile production --non-interactive --no-wait ${{ inputs.submit && '--auto-submit' || '' }}

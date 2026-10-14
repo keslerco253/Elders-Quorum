@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { appPushOff, forgetAppToken, inApp, onAppPush, postToApp, registerAppToken, setAppPushOff, type AppPushStatus } from "@/lib/native-app";
 
 type State = "loading" | "unsupported" | "ios-install" | "denied" | "off" | "on";
 
@@ -13,7 +14,85 @@ function urlBase64ToUint8Array(base64: string) {
 const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
 
+/** In the phone app, notifications come from the phone itself. */
+function AppPushToggle({ compact }: { compact?: boolean }) {
+  const [status, setStatus] = useState<AppPushStatus["status"] | "loading">("loading");
+  const [off, setOff] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setOff(appPushOff());
+    const stop = onAppPush(async (s) => {
+      if (s.status === "granted" && !appPushOff()) await registerAppToken(s).catch(() => {});
+      setStatus(s.status);
+      setBusy(false);
+    });
+    postToApp({ type: "ready" });
+    return stop;
+  }, []);
+
+  const on = status === "granted" && !off;
+  if (status === "loading" || status === "unavailable") return null;
+  if (compact && on) return null;
+
+  const box = "rounded-xl border border-border bg-surface p-4 text-sm";
+  if (status === "denied")
+    return (
+      <div className={`${box} flex flex-wrap items-center justify-between gap-3`}>
+        <div>
+          <div className="font-semibold">Notifications are off in your phone&apos;s settings</div>
+          <p className="text-muted">Turn them on for My Ward Link in Settings. Until then, we&apos;ll use your backup choice (email or text).</p>
+        </div>
+        <button className="btn-primary btn-sm" onClick={() => postToApp({ type: "openSettings" })}>
+          Open Settings
+        </button>
+      </div>
+    );
+  return (
+    <div className={`${box} flex flex-wrap items-center justify-between gap-3`}>
+      <div>
+        <div className="font-semibold">{on ? "Notifications are on for this phone" : "Turn on notifications"}</div>
+        <p className="text-muted">{on ? "You'll get reminders and announcements from your ward and organizations here." : "Get reminders and announcements from your ward and organizations on this phone."}</p>
+      </div>
+      {on ? (
+        <button
+          className="btn-secondary btn-sm"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await forgetAppToken().catch(() => {});
+            setOff(true);
+            setBusy(false);
+          }}
+        >
+          Turn off
+        </button>
+      ) : (
+        <button
+          className="btn-primary btn-sm"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            setAppPushOff(false);
+            setOff(false);
+            postToApp({ type: "enablePush" });
+          }}
+        >
+          Turn on
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function PushToggle({ compact }: { compact?: boolean }) {
+  const [app, setApp] = useState<boolean | null>(null);
+  useEffect(() => setApp(inApp()), []);
+  if (app === null) return null;
+  return app ? <AppPushToggle compact={compact} /> : <BrowserPushToggle compact={compact} />;
+}
+
+function BrowserPushToggle({ compact }: { compact?: boolean }) {
   const [state, setState] = useState<State>("loading");
   const [busy, setBusy] = useState(false);
 

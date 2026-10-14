@@ -44,12 +44,12 @@ interface SubRow {
   auth: string;
 }
 
-/** Sends to every device the member registered. Returns how many deliveries succeeded. */
+/** Sends to every device the member registered (browsers and the phone app). Returns how many deliveries succeeded. */
 export async function pushToMember(memberId: number, payload: PushPayload): Promise<number> {
   const subs = db().prepare("SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE member_id = ?").all(memberId) as SubRow[];
-  if (!subs.length) return 0;
+  let ok = await pushToApp(memberId, payload);
+  if (!subs.length) return ok;
   ensureVapid();
-  let ok = 0;
   await Promise.all(
     subs.map(async (s) => {
       try {
@@ -72,6 +72,70 @@ export async function pushToMember(memberId: number, payload: PushPayload): Prom
 export function withFullLinks(payload: PushPayload): PushPayload {
   const full = (u: string) => (u.startsWith("/") ? appUrl() + u : u);
   return { ...payload, url: full(payload.url ?? "/"), actions: payload.actions?.map((a) => ({ ...a, url: full(a.url) })) };
+}
+
+// ----- The phone app (Expo push service, which delivers through Apple and Google) -----
+
+const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+export const isExpoToken = (t: unknown): t is string => typeof t === "string" && /^Expo(nent)?PushToken\[[^\]]{10,200}\]$/.test(t);
+
+/** Remembers a phone's app token for the signed-in member (a phone belongs to whoever signed in last). */
+export function saveAppToken(memberId: number, token: string, platform: string) {
+  db()
+    .prepare(
+      `INSERT INTO native_push_tokens (token, member_id, platform) VALUES (?, ?, ?)
+       ON CONFLICT(token) DO UPDATE SET member_id = excluded.member_id, platform = excluded.platform, updated_at = datetime('now')`,
+    )
+    .run(token, memberId, platform.slice(0, 20));
+}
+
+export function removeAppToken(token: string, memberId?: number) {
+  db()
+    .prepare(`DELETE FROM native_push_tokens WHERE token = ? ${memberId ? "AND member_id = ?" : ""}`)
+    .run(...(memberId ? [token, memberId] : [token]));
+}
+
+interface ExpoTicket {
+  status: "ok" | "error";
+  message?: string;
+  details?: { error?: string };
+}
+
+/** Sends to the member's phones that have the app. Returns how many were accepted. */
+async function pushToApp(memberId: number, payload: PushPayload): Promise<number> {
+  const tokens = (db().prepare("SELECT token FROM native_push_tokens WHERE member_id = ?").all(memberId) as { token: string }[]).map((r) => r.token);
+  if (!tokens.length) return 0;
+  const p = withFullLinks(payload);
+  const messages = tokens.map((to) => ({ to, title: p.title, body: p.body, data: { url: p.url }, sound: "default", priority: "high", channelId: "default" }));
+  try {
+    const res = await fetch(EXPO_PUSH_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+        // Optional: required only if "enhanced push security" is turned on in Expo.
+        ...(process.env.EXPO_ACCESS_TOKEN ? { authorization: `Bearer ${process.env.EXPO_ACCESS_TOKEN}` } : {}),
+      },
+      body: JSON.stringify(messages),
+      signal: AbortSignal.timeout(15000),
+    });
+    const json = (await res.json().catch(() => ({}))) as { data?: ExpoTicket[]; errors?: { message: string }[] };
+    if (!res.ok || !Array.isArray(json.data)) {
+      console.error("[push] app send failed", res.status, json.errors?.[0]?.message);
+      return 0;
+    }
+    let ok = 0;
+    json.data.forEach((t, i) => {
+      if (t.status === "ok") ok++;
+      // The app was removed or notifications were turned off on that phone.
+      else if (t.details?.error === "DeviceNotRegistered") removeAppToken(tokens[i]);
+      else console.error("[push] app ticket error", t.details?.error, t.message);
+    });
+    return ok;
+  } catch (err) {
+    console.error("[push] app send failed", (err as Error).message);
+    return 0;
+  }
 }
 
 export function savePushSubscription(memberId: number, sub: { endpoint: string; keys: { p256dh: string; auth: string } }) {
