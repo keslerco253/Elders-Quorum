@@ -53,7 +53,10 @@ Without this, everything would be wiped each time the app restarts.
 
 1. Open the service → **Volumes** → **Add volume**.
 2. Name `data`, size **2 GB** (plenty), **mount path `/data`**.
-3. Save. The service restarts with the volume attached.
+3. Save, then make sure it's **attached to the service**: the volume's page
+   must say "Attached to 1 resource", not 0. If it says 0, click **Attach** at
+   the top right of the volume's page and choose the service. The service
+   restarts with the volume attached.
 
 If Northflank asks for a payment method here, add it: a single small service
 with a small volume costs a few dollars a month.

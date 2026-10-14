@@ -1,4 +1,6 @@
-# Builds the app into a small image. Data (database, uploads, backups) lives in /data.
+# Builds the app into a small image. Data (database, uploads, backups) lives in /data,
+# which must be a mounted volume (docker-compose.yml, or a Northflank volume). No
+# VOLUME line here: an anonymous volume would hide a missing one and be lost on redeploy.
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 # Compilers for the SQLite module, in case a prebuilt copy can't be downloaded.
@@ -22,6 +24,5 @@ COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 COPY --from=build /app/dist/seed.js ./seed.js
-VOLUME /data
 EXPOSE 3000
 CMD ["node", "server.js"]
