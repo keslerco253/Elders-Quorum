@@ -6,6 +6,7 @@ import { listWards } from "@/lib/wards";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
+import { dataOnVolume } from "@/lib/setup-code";
 import { addWard, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode } from "./actions";
 import { monthlyLimit, phoneEnabled, textsThisMonth, twilioConfigured } from "@/lib/sms";
 import { inboundUrl } from "@/lib/sms-inbound";
@@ -151,6 +152,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {!!user.is_site_owner && (
         <Section title="Backup">
           <div className="card max-w-xl space-y-3 text-sm">
+            {!dataOnVolume() && (
+              <p className="rounded-lg border border-danger bg-danger/10 p-3">
+                <strong>This server has no permanent disk.</strong> Everything here is erased the next time the app is rebuilt. Download a backup now, then in Northflank add a volume with mount path{" "}
+                <code>/data</code> to the service and restore the backup on the setup page.
+              </p>
+            )}
             <p>
               Download everything the app keeps (every ward&apos;s members, lessons, calendar, messages and uploaded PDFs) as one file. Use it to move the app to another server: on the new
               server&apos;s first-time setup page, choose &quot;Restore a backup&quot;.

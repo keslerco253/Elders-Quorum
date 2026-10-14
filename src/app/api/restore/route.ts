@@ -1,4 +1,5 @@
 import { restoreBackup } from "@/lib/backup-file";
+import { setupCodeMatches } from "@/lib/setup-code";
 import { needsSetup } from "@/lib/wards";
 
 const back = (path: string, params: Record<string, string>) => new Response(null, { status: 303, headers: { location: `${path}?${new URLSearchParams(params)}` } });
@@ -10,7 +11,7 @@ export async function POST(req: Request) {
   const setupCode = process.env.SETUP_CODE;
   if (!setupCode) return back("/setup", { error: "Add a SETUP_CODE setting to this server first, then try again." });
   const form = await req.formData().catch(() => null);
-  if (!form || String(form.get("setup_code") || "") !== setupCode) return back("/setup", { error: "The setup code is incorrect." });
+  if (!form || !setupCodeMatches(String(form.get("setup_code") || ""))) return back("/setup", { error: "The setup code is incorrect." });
   const file = form.get("backup");
   if (!(file instanceof File) || file.size === 0) return back("/setup", { error: "Choose the backup file to restore." });
   const res = restoreBackup(Buffer.from(await file.arrayBuffer()));

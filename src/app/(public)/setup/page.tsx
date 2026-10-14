@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { dataOnVolume } from "@/lib/setup-code";
 import { needsSetup } from "@/lib/wards";
 import { DEFAULT_TZ } from "@/lib/time";
 import { Flash } from "@/components/ui";
@@ -15,6 +16,11 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
     <div className="card">
       <h2 className="h2 mb-1">First-time setup</h2>
       <p className="mb-4 text-sm text-muted">Create your ward and your own presidency account. You&apos;ll be able to add everyone else after you sign in.</p>
+      {!dataOnVolume() && (
+        <div className="mb-4 rounded-lg border border-danger bg-danger/10 p-3 text-sm">
+          <strong>This server has no permanent disk.</strong> Anything you set up or restore here is erased every time the app is rebuilt. In Northflank, open the service → <strong>Volumes</strong> → add a volume with mount path <code>/data</code>, wait for it to restart, then come back here.
+        </div>
+      )}
       <Flash msg={sp.error} tone="danger" />
       <form action={runSetup} className="space-y-4">
         {process.env.SETUP_CODE && (
@@ -22,7 +28,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
             <label className="label" htmlFor="setup_code">
               Setup code
             </label>
-            <input id="setup_code" name="setup_code" required className="input" />
+            <input id="setup_code" name="setup_code" required autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} className="input" />
             <p className="hint">From the SETUP_CODE line in your settings file.</p>
           </div>
         )}
@@ -66,7 +72,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
               <label className="label" htmlFor="restore_code">
                 Setup code
               </label>
-              <input id="restore_code" name="setup_code" required className="input" />
+              <input id="restore_code" name="setup_code" required autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} className="input" />
             </div>
             <div>
               <label className="label" htmlFor="backup">

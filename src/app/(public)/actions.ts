@@ -1,5 +1,6 @@
 "use server";
 
+import { setupCodeMatches } from "@/lib/setup-code";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { createLoginToken, findLoginMember, findMemberByContact, isRemember, redeemCode, redeemToken } from "@/lib/auth-core";
@@ -125,7 +126,7 @@ export async function joinApp(formData: FormData) {
 export async function runSetup(formData: FormData) {
   if (!needsSetup()) redirect("/login");
   const setupCode = process.env.SETUP_CODE;
-  if (setupCode && String(formData.get("setup_code") || "") !== setupCode) redirect("/setup?" + q({ error: "The setup code is incorrect." }));
+  if (setupCode && !setupCodeMatches(String(formData.get("setup_code") || ""))) redirect("/setup?" + q({ error: "The setup code is incorrect." }));
   const wardName = String(formData.get("ward_name") || "").trim();
   const timezone = String(formData.get("timezone") || DEFAULT_TZ);
   const name = String(formData.get("name") || "").trim();
