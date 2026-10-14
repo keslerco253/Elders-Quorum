@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { appUrl } from "./config";
 import { db, DATA_DIR } from "./db";
 
 const SID = () => process.env.TWILIO_ACCOUNT_SID || "";
@@ -43,6 +44,16 @@ export function monthlyLimit(wardId: number): number {
  */
 export function canSendNotice(wardId: number) {
   return phoneEnabled() && textsThisMonth(wardId, "notice") + textsThisMonth(wardId, "reply") < monthlyLimit(wardId);
+}
+
+/**
+ * Last line of a code text, like "@mywardlink.net #123456". iPhones and
+ * Android phones then offer the code above the keyboard (or fill it in) on
+ * the app's own sign-in page, and nowhere else.
+ */
+export function codeTextFooter(code: string) {
+  const host = new URL(appUrl()).hostname;
+  return host === "localhost" ? "" : `\n\n@${host} #${code}`;
 }
 
 export type SmsResult = "sent" | "failed" | "opted_out";

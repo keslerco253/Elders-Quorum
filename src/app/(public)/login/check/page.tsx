@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Flash } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
+import { CodeInput } from "@/components/code-input";
 import { verifyCode } from "../../actions";
 import { formatContact, parseContact } from "@/lib/contact";
 
@@ -15,7 +16,7 @@ export default async function CheckPage({ searchParams }: { searchParams: Promis
       <h2 className="h2 mb-1">{byText ? "Check your texts" : "Check your email"}</h2>
       <p className="mb-4 text-sm text-muted">
         {byText ? "We texted a 6-digit code to " : "We sent a sign-in link and a 6-digit code to "}
-        <strong className="text-text">{c ? formatContact(c.kind, c.value) : sp.to}</strong>.{byText ? " Type it here." : " Tap the link, or type the code here."}
+        <strong className="text-text">{c ? formatContact(c.kind, c.value) : sp.to}</strong>.{byText ? " Tap the code above the keyboard, or type it here." : " Tap the link, or type the code here."}
       </p>
       <Flash msg={sp.error} tone="danger" />
       <form action={verifyCode} className="space-y-4">
@@ -24,7 +25,7 @@ export default async function CheckPage({ searchParams }: { searchParams: Promis
           <label className="label" htmlFor="code">
             6-digit code
           </label>
-          <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]{6,7}" maxLength={7} required className="input text-center text-2xl tracking-[0.4em]" />
+          <CodeInput id="code" className="input text-center text-2xl tracking-[0.4em]" />
         </div>
         <SubmitButton className="btn-primary w-full" pendingText="Checking…">
           Sign in

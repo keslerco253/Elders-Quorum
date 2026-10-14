@@ -3,6 +3,7 @@ import { formatContact, formatPhone } from "@/lib/contact";
 import { pendingVerification } from "@/lib/contact-verify";
 import { phoneEnabled, phoneOptInVisible, SMS_DISCLOSURE } from "@/lib/sms";
 import { Flash, PageHeader, Section } from "@/components/ui";
+import { CodeInput } from "@/components/code-input";
 import { SubmitButton } from "@/components/client";
 import { addContact, confirmContact, removeContact, setDelivery } from "./actions";
 import { PushToggle } from "@/components/push-toggle";
@@ -70,7 +71,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             We {verifying.kind === "phone" ? "texted" : "emailed"} a 6-digit code to <strong className="text-text">{formatContact(verifying.kind, verifying.value)}</strong>.
           </p>
           <input type="hidden" name="verify_id" value={sp.verify} />
-          <input name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={7} required className="input max-w-40 text-center text-xl tracking-[0.3em]" />
+          <CodeInput className="input max-w-40 text-center text-xl tracking-[0.3em]" />
           <SubmitButton pendingText="Checking…">Confirm</SubmitButton>
         </form>
       )}

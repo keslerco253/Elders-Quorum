@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import { db } from "./db";
 import { sha256 } from "./auth-core";
 import { emailHtml, sendMail } from "./mail";
-import { sendSms, SMS_DISCLOSURE } from "./sms";
+import { codeTextFooter, sendSms, SMS_DISCLOSURE } from "./sms";
 import { formatContact, type ContactKind } from "./contact";
 import type { Member } from "./types";
 import { getWard } from "./wards";
@@ -24,7 +24,7 @@ export async function startContactVerification(member: Member, kind: ContactKind
   const appName = getWard(member.ward_id)?.name ?? "Elders Quorum";
   const sent =
     kind === "phone"
-      ? (await sendSms(member.ward_id, value, `${appName}: ${code} is your code to confirm this number for quorum texts. ${SMS_DISCLOSURE}`, "code")) === "sent"
+      ? (await sendSms(member.ward_id, value, `${appName}: ${code} is your code to confirm this number for quorum texts. ${SMS_DISCLOSURE}${codeTextFooter(code)}`, "code")) === "sent"
       : await sendMail({
           to: value,
           subject: `Confirm your email: ${code}`,

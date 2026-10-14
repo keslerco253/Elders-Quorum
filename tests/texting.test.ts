@@ -62,3 +62,18 @@ describe("texting", () => {
     expect(r2).toEqual({ push: 0, email: 1, text: 0, reached: 1 });
   });
 });
+
+describe("sign-in code texts", () => {
+  it("end with the app's address and the code, so phones offer it on the sign-in page", async () => {
+    process.env.APP_URL = "https://mywardlink.net";
+    const { db } = await import("@/lib/db");
+    db().exec("INSERT INTO members (id, ward_id, name, display_name, phone, contact_pref, sms_consent_at, last_login_at) VALUES (9, 1, 'C', 'Code Person', '+12085550109', 'text', datetime('now'), datetime('now'))");
+    const { sendLoginCode } = await import("@/lib/login-code");
+    const before = new Set(fs.readdirSync(path.join(dir, "outbox")));
+    await sendLoginCode(db().prepare("SELECT * FROM members WHERE id = 9").get() as never, "phone", "tok", "042517");
+    const file = fs.readdirSync(path.join(dir, "outbox")).find((f) => !before.has(f) && f.includes("5550109"))!;
+    const body = fs.readFileSync(path.join(dir, "outbox", file), "utf8").trim();
+    expect(body).toContain("042517 is your Test Ward EQ sign-in code");
+    expect(body.split("\n").pop()).toBe("@mywardlink.net #042517");
+  });
+});
