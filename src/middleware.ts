@@ -25,8 +25,14 @@ export function middleware(req: NextRequest) {
     res.cookies.set(ORG_COOKIE, org, { path: "/", maxAge: orgCookieMaxAge, sameSite: "lax", httpOnly: true, secure: url.protocol === "https:" });
     return res;
   }
-  // Visitors who aren't signed in see the home page that explains the app.
+  // Visitors who aren't signed in see the home page that explains the app;
+  // in the phone app (which says so in its user agent) they go to sign in.
   if (req.nextUrl.pathname === "/" && !req.cookies.has("eq_session")) {
+    if (req.headers.get("user-agent")?.includes("MyWardLinkApp")) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url, 307);
+    }
     const url = req.nextUrl.clone();
     url.pathname = "/about";
     return NextResponse.rewrite(url);
