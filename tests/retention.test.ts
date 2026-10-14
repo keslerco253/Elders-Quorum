@@ -9,8 +9,7 @@ const count = (t: string) => (d.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() 
 
 describe("privacy retention", () => {
   beforeEach(() => {
-    d = useTestDb();
-    d.exec(`
+    d = useTestDb(`
       INSERT INTO wards (id, name) VALUES (1, 'W');
       INSERT INTO members (id, ward_id, name, display_name, email, role, last_login_at) VALUES
         (1, 1, 'Pres', 'Pres', 'p@x', 'presidency', datetime('now')),
@@ -41,7 +40,7 @@ describe("privacy retention", () => {
 
   it("keeps active visit requests and deletes finished or very old ones", () => {
     d.exec(`
-      INSERT INTO visit_requests (ward_id, member_id, kind, status, created_at, updated_at, handled_by) VALUES
+      INSERT INTO visit_requests (org_id, member_id, kind, status, created_at, updated_at, handled_by) VALUES
         (1, 2, 'home', 'open', datetime('now', '-20 days'), datetime('now', '-20 days'), NULL),
         (1, 2, 'talk', 'done', datetime('now', '-50 days'), datetime('now', '-40 days'), 1),
         (1, 2, 'help', 'closed', datetime('now', '-10 days'), datetime('now', '-5 days'), 1),

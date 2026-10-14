@@ -12,7 +12,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       </div>
       <div className="w-full max-w-sm">{children}</div>
       <p className="mt-8 max-w-sm text-center text-xs text-muted">
-        An unofficial quorum app. Not an official website of The Church of Jesus Christ of Latter-day Saints. ·{" "}
+        An unofficial ward app. Not an official website of The Church of Jesus Christ of Latter-day Saints. ·{" "}
         <Link href="/privacy" className="underline">
           Privacy
         </Link>{" "}

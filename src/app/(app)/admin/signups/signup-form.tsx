@@ -46,7 +46,7 @@ export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
         </label>
       ) : (
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="announce" /> Send a notification to the quorum
+          <input type="checkbox" name="announce" /> Send a notification to everyone in the organization
         </label>
       )}
       <SubmitButton>Save sign-up</SubmitButton>

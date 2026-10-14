@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { endSession, requireUser } from "@/lib/auth";
-import { deleteAccount, isLastPresidency } from "@/lib/accounts";
+import { deleteAccount, onlyLeaderOf } from "@/lib/accounts";
 
 export async function setTheme(fd: FormData) {
   const user = await requireUser();
@@ -17,8 +17,10 @@ export async function setTheme(fd: FormData) {
 export async function deleteMyAccount(fd: FormData) {
   const user = await requireUser();
   if (fd.get("confirm") !== "DELETE") redirect("/more?msg=" + encodeURIComponent("Type DELETE to confirm."));
-  if (isLastPresidency(user.ward_id, user.id)) {
-    redirect("/more?msg=" + encodeURIComponent("You're the only presidency member. Give someone else presidency access first."));
+  const only = onlyLeaderOf(user.id);
+  if (only.length) {
+    const names = only.map((id) => user.orgs.find((o) => o.id === id)?.label ?? "an organization in another ward").join(", ");
+    redirect("/more?msg=" + encodeURIComponent(`You're the only presidency member of ${names}. Give someone else presidency access first.`));
   }
   await endSession();
   deleteAccount(user.id);

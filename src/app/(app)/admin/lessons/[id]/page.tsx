@@ -9,6 +9,7 @@ import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { askTeacher, assignTeacher, cancelTeachingRequest, deleteLesson, saveLesson } from "../actions";
+import { orgRoster } from "@/lib/orgs";
 
 export const metadata = { title: "Edit lesson" };
 
@@ -16,13 +17,13 @@ export default async function EditLessonPage({ params, searchParams }: { params:
   const user = await requireAdmin();
   const { id } = await params;
   const sp = await searchParams;
-  const lesson = getLesson(user.ward_id, Number(id));
+  const lesson = getLesson(user.org_id, Number(id));
   if (!lesson) notFound();
   const presidency = isPresidency(user);
   const volunteers = db()
     .prepare("SELECT m.id, m.display_name FROM lesson_volunteers v JOIN members m ON m.id = v.member_id WHERE v.lesson_id = ? ORDER BY v.created_at")
     .all(lesson.id) as { id: number; display_name: string }[];
-  const members = db().prepare("SELECT id, display_name FROM members WHERE ward_id = ? AND status = 'active' ORDER BY display_name").all(user.ward_id) as { id: number; display_name: string }[];
+  const members = orgRoster(user.org_id);
   const requests = presidency ? requestsForLesson(lesson.id) : [];
   const declines = presidency
     ? (db()

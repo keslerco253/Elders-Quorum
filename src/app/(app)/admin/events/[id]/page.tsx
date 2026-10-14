@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { getEvent } from "@/lib/events";
+import { getOrgEvent } from "@/lib/events";
 import { getSeries } from "@/lib/event-series";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -11,10 +11,10 @@ export const metadata = { title: "Edit event" };
 
 export default async function EditEventPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const user = await requireAdmin();
-  const e = getEvent(user, Number((await params).id));
+  const e = getOrgEvent(user, Number((await params).id));
   if (!e) notFound();
   const sp = await searchParams;
-  const series = getSeries(user.ward_id, e.series_id);
+  const series = getSeries(user.org_id, e.series_id);
   return (
     <>
       <PageHeader title="Edit event" back={{ href: `/calendar/${e.id}`, label: "Event" }} />

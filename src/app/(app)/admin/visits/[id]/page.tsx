@@ -7,6 +7,7 @@ import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { VisitForm } from "../visit-form";
 import { deleteVisit } from "../actions";
+import { orgRoster } from "@/lib/orgs";
 
 export const metadata = { title: "Edit visit" };
 
@@ -14,13 +15,15 @@ export default async function EditVisitPage({ params, searchParams }: { params: 
   const user = await requirePresidency();
   const id = Number((await params).id);
   const sp = await searchParams;
-  const v = db().prepare("SELECT * FROM visits WHERE id = ? AND ward_id = ?").get(id, user.ward_id) as VisitRow | undefined;
+  const v = db().prepare("SELECT * FROM visits WHERE id = ? AND org_id = ?").get(id, user.org_id) as VisitRow | undefined;
   if (!v) notFound();
   const visitors = (db().prepare("SELECT member_id FROM visit_visitors WHERE visit_id = ?").all(id) as { member_id: number }[]).map((r) => r.member_id);
-  const members = db().prepare("SELECT id, display_name FROM members WHERE ward_id = ? AND (status = 'active' OR id = ?) ORDER BY display_name").all(user.ward_id, v.member_id) as { id: number; display_name: string }[];
+  const members = orgRoster(user.org_id, { includeId: v.member_id });
   const presidency = db()
-    .prepare(`SELECT id, display_name FROM members WHERE ward_id = ? AND (role = 'presidency' OR id IN (${visitors.map(() => "?").join(",") || "NULL"})) ORDER BY display_name`)
-    .all(user.ward_id, ...visitors) as { id: number; display_name: string }[];
+    .prepare(
+      `SELECT id, display_name FROM members WHERE id IN (SELECT member_id FROM org_members WHERE org_id = ? AND role = 'presidency') OR id IN (${visitors.map(() => "?").join(",") || "NULL"}) ORDER BY display_name`,
+    )
+    .all(user.org_id, ...visitors) as { id: number; display_name: string }[];
   return (
     <>
       <PageHeader title="Edit visit" back={{ href: `/admin/visits?member=${v.member_id}`, label: "Visits" }} />

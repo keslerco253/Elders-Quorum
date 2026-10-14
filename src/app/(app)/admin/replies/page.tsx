@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { wardConversations } from "@/lib/conversations";
 import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, PageHeader, Section } from "@/components/ui";
+import { orgRoster } from "@/lib/orgs";
 
 export const metadata = { title: "Replies" };
 
@@ -13,12 +14,12 @@ export default async function RepliesPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   if (sp.to) redirect(`/admin/replies/${Number(sp.to)}`);
   const tz = user.ward.timezone;
-  const list = wardConversations(user.ward_id, user.id);
-  const members = db().prepare("SELECT id, display_name FROM members WHERE ward_id = ? AND status = 'active' ORDER BY display_name").all(user.ward_id) as { id: number; display_name: string }[];
+  const list = wardConversations(user.org_id, user.id);
+  const members = orgRoster(user.org_id);
 
   return (
     <>
-      <PageHeader title="Replies" back={{ href: "/admin", label: "Admin" }} subtitle="What members send the presidency, in the app or by text. Messages a member sent privately to one of you show only to that person." />
+      <PageHeader title="Replies" back={{ href: "/admin", label: "Admin" }} subtitle="What members send the leaders, in the app or by text. Messages a member sent privately to one of you show only to that person." />
       {list.length === 0 ? (
         <Empty>No replies yet.</Empty>
       ) : (

@@ -17,7 +17,7 @@ export default async function RequestEventPage({ searchParams }: { searchParams:
           <label className="label" htmlFor="title">
             What is it?
           </label>
-          <input id="title" name="title" required className="input" placeholder="e.g. Quorum basketball night" />
+          <input id="title" name="title" required className="input" placeholder="e.g. Ward basketball night" />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

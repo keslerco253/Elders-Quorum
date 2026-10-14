@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { deleteGroup, saveGroup } from "../../messages/actions";
+import { orgRoster } from "@/lib/orgs";
 
 export const metadata = { title: "Edit group" };
 
@@ -11,10 +12,10 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
   const user = await requireAdmin();
   const id = Number((await params).id);
   const sp = await searchParams;
-  const g = db().prepare("SELECT id, name FROM groups WHERE id = ? AND ward_id = ?").get(id, user.ward_id) as { id: number; name: string } | undefined;
+  const g = db().prepare("SELECT id, name FROM groups WHERE id = ? AND org_id = ?").get(id, user.org_id) as { id: number; name: string } | undefined;
   if (!g) notFound();
   const inGroup = new Set((db().prepare("SELECT member_id FROM group_members WHERE group_id = ?").all(id) as { member_id: number }[]).map((r) => r.member_id));
-  const members = db().prepare("SELECT id, display_name FROM members WHERE ward_id = ? AND status = 'active' ORDER BY display_name").all(user.ward_id) as { id: number; display_name: string }[];
+  const members = orgRoster(user.org_id);
   return (
     <>
       <PageHeader title={g.name} back={{ href: "/admin/groups", label: "Groups" }} />

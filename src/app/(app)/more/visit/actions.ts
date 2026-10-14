@@ -20,9 +20,9 @@ export async function requestVisit(fd: FormData) {
   const d = db();
   const active = d.prepare("SELECT 1 FROM visit_requests WHERE member_id = ? AND status IN ('open','scheduled')").get(user.id);
   if (active) back("You already have a request with the presidency. You can cancel it below and send a new one.");
-  d.prepare("INSERT INTO visit_requests (ward_id, member_id, kind, best_times, note) VALUES (?, ?, ?, ?, ?)").run(user.ward_id, user.id, kind, bestTimes, note);
+  d.prepare("INSERT INTO visit_requests (org_id, member_id, kind, best_times, note) VALUES (?, ?, ?, ?, ?)").run(user.org_id, user.id, kind, bestTimes, note);
   // The note can be personal, so it stays in the app and isn't put in the notification.
-  await notify(audienceMembers(user.ward_id, "presidency"), {
+  await notify(audienceMembers(user.org_id, "presidency"), {
     title: "Visit requested",
     body: `${user.display_name} would like ${kind === "home" ? "a visit" : kind === "talk" ? "to talk" : "some help"}.`,
     url: "/admin/visit-requests",
@@ -37,9 +37,9 @@ export async function cancelVisitRequest(fd: FormData) {
     .prepare("UPDATE visit_requests SET status = 'cancelled', updated_at = datetime('now') WHERE id = ? AND member_id = ? AND status IN ('open','scheduled')")
     .run(id, user.id);
   // A visit was already planned: take it off Upcoming visits and tell whoever was going.
-  const plan = r.changes ? planForRequest(user.ward_id, id) : undefined;
+  const plan = r.changes ? planForRequest(user.org_id, id) : undefined;
   if (plan) {
-    deletePlan(user.ward_id, plan.id);
+    deletePlan(user.org_id, plan.id);
     await notifyVisitorsOfCancel(plan);
   }
   back("Your request was cancelled.", true);

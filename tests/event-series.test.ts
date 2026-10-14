@@ -5,7 +5,7 @@ import { createSeries, endSeriesBefore, extendSeries, getSeries, type SeriesInpu
 
 let d: Database.Database;
 const base: SeriesInput = {
-  ward_id: 1,
+  org_id: 1,
   pattern: "monthly_nth",
   start_date: "2026-10-16",
   start_time: "19:00",
@@ -24,8 +24,7 @@ const events = (seriesId: number) => d.prepare("SELECT starts_at, ends_at, title
 
 describe("repeating event series", () => {
   beforeEach(() => {
-    d = useTestDb();
-    d.exec("INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise'); INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'P', 'p@x', 'presidency');");
+    d = useTestDb("INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise'); INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'P', 'p@x', 'presidency');");
   });
 
   it("creates the third Friday at 7 PM local time, a year ahead, through daylight saving", () => {
@@ -52,7 +51,7 @@ describe("repeating event series", () => {
 
   it("can turn an existing event into the first date of a series", () => {
     const first = Number(
-      d.prepare("INSERT INTO events (ward_id, title, starts_at, ends_at) VALUES (1, 'Ward temple night', '2026-10-17T01:00:00Z', '2026-10-17T03:00:00Z')").run().lastInsertRowid,
+      d.prepare("INSERT INTO events (org_id, title, starts_at, ends_at) VALUES (1, 'Ward temple night', '2026-10-17T01:00:00Z', '2026-10-17T03:00:00Z')").run().lastInsertRowid,
     );
     const id = createSeries({ ...base, max_count: 2 }, first);
     expect(events(id).map((e) => e.starts_at)).toEqual(["2026-10-17T01:00:00Z", "2026-11-21T02:00:00Z"]);

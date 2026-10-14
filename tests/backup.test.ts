@@ -20,11 +20,12 @@ describe("moving the app to another server", () => {
   it("restores a downloaded backup on a new server, with uploads", async () => {
     process.env.APP_URL = "https://old.example.ts.net";
     const { db } = await import("@/lib/db");
+    const { createWard } = await import("@/lib/orgs");
     db().exec(`
-      INSERT INTO wards (id, name) VALUES (1, 'Villas');
-      INSERT INTO members (id, ward_id, name, display_name, email, role, status) VALUES (1, 1, 'Pres', 'Pres', 'p@x', 'presidency', 'active');
+      INSERT INTO members (id, name, display_name, email, status) VALUES (1, 'Pres', 'Pres', 'p@x', 'active');
       INSERT INTO push_subscriptions (member_id, endpoint, p256dh, auth, created_at) VALUES (1, 'https://push/old', 'k', 'a', '2026-01-01 00:00:00');
     `);
+    createWard({ name: "Villas Ward", timezone: "America/Boise", creatorId: 1 });
     fs.mkdirSync(path.join(dir, "uploads"), { recursive: true });
     const pdf = "0123456789abcdef01234567.pdf";
     fs.writeFileSync(path.join(dir, "uploads", pdf), "%PDF-1.4 test");
@@ -32,7 +33,7 @@ describe("moving the app to another server", () => {
     const backup = await makeBackup();
 
     // A brand-new server: empty data folder, new address.
-    db().exec("DELETE FROM push_subscriptions; DELETE FROM members; DELETE FROM wards;");
+    db().exec("DELETE FROM push_subscriptions; DELETE FROM org_members; DELETE FROM ward_members; DELETE FROM orgs; DELETE FROM wards; DELETE FROM members;");
     fs.rmSync(path.join(dir, "uploads"), { recursive: true });
     process.env.APP_URL = "https://mywardlink.net";
 

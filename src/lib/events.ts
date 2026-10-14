@@ -14,11 +14,29 @@ export const REMINDER_OPTIONS: [number | null, string][] = [
   [10080, "1 week before"],
 ];
 
-/** Events the user may see between two UTC instants. */
-export function eventsBetween(user: CurrentUser, fromUtc: string, toUtc: string): EventRow[] {
+// Leaders-only events show only to that organization's presidency and admins.
+const VISIBLE = `(e.presidency_only = 0 OR EXISTS (SELECT 1 FROM org_members x WHERE x.org_id = e.org_id AND x.member_id = @viewer AND x.role <> 'member'))`;
+const EVENT_COLUMNS = "e.*, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS org_label, o.kind AS org_kind";
+const EVENT_FROM = "events e JOIN orgs o ON o.id = e.org_id JOIN wards w ON w.id = o.ward_id";
+
+/**
+ * Events a member may see between two UTC instants: everything in a ward (the
+ * ward calendar), only some organizations (filtered), or (joinedOnly) the
+ * organizations they belong to in every ward they're in (their subscription).
+ */
+export function eventsBetween(
+  viewerId: number,
+  fromUtc: string,
+  toUtc: string,
+  where: { wardId?: number; orgIds?: number[]; joinedOnly?: boolean } = {},
+): EventRow[] {
+  const conds = ["e.starts_at < @to", "e.ends_at >= @from", VISIBLE, "o.ward_id IN (SELECT ward_id FROM ward_members WHERE member_id = @viewer)"];
+  if (where.wardId) conds.push("o.ward_id = @ward");
+  if (where.orgIds?.length) conds.push(`e.org_id IN (${where.orgIds.map(Number).join(",")})`);
+  if (where.joinedOnly) conds.push("(o.kind = 'ward' OR EXISTS (SELECT 1 FROM org_members j WHERE j.org_id = e.org_id AND j.member_id = @viewer))");
   return db()
-    .prepare(`SELECT * FROM events WHERE ward_id = ? AND starts_at < ? AND ends_at >= ? ${isAdmin(user) ? "" : "AND presidency_only = 0"} ORDER BY starts_at`)
-    .all(user.ward_id, toUtc, fromUtc) as EventRow[];
+    .prepare(`SELECT ${EVENT_COLUMNS} FROM ${EVENT_FROM} WHERE ${conds.join(" AND ")} ORDER BY e.starts_at`)
+    .all({ viewer: viewerId, from: fromUtc, to: toUtc, ward: where.wardId ?? 0 }) as EventRow[];
 }
 
 /** The "Add to Apple / Outlook calendar" link. It works without signing in, because iPhone opens it outside the installed app. */
@@ -30,10 +48,18 @@ export function validIcsToken(eventId: number, memberId: number, token: string) 
   return validToken(`ics:${eventId}:${memberId}`, token);
 }
 
-export function getEvent(user: CurrentUser, id: number): EventRow | undefined {
+/** An event in any of the member's wards that they may see. */
+export function getEvent(viewerId: number, id: number): EventRow | undefined {
   return db()
-    .prepare(`SELECT * FROM events WHERE id = ? AND ward_id = ? ${isAdmin(user) ? "" : "AND presidency_only = 0"}`)
-    .get(id, user.ward_id) as EventRow | undefined;
+    .prepare(`SELECT ${EVENT_COLUMNS} FROM ${EVENT_FROM} WHERE e.id = @id AND ${VISIBLE} AND o.ward_id IN (SELECT ward_id FROM ward_members WHERE member_id = @viewer)`)
+    .get({ id, viewer: viewerId }) as EventRow | undefined;
+}
+
+/** An event of the organization being managed (for its leaders' edit pages). */
+export function getOrgEvent(user: CurrentUser, id: number): EventRow | undefined {
+  return db()
+    .prepare(`SELECT ${EVENT_COLUMNS} FROM ${EVENT_FROM} WHERE e.id = ? AND e.org_id = ? ${isAdmin(user) ? "" : "AND e.presidency_only = 0"}`)
+    .get(id, user.org_id) as EventRow | undefined;
 }
 
 const gcal = (iso: string) => DateTime.fromISO(iso, { zone: "utc" }).toFormat("yyyyLLdd'T'HHmmss'Z'");

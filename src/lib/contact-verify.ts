@@ -6,7 +6,7 @@ import { emailHtml, sendMail } from "./mail";
 import { codeTextFooter, sendSms, SMS_DISCLOSURE } from "./sms";
 import { formatContact, type ContactKind } from "./contact";
 import type { Member } from "./types";
-import { getWard } from "./wards";
+import { homeOf } from "./orgs";
 
 const hashFor = (memberId: number, kind: ContactKind, value: string, code: string) => sha256(`${memberId}:${kind}:${value}:${code}`);
 
@@ -21,10 +21,11 @@ export async function startContactVerification(member: Member, kind: ContactKind
       .prepare("INSERT INTO contact_verifications (member_id, kind, value, code_hash, expires_at) VALUES (?, ?, ?, ?, ?)")
       .run(member.id, kind, value, hashFor(member.id, kind, value, code), DateTime.utc().plus({ minutes: 20 }).toISO()).lastInsertRowid,
   );
-  const appName = getWard(member.ward_id)?.name ?? "Elders Quorum";
+  const home = homeOf(member.id);
+  const appName = home.name;
   const sent =
     kind === "phone"
-      ? (await sendSms(member.ward_id, value, `${appName}: ${code} is your code to confirm this number for quorum texts. ${SMS_DISCLOSURE}${codeTextFooter(code)}`, "code")) === "sent"
+      ? (await sendSms(home.orgId, value, `${appName}: ${code} is your code to confirm this number for ward texts. ${SMS_DISCLOSURE}${codeTextFooter(code)}`, "code")) === "sent"
       : await sendMail({
           to: value,
           subject: `Confirm your email: ${code}`,

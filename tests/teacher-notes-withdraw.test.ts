@@ -8,8 +8,7 @@ process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "eq-notes-withdraw-
 describe("teacher notes when the teacher withdraws", () => {
   let d: import("better-sqlite3").Database;
   beforeAll(async () => {
-    d = (await import("@/lib/db")).useTestDb();
-    d.exec(`
+    d = (await import("@/lib/db")).useTestDb(`
       INSERT INTO wards (id, name) VALUES (1, 'W');
       INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES
         (1, 1, 'P', 'Pres', 'p@test.local', 'presidency'),
@@ -21,18 +20,20 @@ describe("teacher notes when the teacher withdraws", () => {
 
   it("removes the teacher's own notes, but not notes someone else wrote", async () => {
     const { declineTeaching } = await import("@/lib/teaching");
-    await declineTeaching({ id: 2, display_name: "Teacher" }, { id: 1, ward_id: 1, date: "2030-03-03", title: "Abide", teacher_id: 2 }, "Out of town");
+    await declineTeaching({ id: 2, display_name: "Teacher" }, { id: 1, org_id: 1, date: "2030-03-03", title: "Abide", teacher_id: 2 }, "Out of town");
     expect(d.prepare("SELECT COUNT(*) AS n FROM lesson_notes WHERE lesson_id = 1").get()).toEqual({ n: 0 });
-    await declineTeaching({ id: 2, display_name: "Teacher" }, { id: 2, ward_id: 1, date: "2030-03-10", title: "Hope", teacher_id: 2 }, "");
+    await declineTeaching({ id: 2, display_name: "Teacher" }, { id: 2, org_id: 1, date: "2030-03-10", title: "Hope", teacher_id: 2 }, "");
     expect(d.prepare("SELECT body FROM lesson_notes WHERE lesson_id = 2").get()).toEqual({ body: "Written by the presidency" });
   });
 });
 
 describe("one-time clean-up of leftover notes", () => {
   it("removes notes from people who aren't teaching the lesson any more, keeps leaders' and current teachers'", async () => {
-    const { useTestDb } = await import("@/lib/db");
+    const { migrate } = await import("@/lib/db");
     const { migrations } = await import("@/lib/db/migrations");
-    const d = useTestDb();
+    const Database = (await import("better-sqlite3")).default;
+    const d = new Database(":memory:");
+    migrate(d, 18);
     d.exec(`
       INSERT INTO wards (id, name) VALUES (1, 'W');
       INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES

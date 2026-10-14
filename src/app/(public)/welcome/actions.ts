@@ -19,7 +19,7 @@ export async function acceptWelcome(fd: FormData) {
   if (user.email && user.phone && phoneOptInVisible()) allowed.push("both");
   const pref = String(fd.get("pref") || "none") as ContactPref;
   if (!allowed.includes(pref)) back("Choose how we should reach you.");
-  // Choosing Text or Both on this screen, with the disclosure beside it, is their consent to quorum texts.
+  // Choosing Text or Both on this screen, with the disclosure beside it, is their consent to ward texts.
   const texts = pref === "text" || pref === "both";
   db()
     .prepare(

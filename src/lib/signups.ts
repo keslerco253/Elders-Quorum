@@ -2,7 +2,7 @@ import { db } from "./db";
 
 export interface Signup {
   id: number;
-  ward_id: number;
+  org_id: number;
   title: string;
   description: string;
   date: string | null;
@@ -16,20 +16,20 @@ export interface Slot {
   entries: { member_id: number; display_name: string; note: string }[];
 }
 
-export function listSignups(wardId: number, includeClosed: boolean, today: string) {
+export function listSignups(orgId: number, includeClosed: boolean, today: string) {
   return db()
     .prepare(
       `SELECT s.*,
         (SELECT COALESCE(SUM(capacity), 0) FROM signup_slots WHERE signup_id = s.id) AS capacity,
         (SELECT COUNT(*) FROM signup_entries e JOIN signup_slots sl ON sl.id = e.slot_id WHERE sl.signup_id = s.id) AS taken
-       FROM signups s WHERE s.ward_id = ? ${includeClosed ? "" : "AND s.closed = 0 AND (s.date IS NULL OR s.date >= ?)"}
+       FROM signups s WHERE s.org_id = ? ${includeClosed ? "" : "AND s.closed = 0 AND (s.date IS NULL OR s.date >= ?)"}
        ORDER BY s.closed, s.date IS NULL, s.date, s.id DESC`,
     )
-    .all(...(includeClosed ? [wardId] : [wardId, today])) as (Signup & { capacity: number; taken: number })[];
+    .all(...(includeClosed ? [orgId] : [orgId, today])) as (Signup & { capacity: number; taken: number })[];
 }
 
-export function getSignup(wardId: number, id: number) {
-  const s = db().prepare("SELECT * FROM signups WHERE id = ? AND ward_id = ?").get(id, wardId) as Signup | undefined;
+export function getSignup(orgId: number, id: number) {
+  const s = db().prepare("SELECT * FROM signups WHERE id = ? AND org_id = ?").get(id, orgId) as Signup | undefined;
   if (!s) return undefined;
   const slots = db().prepare("SELECT id, label, capacity FROM signup_slots WHERE signup_id = ? ORDER BY position, id").all(id) as Omit<Slot, "entries">[];
   const entries = db()

@@ -32,7 +32,7 @@ export function submitNotes(lessonId: number, authorId: number, body: string) {
 
 /**
  * Publishes the current draft. Returns true the first time a lesson's notes
- * are published, which is when the quorum gets a notification.
+ * are published, which is when everyone gets a notification.
  */
 export function publishNotes(lessonId: number, reviewerId: number): boolean {
   const d = db();

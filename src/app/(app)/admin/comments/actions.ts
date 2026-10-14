@@ -17,9 +17,9 @@ export async function moderateComment(fd: FormData) {
   db()
     .prepare(
       `UPDATE comments SET status = ?, reviewed_by = ?, reviewed_at = datetime('now')
-       WHERE id = ? AND lesson_id IN (SELECT id FROM lessons WHERE ward_id = ?)`,
+       WHERE id = ? AND lesson_id IN (SELECT id FROM lessons WHERE org_id = ?)`,
     )
-    .run(status, user.id, id, user.ward_id);
+    .run(status, user.id, id, user.org_id);
   revalidatePath("/admin/comments");
   revalidatePath("/lessons", "layout");
   redirect(safeReturn(fd.get("return")));
@@ -30,9 +30,9 @@ export async function approveAll() {
   db()
     .prepare(
       `UPDATE comments SET status = 'approved', reviewed_by = ?, reviewed_at = datetime('now')
-       WHERE status = 'pending' AND lesson_id IN (SELECT id FROM lessons WHERE ward_id = ?)`,
+       WHERE status = 'pending' AND lesson_id IN (SELECT id FROM lessons WHERE org_id = ?)`,
     )
-    .run(user.id, user.ward_id);
+    .run(user.id, user.org_id);
   revalidatePath("/admin/comments");
   redirect("/admin/comments?msg=All%20comments%20approved.");
 }

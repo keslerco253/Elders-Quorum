@@ -3,6 +3,37 @@
 Everything below is under **Admin** (top of the screen) unless noted.
 A red number on **Admin** means something is waiting for you.
 
+## Wards and organizations
+
+The app holds **wards**, and each ward has **organizations** (Elders Quorum,
+Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
+
+- **Switching:** tap the name at the top left to switch organization (or
+  ward). Lessons, sign-ups, messages and admin tools are for the organization
+  you're looking at. Everyone in the ward can look at every organization.
+- **Leaders are per organization.** Someone's role (Member, Admin,
+  Presidency/Bishopric) and calling are set separately in each organization,
+  under Admin → Members. Private messages, visits, replies and to-dos stay
+  inside their organization: other organizations' leaders, and the bishopric,
+  don't see them.
+- **Joining:** everyone joins a ward with its **join code** (Admin → Settings
+  while looking at the ward). Then each person chooses, under **More → My
+  organizations**, which organizations they belong to and which they get
+  notifications from. Leaders can also add someone from Admin → Members.
+- **Adding an organization (bishopric):** switch to the ward, then Admin →
+  Settings → Organizations → Add an organization. Pick its president if you
+  like; they add their counselors and secretary from Members. Each
+  organization can turn off features it doesn't use (lessons, plans,
+  sign-ups, visits, to-dos) in its own Settings.
+- **Calendar:** one ward calendar with every organization's events. The chips
+  at the top show one organization at a time. "Leaders only" events show only
+  to that organization's leaders.
+- **Texts** name the ward and organization ("Villas Ward Relief Society:
+  ..."). The monthly text limit is for the whole ward. A member's texted reply
+  goes to the organization that last texted them.
+- **Another ward:** someone serving in two wards enters the second ward's join
+  code under More → My organizations, then switches between them at the top.
+
 ## After each General Conference: set up six months of lessons
 
 1. **Admin → Lessons → 1. Add Sundays**: start date = the Sunday after

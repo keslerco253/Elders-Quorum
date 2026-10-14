@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { contactLabel, inbox, markAnswersRead, memberConversation, presidencyContacts } from "@/lib/conversations";
+import { contactLabel, inbox, markAnswersRead, memberConversation, orgsWithUnreadAnswers, presidencyContacts } from "@/lib/conversations";
+import { leadersWord, roleLabel } from "@/lib/types";
 import { formatDateTime } from "@/lib/time";
 import { Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -14,11 +15,13 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const user = await requireUser();
   const sp = await searchParams;
   const tz = user.ward.timezone;
-  const messages = inbox(user.id);
+  const messages = inbox(user.id, user.org_id);
+  const leaders = leadersWord(user.org);
   const replyingTo = messages.find((m) => m.id === Number(sp.re));
-  const thread = memberConversation(user.id);
-  markAnswersRead(user.id);
-  const contacts = presidencyContacts(user.ward_id);
+  const thread = memberConversation(user.id, user.org_id);
+  markAnswersRead(user.id, user.org_id);
+  const elsewhere = orgsWithUnreadAnswers(user.id).filter((id) => id !== user.org_id);
+  const contacts = presidencyContacts(user.org_id);
   // Default "Send to": whoever they asked for, else keep a private conversation private.
   const last = thread[thread.length - 1];
   const wanted = Number(sp.to) || (!replyingTo && last?.recipient_id) || 0;
@@ -26,10 +29,24 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader title="Messages" subtitle="Messages from the quorum, and your private conversation with the presidency." />
+      <PageHeader title="Messages" subtitle={`Messages from ${user.orgLabel}, and your private conversation with its ${leaders}.`} />
+      {elsewhere.length > 0 && (
+        <p className="mb-4 rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent">
+          New messages in{" "}
+          {elsewhere.map((id, i) => (
+            <span key={id}>
+              {i > 0 && ", "}
+              <a className="link font-semibold" href={`/messages?org=${id}`}>
+                {user.orgs.find((o) => o.id === id)?.label ?? "another ward"}
+              </a>
+            </span>
+          ))}
+          .
+        </p>
+      )}
 
       <div id="conversation" className="scroll-mt-20">
-        <Section title="You and the presidency">
+        <Section title={`You and the ${leaders}`}>
           <Flash msg={sp.msg} tone={sp.ok ? "success" : "warn"} />
           {thread.length > 0 && (
             <ul className="mb-3 space-y-2">
@@ -40,7 +57,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                     {c.message_title && <div className="mb-0.5 text-xs opacity-80">Re: {c.message_title}</div>}
                     <div className="whitespace-pre-wrap">{c.body}</div>
                     <div className="mt-1 text-[11px] opacity-70">
-                      {c.direction === "out" ? `${c.author_name ?? "Presidency"} · ` : c.via === "text" ? "You, by text · " : ""}
+                      {c.direction === "out" ? `${c.author_name ?? roleLabel("presidency", user.org)} · ` : c.via === "text" ? "You, by text · " : ""}
                       {formatDateTime(c.created_at, tz, "LLL d, h:mm a")}
                     </div>
                   </div>
@@ -67,14 +84,14 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                 Send to
               </label>
               <select id="to" name="to" className="input" defaultValue={defaultTo}>
-                <option value={0}>The whole presidency</option>
+                <option value={0}>The whole {leaders}</option>
                 {contacts.map((c) => (
                   <option key={c.id} value={c.id}>
-                    Only {contactLabel(c)}
+                    Only {contactLabel(c, user.org)}
                   </option>
                 ))}
               </select>
-              <p className="hint">Choose one person to keep it private: the rest of the presidency won&apos;t see it.</p>
+              <p className="hint">Choose one person to keep it private: the rest of the {leaders} won&apos;t see it.</p>
             </div>
             <label className="label" htmlFor="body">
               {replyingTo ? "Your reply" : "Message"}
@@ -88,7 +105,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         </Section>
       </div>
 
-      <Section title="From the quorum">
+      <Section title={`From ${user.orgLabel}`}>
         {messages.length === 0 ? (
           <Empty>No messages yet.</Empty>
         ) : (

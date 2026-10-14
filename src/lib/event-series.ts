@@ -1,6 +1,7 @@
 import { DateTime } from "luxon";
 import { db } from "./db";
 import { occurrenceDates, type Pattern, type Recurrence } from "./recurrence";
+import { orgTimezone } from "./orgs";
 
 // Repeating events are stored as a series plus one ordinary event per date.
 // Dates are created a year ahead; the daily scheduler keeps extending series
@@ -10,7 +11,7 @@ export const HORIZON_DAYS = 365;
 
 export interface SeriesRow {
   id: number;
-  ward_id: number;
+  org_id: number;
   pattern: Pattern;
   start_date: string;
   start_time: string;
@@ -36,31 +37,29 @@ export const recurrenceOf = (s: Pick<SeriesRow, "pattern" | "start_date" | "unti
   count: s.max_count,
 });
 
-export function getSeries(wardId: number, id: number | null | undefined): SeriesRow | undefined {
+export function getSeries(orgId: number, id: number | null | undefined): SeriesRow | undefined {
   if (!id) return undefined;
-  return db().prepare("SELECT * FROM event_series WHERE id = ? AND ward_id = ?").get(id, wardId) as SeriesRow | undefined;
+  return db().prepare("SELECT * FROM event_series WHERE id = ? AND org_id = ?").get(id, orgId) as SeriesRow | undefined;
 }
 
-function tzOf(wardId: number) {
-  return (db().prepare("SELECT timezone FROM wards WHERE id = ?").get(wardId) as { timezone: string } | undefined)?.timezone ?? "America/Boise";
-}
+const tzOf = orgTimezone;
 
 /** Creates the series' events after generated_until, up to the horizon. Returns how many were added. */
-export function extendSeries(s: SeriesRow, today = DateTime.now().setZone(tzOf(s.ward_id)).toISODate()!): number {
-  const tz = tzOf(s.ward_id);
+export function extendSeries(s: SeriesRow, today = DateTime.now().setZone(tzOf(s.org_id)).toISODate()!): number {
+  const tz = tzOf(s.org_id);
   const to = DateTime.fromISO(today).plus({ days: HORIZON_DAYS }).toISODate()!;
   const from = s.generated_until ? DateTime.fromISO(s.generated_until).plus({ days: 1 }).toISODate()! : s.start_date;
   if (from > to) return 0;
   const d = db();
   const ins = d.prepare(
-    "INSERT INTO events (ward_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, created_by, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, created_by, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const dates = occurrenceDates(recurrenceOf(s), from, to);
   d.transaction(() => {
     for (const date of dates) {
       const start = DateTime.fromISO(`${date}T${s.start_time}`, { zone: tz });
       ins.run(
-        s.ward_id,
+        s.org_id,
         s.title,
         s.description,
         s.location,
@@ -84,11 +83,11 @@ export function createSeries(input: SeriesInput, firstEventId?: number): number 
   const id = Number(
     d
       .prepare(
-        `INSERT INTO event_series (ward_id, pattern, start_date, start_time, duration_minutes, until_date, max_count, title, description, location, presidency_only, rsvp_enabled, reminder_minutes, created_by, generated_until)
+        `INSERT INTO event_series (org_id, pattern, start_date, start_time, duration_minutes, until_date, max_count, title, description, location, presidency_only, rsvp_enabled, reminder_minutes, created_by, generated_until)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
-        input.ward_id,
+        input.org_id,
         input.pattern,
         input.start_date,
         input.start_time,
@@ -106,7 +105,7 @@ export function createSeries(input: SeriesInput, firstEventId?: number): number 
       ).lastInsertRowid,
   );
   if (firstEventId) d.prepare("UPDATE events SET series_id = ? WHERE id = ?").run(id, firstEventId);
-  extendSeries(getSeries(input.ward_id, id)!);
+  extendSeries(getSeries(input.org_id, id)!);
   return id;
 }
 

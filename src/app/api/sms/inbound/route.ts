@@ -2,6 +2,7 @@ import { AUTO_REPLIES, handleInboundText, inboundUrl, validTwilioSignature } fro
 import { db } from "@/lib/db";
 import { normalizePhone } from "@/lib/contact";
 import { twilioConfigured } from "@/lib/sms";
+import { homeOf } from "@/lib/orgs";
 
 // Twilio posts here when someone texts the app's number ("A message comes in" webhook).
 // The empty reply means Twilio sends nothing back to the member.
@@ -26,8 +27,11 @@ export async function POST(req: Request) {
   const reply = AUTO_REPLIES[result];
   if (!reply) return EMPTY.clone();
   // The confirmation text back counts toward the monthly limit like any other.
-  const ward = db().prepare("SELECT ward_id FROM members WHERE phone = ? AND status = 'active' LIMIT 1").get(normalizePhone(params.From || "") ?? "") as { ward_id: number } | undefined;
-  if (ward && twilioConfigured()) db().prepare("INSERT INTO sms_log (ward_id, kind) VALUES (?, 'notice')").run(ward.ward_id);
+  const m = db().prepare("SELECT id, last_text_org_id FROM members WHERE phone = ? AND status = 'active' LIMIT 1").get(normalizePhone(params.From || "") ?? "") as
+    | { id: number; last_text_org_id: number | null }
+    | undefined;
+  const orgId = m ? (m.last_text_org_id ?? homeOf(m.id).orgId) : null;
+  if (orgId && twilioConfigured()) db().prepare("INSERT INTO sms_log (org_id, kind) VALUES (?, 'notice')").run(orgId);
   const xml = reply.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response><Message>${xml}</Message></Response>`, { headers: { "content-type": "text/xml" } });
 }

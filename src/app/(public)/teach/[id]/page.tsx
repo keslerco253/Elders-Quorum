@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/time";
-import { getWard } from "@/lib/wards";
+import { orgTimezone } from "@/lib/orgs";
 import { lessonForTeacher, validTeachToken } from "@/lib/teaching";
 import { SubmitButton } from "@/components/client";
 import { respondTeaching } from "./actions";
@@ -30,7 +30,7 @@ export default async function TeachReplyPage({ params, searchParams }: { params:
 
   const teacherId = lesson?.teacher_id ?? 0;
   const valid = !!lesson && !!teacherId && validTeachToken(id, teacherId, token);
-  const today = lesson ? new Date().toLocaleDateString("en-CA", { timeZone: getWard(lesson.ward_id)?.timezone ?? "America/Boise" }) : "";
+  const today = lesson ? new Date().toLocaleDateString("en-CA", { timeZone: orgTimezone(lesson.org_id) }) : "";
   if (!valid || !lesson || lesson.date < today) {
     return (
       <div className="card space-y-3 text-center">

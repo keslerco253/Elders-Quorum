@@ -7,30 +7,50 @@ import { eventsBetween } from "@/lib/events";
 import { upcomingLessons } from "@/lib/lessons";
 import { getNotes } from "@/lib/lesson-notes";
 import { listSignups } from "@/lib/signups";
-import { currentLessonDate, formatDate, formatDateTime, todayIn } from "@/lib/time";
+import {
+  currentLessonDate,
+  formatDate,
+  formatDateTime,
+  todayIn,
+} from "@/lib/time";
 import { Badge, Section } from "@/components/ui";
 import { conferenceLabel, DateChip } from "@/components/lesson-bits";
 import { QuickLinks } from "@/components/quick-links";
 import { PushToggle } from "@/components/push-toggle";
 import { askPath, pendingRequestsFor } from "@/lib/teaching-requests";
 import { invitePath, pendingInvitesFor, whenText } from "@/lib/planned-visits";
+import { hasFeature } from "@/lib/orgs";
 
 export default async function HomePage() {
   const user = await requireUser();
   const tz = user.ward.timezone;
   const today = todayIn(tz);
-  const lessons = upcomingLessons(user.ward_id, currentLessonDate(tz), 3);
+  const lessons = upcomingLessons(user.org_id, currentLessonDate(tz), 3);
   const [next, ...later] = lessons;
   const nextHasNotes = !!(next && getNotes(next.id)?.published_body);
   const now = DateTime.now();
-  const events = eventsBetween(user, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!).slice(0, 4);
-  const signups = listSignups(user.ward_id, false, today).slice(0, 3);
+  // This organization's events and the ward's.
+  const wardOrgId = user.orgs.find((o) => o.kind === "ward")?.id;
+  const events = eventsBetween(
+    user.id,
+    now.toUTC().toISO()!,
+    now.plus({ days: 45 }).toUTC().toISO()!,
+    {
+      wardId: user.ward_id,
+      orgIds: [user.org_id, ...(wardOrgId ? [wardOrgId] : [])],
+    },
+  ).slice(0, 4);
+  const signups = listSignups(user.org_id, false, today).slice(0, 3);
   const pending = adminCounts(user).total;
   const asks = pendingRequestsFor(user.id, today);
   const invites = pendingInvitesFor(user.id, today);
   const hour = DateTime.now().setZone(tz).hour;
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const first = firstName(user.display_name);
+  // New to the ward: hasn't chosen any of its organizations yet.
+  const groups = user.orgs.filter((o) => o.kind === "group");
+  const chooseOrgs = groups.length > 0 && !groups.some((o) => o.joined);
 
   return (
     <>
@@ -40,76 +60,139 @@ export default async function HomePage() {
       <p className="mb-5 text-sm text-muted">{formatDate(today)}</p>
 
       {pending > 0 && (
-        <Link href="/admin" className="mb-5 flex items-center justify-between rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
-          {pending} item{pending === 1 ? "" : "s"} waiting for your approval <span>›</span>
+        <Link
+          href="/admin"
+          className="mb-5 flex items-center justify-between rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
+        >
+          {pending} item{pending === 1 ? "" : "s"} waiting for your approval{" "}
+          <span>›</span>
         </Link>
       )}
 
       {invites.map((p) => (
-        <Link key={p.id} href={invitePath(p)} className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">
+        <Link
+          key={p.id}
+          href={invitePath(p)}
+          className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent"
+        >
           <span>
-            <span className="block font-semibold">The presidency would love to visit you</span>
+            <span className="block font-semibold">
+              The {user.orgs.find((o) => o.id === p.org_id)?.label ?? ""}{" "}
+              {user.orgs.find((o) => o.id === p.org_id)?.kind === "ward"
+                ? "bishopric"
+                : "presidency"}{" "}
+              would love to visit you
+            </span>
             {whenText(p.date, p.time)}. Tap to reply.
           </span>
           <span>›</span>
         </Link>
       ))}
       {asks.map((r) => (
-        <Link key={r.id} href={askPath(r)} className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">
+        <Link
+          key={r.id}
+          href={askPath(r)}
+          className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent"
+        >
           <span>
-            <span className="block font-semibold">Will you teach on {formatDate(r.lesson_date, "short")}?</span>
-            {r.asked_by_name ?? "The presidency"} asked{r.lesson_title ? ` about "${r.lesson_title}"` : ""}. Tap to answer.
+            <span className="block font-semibold">
+              Will you teach on {formatDate(r.lesson_date, "short")}?
+            </span>
+            {r.asked_by_name ?? "The presidency"} asked
+            {r.lesson_title ? ` about "${r.lesson_title}"` : ""}. Tap to answer.
           </span>
           <span>›</span>
         </Link>
       ))}
 
+      {chooseOrgs && (
+        <Link href="/more/organizations" className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">
+          <span>
+            <span className="block font-semibold">Which organizations are you in?</span>
+            Choose them to get their reminders and messages. Tap to choose.
+          </span>
+          <span>›</span>
+        </Link>
+      )}
+
       <div className="mb-5">
         <PushToggle compact />
       </div>
 
-      <Section
-        title={next && next.date === today ? "Today" : "This Sunday"}
-        actions={
-          <Link href="/lessons" className="link text-sm">
-            All lessons
-          </Link>
-        }
-      >
-        {next ? (
-          <Link href={`/lessons/${next.id}`} className="card flex gap-4 hover:bg-surface-2">
-            <DateChip date={next.date} highlight />
-            <div className="min-w-0 flex-1">
-              {conferenceLabel(next.kind) ? (
-                <div className="font-semibold">{conferenceLabel(next.kind)}: no quorum lesson</div>
-              ) : (
-                <>
-                  <div className="font-semibold">{next.title || "Talk to be announced"}</div>
-                  {next.speaker && <div className="text-sm text-muted">{next.speaker}</div>}
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                    {next.teacher_name ? <span className="text-muted">Teacher: {next.teacher_name}</span> : <Badge tone="warn">Teacher needed</Badge>}
-                    {nextHasNotes && <Badge tone="info">Teacher&apos;s notes posted</Badge>}
-                    {next.comment_count > 0 && <span className="text-muted">· {next.comment_count} comments</span>}
+      {hasFeature(user.org, "lessons") && (
+        <Section
+          title={next && next.date === today ? "Today" : "This Sunday"}
+          actions={
+            <Link href="/lessons" className="link text-sm">
+              All lessons
+            </Link>
+          }
+        >
+          {next ? (
+            <Link
+              href={`/lessons/${next.id}`}
+              className="card flex gap-4 hover:bg-surface-2"
+            >
+              <DateChip date={next.date} highlight />
+              <div className="min-w-0 flex-1">
+                {conferenceLabel(next.kind) ? (
+                  <div className="font-semibold">
+                    {conferenceLabel(next.kind)}: no {user.orgLabel} lesson
                   </div>
-                  <div className="mt-3 text-sm font-semibold text-accent">Study and share your thoughts ›</div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div className="font-semibold">
+                      {next.title || "Talk to be announced"}
+                    </div>
+                    {next.speaker && (
+                      <div className="text-sm text-muted">{next.speaker}</div>
+                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                      {next.teacher_name ? (
+                        <span className="text-muted">
+                          Teacher: {next.teacher_name}
+                        </span>
+                      ) : (
+                        <Badge tone="warn">Teacher needed</Badge>
+                      )}
+                      {nextHasNotes && (
+                        <Badge tone="info">Teacher&apos;s notes posted</Badge>
+                      )}
+                      {next.comment_count > 0 && (
+                        <span className="text-muted">
+                          · {next.comment_count} comments
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-3 text-sm font-semibold text-accent">
+                      Study and share your thoughts ›
+                    </div>
+                  </>
+                )}
+              </div>
+            </Link>
+          ) : (
+            <div className="card text-sm text-muted">No lesson posted yet.</div>
+          )}
+          {later.length > 0 && (
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {later.map((l) => (
+                <Link
+                  key={l.id}
+                  href={`/lessons/${l.id}`}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-sm hover:bg-surface-2"
+                >
+                  <DateChip date={l.date} />
+                  <span className="min-w-0 flex-1 truncate">
+                    {conferenceLabel(l.kind) ??
+                      (l.title || "Talk to be announced")}
+                  </span>
+                </Link>
+              ))}
             </div>
-          </Link>
-        ) : (
-          <div className="card text-sm text-muted">No lesson posted yet.</div>
-        )}
-        {later.length > 0 && (
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {later.map((l) => (
-              <Link key={l.id} href={`/lessons/${l.id}`} className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-sm hover:bg-surface-2">
-                <DateChip date={l.date} />
-                <span className="min-w-0 flex-1 truncate">{conferenceLabel(l.kind) ?? (l.title || "Talk to be announced")}</span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </Section>
+          )}
+        </Section>
+      )}
 
       <Section
         title="Coming up"
@@ -120,12 +203,17 @@ export default async function HomePage() {
         }
       >
         {events.length === 0 ? (
-          <div className="card text-sm text-muted">Nothing on the calendar in the next few weeks.</div>
+          <div className="card text-sm text-muted">
+            Nothing on the calendar in the next few weeks.
+          </div>
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
             {events.map((e) => (
               <li key={e.id}>
-                <Link href={`/calendar/${e.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
+                <Link
+                  href={`/calendar/${e.id}`}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2"
+                >
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{e.title}</div>
                     <div className="text-sm text-muted">
@@ -133,7 +221,7 @@ export default async function HomePage() {
                       {e.location && ` · ${e.location}`}
                     </div>
                   </div>
-                  {!!e.presidency_only && <Badge tone="warn">Presidency</Badge>}
+                  {!!e.presidency_only && <Badge tone="warn">Leaders only</Badge>}
                 </Link>
               </li>
             ))}
@@ -153,12 +241,23 @@ export default async function HomePage() {
           <ul className="space-y-2">
             {signups.map((s) => (
               <li key={s.id}>
-                <Link href={`/signups/${s.id}`} className="card flex items-center justify-between gap-3 hover:bg-surface-2">
+                <Link
+                  href={`/signups/${s.id}`}
+                  className="card flex items-center justify-between gap-3 hover:bg-surface-2"
+                >
                   <span>
                     <span className="block font-medium">{s.title}</span>
-                    {s.date && <span className="text-sm text-muted">{formatDate(s.date, "short")}</span>}
+                    {s.date && (
+                      <span className="text-sm text-muted">
+                        {formatDate(s.date, "short")}
+                      </span>
+                    )}
                   </span>
-                  {s.taken < s.capacity ? <Badge tone="info">{s.capacity - s.taken} open</Badge> : <Badge tone="success">Full</Badge>}
+                  {s.taken < s.capacity ? (
+                    <Badge tone="info">{s.capacity - s.taken} open</Badge>
+                  ) : (
+                    <Badge tone="success">Full</Badge>
+                  )}
                 </Link>
               </li>
             ))}
@@ -166,10 +265,15 @@ export default async function HomePage() {
         </Section>
       )}
 
-      <Link href="/more/visit" className="card mb-6 flex items-center justify-between gap-3 hover:bg-surface-2">
+      <Link
+        href="/more/visit"
+        className="card mb-6 flex items-center justify-between gap-3 hover:bg-surface-2"
+      >
         <span>
           <span className="block font-medium">Would you like a visit?</span>
-          <span className="text-sm text-muted">Ask the presidency to come by, talk, or help.</span>
+          <span className="text-sm text-muted">
+            Ask the presidency to come by, talk, or help.
+          </span>
         </span>
         <span className="text-muted">›</span>
       </Link>

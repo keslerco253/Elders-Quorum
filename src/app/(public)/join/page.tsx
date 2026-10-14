@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { listWards } from "@/lib/wards";
 import { Flash } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { joinApp } from "../actions";
@@ -9,7 +8,6 @@ export const metadata = { title: "Join" };
 
 export default async function JoinPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
-  const wards = listWards();
   const phone = phoneOptInVisible();
   return (
     <div className="card">
@@ -19,7 +17,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
           There&apos;s no account for <strong>{sp.contact}</strong> yet. Join below.
         </p>
       ) : (
-        <p className="mb-4 text-sm text-muted">Get lesson reminders, sign up to serve, and see quorum activities.</p>
+        <p className="mb-4 text-sm text-muted">Get reminders, sign up to serve, and see what your ward and its organizations have planned.</p>
       )}
       <Flash msg={sp.error} tone="danger" />
       <form action={joinApp} className="space-y-4">
@@ -35,40 +33,20 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             {phone ? "Mobile number or email" : "Email"}
           </label>
           <input id="contact" name="contact" type={phone ? "text" : "email"} required className="input" defaultValue={sp.contact} autoComplete={phone ? "username" : "email"} autoCapitalize="off" placeholder={phone ? "(208) 555-0142 or you@example.com" : undefined} />
-          <p className="hint">{phone ? "Use whichever you prefer. You can add the other later." : "Used only to sign you in and send quorum notices."}</p>
+          <p className="hint">{phone ? "Use whichever you prefer. You can add the other later." : "Used only to sign you in and send your ward\u2019s notices."}</p>
         </div>
         <div>
           <label className="label" htmlFor="join_code">
-            Join code
+            Ward join code
           </label>
-          <input id="join_code" name="join_code" className="input" autoCapitalize="characters" autoComplete="off" defaultValue={sp.code} />
-          <p className="hint">Announced in elders quorum. No code? Leave it blank and the presidency will approve your request.</p>
-        </div>
-        {wards.length > 1 && (
-          <div>
-            <label className="label" htmlFor="ward_id">
-              Ward (only needed without a code)
-            </label>
-            <select id="ward_id" name="ward_id" className="input">
-              {wards.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <div>
-          <label className="label" htmlFor="note">
-            Note to the presidency (optional, only without a code)
-          </label>
-          <input id="note" name="note" maxLength={500} className="input" placeholder="e.g. I just moved into the ward" />
+          <input id="join_code" name="join_code" required className="input" autoCapitalize="characters" autoComplete="off" defaultValue={sp.code} />
+          <p className="hint">Ask your bishopric or an organization presidency for your ward&apos;s code.</p>
         </div>
         <label className="flex items-start gap-2 rounded-lg bg-surface-2 p-3 text-sm">
           <input type="checkbox" name="agree" required className="mt-1" />
           <span>
             I understand this app keeps only my name, {phone ? "the phone number or email I give" : "my email"}, and what I choose to post, and that I can delete my account at any time.
-            {phone && " If I give a mobile number, I agree to receive sign-in codes and quorum messages by text. Message and data rates may apply. Reply STOP to opt out, HELP for help."}{" "}
+            {phone && " If I give a mobile number, I agree to receive sign-in codes and messages from my ward by text. Message and data rates may apply. Reply STOP to opt out, HELP for help."}{" "}
             <Link href="/privacy" className="link" target="_blank">
               Privacy
             </Link>{" "}

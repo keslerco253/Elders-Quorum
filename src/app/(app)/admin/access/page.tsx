@@ -12,7 +12,9 @@ export const metadata = { title: "Access requests" };
 export default async function AccessPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePresidency();
   const sp = await searchParams;
-  const pending = db().prepare("SELECT * FROM members WHERE ward_id = ? AND status = 'pending' ORDER BY updated_at").all(user.ward_id) as Member[];
+  const pending = db()
+    .prepare("SELECT m.* FROM members m JOIN ward_members wm ON wm.member_id = m.id WHERE wm.ward_id = ? AND m.status = 'pending' ORDER BY m.updated_at")
+    .all(user.ward_id) as Member[];
   return (
     <>
       <PageHeader title="Access requests" back={{ href: "/admin", label: "Admin" }} subtitle="People who asked to join without a join code. Part-member family members can be approved at the presidency's discretion. Declined requests are deleted." />

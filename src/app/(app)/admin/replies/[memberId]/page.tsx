@@ -16,19 +16,19 @@ export default async function ConversationPage({ params, searchParams }: { param
   const user = await requirePresidency();
   const sp = await searchParams;
   const memberId = Number((await params).memberId);
-  const member = db().prepare("SELECT id, display_name, phone, email, contact_pref FROM members WHERE id = ? AND ward_id = ?").get(memberId, user.ward_id) as
+  const member = db().prepare("SELECT m.id, m.display_name, m.phone, m.email, m.contact_pref FROM members m JOIN ward_members wm ON wm.member_id = m.id AND wm.ward_id = ? WHERE m.id = ?").get(user.ward_id, memberId) as
     | { id: number; display_name: string; phone: string | null; email: string | null; contact_pref: string }
     | undefined;
   if (!member) notFound();
   const tz = user.ward.timezone;
   const privately = sp.private === "1";
   const which: Thread = privately ? { private: true, withId: user.id } : { private: false };
-  const thread = conversation(member.id, which);
-  markThreadRead(member.id, which);
+  const thread = conversation(user.org_id, member.id, which);
+  markThreadRead(user.org_id, member.id, which);
   const unreadOther = (
     db()
-      .prepare(`SELECT COUNT(*) AS n FROM member_messages WHERE member_id = ? AND direction = 'in' AND read_at IS NULL AND ${privately ? "recipient_id IS NULL" : "recipient_id = ?"}`)
-      .get(...(privately ? [member.id] : [member.id, user.id])) as { n: number }
+      .prepare(`SELECT COUNT(*) AS n FROM member_messages WHERE org_id = ? AND member_id = ? AND direction = 'in' AND read_at IS NULL AND ${privately ? "recipient_id IS NULL" : "recipient_id = ?"}`)
+      .get(...(privately ? [user.org_id, member.id] : [user.org_id, member.id, user.id])) as { n: number }
   ).n;
   const first = firstName(member.display_name);
   const tab = (on: boolean) => `rounded-lg px-3 py-1.5 text-sm font-medium ${on ? "bg-accent-soft text-accent" : "text-muted hover:bg-surface-2"}`;

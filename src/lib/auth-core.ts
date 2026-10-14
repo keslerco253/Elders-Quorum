@@ -2,7 +2,8 @@
 import crypto from "crypto";
 import { DateTime } from "luxon";
 import { db } from "./db";
-import type { CurrentUser, Member, Ward } from "./types";
+import type { CurrentUser, Member } from "./types";
+import { currentUserFor } from "./orgs";
 import { parseContact } from "./contact";
 
 export const REMEMBER_OPTIONS = {
@@ -35,14 +36,12 @@ export function findLoginMember(contact: string): Member | undefined {
     .get(c.value) as Member | undefined;
 }
 
-/** Any member (any status) with this phone number or email, newest first. */
-export function findMemberByContact(contact: string, wardId?: number): Member | undefined {
+/** The account (any status) with this phone number or email, newest first. */
+export function findMemberByContact(contact: string): Member | undefined {
   const c = parseContact(contact);
   if (!c) return undefined;
   const col = c.kind === "phone" ? "phone" : "lower(email)";
-  return db()
-    .prepare(`SELECT * FROM members WHERE ${col} = ? ${wardId ? "AND ward_id = ?" : ""} ORDER BY updated_at DESC LIMIT 1`)
-    .get(...(wardId ? [c.value, wardId] : [c.value])) as Member | undefined;
+  return db().prepare(`SELECT * FROM members WHERE ${col} = ? ORDER BY updated_at DESC LIMIT 1`).get(c.value) as Member | undefined;
 }
 
 export type CreateTokenResult = { ok: true; token: string; code: string } | { ok: false; reason: "rate_limited" };
@@ -114,7 +113,8 @@ export function createSession(memberId: number, remember: Remember, userAgent?: 
   return { id, expires: expires.toJSDate() };
 }
 
-export function userForSession(sessionId: string | undefined): CurrentUser | null {
+/** The signed-in member, seen from the organization they picked (wantedOrg) or a sensible default. */
+export function userForSession(sessionId: string | undefined, wantedOrg?: number): CurrentUser | null {
   if (!sessionId) return null;
   const d = db();
   const member = d
@@ -124,8 +124,7 @@ export function userForSession(sessionId: string | undefined): CurrentUser | nul
     )
     .get(sha256(sessionId), nowIso()) as Member | undefined;
   if (!member) return null;
-  const ward = d.prepare("SELECT id, name, timezone, join_code FROM wards WHERE id = ?").get(member.ward_id) as Ward;
-  return { ...member, ward };
+  return currentUserFor(member, wantedOrg);
 }
 
 export function deleteSession(sessionId: string) {

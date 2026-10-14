@@ -12,7 +12,7 @@ export default async function EditPlanPage({ params, searchParams }: { params: P
   const { kind } = await params;
   const sp = await searchParams;
   if (!isPlanKind(kind)) notFound();
-  const p = currentPlan(user.ward_id, kind);
+  const p = currentPlan(user.org_id, kind);
   return (
     <>
       <PageHeader title={`Edit ${PLAN_INFO[kind].title}`} back={{ href: `/plans/${kind}`, label: "Back to plan" }} subtitle="Saving creates a new version. Earlier versions are kept." />
@@ -49,7 +49,7 @@ export default async function EditPlanPage({ params, searchParams }: { params: P
           <input id="pdf" name="pdf" type="file" accept="application/pdf" className="input" />
         </div>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="announce" /> Notify the quorum that this plan was updated
+          <input type="checkbox" name="announce" /> Notify {user.orgLabel} that this plan was updated
         </label>
         <SubmitButton>Save plan</SubmitButton>
       </form>

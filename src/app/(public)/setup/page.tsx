@@ -15,7 +15,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   return (
     <div className="card">
       <h2 className="h2 mb-1">First-time setup</h2>
-      <p className="mb-4 text-sm text-muted">Create your ward and your own presidency account. You&apos;ll be able to add everyone else after you sign in.</p>
+      <p className="mb-4 text-sm text-muted">Create your ward and your own account. You&apos;ll add the ward&apos;s organizations and everyone else after you sign in.</p>
       {!dataOnVolume() && (
         <div className="mb-4 rounded-lg border border-danger bg-danger/10 p-3 text-sm">
           <strong>This server has no permanent disk.</strong> Anything you set up or restore here is erased every time the app is rebuilt. In Northflank, open the service → <strong>Volumes</strong> → add a volume with mount path <code>/data</code>, wait for it to restart, then come back here.
@@ -34,9 +34,9 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
         )}
         <div>
           <label className="label" htmlFor="ward_name">
-            App name
+            Ward name
           </label>
-          <input id="ward_name" name="ward_name" required className="input" defaultValue="Villas Ward Elders Quorum" />
+          <input id="ward_name" name="ward_name" required className="input" placeholder="e.g. Villas Ward" />
         </div>
         <div>
           <label className="label" htmlFor="timezone">

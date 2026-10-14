@@ -18,7 +18,7 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <PageHeader title="Invite members" back={{ href: "/admin", label: "Admin" }} subtitle="Use this in quorum meeting: everyone scans the code with their phone camera and joins in about a minute." />
+      <PageHeader title="Invite members" back={{ href: "/admin", label: "Admin" }} subtitle="Use this in a ward meeting or class: everyone scans the code with their phone camera and joins in about a minute." />
       <Flash msg={sp.msg} />
       {!code ? (
         <Empty>
@@ -45,7 +45,7 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
           </div>
           <div className="space-y-4">
             <div className="card space-y-3">
-              <h2 className="h2">In quorum meeting</h2>
+              <h2 className="h2">In a meeting</h2>
               <ol className="list-decimal space-y-1 pl-5 text-sm">
                 <li>
                   Tap <strong>Show on a big screen</strong> and put it on the TV or projector, or just hold up your phone.
@@ -59,15 +59,15 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
               </Link>
             </div>
             <div className="card space-y-3">
-              <h2 className="h2">Send it to the quorum</h2>
-              <p className="text-sm text-muted">Share the link in a group text, the quorum email, or the ward newsletter. Anyone with the link can join, so keep it within the quorum.</p>
+              <h2 className="h2">Send it to the ward</h2>
+              <p className="text-sm text-muted">Share the link in a group text, an email, or the ward newsletter. Anyone with the link can join, so keep it within the ward.</p>
               <p className="rounded-lg bg-surface-2 px-3 py-2 font-mono text-sm break-all">{joinLink(code)}</p>
-              <ShareInvite text={`Join the ${user.ward.name} app for lesson reminders, sign-ups and quorum news. Join code: ${code}`} link={joinLink(code)} />
+              <ShareInvite text={`Join the ${user.ward.name} app for reminders, sign-ups and ward news. Join code: ${code}`} link={joinLink(code)} />
             </div>
             {presidency && (
               <form action={setJoinCode} className="card space-y-2 text-sm">
                 <input type="hidden" name="return" value="/admin/invite" />
-                <p className="text-muted">If the code gets shared outside the quorum, make a new one. The old code and QR code stop working.</p>
+                <p className="text-muted">If the code gets shared outside the ward, make a new one. The old code and QR code stop working.</p>
                 <SubmitButton name="mode" value="new" className="btn-secondary btn-sm" confirm="Make a new code? The current code and QR code will stop working.">
                   Make a new code
                 </SubmitButton>

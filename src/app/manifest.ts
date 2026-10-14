@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
   const name = publicAppName();
   return {
     name,
-    short_name: name.length > 14 ? "Elders Quorum" : name,
-    description: "Lessons, calendar, plans and announcements for our elders quorum.",
+    short_name: name.length > 14 ? "Ward Link" : name,
+    description: "Lessons, calendar, sign-ups and announcements for our ward and its organizations.",
     start_url: "/",
     display: "standalone",
     background_color: "#f6f5f2",

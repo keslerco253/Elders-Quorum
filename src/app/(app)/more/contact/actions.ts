@@ -18,10 +18,10 @@ export async function addContact(fd: FormData) {
   const wanted = String(fd.get("kind"));
   if (!c || c.kind !== wanted) go(wanted === "phone" ? "Please enter a valid mobile number." : "Please enter a valid email address.");
   if (c.kind === "phone" && !phoneEnabled()) go("Texting isn't set up yet.");
-  if (c.kind === "phone" && db().prepare("SELECT 1 FROM members WHERE ward_id = ? AND phone = ? AND id != ?").get(user.ward_id, c.value, user.id)) {
+  if (c.kind === "phone" && db().prepare("SELECT 1 FROM members WHERE phone = ? AND id != ?").get(c.value, user.id)) {
     go("That number is already used by another account.");
   }
-  if (c.kind === "email" && db().prepare("SELECT 1 FROM members WHERE ward_id = ? AND lower(email) = ? AND id != ? AND status = 'active'").get(user.ward_id, c.value, user.id)) {
+  if (c.kind === "email" && db().prepare("SELECT 1 FROM members WHERE lower(email) = ? AND id != ? AND status = 'active'").get(c.value, user.id)) {
     go("That email is already used by another account.");
   }
   const res = await startContactVerification(user, c.kind, c.value);

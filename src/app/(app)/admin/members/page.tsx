@@ -6,7 +6,7 @@ import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { isPresidency } from "@/lib/permissions";
 import { addMember } from "./actions";
-import { CALLING_LABELS, ROLE_LABELS, type Member } from "@/lib/types";
+import { callingLabel, isCalling, roleLabel, type Member, type Role } from "@/lib/types";
 
 export const metadata = { title: "Members" };
 
@@ -15,24 +15,29 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const show = sp.show === "inactive" ? "inactive" : "active";
   const q = (sp.q ?? "").trim();
+  // Everyone who officially belongs to (or leads) this organization.
   const members = db()
     .prepare(
-      `SELECT * FROM members WHERE ward_id = ? AND status = ?
-       AND (? = '' OR display_name LIKE '%' || ? || '%')
-       ORDER BY role = 'member', display_name COLLATE NOCASE`,
+      `SELECT m.*, om.role, om.calling FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?
+       WHERE m.status = ? AND (om.official = 1 OR om.role <> 'member')
+       AND (? = '' OR m.display_name LIKE '%' || ? || '%')
+       ORDER BY om.role = 'member', m.display_name COLLATE NOCASE`,
     )
-    .all(user.ward_id, show, q, q) as Member[];
+    .all(user.org_id, show, q, q) as (Member & { role: Role; calling: string | null })[];
 
   return (
     <>
       <PageHeader
         title="Members"
         back={{ href: "/admin", label: "Admin" }}
-        subtitle={show === "active" ? `${members.length} people have joined the app.` : `${members.length} accounts turned off`}
+        subtitle={show === "active" ? `${members.length} ${members.length === 1 ? "person belongs" : "people belong"} to ${user.orgLabel}.` : `${members.length} accounts turned off`}
       />
       <Flash msg={sp.msg} />
       <p className="mb-4 rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent">
-        Members join the app themselves with a mobile number or email{isPresidency(user) ? ", or you can add them below" : ""}. Open a member to see or fix their contact info. For addresses, use Member Tools.
+        {user.org.kind === "ward"
+          ? "Everyone who joined the ward with its join code"
+          : `Members who chose ${user.orgLabel} as one of their organizations`}
+        {isPresidency(user) ? ", plus anyone you add below" : ""}. Open a member to see or fix their contact info. For addresses, use Member Tools.
       </p>
       {isPresidency(user) && show === "active" && (
         <details id="add" className="card mb-4" open={!!sp.add}>
@@ -59,8 +64,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                 </label>
                 <select id="add-role" name="role" className="input" defaultValue="member">
                   <option value="member">Member</option>
-                  <option value="admin">Admin (bishop, Stake High Council)</option>
-                  <option value="presidency">Presidency</option>
+                  <option value="admin">Admin (can post, schedule and send messages)</option>
+                  <option value="presidency">{roleLabel("presidency", user.org)}</option>
                 </select>
               </div>
               <label className="flex items-center gap-2 self-end pb-2 text-sm">
@@ -83,7 +88,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         <button className="btn-secondary">Search</button>
       </form>
       {members.length === 0 ? (
-        <Empty>No one yet. Share the join code from Admin → Settings so members can join.</Empty>
+        <Empty>No one yet. Share the ward&apos;s join code from Admin → Settings so members can join.</Empty>
       ) : (
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
           {members.map((m) => (
@@ -92,7 +97,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{m.display_name}</span>
-                    {m.role !== "member" && <Badge tone="info">{m.calling ? CALLING_LABELS[m.calling] : ROLE_LABELS[m.role]}</Badge>}
+                    {m.role !== "member" && <Badge tone="info">{isCalling(m.calling) ? callingLabel(m.calling, user.org) : roleLabel(m.role, user.org)}</Badge>}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
                     {m.phone && <Badge>Phone</Badge>}

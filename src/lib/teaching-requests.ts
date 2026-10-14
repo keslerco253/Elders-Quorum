@@ -2,6 +2,8 @@ import { db } from "./db";
 import { audienceMembers, notify, recipientById } from "./notify";
 import { signToken, validToken } from "./signed-links";
 import { formatDate } from "./time";
+import { inOrgWard } from "./orgs";
+import { getOrg } from "./orgs";
 
 // The presidency asks a member to teach; the member accepts (and is assigned
 // as the teacher) or declines. Answers come from the app, a private link in
@@ -9,7 +11,7 @@ import { formatDate } from "./time";
 
 export interface TeachingRequest {
   id: number;
-  ward_id: number;
+  org_id: number;
   lesson_id: number;
   member_id: number;
   member_name: string;
@@ -50,29 +52,29 @@ const lessonLabel = (r: Pick<TeachingRequest, "lesson_date" | "lesson_title" | "
   `${formatDate(r.lesson_date, "short")}${r.lesson_title ? ` ("${r.lesson_title}"${r.lesson_speaker ? ` by ${r.lesson_speaker}` : ""})` : ""}`;
 
 /** Sends the request. Returns an error message, or null when sent. */
-export async function askToTeach(asker: { id: number; ward_id: number; display_name: string }, lessonId: number, memberId: number, message: string, today: string) {
+export async function askToTeach(asker: { id: number; org_id: number; display_name: string }, lessonId: number, memberId: number, message: string, today: string) {
   const d = db();
-  const lesson = d.prepare("SELECT id, date, kind, teacher_id FROM lessons WHERE id = ? AND ward_id = ?").get(lessonId, asker.ward_id) as
+  const lesson = d.prepare("SELECT id, date, kind, teacher_id FROM lessons WHERE id = ? AND org_id = ?").get(lessonId, asker.org_id) as
     | { id: number; date: string; kind: string; teacher_id: number | null }
     | undefined;
   if (!lesson || lesson.kind !== "talk") return "That lesson can't have a teacher.";
   if (lesson.date < today) return "That lesson has already happened.";
-  const member = recipientById(memberId);
-  if (!member || member.ward_id !== asker.ward_id) return "Choose a current member.";
+  const member = inOrgWard(memberId, asker.org_id) ? recipientById(memberId, asker.org_id) : undefined;
+  if (!member) return "Choose a current member.";
   if (lesson.teacher_id === memberId) return `${member.display_name} is already the teacher.`;
   if (d.prepare("SELECT 1 FROM teaching_requests WHERE lesson_id = ? AND member_id = ? AND status = 'pending'").get(lessonId, memberId)) return `${member.display_name} was already asked and hasn't answered yet.`;
   const id = Number(
-    d.prepare("INSERT INTO teaching_requests (ward_id, lesson_id, member_id, message, asked_by) VALUES (?, ?, ?, ?, ?)").run(asker.ward_id, lessonId, memberId, message.trim().slice(0, 500), asker.id)
+    d.prepare("INSERT INTO teaching_requests (org_id, lesson_id, member_id, message, asked_by) VALUES (?, ?, ?, ?, ?)").run(asker.org_id, lessonId, memberId, message.trim().slice(0, 500), asker.id)
       .lastInsertRowid,
   );
   const r = getRequest(id)!;
   const note = r.message ? ` "${r.message}"` : "";
   await notify([member], {
     title: `Will you teach on ${formatDate(r.lesson_date, "short")}?`,
-    body: `${asker.display_name} asked if you'd teach elders quorum on ${lessonLabel(r)}.${note} Tap to answer.`,
+    body: `${asker.display_name} asked if you'd teach in ${getOrg(asker.org_id)?.name ?? "your class"} on ${lessonLabel(r)}.${note} Tap to answer.`,
     url: askPath(r),
     linkLabel: "Answer",
-    textBody: `${asker.display_name} asked if you'd teach elders quorum on ${lessonLabel(r)}.${note} Reply TEACH to accept, or CANT and a reason.`,
+    textBody: `${asker.display_name} asked if you'd teach in ${getOrg(asker.org_id)?.name ?? "your class"} on ${lessonLabel(r)}.${note} Reply TEACH to accept, or CANT and a reason.`,
     actions: [
       { action: "accept", title: "Yes, I'll teach", url: askPath(r, "accept") },
       { action: "decline", title: "I can't", url: askPath(r, "decline") },
@@ -101,7 +103,7 @@ export async function answerRequest(requestId: number, memberId: number, accept:
       d.prepare("UPDATE teaching_requests SET status = 'cancelled' WHERE lesson_id = ? AND status = 'pending' AND id != ?").run(r.lesson_id, r.id);
     }
   })();
-  await notify(audienceMembers(r.ward_id, "presidency"), {
+  await notify(audienceMembers(r.org_id, "presidency"), {
     title: accept ? "Teacher found" : "Can't teach",
     body: accept ? `${r.member_name} will teach on ${lessonLabel(r)}.` : `${r.member_name} can't teach on ${lessonLabel(r)}.${why ? ` Reason: ${why}` : ""}`,
     url: `/admin/lessons/${r.lesson_id}`,
@@ -109,8 +111,8 @@ export async function answerRequest(requestId: number, memberId: number, accept:
   return accept ? "accepted" : "declined";
 }
 
-export function cancelRequest(wardId: number, requestId: number) {
-  return db().prepare("UPDATE teaching_requests SET status = 'cancelled', responded_at = datetime('now') WHERE id = ? AND ward_id = ? AND status = 'pending'").run(requestId, wardId).changes > 0;
+export function cancelRequest(orgId: number, requestId: number) {
+  return db().prepare("UPDATE teaching_requests SET status = 'cancelled', responded_at = datetime('now') WHERE id = ? AND org_id = ? AND status = 'pending'").run(requestId, orgId).changes > 0;
 }
 
 /** The newest request still waiting on this member (for TEACH / CANT text replies). */

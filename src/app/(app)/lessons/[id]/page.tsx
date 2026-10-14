@@ -13,6 +13,7 @@ import { getNotes } from "@/lib/lesson-notes";
 import { renderMarkdown } from "@/lib/markdown";
 import { askPath, pendingRequestsFor } from "@/lib/teaching-requests";
 import { moderateComment } from "../../admin/comments/actions";
+import { leadersWord } from "@/lib/types";
 
 export const metadata = { title: "Lesson" };
 
@@ -20,7 +21,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
   const user = await requireUser();
   const { id } = await params;
   const sp = await searchParams;
-  const lesson = getLesson(user.ward_id, Number(id));
+  const lesson = getLesson(user.org_id, Number(id));
   if (!lesson) notFound();
   const conf = conferenceLabel(lesson.kind);
   const volunteered = !!db().prepare("SELECT 1 FROM lesson_volunteers WHERE lesson_id = ? AND member_id = ?").get(lesson.id, user.id);
@@ -68,7 +69,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
 
       {conf ? (
         <div className="card">
-          <p>There is no quorum lesson this Sunday. Please attend {conf}.</p>
+          <p>There is no {user.orgLabel} lesson this Sunday. Please attend {conf}.</p>
           {lesson.kind === "general_conference" && (
             <a href="https://www.churchofjesuschrist.org/study/general-conference" className="btn-primary mt-4" target="_blank" rel="noreferrer">
               General Conference in Gospel Library
@@ -179,7 +180,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
             {canEditNotes && (
               <details className="card" open={isTeacher && (!notes || notes.status === "rejected")}>
                 <summary className="cursor-pointer font-semibold">
-                  {notes ? "Edit the lesson notes" : isTeacher ? "You're teaching this lesson: share notes with the quorum" : "Add lesson notes"}
+                  {notes ? "Edit the lesson notes" : isTeacher ? "You're teaching this lesson: share notes with everyone" : "Add lesson notes"}
                 </summary>
                 <form action={saveTeacherNotes} className="mt-3 space-y-3">
                   <input type="hidden" name="lesson_id" value={lesson.id} />
@@ -190,10 +191,10 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
                     maxLength={10000}
                     className="input"
                     defaultValue={notes?.body ?? ""}
-                    placeholder={"What should the quorum read or think about before Sunday?\n\n- Read the talk, especially the part about…\n- Come ready to share an experience with…"}
+                    placeholder={"What should everyone read or think about before Sunday?\n\n- Read the talk, especially the part about…\n- Come ready to share an experience with…"}
                   />
                   <p className="hint">
-                    {admin ? "Saving shares the notes right away." : "A presidency member approves notes before they're shared."} The first time notes are shared, the quorum gets a notification.
+                    {admin ? "Saving shares the notes right away." : `A ${leadersWord(user.org)} member approves notes before they're shared.`} The first time notes are shared, everyone gets a notification.
                     Use <code>- </code> for bullets and <code>**bold**</code>.
                   </p>
                   <SubmitButton pendingText="Saving…">{admin ? "Save and share" : "Submit for approval"}</SubmitButton>

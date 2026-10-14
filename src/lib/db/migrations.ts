@@ -1,5 +1,9 @@
 // Schema migrations. Append new entries; never edit one that has shipped.
-export const migrations: { id: number; sql: string }[] = [
+/**
+ * fkOff: run with foreign keys switched off (needed to rebuild a table others
+ * point at); every reference is checked before the migration is kept.
+ */
+export const migrations: { id: number; sql: string; fkOff?: boolean }[] = [
   {
     id: 1,
     sql: `
@@ -552,6 +556,127 @@ DELETE FROM lesson_notes WHERE author_id IS NOT NULL AND EXISTS (
   EXISTS (SELECT 1 FROM lesson_declines d WHERE d.lesson_id = lesson_notes.lesson_id AND d.member_id = lesson_notes.author_id)
   OR author_id IN (SELECT id FROM members WHERE role = 'member')
 );
+`,
+  },
+  {
+    // Wards and organizations. Until now each "ward" row was really one elders
+    // quorum, so those rows become organizations (keeping their ids, so every
+    // lesson, event and message stays put) inside a real ward. Each ward also
+    // gets a ward-wide organization led by the bishopric. A person now has one
+    // account and belongs to wards and organizations through memberships, with
+    // their role and calling kept per organization.
+    id: 20,
+    fkOff: true,
+    sql: `
+DROP INDEX IF EXISTS wards_join_code;
+ALTER TABLE wards RENAME TO orgs;
+
+ALTER TABLE plans RENAME COLUMN ward_id TO org_id;
+ALTER TABLE lessons RENAME COLUMN ward_id TO org_id;
+ALTER TABLE events RENAME COLUMN ward_id TO org_id;
+ALTER TABLE event_requests RENAME COLUMN ward_id TO org_id;
+ALTER TABLE visits RENAME COLUMN ward_id TO org_id;
+ALTER TABLE groups RENAME COLUMN ward_id TO org_id;
+ALTER TABLE messages RENAME COLUMN ward_id TO org_id;
+ALTER TABLE signups RENAME COLUMN ward_id TO org_id;
+ALTER TABLE todos RENAME COLUMN ward_id TO org_id;
+ALTER TABLE sms_log RENAME COLUMN ward_id TO org_id;
+ALTER TABLE visit_requests RENAME COLUMN ward_id TO org_id;
+ALTER TABLE member_messages RENAME COLUMN ward_id TO org_id;
+ALTER TABLE planned_visits RENAME COLUMN ward_id TO org_id;
+ALTER TABLE event_series RENAME COLUMN ward_id TO org_id;
+ALTER TABLE teaching_requests RENAME COLUMN ward_id TO org_id;
+
+CREATE TABLE wards (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  timezone TEXT NOT NULL DEFAULT 'America/Boise',
+  join_code TEXT,
+  sms_monthly_limit INTEGER NOT NULL DEFAULT 500,
+  created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX wards_join_code ON wards(join_code COLLATE NOCASE) WHERE join_code IS NOT NULL;
+INSERT INTO wards (id, name, timezone, join_code, sms_monthly_limit, created_at)
+  SELECT id,
+    CASE WHEN name LIKE '% Elders Quorum' THEN substr(name, 1, length(name) - 14) ELSE name END,
+    timezone, COALESCE(join_code, upper(hex(randomblob(3)))), sms_monthly_limit, created_at
+  FROM orgs;
+
+ALTER TABLE orgs ADD COLUMN ward_id INTEGER REFERENCES wards(id) ON DELETE CASCADE;
+-- 'ward': the ward-wide organization (bishopric); 'group': any other.
+ALTER TABLE orgs ADD COLUMN kind TEXT NOT NULL DEFAULT 'group' CHECK (kind IN ('ward','group'));
+-- Features this organization doesn't use, comma-separated (e.g. 'visits,plans').
+ALTER TABLE orgs ADD COLUMN hidden_features TEXT NOT NULL DEFAULT '';
+UPDATE orgs SET ward_id = id, name = 'Elders Quorum';
+ALTER TABLE orgs DROP COLUMN timezone;
+ALTER TABLE orgs DROP COLUMN join_code;
+ALTER TABLE orgs DROP COLUMN sms_monthly_limit;
+INSERT INTO orgs (name, ward_id, kind, hidden_features) SELECT 'Ward', id, 'ward', 'lessons,plans' FROM wards;
+CREATE INDEX orgs_ward ON orgs(ward_id);
+
+CREATE TABLE ward_members (
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (ward_id, member_id)
+);
+CREATE INDEX ward_members_member ON ward_members(member_id);
+
+-- A person's place in an organization: their role there, their calling, whether
+-- they officially belong, and whether they get its notifications.
+CREATE TABLE org_members (
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('member','admin','presidency')),
+  calling TEXT,
+  official INTEGER NOT NULL DEFAULT 1,
+  notify INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (org_id, member_id)
+);
+CREATE INDEX org_members_member ON org_members(member_id);
+
+INSERT INTO ward_members (ward_id, member_id) SELECT ward_id, id FROM members;
+INSERT INTO org_members (org_id, member_id, role, calling) SELECT ward_id, id, role, calling FROM members;
+INSERT INTO org_members (org_id, member_id, role)
+  SELECT o.id, m.id, CASE WHEN m.is_site_owner = 1 THEN 'presidency' ELSE 'member' END
+  FROM members m JOIN orgs o ON o.ward_id = m.ward_id AND o.kind = 'ward';
+
+-- Accounts no longer belong to one ward, and roles moved to org_members.
+CREATE TABLE members_new (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  contact_pref TEXT NOT NULL DEFAULT 'email' CHECK (contact_pref IN ('text','email','both','none')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','pending','inactive','declined')),
+  source TEXT NOT NULL DEFAULT 'manual' CHECK (source IN ('import','manual','request','setup')),
+  request_note TEXT,
+  is_site_owner INTEGER NOT NULL DEFAULT 0,
+  theme TEXT NOT NULL DEFAULT 'system',
+  last_login_at TEXT,
+  sms_consent_at TEXT,
+  welcomed_at TEXT,
+  always_email INTEGER NOT NULL DEFAULT 0,
+  always_text INTEGER NOT NULL DEFAULT 0,
+  feed_version INTEGER NOT NULL DEFAULT 0,
+  calendar_alerts TEXT NOT NULL DEFAULT '60',
+  -- Organization the member last got a text about, so a texted reply reaches it.
+  last_text_org_id INTEGER REFERENCES orgs(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+INSERT INTO members_new (id, name, display_name, email, phone, contact_pref, status, source, request_note, is_site_owner, theme, last_login_at,
+    sms_consent_at, welcomed_at, always_email, always_text, feed_version, calendar_alerts, created_at, updated_at)
+  SELECT id, name, display_name, email, phone, contact_pref, status, source, request_note, is_site_owner, theme, last_login_at,
+    sms_consent_at, welcomed_at, always_email, always_text, feed_version, calendar_alerts, created_at, updated_at
+  FROM members;
+DROP TABLE members;
+ALTER TABLE members_new RENAME TO members;
+CREATE INDEX members_email ON members(email COLLATE NOCASE);
+CREATE INDEX members_phone ON members(phone);
 `,
   },
 ];

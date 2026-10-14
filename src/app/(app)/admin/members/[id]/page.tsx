@@ -7,7 +7,8 @@ import { isPresidency } from "@/lib/permissions";
 import { formatDate, formatDateTime } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { CALLING_LABELS, ROLE_LABELS, type Member } from "@/lib/types";
+import { callingLabel, CALLINGS, roleLabel } from "@/lib/types";
+import { orgMemberView } from "@/lib/orgs";
 import { formatPhone } from "@/lib/contact";
 import { emailInvite, removeMember, updateMember } from "../actions";
 import { inviteLink, inviteText } from "@/lib/invite";
@@ -20,10 +21,15 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   const user = await requireAdmin();
   const { id } = await params;
   const sp = await searchParams;
-  const m = db().prepare("SELECT * FROM members WHERE id = ? AND ward_id = ? AND status IN ('active','inactive')").get(Number(id), user.ward_id) as Member | undefined;
-  if (!m) notFound();
+  const m = orgMemberView(user.org_id, Number(id));
+  if (!m || (m.status !== "active" && m.status !== "inactive")) notFound();
   const presidency = isPresidency(user);
-  const lastVisit = presidency ? (db().prepare("SELECT date FROM visits WHERE member_id = ? ORDER BY date DESC LIMIT 1").get(m.id) as { date: string } | undefined) : undefined;
+  const lastVisit = presidency ? (db().prepare("SELECT date FROM visits WHERE member_id = ? AND org_id = ? ORDER BY date DESC LIMIT 1").get(m.id, user.org_id) as { date: string } | undefined) : undefined;
+  const otherOrgs = (
+    db()
+      .prepare("SELECT o.id, o.name, o.kind, om.official FROM org_members om JOIN orgs o ON o.id = om.org_id WHERE om.member_id = ? AND o.ward_id = ? AND o.kind = 'group' AND o.id <> ? ORDER BY o.name")
+      .all(m.id, user.ward_id, user.org_id) as { id: number; name: string; official: number }[]
+  ).filter((o) => o.official);
 
   return (
     <>
@@ -32,7 +38,10 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
         back={{ href: "/admin/members", label: "Members" }}
         subtitle={
           <span className="flex flex-wrap items-center gap-2">
-            <Badge tone="info">{m.calling ? CALLING_LABELS[m.calling] : ROLE_LABELS[m.role]}</Badge>
+            <Badge tone="info">{m.calling ? callingLabel(m.calling, user.org) : m.in_org ? roleLabel(m.role, user.org) : `Not in ${user.orgLabel}`}</Badge>
+            {otherOrgs.map((o) => (
+              <Badge key={o.id}>{o.name}</Badge>
+            ))}
             {m.status !== "active" && <Badge tone="warn">Turned off</Badge>}
             <span>{m.last_login_at ? `Last signed in ${formatDateTime(m.last_login_at, user.ward.timezone, "LLL d, yyyy")}` : "Hasn't signed in yet"}</span>
           </span>
@@ -95,10 +104,10 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
           {m.phone && (
             <p className="hint -mt-2">
               {m.sms_consent_at
-                ? `Agreed to quorum texts ${formatDateTime(m.sms_consent_at, user.ward.timezone, "LLL d, yyyy")}.`
+                ? `Agreed to ward texts ${formatDateTime(m.sms_consent_at, user.ward.timezone, "LLL d, yyyy")}.`
                 : phoneOptInVisible()
-                  ? "Hasn't agreed to quorum texts, so the app only texts them sign-in codes they ask for. They can agree at first sign-in or under More → Contact & notifications (by choosing Text)."
-                  : "Hasn't agreed to quorum texts. Texting isn't set up yet."}
+                  ? "Hasn't agreed to ward texts, so the app only texts them sign-in codes they ask for. They can agree at first sign-in or under More → Contact & notifications (by choosing Text)."
+                  : "Hasn't agreed to ward texts. Texting isn't set up yet."}
             </p>
           )}
           <p className="hint -mt-2">
@@ -116,19 +125,21 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                 </label>
                 <select id="role" name="role" className="input" defaultValue={m.role}>
                   <option value="member">Member</option>
-                  <option value="admin">Admin (bishop, Stake High Council)</option>
-                  <option value="presidency">Presidency</option>
+                  <option value="admin">Admin (can post, schedule and send messages)</option>
+                  <option value="presidency">{roleLabel("presidency", user.org)}</option>
                 </select>
               </div>
-              <div>
-                <label className="label" htmlFor="status">
-                  Status
-                </label>
-                <select id="status" name="status" className="input" defaultValue={m.status}>
-                  <option value="active">Active: can sign in</option>
-                  <option value="inactive">Turned off: can&apos;t sign in</option>
-                </select>
-              </div>
+              {user.wardLeader && (
+                <div>
+                  <label className="label" htmlFor="status">
+                    Status
+                  </label>
+                  <select id="status" name="status" className="input" defaultValue={m.status}>
+                    <option value="active">Active: can sign in</option>
+                    <option value="inactive">Turned off: can&apos;t sign in</option>
+                  </select>
+                </div>
+              )}
               {m.role !== "member" && (
                 <div>
                   <label className="label" htmlFor="calling">
@@ -136,9 +147,9 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   </label>
                   <select id="calling" name="calling" className="input" defaultValue={m.calling ?? ""}>
                     <option value="">Not set</option>
-                    {Object.entries(CALLING_LABELS).map(([v, label]) => (
+                    {CALLINGS[user.org.kind].map((v) => (
                       <option key={v} value={v}>
-                        {label}
+                        {callingLabel(v, user.org)}
                       </option>
                     ))}
                   </select>
@@ -152,7 +163,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
         {presidency && (
           <div className="space-y-3">
             <div className="card text-sm">
-              <div className="font-semibold">Presidency visits</div>
+              <div className="font-semibold">{user.org.kind === "ward" ? "Bishopric visits" : "Presidency visits"}</div>
               <p className="mt-1 text-muted">{lastVisit ? `Last: ${formatDate(lastVisit.date)}` : "No visits recorded."}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link href={`/admin/visits/plan?member=${m.id}&invite=1`} className="btn-primary btn-sm">
@@ -166,14 +177,30 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                 </Link>
               </div>
             </div>
-            <form action={removeMember} className="card text-sm">
-              <input type="hidden" name="item_id" value={m.id} />
-              <div className="font-semibold">Delete account</div>
-              <p className="mt-1 mb-3 text-muted">Removes their account and everything they posted. They can join again later.</p>
-              <SubmitButton className="btn-danger btn-sm" confirm={`Permanently delete ${m.display_name}'s account?`}>
-                Delete account
-              </SubmitButton>
-            </form>
+            {user.org.kind === "ward" ? (
+              <form action={removeMember} className="card text-sm">
+                <input type="hidden" name="item_id" value={m.id} />
+                <div className="font-semibold">Remove from {user.ward.name}</div>
+                <p className="mt-1 mb-3 text-muted">
+                  Takes them out of the ward and all its organizations. If they aren&apos;t in another ward, their account and everything they posted are deleted. They can join again
+                  later with the join code.
+                </p>
+                <SubmitButton className="btn-danger btn-sm" confirm={`Remove ${m.display_name} from ${user.ward.name}?`}>
+                  Remove from ward
+                </SubmitButton>
+              </form>
+            ) : (
+              m.in_org === 1 && (
+                <form action={removeMember} className="card text-sm">
+                  <input type="hidden" name="item_id" value={m.id} />
+                  <div className="font-semibold">Remove from {user.orgLabel}</div>
+                  <p className="mt-1 mb-3 text-muted">They stay in the ward and can choose {user.orgLabel} again themselves.</p>
+                  <SubmitButton className="btn-danger btn-sm" confirm={`Remove ${m.display_name} from ${user.orgLabel}?`}>
+                    Remove from {user.orgLabel}
+                  </SubmitButton>
+                </form>
+              )
+            )}
           </div>
         )}
       </div>

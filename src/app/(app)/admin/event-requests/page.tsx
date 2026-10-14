@@ -22,8 +22,8 @@ export default async function EventRequestsPage({ searchParams }: { searchParams
   const sp = await searchParams;
   const tz = user.ward.timezone;
   const rows = db()
-    .prepare("SELECT er.*, m.display_name FROM event_requests er JOIN members m ON m.id = er.member_id WHERE er.ward_id = ? AND er.status = 'pending' ORDER BY er.starts_at")
-    .all(user.ward_id) as Row[];
+    .prepare("SELECT er.*, m.display_name FROM event_requests er JOIN members m ON m.id = er.member_id WHERE er.org_id = ? AND er.status = 'pending' ORDER BY er.starts_at")
+    .all(user.org_id) as Row[];
   return (
     <>
       <PageHeader title="Event requests" back={{ href: "/admin", label: "Admin" }} subtitle="Approving adds the event to the calendar and lets the member know." />

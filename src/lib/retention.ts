@@ -43,7 +43,10 @@ export function runRetention() {
   })();
   // Members who haven't signed in for 12 months (leaders are kept).
   const stale = d
-    .prepare(`SELECT id FROM members WHERE role = 'member' AND status != 'pending' AND julianday(coalesce(last_login_at, created_at)) < julianday('now', '-365 days')`)
+    .prepare(
+      `SELECT id FROM members WHERE status != 'pending' AND julianday(coalesce(last_login_at, created_at)) < julianday('now', '-365 days')
+       AND NOT EXISTS (SELECT 1 FROM org_members om WHERE om.member_id = members.id AND om.role <> 'member')`,
+    )
     .all() as { id: number }[];
   for (const m of stale) deleteAccount(m.id);
   counts.accounts = stale.length;

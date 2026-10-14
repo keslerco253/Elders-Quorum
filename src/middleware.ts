@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { appUrl } from "@/lib/config";
+import { ORG_COOKIE, orgCookieMaxAge } from "@/lib/org-cookie";
 
 /**
  * After the app moves to another server, set MOVED_TO=https://new-address on
@@ -13,6 +14,16 @@ export function middleware(req: NextRequest) {
   if (to && req.nextUrl.pathname !== "/api/health") return NextResponse.redirect(to + path, 308);
   const app = appAddress();
   if (app && req.headers.get("host") === "www." + app.host) return NextResponse.redirect(app.origin + path, 308);
+  // ?org=<id> (from notifications and links between organizations) switches
+  // to that organization, then shows the same page without it.
+  const org = req.nextUrl.searchParams.get("org");
+  if (org && /^\d+$/.test(org) && req.method === "GET") {
+    const url = req.nextUrl.clone();
+    url.searchParams.delete("org");
+    const res = NextResponse.redirect(url, 303);
+    res.cookies.set(ORG_COOKIE, org, { path: "/", maxAge: orgCookieMaxAge, sameSite: "lax", httpOnly: true, secure: url.protocol === "https:" });
+    return res;
+  }
   return NextResponse.next();
 }
 

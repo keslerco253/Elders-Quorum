@@ -8,7 +8,7 @@ export function ShareInvite({ text, link }: { text: string; link: string }) {
   async function share() {
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Join our elders quorum app", text, url: link });
+        await navigator.share({ title: "Join our ward app", text, url: link });
         return;
       } catch {
         // Cancelled, or not allowed: fall back to copying.

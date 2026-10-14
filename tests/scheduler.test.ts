@@ -8,8 +8,7 @@ const at = (local: string) => DateTime.fromISO(local, { zone: "America/Boise" })
 
 describe("scheduler", () => {
   beforeEach(() => {
-    const d = useTestDb();
-    d.exec(`
+    const d = useTestDb(`
       INSERT INTO wards (id, name, timezone) VALUES (1, 'Villas Ward Elders Quorum', 'America/Boise');
       INSERT INTO members (id, ward_id, name, display_name, email, role, last_login_at) VALUES
         (1, 1, 'Pres, Joe', 'Joe Pres', 'joe@x.com', 'presidency', '2026-10-01'),
@@ -52,7 +51,7 @@ describe("scheduler", () => {
     db().exec("INSERT INTO lesson_notes (lesson_id, author_id, body, status) SELECT id, 2, 'My notes', 'pending' FROM lessons WHERE date = '2026-10-18'");
     expect(collectDue(at("2026-10-17T08:00")).find((n) => n.key.startsWith("lesson-teacher"))!.payload.body).toContain("waiting for the presidency");
     db().exec("UPDATE lesson_notes SET status = 'approved', published_body = 'My notes'");
-    expect(collectDue(at("2026-10-17T08:00")).find((n) => n.key.startsWith("lesson-teacher"))!.payload.body).toContain("posted for the quorum");
+    expect(collectDue(at("2026-10-17T08:00")).find((n) => n.key.startsWith("lesson-teacher"))!.payload.body).toContain("posted for everyone to read");
   });
 
   it("sends the Saturday 8 AM reminder for tomorrow", () => {

@@ -14,8 +14,8 @@ export async function takeSlot(fd: FormData) {
   const user = await requireUser();
   const slotId = Number(fd.get("slot_id"));
   const slot = db()
-    .prepare("SELECT sl.id, sl.capacity, s.id AS signup_id, s.closed FROM signup_slots sl JOIN signups s ON s.id = sl.signup_id WHERE sl.id = ? AND s.ward_id = ?")
-    .get(slotId, user.ward_id) as { id: number; capacity: number; signup_id: number; closed: number } | undefined;
+    .prepare("SELECT sl.id, sl.capacity, s.id AS signup_id, s.closed FROM signup_slots sl JOIN signups s ON s.id = sl.signup_id WHERE sl.id = ? AND s.org_id = ?")
+    .get(slotId, user.org_id) as { id: number; capacity: number; signup_id: number; closed: number } | undefined;
   if (!slot) redirect("/signups");
   if (slot.closed) go(slot.signup_id, "This sign-up is closed.");
   const note = String(fd.get("note") || "").trim().slice(0, 200);
@@ -36,7 +36,7 @@ export async function leaveSlot(fd: FormData) {
   const slotId = Number(fd.get("slot_id"));
   // Admins can take someone else off (e.g. when a member asks); everyone else only themselves.
   const memberId = isAdmin(user) && fd.get("member_id") ? Number(fd.get("member_id")) : user.id;
-  const row = db().prepare("SELECT sl.signup_id FROM signup_slots sl JOIN signups s ON s.id = sl.signup_id WHERE sl.id = ? AND s.ward_id = ?").get(slotId, user.ward_id) as { signup_id: number } | undefined;
+  const row = db().prepare("SELECT sl.signup_id FROM signup_slots sl JOIN signups s ON s.id = sl.signup_id WHERE sl.id = ? AND s.org_id = ?").get(slotId, user.org_id) as { signup_id: number } | undefined;
   if (!row) redirect("/signups");
   const r = db().prepare("DELETE FROM signup_entries WHERE slot_id = ? AND member_id = ?").run(slotId, memberId);
   revalidatePath(`/signups/${row.signup_id}`);

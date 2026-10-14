@@ -10,6 +10,8 @@ import { InviteMessage } from "@/components/invite-message";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { cancelPlannedVisit, savePlannedVisit } from "../actions";
+import { orgPresidency, orgRoster } from "@/lib/orgs";
+import { leadersPhrase } from "@/lib/orgs";
 
 export const metadata = { title: "Plan a visit" };
 
@@ -17,17 +19,17 @@ export default async function PlanVisitPage({ searchParams }: { searchParams: Pr
   const user = await requirePresidency();
   const sp = await searchParams;
   const d = db();
-  const plan = sp.id ? getPlannedVisit(user.ward_id, Number(sp.id)) : undefined;
+  const plan = sp.id ? getPlannedVisit(user.org_id, Number(sp.id)) : undefined;
   if (sp.id && !plan) notFound();
   const requestId = plan?.request_id ?? (Number(sp.request) || null);
   const request = requestId
-    ? (d.prepare("SELECT r.id, r.member_id, r.kind, r.best_times, m.display_name FROM visit_requests r JOIN members m ON m.id = r.member_id WHERE r.id = ? AND r.ward_id = ?").get(requestId, user.ward_id) as
+    ? (d.prepare("SELECT r.id, r.member_id, r.kind, r.best_times, m.display_name FROM visit_requests r JOIN members m ON m.id = r.member_id WHERE r.id = ? AND r.org_id = ?").get(requestId, user.org_id) as
         | { id: number; member_id: number; kind: RequestKind; best_times: string; display_name: string }
         | undefined)
     : undefined;
   const memberId = plan?.member_id ?? request?.member_id ?? (Number(sp.member) || undefined);
-  const members = d.prepare("SELECT id, display_name FROM members WHERE ward_id = ? AND status = 'active' ORDER BY display_name").all(user.ward_id) as { id: number; display_name: string }[];
-  const presidency = d.prepare("SELECT id, display_name FROM members WHERE ward_id = ? AND role = 'presidency' AND status = 'active' ORDER BY display_name").all(user.ward_id) as { id: number; display_name: string }[];
+  const members = orgRoster(user.org_id);
+  const presidency = orgPresidency(user.org_id);
   const going = plan ? visitorIds(plan) : [user.id];
   const defaultType = plan?.type ?? (request?.kind === "talk" ? "phone" : "home");
   const inviting = sp.invite === "1";
@@ -121,7 +123,7 @@ export default async function PlanVisitPage({ searchParams }: { searchParams: Pr
               <span className="block text-xs text-muted">They can reply &quot;Yes, that works&quot;, suggest another time, or say not right now. You&apos;re notified of their answer.</span>
             </span>
           </label>
-          <InviteMessage members={members.map((m) => ({ id: m.id, first: firstName(m.display_name) }))} presidency={presidency.map((p) => ({ id: p.id, name: p.display_name }))} />
+          <InviteMessage members={members.map((m) => ({ id: m.id, first: firstName(m.display_name) }))} presidency={presidency.map((p) => ({ id: p.id, name: p.display_name }))} leaders={leadersPhrase(user.org)} />
           <label className="flex items-start gap-2 text-sm">
             <input type="radio" name="notify_mode" value="datetime" defaultChecked={defaultMode === "datetime"} className="mt-1" />
             <span>

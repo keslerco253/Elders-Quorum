@@ -20,16 +20,16 @@ export interface PlanVersion {
   author: string | null;
 }
 
-const SQL = "SELECT p.*, m.display_name AS author FROM plans p LEFT JOIN members m ON m.id = p.created_by WHERE p.ward_id = ? AND p.kind = ?";
+const SQL = "SELECT p.*, m.display_name AS author FROM plans p LEFT JOIN members m ON m.id = p.created_by WHERE p.org_id = ? AND p.kind = ?";
 
-export function currentPlan(wardId: number, kind: PlanKind) {
-  return db().prepare(SQL + " ORDER BY p.id DESC LIMIT 1").get(wardId, kind) as PlanVersion | undefined;
+export function currentPlan(orgId: number, kind: PlanKind) {
+  return db().prepare(SQL + " ORDER BY p.id DESC LIMIT 1").get(orgId, kind) as PlanVersion | undefined;
 }
 
-export function planHistory(wardId: number, kind: PlanKind) {
-  return db().prepare(SQL + " ORDER BY p.id DESC").all(wardId, kind) as PlanVersion[];
+export function planHistory(orgId: number, kind: PlanKind) {
+  return db().prepare(SQL + " ORDER BY p.id DESC").all(orgId, kind) as PlanVersion[];
 }
 
-export function planVersion(wardId: number, kind: PlanKind, id: number) {
-  return db().prepare(SQL + " AND p.id = ?").get(wardId, kind, id) as PlanVersion | undefined;
+export function planVersion(orgId: number, kind: PlanKind, id: number) {
+  return db().prepare(SQL + " AND p.id = ?").get(orgId, kind, id) as PlanVersion | undefined;
 }

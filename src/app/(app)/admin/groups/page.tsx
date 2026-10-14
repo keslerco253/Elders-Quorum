@@ -11,8 +11,8 @@ export default async function GroupsPage({ searchParams }: { searchParams: Promi
   const user = await requireAdmin();
   const sp = await searchParams;
   const groups = db()
-    .prepare("SELECT g.id, g.name, (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS n FROM groups g WHERE g.ward_id = ? ORDER BY g.name")
-    .all(user.ward_id) as { id: number; name: string; n: number }[];
+    .prepare("SELECT g.id, g.name, (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS n FROM groups g WHERE g.org_id = ? ORDER BY g.name")
+    .all(user.org_id) as { id: number; name: string; n: number }[];
   return (
     <>
       <PageHeader title="Message groups" back={{ href: "/admin/messages", label: "Send a message" }} subtitle="Custom groups for messages, such as a service committee or the activities team." />

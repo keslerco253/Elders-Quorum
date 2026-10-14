@@ -32,17 +32,17 @@ export default async function CommentsPage({ searchParams }: { searchParams: Pro
        JOIN lessons l ON l.id = c.lesson_id
        LEFT JOIN comments p ON p.id = c.parent_id
        LEFT JOIN members pm ON pm.id = p.member_id
-       WHERE l.ward_id = ? AND c.status = 'pending'
+       WHERE l.org_id = ? AND c.status = 'pending'
        ORDER BY c.created_at`,
     )
-    .all(user.ward_id) as Row[];
+    .all(user.org_id) as Row[];
 
   return (
     <>
       <PageHeader
         title="Comments to approve"
         back={{ href: "/admin", label: "Admin" }}
-        subtitle="Comments and replies show to the quorum only after approval."
+        subtitle="Comments and replies show to everyone only after approval."
         actions={
           rows.length > 1 && (
             <form action={approveAll}>

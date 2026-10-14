@@ -1,0 +1,274 @@
+// Wards, the organizations in them, and each member's place in those.
+import crypto from "crypto";
+import { db } from "./db";
+export { ORG_COOKIE } from "./org-cookie";
+import { isCalling, type Calling, type CurrentUser, type Feature, type Member, type Org, type OrgEntry, type Role, type Ward } from "./types";
+
+const WARD_COLUMNS = "id, name, timezone, join_code, sms_monthly_limit, created_by";
+const ORG_COLUMNS = "id, ward_id, name, kind, hidden_features";
+
+export function getWard(id: number): Ward | undefined {
+  return db().prepare(`SELECT ${WARD_COLUMNS} FROM wards WHERE id = ?`).get(id) as Ward | undefined;
+}
+
+export function listWards(): Ward[] {
+  return db().prepare(`SELECT ${WARD_COLUMNS} FROM wards ORDER BY name`).all() as Ward[];
+}
+
+export function getOrg(id: number): Org | undefined {
+  return db().prepare(`SELECT ${ORG_COLUMNS} FROM orgs WHERE id = ?`).get(id) as Org | undefined;
+}
+
+/** The ward-wide organization first, then the others by name. */
+export function orgsInWard(wardId: number): Org[] {
+  return db().prepare(`SELECT ${ORG_COLUMNS} FROM orgs WHERE ward_id = ? ORDER BY kind = 'group', name COLLATE NOCASE`).all(wardId) as Org[];
+}
+
+export function wardOrg(wardId: number): Org {
+  return db().prepare(`SELECT ${ORG_COLUMNS} FROM orgs WHERE ward_id = ? AND kind = 'ward'`).get(wardId) as Org;
+}
+
+/** "Elders Quorum", or the ward's own name for the ward-wide organization. */
+export function orgLabel(org: Org, ward?: Pick<Ward, "name">): string {
+  return org.kind === "ward" ? (ward ?? getWard(org.ward_id))?.name ?? "Ward" : org.name;
+}
+
+/** "Villas Ward Elders Quorum": for texts and emails, where the ward isn't obvious. */
+export function orgFullName(orgId: number): string {
+  const row = db().prepare("SELECT o.name, o.kind, w.name AS ward FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.id = ?").get(orgId) as
+    | { name: string; kind: string; ward: string }
+    | undefined;
+  if (!row) return "Ward";
+  return row.kind === "ward" ? row.ward : `${row.ward} ${row.name}`;
+}
+
+/** "the Elders Quorum presidency", "the bishopric": for wording in invitations. */
+export const leadersPhrase = (org: Pick<Org, "kind" | "name">) => (org.kind === "ward" ? "the bishopric" : `the ${org.name} presidency`);
+
+export const hasFeature = (org: Pick<Org, "hidden_features">, f: Feature) => !org.hidden_features.split(",").includes(f);
+
+export function memberWards(memberId: number): Ward[] {
+  return db()
+    .prepare(`SELECT ${WARD_COLUMNS.split(", ").map((c) => "w." + c).join(", ")} FROM wards w JOIN ward_members wm ON wm.ward_id = w.id WHERE wm.member_id = ? ORDER BY w.name`)
+    .all(memberId) as Ward[];
+}
+
+export function inWard(memberId: number, wardId: number): boolean {
+  return !!db().prepare("SELECT 1 FROM ward_members WHERE ward_id = ? AND member_id = ?").get(wardId, memberId);
+}
+
+interface MembershipRow {
+  org_id: number;
+  role: Role;
+  calling: string | null;
+  official: number;
+  notify: number;
+}
+
+/** The member's role in an organization ("member" if they have no row there). */
+export function roleIn(memberId: number, orgId: number): Role {
+  return ((db().prepare("SELECT role FROM org_members WHERE org_id = ? AND member_id = ?").get(orgId, memberId) as { role: Role } | undefined)?.role ?? "member");
+}
+
+/** Adds a member to a ward and its ward-wide organization (no-op if already there). */
+export function addToWard(memberId: number, wardId: number) {
+  const d = db();
+  d.prepare("INSERT OR IGNORE INTO ward_members (ward_id, member_id) VALUES (?, ?)").run(wardId, memberId);
+  d.prepare("INSERT OR IGNORE INTO org_members (org_id, member_id) VALUES (?, ?)").run(wardOrg(wardId).id, memberId);
+}
+
+/** Adds a member to an organization (in a ward they're in), keeping any role they have. */
+export function addToOrg(memberId: number, orgId: number, opts: { role?: Role; calling?: Calling | null; official?: boolean; notify?: boolean } = {}) {
+  const org = getOrg(orgId);
+  if (!org) return;
+  addToWard(memberId, org.ward_id);
+  const d = db();
+  d.prepare("INSERT OR IGNORE INTO org_members (org_id, member_id, official, notify) VALUES (?, ?, ?, ?)").run(orgId, memberId, opts.official === false ? 0 : 1, opts.notify === false ? 0 : 1);
+  if (opts.role) d.prepare("UPDATE org_members SET role = ?, calling = ? WHERE org_id = ? AND member_id = ?").run(opts.role, opts.calling ?? null, orgId, memberId);
+}
+
+
+/**
+ * Which organization to show: the one asked for if the member is in its
+ * ward, else one they lead, else one they officially belong to, else their
+ * ward-wide organization.
+ */
+export function pickOrg(memberId: number, wanted?: number): Org | undefined {
+  const d = db();
+  if (wanted) {
+    const org = getOrg(wanted);
+    if (org && inWard(memberId, org.ward_id)) return org;
+  }
+  const row = d
+    .prepare(
+      `SELECT o.id FROM org_members om JOIN orgs o ON o.id = om.org_id
+       JOIN ward_members wm ON wm.ward_id = o.ward_id AND wm.member_id = om.member_id
+       WHERE om.member_id = ?
+       ORDER BY om.role = 'presidency' DESC, om.role = 'admin' DESC, (om.official = 1 AND o.kind = 'group') DESC, o.kind = 'ward' DESC, o.id
+       LIMIT 1`,
+    )
+    .get(memberId) as { id: number } | undefined;
+  return row ? getOrg(row.id) : undefined;
+}
+
+/** The member's main organization and ward name, for messages not about any one organization. */
+export function homeOf(memberId: number): { orgId: number | null; name: string } {
+  const org = pickOrg(memberId);
+  return org ? { orgId: org.id, name: getWard(org.ward_id)?.name ?? "My Ward Link" } : { orgId: null, name: "My Ward Link" };
+}
+
+/** Builds the signed-in user as seen from an organization. Null if they belong to no ward. */
+export function currentUserFor(member: Member, wantedOrg?: number): CurrentUser | null {
+  const org = pickOrg(member.id, wantedOrg);
+  if (!org) return null;
+  const ward = getWard(org.ward_id)!;
+  const rows = db().prepare("SELECT org_id, role, calling, official, notify FROM org_members WHERE member_id = ?").all(member.id) as MembershipRow[];
+  const byOrg = new Map(rows.map((r) => [r.org_id, r]));
+  const orgs: OrgEntry[] = orgsInWard(ward.id).map((o) => {
+    const r = byOrg.get(o.id);
+    return {
+      ...o,
+      label: orgLabel(o, ward),
+      role: r?.role ?? "member",
+      calling: r && isCalling(r.calling) ? r.calling : null,
+      joined: !!r,
+      official: !!r?.official,
+      notify: !!r?.notify,
+    };
+  });
+  const here = orgs.find((o) => o.id === org.id)!;
+  const wardEntry = orgs.find((o) => o.kind === "ward");
+  return {
+    ...member,
+    ward,
+    ward_id: ward.id,
+    org,
+    org_id: org.id,
+    orgLabel: here.label,
+    role: here.role,
+    calling: here.calling,
+    orgs,
+    wards: memberWards(member.id),
+    wardLeader: wardEntry?.role === "presidency" || ward.created_by === member.id,
+  };
+}
+
+/** Selects members in an organization, with their role there as m.role / m.calling. */
+export const ORG_MEMBERS_FROM = "members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?";
+
+const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+/** A random 6-character join code no other ward uses. */
+export function newJoinCode(): string {
+  for (;;) {
+    const code = Array.from({ length: 6 }, () => CODE_CHARS[crypto.randomInt(CODE_CHARS.length)]).join("");
+    if (!db().prepare("SELECT 1 FROM wards WHERE join_code = ? COLLATE NOCASE").get(code)) return code;
+  }
+}
+
+/**
+ * A new ward with its ward-wide organization. The person who creates it leads
+ * that organization (with the bishopric, once they're added).
+ */
+export function createWard(opts: { name: string; timezone: string; creatorId: number; calling?: Calling | null }): Ward {
+  const d = db();
+  return d.transaction(() => {
+    const wardId = Number(d.prepare("INSERT INTO wards (name, timezone, join_code, created_by) VALUES (?, ?, ?, ?)").run(opts.name, opts.timezone, newJoinCode(), opts.creatorId).lastInsertRowid);
+    d.prepare("INSERT INTO orgs (ward_id, name, kind) VALUES (?, 'Ward', 'ward')").run(wardId);
+    addToWard(opts.creatorId, wardId);
+    d.prepare("UPDATE org_members SET role = 'presidency', calling = ? WHERE org_id = ? AND member_id = ?").run(opts.calling ?? null, wardOrg(wardId).id, opts.creatorId);
+    return getWard(wardId)!;
+  })();
+}
+
+/** A new organization in a ward; the person creating it is added to its presidency if they ask. */
+export function createOrg(wardId: number, name: string, hidden: string[] = []): Org {
+  const id = Number(db().prepare("INSERT INTO orgs (ward_id, name, kind, hidden_features) VALUES (?, ?, 'group', ?)").run(wardId, name, hidden.join(",")).lastInsertRowid);
+  return getOrg(id)!;
+}
+
+export interface Person {
+  id: number;
+  display_name: string;
+}
+
+/**
+ * The organization's roster, for leaders choosing people (teachers, visits,
+ * groups, messages): everyone who officially belongs or leads it.
+ */
+export function orgRoster(orgId: number, opts: { includeId?: number } = {}): Person[] {
+  return db()
+    .prepare(
+      `SELECT m.id, m.display_name FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?
+       WHERE (m.status = 'active' AND (om.official = 1 OR om.role <> 'member')) OR m.id = ?
+       ORDER BY m.display_name COLLATE NOCASE`,
+    )
+    .all(orgId, opts.includeId ?? 0) as Person[];
+}
+
+/** The organization's presidency (bishopric for the ward). */
+export function orgPresidency(orgId: number): Person[] {
+  return db()
+    .prepare(
+      `SELECT m.id, m.display_name FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?
+       WHERE om.role = 'presidency' AND m.status = 'active' ORDER BY m.display_name COLLATE NOCASE`,
+    )
+    .all(orgId) as Person[];
+}
+
+/** Whether a member is in the organization's ward (so leaders may visit, teach, message them). */
+export function inOrgWard(memberId: number, orgId: number): boolean {
+  return !!db().prepare("SELECT 1 FROM ward_members wm JOIN orgs o ON o.ward_id = wm.ward_id WHERE o.id = ? AND wm.member_id = ?").get(orgId, memberId);
+}
+
+/** A member (any status) in the organization's ward. */
+export function wardMember(memberId: number, orgId: number): Member | undefined {
+  return db()
+    .prepare("SELECT m.* FROM members m JOIN ward_members wm ON wm.member_id = m.id JOIN orgs o ON o.ward_id = wm.ward_id WHERE o.id = ? AND m.id = ?")
+    .get(orgId, memberId) as Member | undefined;
+}
+
+/** A ward member as seen from one organization: their role there, if any. */
+export type OrgMemberView = Member & { role: Role; calling: Calling | null; official: number; notify: number; in_org: number };
+
+export function orgMemberView(orgId: number, memberId: number): OrgMemberView | undefined {
+  const m = wardMember(memberId, orgId);
+  if (!m) return undefined;
+  const r = db().prepare("SELECT role, calling, official, notify FROM org_members WHERE org_id = ? AND member_id = ?").get(orgId, memberId) as MembershipRow | undefined;
+  return { ...m, role: r?.role ?? "member", calling: r && isCalling(r.calling) ? r.calling : null, official: r?.official ?? 0, notify: r?.notify ?? 0, in_org: r ? 1 : 0 };
+}
+
+export function orgTimezone(orgId: number): string {
+  return (db().prepare("SELECT w.timezone FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.id = ?").get(orgId) as { timezone: string } | undefined)?.timezone ?? "America/Boise";
+}
+
+/** Tables holding an organization's things, children before parents. */
+const ORG_TABLES = [
+  "teaching_requests",
+  "planned_visits",
+  "visit_requests",
+  "member_messages",
+  "events",
+  "event_series",
+  "event_requests",
+  "lessons",
+  "plans",
+  "visits",
+  "groups",
+  "messages",
+  "signups",
+  "todos",
+  "sms_log",
+];
+
+/** Deletes an organization and everything in it. The ward-wide one can't be deleted. */
+export function deleteOrg(orgId: number): boolean {
+  const org = getOrg(orgId);
+  if (!org || org.kind === "ward") return false;
+  const d = db();
+  d.transaction(() => {
+    for (const t of ORG_TABLES) d.prepare(`DELETE FROM ${t} WHERE org_id = ?`).run(orgId);
+    d.prepare("DELETE FROM orgs WHERE id = ?").run(orgId);
+  })();
+  return true;
+}

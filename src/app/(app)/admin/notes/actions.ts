@@ -15,17 +15,17 @@ function go(text: string): never {
 
 export async function reviewNotes(fd: FormData) {
   const user = await requireAdmin();
-  const lesson = getLesson(user.ward_id, Number(fd.get("lesson_id")));
+  const lesson = getLesson(user.org_id, Number(fd.get("lesson_id")));
   const notes = lesson && getNotes(lesson.id);
   if (!lesson || !notes || notes.status !== "pending") go("Those notes were already handled.");
-  const teacher = recipientById(notes.author_id);
+  const teacher = recipientById(notes.author_id, user.org_id);
 
   if (fd.get("decision") === "approve") {
     const first = publishNotes(lesson.id, user.id);
-    if (first) await announceNotes(user.ward_id, lesson, notes.author ?? "Your teacher");
+    if (first) await announceNotes(user.org_id, lesson, notes.author ?? "Your teacher");
     revalidatePath(`/lessons/${lesson.id}`);
     revalidatePath("/admin/notes");
-    go(first ? "Approved. The quorum has been notified." : "Approved. The updated notes are now showing (no new notification).");
+    go(first ? "Approved. Everyone has been notified." : "Approved. The updated notes are now showing (no new notification).");
   }
 
   const reason = String(fd.get("note") || "").trim().slice(0, 500);

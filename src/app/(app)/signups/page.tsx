@@ -12,7 +12,7 @@ export default async function SignupsPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const admin = isAdmin(user);
   const all = admin && sp.show === "all";
-  const list = listSignups(user.ward_id, all, todayIn(user.ward.timezone));
+  const list = listSignups(user.org_id, all, todayIn(user.ward.timezone));
   return (
     <>
       <PageHeader

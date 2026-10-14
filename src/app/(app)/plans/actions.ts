@@ -14,7 +14,7 @@ export async function savePlan(fd: FormData) {
   if (!isPlanKind(kind)) redirect("/plans");
   const title = String(fd.get("title") || "").trim() || PLAN_INFO[kind].title;
   const body = String(fd.get("body") || "").slice(0, 100_000);
-  const prev = currentPlan(user.ward_id, kind);
+  const prev = currentPlan(user.org_id, kind);
   let pdfFile = fd.get("remove_pdf") === "on" ? null : (prev?.pdf_file ?? null);
   let pdfName = pdfFile ? (prev?.pdf_name ?? null) : null;
   const file = fd.get("pdf");
@@ -27,9 +27,9 @@ export async function savePlan(fd: FormData) {
       redirect(`/plans/${kind}/edit?msg=${encodeURIComponent("That file isn't a PDF.")}`);
     }
   }
-  db().prepare("INSERT INTO plans (ward_id, kind, title, body, pdf_file, pdf_name, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)").run(user.ward_id, kind, title, body, pdfFile, pdfName, user.id);
+  db().prepare("INSERT INTO plans (org_id, kind, title, body, pdf_file, pdf_name, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)").run(user.org_id, kind, title, body, pdfFile, pdfName, user.id);
   if (fd.get("announce") === "on") {
-    await notify(audienceMembers(user.ward_id, "everyone"), { title: `${title} updated`, body: "Take a look at the updated plan in the app.", url: `/plans/${kind}` });
+    await notify(audienceMembers(user.org_id, "everyone"), { title: `${title} updated`, body: "Take a look at the updated plan in the app.", url: `/plans/${kind}` });
   }
   revalidatePath("/plans", "layout");
   redirect(`/plans/${kind}?msg=${encodeURIComponent("Plan saved.")}`);

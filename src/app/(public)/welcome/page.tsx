@@ -28,7 +28,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
     <form action={acceptWelcome} className="card space-y-4">
       <div>
         <h2 className="h2">Welcome!</h2>
-        <p className="mt-1 text-sm text-muted">The elders quorum presidency added you to {user.ward.name}. Take a moment to check your details.</p>
+        <p className="mt-1 text-sm text-muted">{user.ward.name}&apos;s leaders added you to the app. Take a moment to check your details.</p>
       </div>
       <Flash msg={sp.msg} tone="warn" />
       <div>
@@ -39,7 +39,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
         <p className="hint">Shown with your comments and sign-ups.</p>
       </div>
       <fieldset>
-        <legend className="label">When notifications are off, how should we send reminders and quorum messages?</legend>
+        <legend className="label">When notifications are off, how should we send reminders and messages?</legend>
         <div className="space-y-2">
           {options.map(([v, label]) => (
             <label key={v} className="flex items-start gap-2 text-sm">
@@ -50,7 +50,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
         </div>
         {canText && (
           <p className="hint mt-2">
-            By choosing a text option, I agree to receive sign-in codes, reminders and quorum messages by text from {user.ward.name}. {SMS_DISCLOSURE} Consent isn&apos;t required to use the app.
+            By choosing a text option, I agree to receive sign-in codes, reminders and messages by text from {user.ward.name}. {SMS_DISCLOSURE} Consent isn&apos;t required to use the app.
           </p>
         )}
       </fieldset>

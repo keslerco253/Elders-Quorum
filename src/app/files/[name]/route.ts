@@ -7,7 +7,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ name: s
   const user = await getUser();
   if (!user) return new Response("Sign in required", { status: 401 });
   const { name } = await params;
-  const plan = db().prepare("SELECT pdf_name FROM plans WHERE pdf_file = ? AND ward_id = ?").get(name, user.ward_id) as { pdf_name: string } | undefined;
+  const plan = db().prepare("SELECT pdf_name FROM plans WHERE pdf_file = ? AND org_id = ?").get(name, user.org_id) as { pdf_name: string } | undefined;
   const data = plan && readUpload(name);
   if (!data) return new Response("Not found", { status: 404 });
   return new Response(new Uint8Array(data), {

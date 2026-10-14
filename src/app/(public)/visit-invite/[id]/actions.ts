@@ -9,8 +9,8 @@ import { db } from "@/lib/db";
 export async function replyToInvitation(fd: FormData) {
   const id = Number(fd.get("plan_id"));
   const token = String(fd.get("t") || "");
-  const ward = db().prepare("SELECT ward_id FROM planned_visits WHERE id = ?").get(id) as { ward_id: number } | undefined;
-  const plan = ward ? getPlannedVisit(ward.ward_id, id) : undefined;
+  const ward = db().prepare("SELECT org_id FROM planned_visits WHERE id = ?").get(id) as { org_id: number } | undefined;
+  const plan = ward ? getPlannedVisit(ward.org_id, id) : undefined;
   if (!plan || !validInviteToken(id, plan.member_id, token)) redirect(`/visit-invite/${id}?t=${encodeURIComponent(token)}`);
   const answer = String(fd.get("answer")) as InviteAnswer;
   if (!["accepted", "new_time", "declined"].includes(answer)) redirect(`/visit-invite/${id}?t=${encodeURIComponent(token)}`);

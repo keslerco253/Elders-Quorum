@@ -12,7 +12,7 @@ export const metadata = { title: "Sign-up" };
 
 export default async function SignupPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
-  const s = getSignup(user.ward_id, Number((await params).id));
+  const s = getSignup(user.org_id, Number((await params).id));
   if (!s) notFound();
   const sp = await searchParams;
   const admin = isAdmin(user);

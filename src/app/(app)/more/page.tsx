@@ -3,7 +3,8 @@ import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { unreadAnswers } from "@/lib/conversations";
 import { unreadNotifications } from "@/lib/notification-log";
-import { ROLE_LABELS } from "@/lib/types";
+import { callingLabel, leadersWord, roleLabel } from "@/lib/types";
+import { hasFeature } from "@/lib/orgs";
 import { formatPhone } from "@/lib/contact";
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -21,9 +22,10 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
   const newNotes = unreadNotifications(user.id);
   const links = [
     { href: "/notifications", label: newNotes ? `Notifications (${newNotes} new)` : "Notifications", desc: "Read the full text of everything the app sent you" },
-    { href: "/messages", label: unread ? `Messages (${unread} new)` : "Messages", desc: "Quorum messages and replies from the presidency" },
-    { href: "/signups", label: "Sign-ups", desc: "Service projects, meals and more" },
-    { href: "/more/visit", label: "Request a visit", desc: "Ask the presidency to come by, talk, or help" },
+    { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },
+    { href: "/messages", label: unread ? `Messages (${unread} new)` : "Messages", desc: `Messages from ${user.orgLabel} and replies from its ${leadersWord(user.org)}` },
+    ...(hasFeature(user.org, "signups") ? [{ href: "/signups", label: "Sign-ups", desc: "Service projects, meals and more" }] : []),
+    ...(hasFeature(user.org, "visits") ? [{ href: "/more/visit", label: "Request a visit", desc: `Ask the ${user.orgLabel} ${leadersWord(user.org)} to come by, talk, or help` }] : []),
     { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },
     ...(isAdmin(user) ? [{ href: "/admin", label: "Admin tools", desc: "Members, lessons, messages and approvals" }] : []),
   ];
@@ -65,7 +67,9 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
         <div className="card space-y-1 text-sm">
           <div className="font-semibold">{user.display_name}</div>
           <div className="text-muted">{[formatPhone(user.phone), user.email].filter(Boolean).join(" · ")}</div>
-          <div className="text-muted">Access: {ROLE_LABELS[user.role]}</div>
+          <div className="text-muted">
+            In {user.orgLabel}: {user.calling ? callingLabel(user.calling, user.org) : roleLabel(user.role, user.org)}
+          </div>
           <p className="hint pt-2">
             This app keeps only your name, email and what you post.{" "}
             <Link href="/privacy" className="link">

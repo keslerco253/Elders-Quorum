@@ -5,12 +5,15 @@ import { pushToMember, type PushPayload } from "./push";
 import { canSendNotice, sendSms } from "./sms";
 import { fallbackChannels, type ContactPref } from "./contact";
 import { DateTime } from "luxon";
+import { getOrg, orgFullName } from "./orgs";
+import { withOrg } from "./org-cookie";
 
 export type Audience = "everyone" | "admins" | "presidency" | "teachers" | `group:${number}`;
 
+/** A member to notify, with the organization the notification is about (org_id). */
 export interface Recipient {
   id: number;
-  ward_id: number;
+  org_id: number;
   email: string | null;
   phone: string | null;
   contact_pref: ContactPref;
@@ -20,53 +23,59 @@ export interface Recipient {
   always_text: number;
 }
 
-export const RECIPIENT_COLUMNS = "id, ward_id, email, phone, contact_pref, display_name, sms_consent_at, always_email, always_text";
-const BASE = `SELECT ${RECIPIENT_COLUMNS} FROM members WHERE ward_id = ? AND status = 'active'`;
+/** Columns for a Recipient from members m; the first ? is the organization id. */
+export const RECIPIENT_COLUMNS = "m.id, ? AS org_id, m.email, m.phone, m.contact_pref, m.display_name, m.sms_consent_at, m.always_email, m.always_text";
+// Members of an organization (first ? org id for the column, second for the join).
+const BASE = `SELECT ${RECIPIENT_COLUMNS} FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ? WHERE m.status = 'active'`;
 
-export function recipientById(id: number | null | undefined): Recipient | undefined {
+/** One member, to notify about something in an organization. */
+export function recipientById(id: number | null | undefined, orgId: number): Recipient | undefined {
   if (!id) return undefined;
-  return d().prepare(`SELECT ${RECIPIENT_COLUMNS} FROM members WHERE id = ? AND status = 'active'`).get(id) as Recipient | undefined;
+  return d().prepare(`SELECT ${RECIPIENT_COLUMNS} FROM members m WHERE m.id = ? AND m.status = 'active'`).get(orgId, id) as Recipient | undefined;
 }
 const d = () => db();
 
-/** Active members (everyone who joined and was approved) in an audience. */
-export function audienceMembers(wardId: number, audience: Audience, opts: { tz?: string } = {}): Recipient[] {
+/**
+ * Active members of an organization in an audience. "everyone" is those who get
+ * the organization's notifications; leaders always get them.
+ */
+export function audienceMembers(orgId: number, audience: Audience, opts: { tz?: string } = {}): Recipient[] {
   const d = db();
-  if (audience === "everyone") return d.prepare(BASE).all(wardId) as Recipient[];
-  if (audience === "admins") return d.prepare(BASE + " AND role IN ('admin','presidency')").all(wardId) as Recipient[];
-  if (audience === "presidency") return d.prepare(BASE + " AND role = 'presidency'").all(wardId) as Recipient[];
+  if (audience === "everyone") return d.prepare(BASE + " AND (om.notify = 1 OR om.role <> 'member')").all(orgId, orgId) as Recipient[];
+  if (audience === "admins") return d.prepare(BASE + " AND om.role IN ('admin','presidency')").all(orgId, orgId) as Recipient[];
+  if (audience === "presidency") return d.prepare(BASE + " AND om.role = 'presidency'").all(orgId, orgId) as Recipient[];
   if (audience === "teachers") {
     const today = DateTime.now().setZone(opts.tz || "America/Boise").toISODate()!;
     const until = DateTime.fromISO(today).plus({ weeks: 5 }).toISODate()!;
     return d
-      .prepare(BASE + " AND id IN (SELECT teacher_id FROM lessons WHERE ward_id = ? AND date BETWEEN ? AND ? AND teacher_id IS NOT NULL)")
-      .all(wardId, wardId, today, until) as Recipient[];
+      .prepare(`SELECT ${RECIPIENT_COLUMNS} FROM members m WHERE m.status = 'active' AND m.id IN (SELECT teacher_id FROM lessons WHERE org_id = ? AND date BETWEEN ? AND ? AND teacher_id IS NOT NULL)`)
+      .all(orgId, orgId, today, until) as Recipient[];
   }
   if (audience.startsWith("group:")) {
     const groupId = Number(audience.slice(6));
     return d
-      .prepare(BASE + " AND id IN (SELECT member_id FROM group_members gm JOIN groups g ON g.id = gm.group_id WHERE g.id = ? AND g.ward_id = ?)")
-      .all(wardId, groupId, wardId) as Recipient[];
+      .prepare(`SELECT ${RECIPIENT_COLUMNS} FROM members m WHERE m.status = 'active' AND m.id IN (SELECT member_id FROM group_members gm JOIN groups g ON g.id = gm.group_id WHERE g.id = ? AND g.org_id = ?)`)
+      .all(orgId, groupId, orgId) as Recipient[];
   }
   return [];
 }
 
-export function audienceLabel(wardId: number, audience: Audience): string {
+export function audienceLabel(orgId: number, audience: Audience): string {
   switch (audience) {
     case "everyone":
       return "Everyone";
     case "admins":
-      return "Admins (presidency, bishop, Stake High Council)";
+      return "Leaders and admins";
     case "presidency":
-      return "Presidency";
+      return getOrg(orgId)?.kind === "ward" ? "Bishopric" : "Presidency";
     case "teachers":
       return "Upcoming teachers";
   }
-  const g = db().prepare("SELECT name FROM groups WHERE id = ? AND ward_id = ?").get(Number(audience.slice(6)), wardId) as { name: string } | undefined;
+  const g = db().prepare("SELECT name FROM groups WHERE id = ? AND org_id = ?").get(Number(audience.slice(6)), orgId) as { name: string } | undefined;
   return g ? `Group: ${g.name}` : "Group";
 }
 
-/** Short text for a notice, with the ward's name so people know who it's from. */
+/** Short text for a notice, with the ward and organization so people know who it's from. */
 function smsBody(wardName: string, payload: PushPayload, url: string) {
   const text = `${wardName}: ${payload.title}. ${payload.textBody ?? payload.body}`.replace(/\s+/g, " ").trim();
   return `${text.length > 280 ? text.slice(0, 277) + "…" : text} ${url}`;
@@ -84,7 +93,7 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
   let email = 0;
   let text = 0;
   let reached = 0;
-  const wardNames = new Map<number, string>();
+  const orgNames = new Map<number, string>();
 
   const sendEmail = async (r: Recipient, url: string) =>
     !!r.email &&
@@ -96,8 +105,10 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
     }));
   const sendText = async (r: Recipient, url: string) => {
     if (!r.phone) return false;
-    if (!wardNames.has(r.ward_id)) wardNames.set(r.ward_id, (d().prepare("SELECT name FROM wards WHERE id = ?").get(r.ward_id) as { name: string }).name);
-    const res = await sendSms(r.ward_id, r.phone, smsBody(wardNames.get(r.ward_id)!, payload, url), "notice");
+    if (!orgNames.has(r.org_id)) orgNames.set(r.org_id, orgFullName(r.org_id));
+    const res = await sendSms(r.org_id, r.phone, smsBody(orgNames.get(r.org_id)!, payload, url), "notice");
+    // A texted reply goes to this organization.
+    if (res === "sent") d().prepare("UPDATE members SET last_text_org_id = ? WHERE id = ?").run(r.org_id, r.id);
     // They replied STOP: stop texting them; use email if they have one.
     if (res === "opted_out") d().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END, always_text = 0 WHERE id = ?").run(r.id);
     return res === "sent";
@@ -108,9 +119,10 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
     const logId = Number(
       d().prepare("INSERT INTO notification_log (member_id, title, body, url) VALUES (?, ?, ?, ?)").run(r.id, payload.title, payload.body, payload.url ?? "/").lastInsertRowid,
     );
-    const p = { ...payload, url: withSeen(payload.url ?? "/", logId) };
+    // ?org= opens it in the organization it's about.
+    const p = { ...payload, url: withOrg(withSeen(payload.url ?? "/", logId), r.org_id) };
     const url = appUrl() + p.url;
-    const canText = !!r.sms_consent_at && !!r.phone && canSendNotice(r.ward_id);
+    const canText = !!r.sms_consent_at && !!r.phone && canSendNotice(r.org_id);
     let got = false;
     if ((await pushToMember(r.id, p)) > 0) {
       push++;

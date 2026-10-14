@@ -5,8 +5,10 @@ import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { deleteTodo, saveTodo, toggleTodo } from "./actions";
+import { orgPresidency } from "@/lib/orgs";
+import { roleLabel } from "@/lib/types";
 
-export const metadata = { title: "Presidency assignments" };
+export const metadata = { title: "Assignments" };
 
 interface Todo {
   id: number;
@@ -26,11 +28,11 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
   const todos = db()
     .prepare(
       `SELECT t.*, m.display_name AS assignee FROM todos t LEFT JOIN members m ON m.id = t.assignee_id
-       WHERE t.ward_id = ? ${mineOnly ? "AND t.assignee_id = ?" : ""}
+       WHERE t.org_id = ? ${mineOnly ? "AND t.assignee_id = ?" : ""}
        ORDER BY t.done, t.due_date IS NULL, t.due_date, t.id DESC LIMIT 200`,
     )
-    .all(...(mineOnly ? [user.ward_id, user.id] : [user.ward_id])) as Todo[];
-  const people = db().prepare("SELECT id, display_name FROM members WHERE ward_id = ? AND role = 'presidency' AND status = 'active' ORDER BY display_name").all(user.ward_id) as { id: number; display_name: string }[];
+    .all(...(mineOnly ? [user.org_id, user.id] : [user.org_id])) as Todo[];
+  const people = orgPresidency(user.org_id);
   const open = todos.filter((t) => !t.done);
   const done = todos.filter((t) => t.done);
   const editing = sp.edit ? todos.find((t) => t.id === Number(sp.edit)) : undefined;
@@ -101,7 +103,7 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader
-        title="Presidency assignments"
+        title={`${roleLabel("presidency", user.org)} assignments`}
         back={{ href: "/admin", label: "Admin" }}
         actions={
           <Link href={mineOnly ? "/admin/todos" : "/admin/todos?mine=1"} className="btn-secondary">

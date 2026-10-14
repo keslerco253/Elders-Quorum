@@ -15,13 +15,13 @@ export default async function VisitInvitePage({ params, searchParams }: { params
   const id = Number((await params).id);
   const sp = await searchParams;
   const token = sp.t ?? "";
-  const ward = db().prepare("SELECT ward_id FROM planned_visits WHERE id = ?").get(id) as { ward_id: number } | undefined;
-  const plan = ward ? getPlannedVisit(ward.ward_id, id) : undefined;
+  const ward = db().prepare("SELECT org_id FROM planned_visits WHERE id = ?").get(id) as { org_id: number } | undefined;
+  const plan = ward ? getPlannedVisit(ward.org_id, id) : undefined;
   if (!plan || !validInviteToken(id, plan.member_id, token) || !plan.invite_status) {
     return (
       <div className="card space-y-2 text-center">
         <h2 className="h2">This invitation isn&apos;t available</h2>
-        <p className="text-sm text-muted">It may have been changed or cancelled. Please reach out to the elders quorum presidency.</p>
+        <p className="text-sm text-muted">It may have been changed or cancelled. Please reach out to whoever invited you.</p>
       </div>
     );
   }

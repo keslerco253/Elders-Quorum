@@ -5,8 +5,7 @@ import { runRetention } from "@/lib/retention";
 
 describe("teacher notes", () => {
   beforeEach(() => {
-    const d = useTestDb();
-    d.exec(`
+    const d = useTestDb(`
       INSERT INTO wards (id, name) VALUES (1, 'W');
       INSERT INTO members (id, ward_id, name, display_name, role) VALUES (1, 1, 'T', 'Teacher', 'member'), (2, 1, 'A', 'Admin', 'admin');
       INSERT INTO lessons (id, ward_id, date, teacher_id) VALUES (1, 1, date('now', '+5 days'), 1), (2, 1, date('now', '-7 months'), 1);

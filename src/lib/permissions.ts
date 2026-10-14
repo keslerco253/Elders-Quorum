@@ -1,9 +1,9 @@
-import type { Member } from "./types";
+import type { Role } from "./types";
 
-type Who = Pick<Member, "role"> | null | undefined;
+type Who = { role: Role } | null | undefined;
 
-/** Presidency, bishop and Stake High Council representative: posting, moderation, calendar, messages. */
+/** In the organization being viewed: its presidency and admins. Posting, moderation, calendar, messages. */
 export const isAdmin = (m: Who) => m?.role === "admin" || m?.role === "presidency";
 
-/** Presidency only: home visits, to-dos, access approval, teacher assignment, roles. */
+/** The organization's presidency (the bishopric for the ward): visits, to-dos, members, teachers, roles. */
 export const isPresidency = (m: Who) => m?.role === "presidency";

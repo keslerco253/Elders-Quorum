@@ -27,8 +27,8 @@ export default async function VisitRequestsPage({
   const user = await requirePresidency();
   const sp = await searchParams;
   const tz = user.ward.timezone;
-  const active = wardVisitRequests(user.ward_id, true);
-  const past = wardVisitRequests(user.ward_id, false);
+  const active = wardVisitRequests(user.org_id, true);
+  const past = wardVisitRequests(user.org_id, false);
 
   return (
     <>
@@ -43,7 +43,7 @@ export default async function VisitRequestsPage({
       ) : (
         <div className="space-y-3">
           {active.map((r) => {
-            const plan = planForRequest(user.ward_id, r.id);
+            const plan = planForRequest(user.org_id, r.id);
             return (
               <div key={r.id} className="card space-y-2">
                 <div className="flex flex-wrap items-center gap-2">

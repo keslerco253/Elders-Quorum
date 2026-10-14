@@ -24,13 +24,13 @@ export function inviteLink(m: Pick<Member, "email" | "phone">) {
  */
 export function inviteText(m: Pick<Member, "display_name" | "email" | "phone">, appName: string) {
   const first = firstName(m.display_name);
-  return `Hi ${first}! I added you to the ${appName} app for lesson reminders, sign-ups and quorum news. Sign in here with this phone number and you'll get a code: ${inviteLink(m)}`;
+  return `Hi ${first}! I added you to the ${appName} app for reminders, sign-ups and ward news. Sign in here with this phone number and you'll get a code: ${inviteLink(m)}`;
 }
 
 export async function sendInviteEmail(m: Pick<Member, "display_name" | "email" | "phone">, appName: string, from: string) {
   if (!m.email) return false;
   const link = inviteLink(m);
-  const text = `Hi ${m.display_name},\n\n${from} added you to ${appName}, our elders quorum app for lesson reminders, sign-ups, the calendar and quorum news.\n\nSign in with this email address (${m.email}). We'll send you a code; no password needed.`;
+  const text = `Hi ${m.display_name},\n\n${from} added you to ${appName}, our ward app for reminders, sign-ups, the calendar and news from the ward and its organizations.\n\nSign in with this email address (${m.email}). We'll send you a code; no password needed.`;
   return sendMail({
     to: m.email,
     subject: `You're invited to ${appName}`,

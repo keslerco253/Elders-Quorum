@@ -13,8 +13,7 @@ describe("visit invitations", () => {
   const read = (f: string) => fs.readFileSync(path.join(dir, "outbox", f), "utf8");
 
   beforeAll(async () => {
-    d = (await import("@/lib/db")).useTestDb();
-    d.exec(`
+    d = (await import("@/lib/db")).useTestDb(`
       INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
       INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES
         (1, 1, 'P', 'Daniel Carter', 'p@test.local', 'presidency'),
@@ -25,17 +24,17 @@ describe("visit invitations", () => {
   });
 
   it("writes a warm message with the date, time and who's coming", () => {
-    expect(pv.inviteMessage("Sam", "2030-10-15", "19:00", ["Daniel Carter", "Michael Nguyen"])).toBe(
-      "Hi Sam! We would love to come visit you and your family in your home on Tuesday, October 15 at 7:00 PM. Daniel Carter and Michael Nguyen from the elders quorum presidency are looking forward to seeing you. If that time doesn't work, please let us know a time that would be better for you.",
+    expect(pv.inviteMessage("Sam", "2030-10-15", "19:00", ["Daniel Carter", "Michael Nguyen"], "the Elders Quorum presidency")).toBe(
+      "Hi Sam! We would love to come visit you and your family in your home on Tuesday, October 15 at 7:00 PM. Daniel Carter and Michael Nguyen from the Elders Quorum presidency are looking forward to seeing you. If that time doesn't work, please let us know a time that would be better for you.",
     );
-    expect(pv.inviteMessage("Sam", "2030-10-15", null, ["Daniel Carter"])).toContain("Daniel Carter from the elders quorum presidency is looking forward");
+    expect(pv.inviteMessage("Sam", "2030-10-15", null, ["Daniel Carter"], "the bishopric")).toContain("Daniel Carter from the bishopric is looking forward");
   });
 
   it("sends the invitation and records each kind of answer", async () => {
-    const id = pv.savePlan({ wardId: 1, memberId: 3, date: "2030-10-15", time: "19:00", type: "home", note: "", requestId: null, visitors: [1, 2], createdBy: 1 });
+    const id = pv.savePlan({ orgId: 1, memberId: 3, date: "2030-10-15", time: "19:00", type: "home", note: "", requestId: null, visitors: [1, 2], createdBy: 1 });
     await pv.sendInvitation(pv.getPlannedVisit(1, id)!, "Hi Sam! We would love to visit.", 1);
     const invite = read(outbox().find((f) => f.includes("m@test"))!);
-    expect(invite).toContain("An invitation from the elders quorum presidency");
+    expect(invite).toContain("An invitation from the W Elders Quorum presidency");
     expect(invite).toMatch(new RegExp(`/visit-invite/${id}\\?t=`));
     expect(pv.pendingInvitesFor(3, "2030-01-01").map((p) => p.id)).toEqual([id]);
 
@@ -62,8 +61,7 @@ describe("visit invitations", () => {
 
 describe("upcoming visits vs invitations", () => {
   it("keeps invitations out of Upcoming until the member agrees", async () => {
-    const d = (await import("@/lib/db")).useTestDb();
-    d.exec(`
+    const d = (await import("@/lib/db")).useTestDb(`
       INSERT INTO wards (id, name) VALUES (1, 'W');
       INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'P', 'p@x', 'presidency'), (2, 1, 'M', 'M', 'm@x', 'member');
       INSERT INTO planned_visits (id, ward_id, member_id, date, invite_status) VALUES

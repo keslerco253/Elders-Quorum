@@ -17,7 +17,7 @@ export default async function AdminLessonsPage({
   const user = await requireAdmin();
   const sp = await searchParams;
   const today = todayIn(user.ward.timezone);
-  const lessons = upcomingLessons(user.ward_id, today, 80);
+  const lessons = upcomingLessons(user.org_id, today, 80);
   const last = lessons.at(-1)?.date;
   const nextStart = last
     ? sundayOnOrAfter(

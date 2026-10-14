@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { googleCalendarUrl, icsFor } from "@/lib/events";
 import { localInputToUtc, sundays, utcToLocalInput } from "@/lib/time";
 
-const e = { id: 7, ward_id: 1, title: "Service project; bring gloves", description: "Yard cleanup", location: "123 Main St, Boise", starts_at: "2026-10-17T15:00:00Z", ends_at: "2026-10-17T17:00:00Z", presidency_only: 0, rsvp_enabled: 0, reminder_minutes: 1440, series_id: null };
+const e = { id: 7, org_id: 1, title: "Service project; bring gloves", description: "Yard cleanup", location: "123 Main St, Boise", starts_at: "2026-10-17T15:00:00Z", ends_at: "2026-10-17T17:00:00Z", presidency_only: 0, rsvp_enabled: 0, reminder_minutes: 1440, series_id: null };
 
 describe("calendar", () => {
   it("builds a Google Calendar link", () => {
@@ -55,8 +55,7 @@ describe("calendar file links", () => {
 
 describe("calendar subscription", () => {
   it("lists every event the member may see, and the link can be reset", async () => {
-    const d = (await import("@/lib/db")).useTestDb();
-    d.exec(`
+    const d = (await import("@/lib/db")).useTestDb(`
       INSERT INTO wards (id, name, timezone) VALUES (1, 'Villas Ward Elders Quorum', 'America/Boise');
       INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'M', 'Mem', 'm@x', 'member'), (2, 1, 'P', 'Pres', 'p@x', 'presidency');
       INSERT INTO events (ward_id, title, starts_at, ends_at, presidency_only) VALUES
@@ -72,7 +71,7 @@ describe("calendar subscription", () => {
     };
     const mem = await fetchFeed(1);
     expect(mem.status).toBe(200);
-    expect(mem.body).toContain("X-WR-CALNAME:Villas Ward Elders Quorum");
+    expect(mem.body).toContain("X-WR-CALNAME:Villas Ward");
     expect(mem.body).toContain("SUMMARY:Service project");
     expect(mem.body).not.toContain("Presidency meeting");
     expect((await fetchFeed(2)).body).toContain("SUMMARY:Presidency meeting");

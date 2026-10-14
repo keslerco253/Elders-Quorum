@@ -16,22 +16,22 @@ const LIST_SQL = `
     (SELECT COUNT(*) FROM lesson_declines d WHERE d.lesson_id = l.id) AS decline_count,
     (SELECT group_concat(m.display_name, ', ') FROM teaching_requests r JOIN members m ON m.id = r.member_id WHERE r.lesson_id = l.id AND r.status = 'pending') AS asked_names
   FROM lessons l LEFT JOIN members t ON t.id = l.teacher_id
-  WHERE l.ward_id = ?`;
+  WHERE l.org_id = ?`;
 
-export function upcomingLessons(wardId: number, fromDate: string, limit = 60): LessonListItem[] {
-  return db().prepare(LIST_SQL + " AND l.date >= ? ORDER BY l.date LIMIT ?").all(wardId, fromDate, limit) as LessonListItem[];
+export function upcomingLessons(orgId: number, fromDate: string, limit = 60): LessonListItem[] {
+  return db().prepare(LIST_SQL + " AND l.date >= ? ORDER BY l.date LIMIT ?").all(orgId, fromDate, limit) as LessonListItem[];
 }
 
-export function pastLessons(wardId: number, beforeDate: string, limit = 60): LessonListItem[] {
-  return db().prepare(LIST_SQL + " AND l.date < ? ORDER BY l.date DESC LIMIT ?").all(wardId, beforeDate, limit) as LessonListItem[];
+export function pastLessons(orgId: number, beforeDate: string, limit = 60): LessonListItem[] {
+  return db().prepare(LIST_SQL + " AND l.date < ? ORDER BY l.date DESC LIMIT ?").all(orgId, beforeDate, limit) as LessonListItem[];
 }
 
-export function getLesson(wardId: number, id: number): LessonListItem | undefined {
-  return db().prepare(LIST_SQL + " AND l.id = ?").get(wardId, id) as LessonListItem | undefined;
+export function getLesson(orgId: number, id: number): LessonListItem | undefined {
+  return db().prepare(LIST_SQL + " AND l.id = ?").get(orgId, id) as LessonListItem | undefined;
 }
 
-export function lessonOn(wardId: number, date: string): LessonListItem | undefined {
-  return db().prepare(LIST_SQL + " AND l.date = ?").get(wardId, date) as LessonListItem | undefined;
+export function lessonOn(orgId: number, date: string): LessonListItem | undefined {
+  return db().prepare(LIST_SQL + " AND l.date = ?").get(orgId, date) as LessonListItem | undefined;
 }
 
 export interface CommentView {

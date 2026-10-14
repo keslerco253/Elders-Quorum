@@ -12,10 +12,10 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
   const { kind } = await params;
   const sp = await searchParams;
   if (!isPlanKind(kind)) notFound();
-  const latest = currentPlan(user.ward_id, kind);
-  const shown = sp.v ? planVersion(user.ward_id, kind, Number(sp.v)) : latest;
+  const latest = currentPlan(user.org_id, kind);
+  const shown = sp.v ? planVersion(user.org_id, kind, Number(sp.v)) : latest;
   const old = shown && latest && shown.id !== latest.id;
-  const history = sp.history ? planHistory(user.ward_id, kind) : [];
+  const history = sp.history ? planHistory(user.org_id, kind) : [];
   const tz = user.ward.timezone;
 
   return (

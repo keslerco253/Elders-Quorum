@@ -6,12 +6,13 @@ import { isHttps } from "./config";
 import { createSession, deleteSession, userForSession, type Remember } from "./auth-core";
 import { isAdmin, isPresidency } from "./permissions";
 import type { CurrentUser } from "./types";
+import { ORG_COOKIE } from "./orgs";
 
 const COOKIE = "eq_session";
 
 export const getUser = cache(async (): Promise<CurrentUser | null> => {
   const jar = await cookies();
-  return userForSession(jar.get(COOKIE)?.value);
+  return userForSession(jar.get(COOKIE)?.value, Number(jar.get(ORG_COOKIE)?.value) || undefined);
 });
 
 export async function requireUser(): Promise<CurrentUser> {
@@ -25,6 +26,13 @@ export async function requireUser(): Promise<CurrentUser> {
 export async function requireAdmin(): Promise<CurrentUser> {
   const user = await requireUser();
   if (!isAdmin(user)) redirect("/");
+  return user;
+}
+
+/** The bishopric (or whoever created the ward): ward settings, join code, organizations. */
+export async function requireWardLeader(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (!user.wardLeader) redirect("/");
   return user;
 }
 

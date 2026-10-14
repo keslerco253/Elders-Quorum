@@ -23,10 +23,10 @@ export function respondPath(lessonId: number, teacherId: number, answer?: "teach
   return `/teach/${lessonId}?t=${teachToken(lessonId, teacherId)}${answer ? `&a=${answer}` : ""}`;
 }
 
-type TeachLesson = Pick<Lesson, "id" | "ward_id" | "date" | "title" | "teacher_id">;
+type TeachLesson = Pick<Lesson, "id" | "org_id" | "date" | "title" | "teacher_id">;
 
 export function lessonForTeacher(lessonId: number): (TeachLesson & { teacher_confirmed_at: string | null; kind: string }) | undefined {
-  return db().prepare("SELECT id, ward_id, date, title, kind, teacher_id, teacher_confirmed_at FROM lessons WHERE id = ?").get(lessonId) as
+  return db().prepare("SELECT id, org_id, date, title, kind, teacher_id, teacher_confirmed_at FROM lessons WHERE id = ?").get(lessonId) as
     | (TeachLesson & { teacher_confirmed_at: string | null; kind: string })
     | undefined;
 }
@@ -36,7 +36,7 @@ export function nextLessonTaughtBy(memberId: number, tz: string) {
   const today = DateTime.now().setZone(tz).toISODate()!;
   const until = DateTime.now().setZone(tz).plus({ days: 8 }).toISODate()!;
   return db()
-    .prepare("SELECT id, ward_id, date, title, teacher_id FROM lessons WHERE teacher_id = ? AND kind = 'talk' AND date BETWEEN ? AND ? ORDER BY date LIMIT 1")
+    .prepare("SELECT id, org_id, date, title, teacher_id FROM lessons WHERE teacher_id = ? AND kind = 'talk' AND date BETWEEN ? AND ? ORDER BY date LIMIT 1")
     .get(memberId, today, until) as TeachLesson | undefined;
 }
 
@@ -55,7 +55,7 @@ export async function declineTeaching(member: { id: number; display_name: string
     d.prepare("INSERT INTO lesson_declines (lesson_id, member_id, reason) VALUES (?, ?, ?)").run(lesson.id, member.id, why);
     removeTeacherNotes(lesson.id, member.id);
   })();
-  await notify(audienceMembers(lesson.ward_id, "presidency"), {
+  await notify(audienceMembers(lesson.org_id, "presidency"), {
     title: "Teacher needed",
     body: `${member.display_name} can't teach on ${formatDate(lesson.date, "short")}${lesson.title ? ` ("${lesson.title}")` : ""}.${why ? ` Reason: ${why}` : ""}`,
     url: `/admin/lessons/${lesson.id}`,

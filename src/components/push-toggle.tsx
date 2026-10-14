@@ -81,7 +81,7 @@ export function PushToggle({ compact }: { compact?: boolean }) {
     <div className={`${box} flex flex-wrap items-center justify-between gap-3`}>
       <div>
         <div className="font-semibold">{state === "on" ? "Notifications are on for this device" : "Turn on notifications"}</div>
-        <p className="text-muted">{state === "on" ? "You'll get lesson reminders and quorum announcements here." : "Get lesson reminders and quorum announcements on this device."}</p>
+        <p className="text-muted">{state === "on" ? "You'll get reminders and announcements from your ward and organizations here." : "Get reminders and announcements from your ward and organizations on this device."}</p>
       </div>
       {state === "on" ? (
         <button className="btn-secondary btn-sm" disabled={busy} onClick={disable}>

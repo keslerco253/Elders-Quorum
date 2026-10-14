@@ -10,7 +10,7 @@ export const metadata = { title: "Edit sign-up" };
 
 export default async function EditSignupPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const user = await requireAdmin();
-  const s = getSignup(user.ward_id, Number((await params).id));
+  const s = getSignup(user.org_id, Number((await params).id));
   if (!s) notFound();
   const sp = await searchParams;
   return (

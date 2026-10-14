@@ -8,15 +8,17 @@ import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { cancelPlannedVisit, markFollowUpDone, markInvitation } from "./actions";
 import { openInvitations, upcomingVisits, whenText } from "@/lib/planned-visits";
+import { wardMember } from "@/lib/orgs";
+import { leadersWord } from "@/lib/types";
 
-export const metadata = { title: "Presidency visits" };
+export const metadata = { title: "Visits" };
 
 export default async function VisitsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePresidency();
   const sp = await searchParams;
   const memberId = Number(sp.member) || undefined;
   const view = memberId ? "member" : sp.view === "members" ? "members" : sp.view === "followups" ? "followups" : "recent";
-  const member = memberId ? (db().prepare("SELECT display_name FROM members WHERE id = ? AND ward_id = ?").get(memberId, user.ward_id) as { display_name: string } | undefined) : undefined;
+  const member = memberId ? wardMember(memberId, user.org_id) : undefined;
   const today = DateTime.fromISO(todayIn(user.ward.timezone));
   const ago = (d: string | null) => {
     if (!d) return null;
@@ -34,9 +36,9 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
   return (
     <>
       <PageHeader
-        title={member ? `Visits: ${member.display_name}` : "Presidency visits"}
+        title={member ? `Visits: ${member.display_name}` : `${user.orgLabel} visits`}
         back={memberId ? { href: "/admin/visits", label: "All visits" } : { href: "/admin", label: "Admin" }}
-        subtitle="Visible to the presidency only."
+        subtitle={`Visible to the ${leadersWord(user.org)} only.`}
         actions={
           <>
             <Link href={`/admin/visits/plan${memberId ? `?member=${memberId}` : ""}`} className="btn-primary">
@@ -50,7 +52,7 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
       />
       <Flash msg={sp.msg} />
       {(() => {
-        const invites = openInvitations(user.ward_id, memberId);
+        const invites = openInvitations(user.org_id, memberId);
         if (!invites.length) return null;
         return (
           <section className="mb-6">
@@ -134,7 +136,7 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
         );
       })()}
       {(() => {
-        const upcoming = upcomingVisits(user.ward_id, memberId);
+        const upcoming = upcomingVisits(user.org_id, memberId);
         const todayIso = todayIn(user.ward.timezone);
         return (
           <section className="mb-6">
@@ -210,7 +212,7 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
 
       {view === "members" ? (
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
-          {lastVisitByMember(user.ward_id).map((m) => (
+          {lastVisitByMember(user.org_id).map((m) => (
             <li key={m.id}>
               <Link href={`/admin/visits?member=${m.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
                 <div className="min-w-0 flex-1">
@@ -230,7 +232,7 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
         </ul>
       ) : (
         (() => {
-          const visits = listVisits(user.ward_id, { memberId, followUps: view === "followups" });
+          const visits = listVisits(user.org_id, { memberId, followUps: view === "followups" });
           if (!visits.length) return <Empty>{view === "followups" ? "No open follow-ups." : "No visits recorded yet."}</Empty>;
           return (
             <ul className="space-y-3">

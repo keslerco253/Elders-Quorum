@@ -13,7 +13,7 @@ export default async function PlansPage() {
       <PageHeader title="Ward plans" subtitle="Review our ward plans and look for ways to serve." />
       <div className="grid gap-4 md:grid-cols-2">
         {(Object.keys(PLAN_INFO) as PlanKind[]).map((k) => {
-          const p = currentPlan(user.ward_id, k);
+          const p = currentPlan(user.org_id, k);
           return (
             <Link key={k} href={`/plans/${k}`} className="card block hover:bg-surface-2">
               <div className="mb-1 text-2xl" aria-hidden>

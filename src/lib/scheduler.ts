@@ -8,11 +8,20 @@ import { getNotes } from "./lesson-notes";
 import { respondPath } from "./teaching";
 import { formatDate, formatDateTime } from "./time";
 import type { PushPayload } from "./push";
-import type { EventRow, Ward } from "./types";
+import type { EventRow } from "./types";
+import { hasFeature } from "./orgs";
 import { runRetention } from "./retention";
 import { extendAllSeries } from "./event-series";
 import { upcomingVisits, visitorIds, whenText } from "./planned-visits";
 import { VISIT_TYPES } from "./visits";
+
+/** An organization the scheduler sends reminders for, with its ward's time zone. */
+interface OrgCtx {
+  id: number;
+  timezone: string;
+  label: string;
+  hidden_features: string;
+}
 
 export interface DueNotification {
   key: string;
@@ -28,28 +37,28 @@ const LESSON_WINDOWS = [
   { weekday: 6, hour: 8, untilHour: 14, daysAhead: 1, tag: "sat" },
 ];
 
-/** Where the teacher's notes for the quorum stand. */
+/** Where the teacher's notes for the class stand. */
 function teacherNotesLine(lessonId: number) {
   const n = getNotes(lessonId);
-  if (n?.published_body && n.status !== "pending") return "Your notes are posted for the quorum.";
+  if (n?.published_body && n.status !== "pending") return "Your notes are posted for everyone to read.";
   if (n?.status === "pending") return "Your notes are waiting for the presidency to approve them.";
   if (n?.status === "rejected") return "The presidency sent your notes back with a comment. Tap to see it.";
-  return "Want to share notes with the quorum before Sunday? Tap to add them on the lesson page.";
+  return "Want to share notes with everyone before Sunday? Tap to add them on the lesson page.";
 }
 
-function lessonReminders(ward: Ward, now: DateTime): DueNotification[] {
-  const local = now.setZone(ward.timezone);
+function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
+  const local = now.setZone(org.timezone);
   const out: DueNotification[] = [];
   for (const w of LESSON_WINDOWS) {
     if (local.weekday !== w.weekday || local.hour < w.hour || local.hour >= w.untilHour) continue;
     const date = local.plus({ days: w.daysAhead }).toISODate()!;
-    const lesson = lessonOn(ward.id, date);
+    const lesson = lessonOn(org.id, date);
     if (!lesson) continue;
     const when = w.tag === "sat" ? "Tomorrow" : "This Sunday";
     let payload: PushPayload;
     if (lesson.kind !== "talk") {
       const conf = lesson.kind === "general_conference" ? "General Conference" : "Stake Conference";
-      payload = { title: `${when}: ${conf}`, body: `No elders quorum lesson ${w.tag === "sat" ? "tomorrow" : "this week"}. We hope to see you at ${conf}.`, url: `/lessons/${lesson.id}` };
+      payload = { title: `${when}: ${conf}`, body: `No ${org.label} lesson ${w.tag === "sat" ? "tomorrow" : "this week"}. We hope to see you at ${conf}.`, url: `/lessons/${lesson.id}` };
     } else {
       payload = {
         title: `${when}'s lesson${lesson.title ? `: ${lesson.title}` : ""}`,
@@ -58,14 +67,14 @@ function lessonReminders(ward: Ward, now: DateTime): DueNotification[] {
       };
     }
     // The teacher gets their own reminder instead of the general one.
-    const teacher = lesson.kind === "talk" ? recipientById(lesson.teacher_id) : undefined;
-    const everyone = audienceMembers(ward.id, "everyone").filter((r) => r.id !== teacher?.id);
-    out.push({ key: `lesson-${w.tag}:${ward.id}:${date}`, recipients: everyone, payload });
+    const teacher = lesson.kind === "talk" ? recipientById(lesson.teacher_id, org.id) : undefined;
+    const everyone = audienceMembers(org.id, "everyone").filter((r) => r.id !== teacher?.id);
+    out.push({ key: `lesson-${w.tag}:${org.id}:${date}`, recipients: everyone, payload });
     if (teacher) {
       const confirmed = !!lesson.teacher_confirmed_at;
       const about = [lesson.title ? `"${lesson.title}"${lesson.speaker ? ` by ${lesson.speaker}` : ""}.` : "", teacherNotesLine(lesson.id)].filter(Boolean).join(" ");
       out.push({
-        key: `lesson-teacher-${w.tag}:${ward.id}:${date}:${teacher.id}`,
+        key: `lesson-teacher-${w.tag}:${org.id}:${date}:${teacher.id}`,
         recipients: [teacher],
         payload: confirmed
           ? {
@@ -92,11 +101,11 @@ function lessonReminders(ward: Ward, now: DateTime): DueNotification[] {
   return out;
 }
 
-function eventReminders(ward: Ward, now: DateTime): DueNotification[] {
+function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const nowIso = now.toUTC().toISO()!;
   const events = db()
-    .prepare("SELECT * FROM events WHERE ward_id = ? AND reminder_minutes IS NOT NULL AND starts_at > ? AND starts_at < ?")
-    .all(ward.id, nowIso, now.plus({ days: 8 }).toUTC().toISO()) as EventRow[];
+    .prepare("SELECT * FROM events WHERE org_id = ? AND reminder_minutes IS NOT NULL AND starts_at > ? AND starts_at < ?")
+    .all(org.id, nowIso, now.plus({ days: 8 }).toUTC().toISO()) as EventRow[];
   const out: DueNotification[] = [];
   for (const e of events) {
     const remindAt = DateTime.fromISO(e.starts_at, { zone: "utc" }).minus({ minutes: e.reminder_minutes! });
@@ -104,41 +113,41 @@ function eventReminders(ward: Ward, now: DateTime): DueNotification[] {
     if (remindAt > now || now.diff(remindAt, "hours").hours > 6) continue;
     out.push({
       key: `event:${e.id}:${e.starts_at}`,
-      recipients: audienceMembers(ward.id, e.presidency_only ? "admins" : "everyone"),
-      payload: { title: `Reminder: ${e.title}`, body: `${formatDateTime(e.starts_at, ward.timezone)}${e.location ? ` at ${e.location}` : ""}`, url: `/calendar/${e.id}` },
+      recipients: audienceMembers(org.id, e.presidency_only ? "admins" : "everyone"),
+      payload: { title: `Reminder: ${e.title}`, body: `${formatDateTime(e.starts_at, org.timezone)}${e.location ? ` at ${e.location}` : ""}`, url: `/calendar/${e.id}` },
     });
   }
   return out;
 }
 
-function todoReminders(ward: Ward, now: DateTime): DueNotification[] {
-  const local = now.setZone(ward.timezone);
+function todoReminders(org: OrgCtx, now: DateTime): DueNotification[] {
+  const local = now.setZone(org.timezone);
   if (local.hour < 8 || local.hour >= 20) return [];
   const today = local.toISODate()!;
   const tomorrow = local.plus({ days: 1 }).toISODate()!;
   const rows = db()
     .prepare(
       `SELECT t.id, t.title, t.due_date, m.id AS mid FROM todos t JOIN members m ON m.id = t.assignee_id
-       WHERE t.ward_id = ? AND t.done = 0 AND t.due_date IN (?, ?) AND m.status = 'active'`,
+       WHERE t.org_id = ? AND t.done = 0 AND t.due_date IN (?, ?) AND m.status = 'active'`,
     )
-    .all(ward.id, today, tomorrow) as { id: number; title: string; due_date: string; mid: number }[];
+    .all(org.id, today, tomorrow) as { id: number; title: string; due_date: string; mid: number }[];
   return rows.map((t) => ({
     key: `todo-${t.due_date === today ? "due" : "pre"}:${t.id}:${t.due_date}`,
-    recipients: [recipientById(t.mid)].filter((r): r is Recipient => !!r),
+    recipients: [recipientById(t.mid, org.id)].filter((r): r is Recipient => !!r),
     payload: { title: t.due_date === today ? "Assignment due today" : "Assignment due tomorrow", body: `${t.title} (due ${formatDate(t.due_date, "short")})`, url: "/admin/todos" },
   }));
 }
 
 /** The morning of a planned visit (8 AM-8 PM if the server was off), remind whoever is going. */
-function visitReminders(ward: Ward, now: DateTime): DueNotification[] {
-  const local = now.setZone(ward.timezone);
+function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
+  const local = now.setZone(org.timezone);
   if (local.hour < 8 || local.hour >= 20) return [];
-  return upcomingVisits(ward.id)
+  return upcomingVisits(org.id)
     .filter((p) => p.date === local.toISODate() && p.invite_status !== "declined")
     .map((p) => ({
       key: `visit-day:${p.id}:${p.date}:${p.time ?? ""}`,
       recipients: visitorIds(p)
-        .map((id) => recipientById(id))
+        .map((id) => recipientById(id, org.id))
         .filter((r): r is Recipient => !!r),
       payload: {
         title: `Visit today: ${p.member_name}`,
@@ -149,8 +158,15 @@ function visitReminders(ward: Ward, now: DateTime): DueNotification[] {
 }
 
 export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
-  const wards = db().prepare("SELECT id, name, timezone, join_code FROM wards").all() as Ward[];
-  return wards.flatMap((w) => [...lessonReminders(w, now), ...eventReminders(w, now), ...todoReminders(w, now), ...visitReminders(w, now)]);
+  const orgs = db()
+    .prepare("SELECT o.id, w.timezone, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS label, o.hidden_features FROM orgs o JOIN wards w ON w.id = o.ward_id")
+    .all() as OrgCtx[];
+  return orgs.flatMap((o) => [
+    ...(hasFeature(o, "lessons") ? lessonReminders(o, now) : []),
+    ...eventReminders(o, now),
+    ...(hasFeature(o, "todos") ? todoReminders(o, now) : []),
+    ...(hasFeature(o, "visits") ? visitReminders(o, now) : []),
+  ]);
 }
 
 /**

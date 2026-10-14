@@ -14,8 +14,7 @@ describe("planned visits", () => {
   let d: import("better-sqlite3").Database;
 
   beforeAll(async () => {
-    d = (await import("@/lib/db")).useTestDb();
-    d.exec(`
+    d = (await import("@/lib/db")).useTestDb(`
       INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
       INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES
         (1, 1, 'P', 'Pres Person', 'p@test.local', 'presidency'),
@@ -28,8 +27,8 @@ describe("planned visits", () => {
   });
 
   it("lists planned visits soonest first with who's going", () => {
-    pv.savePlan({ wardId: 1, memberId: 3, date: "2026-10-20", time: "19:00", type: "home", note: "", requestId: null, visitors: [1, 2], createdBy: 1 });
-    pv.savePlan({ wardId: 1, memberId: 3, date: "2026-10-15", time: null, type: "phone", note: "", requestId: null, visitors: [2], createdBy: 1 });
+    pv.savePlan({ orgId: 1, memberId: 3, date: "2026-10-20", time: "19:00", type: "home", note: "", requestId: null, visitors: [1, 2], createdBy: 1 });
+    pv.savePlan({ orgId: 1, memberId: 3, date: "2026-10-15", time: null, type: "phone", note: "", requestId: null, visitors: [2], createdBy: 1 });
     const list = pv.upcomingVisits(1);
     expect(list.map((p) => p.date)).toEqual(["2026-10-15", "2026-10-20"]);
     expect(list[1]).toMatchObject({ member_name: "Member Person", time: "19:00", visitors: "Pres Person, Couns Person" });
@@ -50,7 +49,7 @@ describe("planned visits", () => {
   });
 
   it("clears planned visits never recorded 30 days after their date", () => {
-    d.exec("INSERT INTO planned_visits (ward_id, member_id, date) VALUES (1, 3, date('now', '-40 days')), (1, 3, date('now', '-5 days'))");
+    d.exec("INSERT INTO planned_visits (org_id, member_id, date) VALUES (1, 3, date('now', '-40 days')), (1, 3, date('now', '-5 days'))");
     const before = (d.prepare("SELECT COUNT(*) AS n FROM planned_visits").get() as { n: number }).n;
     runRetention();
     expect((d.prepare("SELECT COUNT(*) AS n FROM planned_visits").get() as { n: number }).n).toBe(before - 1);

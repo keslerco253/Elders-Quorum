@@ -5,7 +5,7 @@ import { normalizePhone } from "./contact";
 import { receiveReply, recentMessageFor, recentReplies, threadForTextReply } from "./conversations";
 import { twilioConfigured } from "./sms";
 import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching";
-import { getWard } from "./wards";
+import { getOrg, getWard, homeOf } from "./orgs";
 import { answerRequest, latestPendingRequest } from "./teaching-requests";
 import { DateTime } from "luxon";
 
@@ -59,11 +59,15 @@ export async function handleInboundText(params: Record<string, string>): Promise
   const from = normalizePhone(params.From || "");
   const body = (params.Body || "").trim();
   if (!from || !body) return "ignored";
-  const member = db()
-    .prepare("SELECT id, ward_id, display_name FROM members WHERE phone = ? AND status = 'active' ORDER BY last_login_at DESC LIMIT 1")
-    .get(from) as { id: number; ward_id: number; display_name: string } | undefined;
+  const row = db()
+    .prepare("SELECT id, last_text_org_id, display_name FROM members WHERE phone = ? AND status = 'active' ORDER BY last_login_at DESC LIMIT 1")
+    .get(from) as { id: number; last_text_org_id: number | null; display_name: string } | undefined;
   // Texts from numbers that aren't in the app aren't stored.
-  if (!member) return "unknown_sender";
+  if (!row) return "unknown_sender";
+  // A reply goes to the organization that last texted them.
+  const orgId = row.last_text_org_id ?? homeOf(row.id).orgId;
+  if (!orgId) return "unknown_sender";
+  const member = { id: row.id, org_id: orgId, display_name: row.display_name };
 
   const word = body.toUpperCase().replace(/[^A-Z]/g, "");
   const optOut = (params.OptOutType || "").toUpperCase();
@@ -75,10 +79,10 @@ export async function handleInboundText(params: Record<string, string>): Promise
   }
   if (optOut === "HELP" || optOut === "START" || SKIP_WORDS.includes(word)) return "ignored";
 
-  if (twilioConfigured()) db().prepare("INSERT INTO sms_log (ward_id, kind) VALUES (?, 'reply')").run(member.ward_id);
+  if (twilioConfigured()) db().prepare("INSERT INTO sms_log (org_id, kind) VALUES (?, 'reply')").run(member.org_id);
 
   const teach = parseTeachReply(body);
-  const tz = getWard(member.ward_id)?.timezone ?? "America/Boise";
+  const tz = getWard(getOrg(member.org_id)?.ward_id ?? 0)?.timezone ?? "America/Boise";
   // Answering "Will you teach?" (a waiting request comes first).
   const request = teach ? latestPendingRequest(member.id, DateTime.now().setZone(tz).toISODate()!) : undefined;
   if (teach && request) {
@@ -96,6 +100,6 @@ export async function handleInboundText(params: Record<string, string>): Promise
     return "teacher_declined";
   }
   if (recentReplies(member.id) >= 20) return "ignored";
-  await receiveReply(member, body, "text", recentMessageFor(member.id), threadForTextReply(member.id));
+  await receiveReply(member, body, "text", recentMessageFor(member.id, orgId), threadForTextReply(member.id, orgId));
   return "saved";
 }

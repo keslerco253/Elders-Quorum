@@ -6,6 +6,8 @@ import { formatDateTime } from "@/lib/time";
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { sendMessage } from "./actions";
+import { roleLabel } from "@/lib/types";
+import { hasFeature } from "@/lib/orgs";
 
 export const metadata = { title: "Send a message" };
 
@@ -24,18 +26,18 @@ interface Msg {
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireAdmin();
   const sp = await searchParams;
-  const w = user.ward_id;
+  const w = user.org_id;
   const tz = user.ward.timezone;
-  const groups = db().prepare("SELECT id, name FROM groups WHERE ward_id = ? ORDER BY name").all(w) as { id: number; name: string }[];
+  const groups = db().prepare("SELECT id, name FROM groups WHERE org_id = ? ORDER BY name").all(w) as { id: number; name: string }[];
   const options: [Audience, string][] = [
-    ["everyone", "Everyone"],
-    ["admins", "Admins (presidency, bishop, Stake High Council)"],
-    ["presidency", "Presidency"],
-    ["teachers", "Upcoming teachers (next 5 weeks)"],
+    ["everyone", `Everyone in ${user.orgLabel} (who gets its notifications)`],
+    ["admins", "Leaders and admins"],
+    ["presidency", roleLabel("presidency", user.org)],
+    ...(hasFeature(user.org, "lessons") ? [["teachers", "Upcoming teachers (next 5 weeks)"] as [Audience, string]] : []),
     ...groups.map((g): [Audience, string] => [`group:${g.id}`, `Group: ${g.name}`]),
   ];
   const history = db()
-    .prepare("SELECT msg.*, m.display_name AS sender FROM messages msg LEFT JOIN members m ON m.id = msg.sender_id WHERE msg.ward_id = ? ORDER BY msg.id DESC LIMIT 30")
+    .prepare("SELECT msg.*, m.display_name AS sender FROM messages msg LEFT JOIN members m ON m.id = msg.sender_id WHERE msg.org_id = ? ORDER BY msg.id DESC LIMIT 30")
     .all(w) as Msg[];
 
   return (

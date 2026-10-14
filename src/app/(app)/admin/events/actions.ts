@@ -45,9 +45,9 @@ function readRepeat(fd: FormData, startLocal: DateTime) {
   };
 }
 
-function seriesInput(user: { id: number; ward_id: number }, e: ReturnType<typeof readEvent>, startLocal: DateTime, endLocal: DateTime, r: NonNullable<ReturnType<typeof readRepeat>>): SeriesInput {
+function seriesInput(user: { id: number; org_id: number }, e: ReturnType<typeof readEvent>, startLocal: DateTime, endLocal: DateTime, r: NonNullable<ReturnType<typeof readRepeat>>): SeriesInput {
   return {
-    ward_id: user.ward_id,
+    org_id: user.org_id,
     pattern: r.pattern,
     start_date: startLocal.toISODate()!,
     start_time: startLocal.toFormat("HH:mm"),
@@ -80,8 +80,8 @@ export async function saveEvent(fd: FormData) {
   const d = db();
   const update = (eventId: number) =>
     d
-      .prepare("UPDATE events SET title = ?, description = ?, location = ?, starts_at = ?, ends_at = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ? WHERE id = ? AND ward_id = ?")
-      .run(e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, eventId, user.ward_id);
+      .prepare("UPDATE events SET title = ?, description = ?, location = ?, starts_at = ?, ends_at = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ? WHERE id = ? AND org_id = ?")
+      .run(e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, eventId, user.org_id);
   let eventId = id;
   let note = "Event saved.";
 
@@ -95,14 +95,14 @@ export async function saveEvent(fd: FormData) {
     } else {
       eventId = Number(
         d
-          .prepare("INSERT INTO events (ward_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-          .run(user.ward_id, e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, user.id).lastInsertRowid,
+          .prepare("INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+          .run(user.org_id, e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, user.id).lastInsertRowid,
       );
     }
   } else {
-    const existing = d.prepare("SELECT * FROM events WHERE id = ? AND ward_id = ?").get(id, user.ward_id) as EventRow | undefined;
+    const existing = d.prepare("SELECT * FROM events WHERE id = ? AND org_id = ?").get(id, user.org_id) as EventRow | undefined;
     if (!existing) redirect("/calendar");
-    const series = getSeries(user.ward_id, existing.series_id);
+    const series = getSeries(user.org_id, existing.series_id);
     const exLocal = DateTime.fromISO(existing.starts_at, { zone: "utc" }).setZone(tz);
     if (series && fd.get("scope") === "future") {
       const sameShape =
@@ -167,16 +167,16 @@ export async function saveEvent(fd: FormData) {
 export async function deleteEvent(fd: FormData) {
   const user = await requireAdmin();
   const id = Number(fd.get("item_id"));
-  const existing = db().prepare("SELECT * FROM events WHERE id = ? AND ward_id = ?").get(id, user.ward_id) as EventRow | undefined;
+  const existing = db().prepare("SELECT * FROM events WHERE id = ? AND org_id = ?").get(id, user.org_id) as EventRow | undefined;
   if (!existing) redirect("/calendar");
-  const series = getSeries(user.ward_id, existing.series_id);
+  const series = getSeries(user.org_id, existing.series_id);
   if (series && fd.get("scope") === "future") {
     const day = DateTime.fromISO(existing.starts_at, { zone: "utc" }).setZone(user.ward.timezone);
     endSeriesBefore(series, existing.starts_at, day.minus({ days: 1 }).toISODate()!);
     revalidatePath("/calendar", "layout");
     go("/calendar", "This and all future dates were deleted.");
   }
-  db().prepare("DELETE FROM events WHERE id = ? AND ward_id = ?").run(id, user.ward_id);
+  db().prepare("DELETE FROM events WHERE id = ? AND org_id = ?").run(id, user.org_id);
   revalidatePath("/calendar", "layout");
   go("/calendar", "Event deleted.");
 }
@@ -199,22 +199,22 @@ export async function decideEventRequest(fd: FormData) {
   const approve = fd.get("decision") === "approve";
   const note = String(fd.get("note") || "").trim();
   const r = db()
-    .prepare("SELECT er.*, m.email, m.display_name FROM event_requests er JOIN members m ON m.id = er.member_id WHERE er.id = ? AND er.ward_id = ? AND er.status = 'pending'")
-    .get(id, user.ward_id) as RequestRow | undefined;
+    .prepare("SELECT er.*, m.email, m.display_name FROM event_requests er JOIN members m ON m.id = er.member_id WHERE er.id = ? AND er.org_id = ? AND er.status = 'pending'")
+    .get(id, user.org_id) as RequestRow | undefined;
   if (!r) redirect("/admin/event-requests");
   let eventId: number | null = null;
   if (approve) {
     const ins = db()
-      .prepare("INSERT INTO events (ward_id, title, description, location, starts_at, ends_at, reminder_minutes, created_by) VALUES (?, ?, ?, ?, ?, ?, 1440, ?)")
-      .run(user.ward_id, r.title, r.description, r.location, r.starts_at, r.ends_at, user.id);
+      .prepare("INSERT INTO events (org_id, title, description, location, starts_at, ends_at, reminder_minutes, created_by) VALUES (?, ?, ?, ?, ?, ?, 1440, ?)")
+      .run(user.org_id, r.title, r.description, r.location, r.starts_at, r.ends_at, user.id);
     eventId = Number(ins.lastInsertRowid);
   }
   db().prepare("UPDATE event_requests SET status = ?, decision_note = ?, decided_by = ?, event_id = ? WHERE id = ?").run(approve ? "approved" : "declined", note || null, user.id, eventId, id);
   const when = formatDateTime(r.starts_at, user.ward.timezone);
-  const recipient = recipientById(r.member_id);
+  const recipient = recipientById(r.member_id, user.org_id);
   if (recipient) await notify([recipient], {
     title: approve ? "Your event was approved" : "About your event request",
-    body: approve ? `"${r.title}" (${when}) is on the quorum calendar.${note ? `\n\n${note}` : ""}` : `"${r.title}" (${when}) wasn't added to the calendar.${note ? `\n\n${note}` : ""}`,
+    body: approve ? `"${r.title}" (${when}) is on the ward calendar.${note ? `\n\n${note}` : ""}` : `"${r.title}" (${when}) wasn't added to the calendar.${note ? `\n\n${note}` : ""}`,
     url: eventId ? `/calendar/${eventId}` : "/calendar",
   });
   revalidatePath("/admin/event-requests");

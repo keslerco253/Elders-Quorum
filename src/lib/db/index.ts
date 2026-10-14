@@ -19,15 +19,22 @@ function open(): DB {
   return db;
 }
 
-export function migrate(db: DB) {
+export function migrate(db: DB, upTo = Infinity) {
   db.exec("CREATE TABLE IF NOT EXISTS schema_migrations (id INTEGER PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT (datetime('now')))");
   const done = new Set(db.prepare("SELECT id FROM schema_migrations").all().map((r) => (r as { id: number }).id));
   for (const m of migrations) {
-    if (done.has(m.id)) continue;
-    db.transaction(() => {
-      db.exec(m.sql);
-      db.prepare("INSERT INTO schema_migrations (id) VALUES (?)").run(m.id);
-    })();
+    if (done.has(m.id) || m.id > upTo) continue;
+    const fkWasOn = db.pragma("foreign_keys", { simple: true }) === 1;
+    if (m.fkOff) db.pragma("foreign_keys = OFF");
+    try {
+      db.transaction(() => {
+        db.exec(m.sql);
+        if (m.fkOff && db.prepare("PRAGMA foreign_key_check").all().length) throw new Error(`migration ${m.id} left broken references`);
+        db.prepare("INSERT INTO schema_migrations (id) VALUES (?)").run(m.id);
+      })();
+    } finally {
+      if (m.fkOff && fkWasOn) db.pragma("foreign_keys = ON");
+    }
   }
 }
 
@@ -49,10 +56,19 @@ export function replaceDatabase(incoming: string) {
   db();
 }
 
-/** Use an in-memory database (tests). */
-export function useTestDb(): DB {
+/**
+ * Use an in-memory database (tests). legacySeed is SQL run on the schema from
+ * before wards and organizations (one "ward" per quorum, roles on members),
+ * then migrated, so tests can set up people simply and the migration is
+ * exercised every time.
+ */
+export function useTestDb(legacySeed?: string): DB {
   const d = new Database(":memory:");
   d.pragma("foreign_keys = ON");
+  if (legacySeed) {
+    migrate(d, 19);
+    d.exec(legacySeed);
+  }
   migrate(d);
   globalForDb.__eqDb = d;
   return d;

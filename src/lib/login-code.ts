@@ -3,20 +3,20 @@ import { emailHtml, sendMail } from "./mail";
 import { codeTextFooter, sendSms, SMS_DISCLOSURE } from "./sms";
 import type { ContactKind } from "./contact";
 import type { Member } from "./types";
-import { getWard } from "./wards";
+import { homeOf } from "./orgs";
 
 /** Sends a sign-in code to the phone number or email the member typed. */
 export async function sendLoginCode(member: Member, via: ContactKind, token: string, code: string) {
-  const ward = getWard(member.ward_id);
-  const appName = ward?.name ?? "Elders Quorum";
+  const home = homeOf(member.id);
+  const appName = home.name;
   if (via === "phone" && member.phone) {
     // After joining with a phone number, the first text confirms the opt-in with the full disclosure.
     // Someone the presidency added hasn't agreed to texts yet, so they just get the code they asked for.
     const body =
       member.sms_consent_at && !member.last_login_at
-        ? `${appName}: ${code} is your sign-in code (expires in 20 minutes). You're signed up for quorum texts. ${SMS_DISCLOSURE}`
+        ? `${appName}: ${code} is your sign-in code (expires in 20 minutes). You're signed up for ward texts. ${SMS_DISCLOSURE}`
         : `${code} is your ${appName} sign-in code. It expires in 20 minutes. Reply STOP to opt out.`;
-    const res = await sendSms(member.ward_id, member.phone, body + codeTextFooter(code), "code");
+    const res = await sendSms(home.orgId, member.phone, body + codeTextFooter(code), "code");
     return res === "sent";
   }
   if (!member.email) return false;
@@ -39,8 +39,8 @@ export async function sendAccountNotice(member: Member, subject: string, text: s
     return sendMail({ to: member.email, subject, text: `${text}\n\n${link.url}`, html: emailHtml(subject, text, link) });
   }
   if (member.phone && member.sms_consent_at) {
-    const ward = getWard(member.ward_id);
-    return (await sendSms(member.ward_id, member.phone, `${ward?.name ?? "Elders Quorum"}: ${text.replace(/\s+/g, " ").replace(/^Hi [^,]+, /, "")} ${link.url}`, "code")) === "sent";
+    const home = homeOf(member.id);
+    return (await sendSms(home.orgId, member.phone, `${home.name}: ${text.replace(/\s+/g, " ").replace(/^Hi [^,]+, /, "")} ${link.url}`, "code")) === "sent";
   }
   return false;
 }

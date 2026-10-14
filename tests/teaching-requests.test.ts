@@ -11,13 +11,12 @@ describe("asking a member to teach", () => {
   let tr: typeof import("@/lib/teaching-requests");
   let inbound: typeof import("@/lib/sms-inbound");
   let d: import("better-sqlite3").Database;
-  const pres = { id: 1, ward_id: 1, display_name: "Pres Person" };
+  const pres = { id: 1, org_id: 1, display_name: "Pres Person" };
   const lesson = (id: number) => d.prepare("SELECT teacher_id, teacher_confirmed_at IS NOT NULL AS confirmed FROM lessons WHERE id = ?").get(id);
   const outbox = () => fs.readdirSync(path.join(dir, "outbox"));
 
   beforeAll(async () => {
-    d = (await import("@/lib/db")).useTestDb();
-    d.exec(`
+    d = (await import("@/lib/db")).useTestDb(`
       INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
       INSERT INTO members (id, ward_id, name, display_name, email, phone, role, contact_pref, sms_consent_at) VALUES
         (1, 1, 'P', 'Pres Person', 'p@test.local', NULL, 'presidency', 'email', NULL),
@@ -60,7 +59,7 @@ describe("asking a member to teach", () => {
   });
 
   it("tells a late yes that someone else is already teaching", async () => {
-    d.exec("INSERT INTO lessons (id, ward_id, date, kind, title) VALUES (3, 1, '2030-03-17', 'talk', 'Hope')");
+    d.exec("INSERT INTO lessons (id, org_id, date, kind, title) VALUES (3, 1, '2030-03-17', 'talk', 'Hope')");
     await tr.askToTeach(pres, 3, 2, "", "2030-01-01");
     d.exec("UPDATE lessons SET teacher_id = 3 WHERE id = 3");
     const r = tr.requestsForLesson(3)[0];

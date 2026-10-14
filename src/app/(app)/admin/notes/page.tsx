@@ -26,16 +26,16 @@ export default async function NotesQueuePage({ searchParams }: { searchParams: P
     .prepare(
       `SELECT n.lesson_id, n.body, n.published_body, n.updated_at, m.display_name AS author, l.date, l.title
        FROM lesson_notes n JOIN lessons l ON l.id = n.lesson_id LEFT JOIN members m ON m.id = n.author_id
-       WHERE l.ward_id = ? AND n.status = 'pending' ORDER BY l.date`,
+       WHERE l.org_id = ? AND n.status = 'pending' ORDER BY l.date`,
     )
-    .all(user.ward_id) as Row[];
+    .all(user.org_id) as Row[];
 
   return (
     <>
       <PageHeader
         title="Teacher notes to approve"
         back={{ href: "/admin", label: "Admin" }}
-        subtitle="Approving shares the notes on the lesson page. The first approval for a lesson also sends the quorum a notification."
+        subtitle="Approving shares the notes on the lesson page. The first approval for a lesson also sends everyone a notification."
       />
       <Flash msg={sp.msg} />
       {rows.length === 0 ? (

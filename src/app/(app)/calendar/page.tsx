@@ -19,7 +19,16 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const month = (parsed.isValid ? parsed : now).startOf("month");
   const gridStart = month.minus({ days: month.weekday % 7 });
   const gridEnd = month.endOf("month").plus({ days: 6 - (month.endOf("month").weekday % 7) }).endOf("day");
-  const events = eventsBetween(user, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!);
+  // One ward calendar; ?o= shows one organization's events.
+  const only = user.orgs.find((o) => o.id === Number(sp.o));
+  const events = eventsBetween(user.id, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!, { wardId: user.ward_id, orgIds: only ? [only.id] : undefined });
+  const keep = (extra: Record<string, string | undefined>) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries({ o: only ? String(only.id) : undefined, ...extra })) if (v) p.set(k, v);
+    const qs = p.toString();
+    return `/calendar${qs ? `?${qs}` : ""}`;
+  };
+  const showOrg = !only && user.orgs.length > 1;
   const byDay = new Map<string, typeof events>();
   for (const e of events) {
     const k = DateTime.fromISO(e.starts_at, { zone: "utc" }).setZone(tz).toISODate()!;
@@ -30,7 +39,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const monthEvents = events.filter((e) => DateTime.fromISO(e.starts_at, { zone: "utc" }).setZone(tz).hasSame(month, "month"));
   const upcoming = month.hasSame(now, "month") ? monthEvents.filter((e) => e.ends_at >= now.toUTC().toISO()!) : monthEvents;
   const admin = isAdmin(user);
-  const dayHref = (d: DateTime) => `/calendar?m=${d.toFormat("yyyy-LL")}&d=${d.toISODate()}`;
+  const dayHref = (d: DateTime) => keep({ m: d.toFormat("yyyy-LL"), d: d.toISODate()! });
   const dayEvents = selected ? (byDay.get(selected.toISODate()!) ?? []) : [];
   const list = selected ? dayEvents : upcoming;
 
@@ -45,7 +54,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             </Link>
             {admin && (
               <Link href="/admin/events/new" className="btn-primary">
-                Add event
+                Add {user.orgLabel} event
               </Link>
             )}
             {!admin && (
@@ -57,20 +66,38 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         }
       />
       <Flash msg={sp.msg} />
+      {user.orgs.length > 1 && (
+        <nav className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Show events for">
+          {[{ id: 0, label: "Everything" }, ...user.orgs].map((o) => {
+            const on = (only?.id ?? 0) === o.id;
+            return (
+              <Link
+                key={o.id}
+                href={o.id ? `/calendar?o=${o.id}${sp.m ? `&m=${sp.m}` : ""}` : `/calendar${sp.m ? `?m=${sp.m}` : ""}`}
+                scroll={false}
+                aria-current={on ? "true" : undefined}
+                className={`shrink-0 rounded-full border px-3 py-1 text-sm whitespace-nowrap ${on ? "border-primary bg-primary text-primary-text" : "border-border bg-surface hover:bg-surface-2"}`}
+              >
+                {o.label}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
       <div className="card mb-5 p-3 sm:p-4">
         <div className="mb-3 flex items-center justify-between">
-          <Link href={`/calendar?m=${month.minus({ months: 1 }).toFormat("yyyy-LL")}`} className="btn-secondary btn-sm" aria-label="Previous month">
+          <Link href={keep({ m: month.minus({ months: 1 }).toFormat("yyyy-LL") })} className="btn-secondary btn-sm" aria-label="Previous month">
             ‹
           </Link>
           <div className="text-center">
             <div className="font-semibold">{month.toFormat("LLLL yyyy")}</div>
             {!month.hasSame(now, "month") && (
-              <Link href="/calendar" className="text-xs text-accent">
+              <Link href={keep({})} className="text-xs text-accent">
                 Today
               </Link>
             )}
           </div>
-          <Link href={`/calendar?m=${month.plus({ months: 1 }).toFormat("yyyy-LL")}`} className="btn-secondary btn-sm" aria-label="Next month">
+          <Link href={keep({ m: month.plus({ months: 1 }).toFormat("yyyy-LL") })} className="btn-secondary btn-sm" aria-label="Next month">
             ›
           </Link>
         </div>
@@ -119,7 +146,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 Add event on this day
               </Link>
             )}
-            <Link href={`/calendar?m=${month.toFormat("yyyy-LL")}`} scroll={false} className="btn-secondary btn-sm">
+            <Link href={keep({ m: month.toFormat("yyyy-LL") })} scroll={false} className="btn-secondary btn-sm">
               Show whole month
             </Link>
           </div>
@@ -134,7 +161,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
               <Link href={`/calendar/${e.id}`} className="card flex items-center gap-3 hover:bg-surface-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 font-semibold">
-                    {e.title} {e.presidency_only ? <Badge tone="warn">Presidency only</Badge> : null}
+                    {e.title} {e.presidency_only ? <Badge tone="warn">Leaders only</Badge> : null}
+                    {showOrg && <Badge>{e.org_label}</Badge>}
                   </div>
                   <div className="text-sm text-muted">
                     {selected ? `${formatTime(e.starts_at, tz)} – ${formatTime(e.ends_at, tz)}` : formatDateTime(e.starts_at, tz)}

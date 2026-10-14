@@ -6,6 +6,7 @@ import { myVisitRequests, REQUEST_KINDS, REQUEST_STATUS } from "@/lib/visit-requ
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { cancelVisitRequest, requestVisit } from "./actions";
+import { leadersPhrase } from "@/lib/orgs";
 
 export const metadata = { title: "Request a visit" };
 
@@ -21,7 +22,7 @@ export default async function VisitRequestPage({ searchParams }: { searchParams:
 
   return (
     <>
-      <PageHeader title="Request a visit" back={{ href: "/more", label: "More" }} subtitle="Would you like someone from the elders quorum presidency to come by, talk, or help? Let us know and we'll reach out." />
+      <PageHeader title="Request a visit" back={{ href: "/more", label: "More" }} subtitle={`Would you like someone from ${leadersPhrase(user.org)} to come by, talk, or help? Let us know and we'll reach out.`} />
       <Flash msg={sp.msg} tone={sp.ok ? "success" : "warn"} />
 
       {active ? (
@@ -69,7 +70,7 @@ export default async function VisitRequestPage({ searchParams }: { searchParams:
               Anything you&apos;d like us to know (optional)
             </label>
             <textarea id="note" name="note" rows={3} maxLength={1000} className="input" />
-            <p className="mt-1 text-xs text-muted">Only the elders quorum presidency can see this. For anything sensitive, you&apos;re welcome to tell us in person instead.</p>
+            <p className="mt-1 text-xs text-muted">Only {leadersPhrase(user.org)} can see this. For anything sensitive, you&apos;re welcome to tell us in person instead.</p>
           </div>
           <p className="text-sm text-muted">
             We&apos;ll reach you at {contact || "the contact info in your account"}.{" "}

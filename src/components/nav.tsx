@@ -85,20 +85,95 @@ function isActive(path: string, href: string) {
   return href === "/" ? path === "/" : path === href || path.startsWith(href + "/");
 }
 
-export function Nav({ appName, isAdmin, adminCount, moreCount = 0 }: { appName: string; isAdmin: boolean; adminCount: number; moreCount?: number }) {
+export interface SwitchTarget {
+  id: number;
+  label: string;
+  ward: string;
+}
+
+/**
+ * The organization being looked at, and a menu to switch to another (or to
+ * another ward). Each link goes home with ?org=, which remembers the choice.
+ */
+function OrgSwitcher({ current, ward, targets }: { current: SwitchTarget; ward: string; targets: SwitchTarget[] }) {
+  const wards = [...new Set(targets.map((t) => t.ward))];
+  const ref = useRef<HTMLDetailsElement>(null);
+  const path = usePathname();
+  // Close the menu after choosing (the page changes underneath it).
+  useEffect(() => {
+    if (ref.current) ref.current.open = false;
+  }, [path]);
+  return (
+    <details ref={ref} className="relative min-w-0">
+      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2 rounded-lg py-1 pr-2 font-semibold text-text [&::-webkit-details-marker]:hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon.svg" alt="" className="h-8 w-8 shrink-0 rounded-lg" />
+        <span className="min-w-0 leading-tight">
+          <span className="block truncate">{current.label}</span>
+          {current.label !== ward && <span className="block truncate text-xs font-normal text-muted">{ward}</span>}
+        </span>
+        <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0 text-muted" fill="currentColor" aria-hidden>
+          <path d="M5.5 7.5 10 12l4.5-4.5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span className="sr-only">Switch organization</span>
+      </summary>
+      <div className="absolute left-0 z-40 mt-2 max-h-[70vh] w-72 overflow-y-auto rounded-xl border border-border bg-surface p-2 shadow-lg">
+        {wards.map((w) => (
+          <div key={w} className="mb-1">
+            {wards.length > 1 && <div className="px-2 pt-1 pb-0.5 text-xs font-semibold text-muted uppercase">{w}</div>}
+            {targets
+              .filter((t) => t.ward === w)
+              .map((t) => (
+                <a
+                  key={t.id}
+                  href={`/?org=${t.id}`}
+                  className={`block rounded-lg px-3 py-2 text-sm ${t.id === current.id ? "bg-accent-soft font-semibold text-accent" : "hover:bg-surface-2"}`}
+                >
+                  {t.label}
+                </a>
+              ))}
+          </div>
+        ))}
+        <Link href="/more/organizations" className="mt-1 block border-t border-border px-3 pt-2 pb-1 text-sm text-accent">
+          My organizations and notifications
+        </Link>
+      </div>
+    </details>
+  );
+}
+
+export function Nav({
+  current,
+  ward,
+  targets,
+  features,
+  isAdmin,
+  adminCount,
+  moreCount = 0,
+}: {
+  current: SwitchTarget;
+  ward: string;
+  targets: SwitchTarget[];
+  features: { lessons: boolean; plans: boolean; signups: boolean };
+  isAdmin: boolean;
+  adminCount: number;
+  moreCount?: number;
+}) {
   const path = usePathname();
   const tabBar = useRef<HTMLElement>(null);
   useStickToBottom(tabBar);
   // The page being read clears these, so don't show the dot there.
   if (path.startsWith("/messages") || path.startsWith("/notifications")) moreCount = 0;
+  // Lessons and Plans only where the organization uses them; Sign-ups takes a free spot.
   const main: Item[] = [
     { href: "/", label: "Home", icon: "home" },
-    { href: "/lessons", label: "Lessons", icon: "book" },
+    ...(features.lessons ? [{ href: "/lessons", label: "Lessons", icon: "book" }] : []),
     { href: "/calendar", label: "Calendar", icon: "calendar" },
-    { href: "/plans", label: "Plans", icon: "plan" },
+    ...(features.plans ? [{ href: "/plans", label: "Plans", icon: "plan" }] : []),
   ];
+  if (main.length < 4 && features.signups) main.push({ href: "/signups", label: "Sign-ups", icon: "list" });
   const desktopExtra: Item[] = [
-    { href: "/signups", label: "Sign-ups", icon: "list" },
+    ...(features.signups && !main.some((i) => i.href === "/signups") ? [{ href: "/signups", label: "Sign-ups", icon: "list" }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: "shield", badge: adminCount }] : []),
     { href: "/more", label: "More", icon: "more", badge: moreCount },
   ];
@@ -107,11 +182,7 @@ export function Nav({ appName, isAdmin, adminCount, moreCount = 0 }: { appName: 
     <>
       <header className="sticky top-0 z-30 border-b border-border bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4">
-          <Link href="/" className="flex min-w-0 items-center gap-2 font-semibold text-text">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon.svg" alt="" className="h-8 w-8 rounded-lg" />
-            <span className="truncate">{appName}</span>
-          </Link>
+          <OrgSwitcher current={current} ward={ward} targets={targets} />
           <nav className="ml-auto hidden items-center gap-1 md:flex">
             {[...main, ...desktopExtra].map((i) => (
               <Link
@@ -134,7 +205,7 @@ export function Nav({ appName, isAdmin, adminCount, moreCount = 0 }: { appName: 
       </header>
 
       <nav ref={tabBar} className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur transition-opacity md:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-5">
+        <div className="mx-auto grid max-w-md" style={{ gridTemplateColumns: `repeat(${main.length + 1}, minmax(0, 1fr))` }}>
           {[...main, { href: "/more", label: "More", icon: "more", badge: moreCount }].map((i) => (
             <Link key={i.href} href={i.href} className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${isActive(path, i.href) ? "text-accent" : "text-muted"}`}>
               {!!i.badge && <span className="absolute top-1 left-1/2 ml-2 h-2.5 w-2.5 rounded-full bg-danger" aria-label={`${i.badge} new`} />}

@@ -11,6 +11,7 @@ import { describeRecurrence } from "@/lib/recurrence";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { rsvp } from "../actions";
+import { roleIn } from "@/lib/orgs";
 
 export const metadata = { title: "Event" };
 
@@ -20,11 +21,12 @@ export default async function EventPage({ params, searchParams }: { params: Prom
   const user = await requireUser();
   const { id } = await params;
   const sp = await searchParams;
-  const e = getEvent(user, Number(id));
+  const e = getEvent(user.id, Number(id));
   if (!e) notFound();
-  const series = getSeries(user.ward_id, e.series_id);
+  const series = getSeries(e.org_id, e.series_id);
   const tz = user.ward.timezone;
-  const admin = isAdmin(user);
+  // Its own organization's leaders can edit it.
+  const admin = isAdmin({ role: roleIn(user.id, e.org_id) });
   const sameDay = parseUtc(e.starts_at).setZone(tz).hasSame(parseUtc(e.ends_at).setZone(tz), "day");
   const mine = (db().prepare("SELECT response FROM event_rsvps WHERE event_id = ? AND member_id = ?").get(e.id, user.id) as { response: keyof typeof LABELS } | undefined)?.response;
   const rsvps = e.rsvp_enabled
@@ -39,7 +41,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
         back={{ href: "/calendar", label: "Calendar" }}
         actions={
           admin && (
-            <Link href={`/admin/events/${e.id}`} className="btn-secondary">
+            <Link href={`/admin/events/${e.id}?org=${e.org_id}`} className="btn-secondary">
               Edit
             </Link>
           )
@@ -47,7 +49,10 @@ export default async function EventPage({ params, searchParams }: { params: Prom
       />
       <Flash msg={sp.msg} />
       <div className="card space-y-4">
-        {e.presidency_only ? <Badge tone="warn">Presidency only: hidden from members</Badge> : null}
+        <div className="flex flex-wrap gap-2">
+          <Badge>{e.org_label}</Badge>
+          {e.presidency_only ? <Badge tone="warn">Leaders only: hidden from members</Badge> : null}
+        </div>
         <div>
           <div className="font-semibold">{formatDateTime(e.starts_at, tz, "cccc, LLLL d, yyyy")}</div>
           <div className="text-muted">
@@ -76,7 +81,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
           <p className="text-sm text-muted">On iPhone, tap <strong>Add to Calendar</strong> at the bottom of the event that opens (the check mark at the top only closes it).</p>
         )}
         <p className="text-sm text-muted">
-          Want every quorum event in your calendar automatically?{" "}
+          Want the ward&apos;s events in your calendar automatically?{" "}
           <Link href="/calendar/subscribe" className="link">
             Subscribe to the calendar
           </Link>

@@ -18,7 +18,7 @@ export type RequestStatus = keyof typeof REQUEST_STATUS;
 
 export interface VisitRequest {
   id: number;
-  ward_id: number;
+  org_id: number;
   member_id: number;
   kind: RequestKind;
   best_times: string;
@@ -43,13 +43,13 @@ export function myVisitRequests(memberId: number): VisitRequest[] {
 }
 
 /** The presidency's list: open and scheduled requests first, then recently finished ones. */
-export function wardVisitRequests(wardId: number, active: boolean): VisitRequestRow[] {
+export function wardVisitRequests(orgId: number, active: boolean): VisitRequestRow[] {
   return db()
     .prepare(
       `SELECT r.*, m.display_name AS member_name, m.email, m.phone, h.display_name AS handled_by_name
        FROM visit_requests r JOIN members m ON m.id = r.member_id LEFT JOIN members h ON h.id = r.handled_by
-       WHERE r.ward_id = ? AND r.status ${active ? "IN ('open','scheduled')" : "IN ('done','closed','cancelled')"}
+       WHERE r.org_id = ? AND r.status ${active ? "IN ('open','scheduled')" : "IN ('done','closed','cancelled')"}
        ORDER BY ${active ? "r.status = 'scheduled', r.created_at" : "r.updated_at DESC"}`,
     )
-    .all(wardId) as VisitRequestRow[];
+    .all(orgId) as VisitRequestRow[];
 }

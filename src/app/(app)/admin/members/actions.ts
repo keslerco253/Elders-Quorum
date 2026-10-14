@@ -8,10 +8,11 @@ import { isPresidency } from "@/lib/permissions";
 import { normalizeEmailAddress, normalizePhone, parseContact } from "@/lib/contact";
 import { findMemberByContact } from "@/lib/auth-core";
 import { sendInviteEmail } from "@/lib/invite";
-import { deleteAccount, isLastPresidency } from "@/lib/accounts";
+import { isLastPresidency, onlyLeaderOf, removeFromOrg, removeFromWard } from "@/lib/accounts";
+import { addToOrg, orgMemberView, wardMember } from "@/lib/orgs";
 import { appUrl } from "@/lib/config";
 import { sendAccountNotice } from "@/lib/login-code";
-import { CALLING_LABELS, type Calling, type Member, type Role } from "@/lib/types";
+import { CALLINGS, isCalling, roleLabel, type Role } from "@/lib/types";
 
 const ROLES: Role[] = ["member", "admin", "presidency"];
 
@@ -22,7 +23,7 @@ function go(path: string, text: string): never {
 export async function updateMember(fd: FormData) {
   const user = await requireAdmin();
   const id = Number(fd.get("item_id"));
-  const m = db().prepare("SELECT * FROM members WHERE id = ? AND ward_id = ?").get(id, user.ward_id) as Member | undefined;
+  const m = orgMemberView(user.org_id, id);
   if (!m) redirect("/admin/members");
   const name = String(fd.get("name") || "").trim().slice(0, 100);
   const rawEmail = String(fd.get("email") || "").trim();
@@ -32,62 +33,72 @@ export async function updateMember(fd: FormData) {
   if (!name) go(`/admin/members/${id}`, "Name is required.");
   if ((rawEmail && !email) || (rawPhone && !phone)) go(`/admin/members/${id}`, "That phone number or email doesn't look right.");
   if (!email && !phone) go(`/admin/members/${id}`, "Each member needs a phone number or an email to sign in.");
-  if (phone && db().prepare("SELECT 1 FROM members WHERE ward_id = ? AND phone = ? AND id != ?").get(user.ward_id, phone, id)) {
-    go(`/admin/members/${id}`, "Another member already uses that phone number.");
+  if (phone && db().prepare("SELECT 1 FROM members WHERE phone = ? AND id != ?").get(phone, id)) {
+    go(`/admin/members/${id}`, "Another account already uses that phone number.");
+  }
+  if (email && db().prepare("SELECT 1 FROM members WHERE lower(email) = ? AND id != ? AND status = 'active'").get(email, id)) {
+    go(`/admin/members/${id}`, "Another account already uses that email.");
   }
   // Keep their contact choice valid for what they still have.
   let pref = m.contact_pref;
   if ((pref === "text" || pref === "both") && !phone) pref = email ? "email" : "none";
   if ((pref === "email" || pref === "both") && !email) pref = phone ? "text" : "none";
 
-  let role = m.role;
+  // Turning an account off applies everywhere, so only ward leaders can.
   let status = m.status;
-  if (isPresidency(user)) {
-    const r = fd.get("role") as Role;
-    if (ROLES.includes(r)) role = r;
+  if (user.wardLeader) {
     const s = String(fd.get("status") || m.status);
     if (s === "active" || s === "inactive") status = s;
-    if ((role !== "presidency" || status !== "active") && isLastPresidency(user.ward_id, id)) {
-      go(`/admin/members/${id}`, "At least one active presidency member is required.");
-    }
+    if (status !== "active" && onlyLeaderOf(id, user.ward_id).length) go(`/admin/members/${id}`, "They're the only presidency member of an organization. Give it another leader first.");
   }
   db()
-    .prepare("UPDATE members SET name = ?, display_name = ?, email = ?, phone = ?, contact_pref = ?, role = ?, status = ?, updated_at = datetime('now') WHERE id = ?")
-    .run(name, name, email, phone, pref, role, status, id);
+    .prepare("UPDATE members SET name = ?, display_name = ?, email = ?, phone = ?, contact_pref = ?, status = ?, updated_at = datetime('now') WHERE id = ?")
+    .run(name, name, email, phone, pref, status, id);
   // A new number hasn't agreed to texts; the member can agree under More → Contact & notifications.
   if (phone !== m.phone) db().prepare("UPDATE members SET sms_consent_at = NULL WHERE id = ?").run(id);
   if (status !== "active") db().prepare("DELETE FROM sessions WHERE member_id = ?").run(id);
   if (isPresidency(user)) {
-    // Callings apply to presidency and admin accounts; there's one president at a time.
+    // Role and calling are for this organization only; one president (or bishop) at a time.
+    const r = fd.get("role") as Role;
+    const role = ROLES.includes(r) ? r : m.role;
+    if (role !== "presidency" && isLastPresidency(user.org_id, id)) go(`/admin/members/${id}`, `At least one ${roleLabel("presidency", user.org).toLowerCase()} member is required.`);
     const raw = String(fd.get("calling") || "");
-    const calling = role !== "member" && raw in CALLING_LABELS ? (raw as Calling) : null;
-    if (calling === "president") db().prepare("UPDATE members SET calling = NULL WHERE ward_id = ? AND calling = 'president' AND id != ?").run(user.ward_id, id);
-    db().prepare("UPDATE members SET calling = ? WHERE id = ?").run(calling, id);
+    const calling = role !== "member" && isCalling(raw) && CALLINGS[user.org.kind].includes(raw) ? raw : null;
+    if (calling === "president" || calling === "bishop") db().prepare("UPDATE org_members SET calling = NULL WHERE org_id = ? AND calling = ? AND member_id != ?").run(user.org_id, calling, id);
+    if (role !== "member" || m.in_org) addToOrg(id, user.org_id, { role, calling });
   }
   revalidatePath("/admin/members");
   go(`/admin/members/${id}`, "Saved.");
 }
 
+/** Out of this organization, or (from the ward-wide organization) out of the ward. */
 export async function removeMember(fd: FormData) {
   const user = await requirePresidency();
   const id = Number(fd.get("item_id"));
-  const m = db().prepare("SELECT display_name FROM members WHERE id = ? AND ward_id = ?").get(id, user.ward_id) as { display_name: string } | undefined;
+  const m = orgMemberView(user.org_id, id);
   if (!m) redirect("/admin/members");
-  if (isLastPresidency(user.ward_id, id)) go(`/admin/members/${id}`, "At least one active presidency member is required.");
-  deleteAccount(id);
+  if (user.org.kind === "ward") {
+    if (onlyLeaderOf(id, user.ward_id).length) go(`/admin/members/${id}`, "They're the only presidency member of an organization in this ward. Give it another leader first.");
+    const deleted = removeFromWard(id, user.ward_id);
+    revalidatePath("/admin/members");
+    go("/admin/members", deleted ? `${m.display_name} was removed, and their account was deleted.` : `${m.display_name} was removed from ${user.ward.name}.`);
+  }
+  if (isLastPresidency(user.org_id, id)) go(`/admin/members/${id}`, "At least one active presidency member is required.");
+  removeFromOrg(id, user.org_id);
   revalidatePath("/admin/members");
-  go("/admin/members", `${m.display_name}'s account and everything they posted were deleted.`);
+  go("/admin/members", `${m.display_name} was removed from ${user.orgLabel}.`);
 }
 
+/** Legacy join requests (before join codes were required). */
 export async function decideAccess(fd: FormData) {
   const user = await requirePresidency();
   const id = Number(fd.get("item_id"));
   const approve = fd.get("decision") === "approve";
-  const m = db().prepare("SELECT * FROM members WHERE id = ? AND ward_id = ? AND status = 'pending'").get(id, user.ward_id) as Member | undefined;
-  if (!m) redirect("/admin/access");
+  const m = wardMember(id, user.org_id);
+  if (!m || m.status !== "pending") redirect("/admin/access");
   if (!approve) {
     // Declined requests aren't kept.
-    deleteAccount(id);
+    removeFromWard(id, user.ward_id);
     revalidatePath("/admin/access");
     go("/admin/access", `${m.display_name}'s request was declined and removed.`);
   }
@@ -97,7 +108,11 @@ export async function decideAccess(fd: FormData) {
   go("/admin/access", `${m.display_name} was approved and emailed.`);
 }
 
-/** The presidency adds someone by name and phone or email. They agree to terms and texts at first sign-in. */
+/**
+ * Leaders add someone to this organization (and the ward) by name and phone or
+ * email. Someone who already has an account is just added. New people agree to
+ * terms and texts at first sign-in.
+ */
 export async function addMember(fd: FormData) {
   const user = await requirePresidency();
   const name = String(fd.get("name") || "").trim().slice(0, 100);
@@ -106,14 +121,20 @@ export async function addMember(fd: FormData) {
   const back = (msg: string): never => redirect(`/admin/members?add=1&name=${encodeURIComponent(name)}&contact=${encodeURIComponent(raw)}&msg=${encodeURIComponent(msg)}#add`);
   if (!name) back("Enter their name.");
   if (!c) return back("Enter a mobile number like (208) 555-0142 or an email address.");
-  const existing = findMemberByContact(c.value, user.ward_id);
-  if (existing) redirect(`/admin/members/${existing.id}?msg=${encodeURIComponent(`${existing.display_name} already has an account with that ${c.kind === "phone" ? "number" : "email"}.`)}`);
   const role = ROLES.includes(fd.get("role") as Role) ? (fd.get("role") as Role) : "member";
+  const existing = findMemberByContact(c.value);
+  if (existing) {
+    if (existing.status !== "active") redirect(`/admin/members?msg=${encodeURIComponent(`${existing.display_name}'s account is turned off or waiting for approval.`)}`);
+    addToOrg(existing.id, user.org_id, { role });
+    revalidatePath("/admin/members");
+    redirect(`/admin/members/${existing.id}?msg=${encodeURIComponent(`${existing.display_name} already had an account, and is now in ${user.orgLabel}.`)}`);
+  }
   const id = Number(
     db()
-      .prepare(`INSERT INTO members (ward_id, name, display_name, ${c.kind}, contact_pref, role, status, source) VALUES (?, ?, ?, ?, ?, ?, 'active', 'manual')`)
-      .run(user.ward_id, name, name, c.value, c.kind === "email" ? "email" : "none", role).lastInsertRowid,
+      .prepare(`INSERT INTO members (name, display_name, ${c.kind}, contact_pref, status, source) VALUES (?, ?, ?, ?, 'active', 'manual')`)
+      .run(name, name, c.value, c.kind === "email" ? "email" : "none").lastInsertRowid,
   );
+  addToOrg(id, user.org_id, { role });
   let note = `${name} was added.`;
   if (c.kind === "email" && fd.get("send_invite") === "on") {
     note = (await sendInviteEmail({ display_name: name, email: c.value, phone: null }, user.ward.name, user.display_name)) ? `${name} was added and invited by email.` : `${name} was added, but the invite email didn't send. Check email in Settings.`;
@@ -125,7 +146,7 @@ export async function addMember(fd: FormData) {
 export async function emailInvite(fd: FormData) {
   const user = await requirePresidency();
   const id = Number(fd.get("item_id"));
-  const m = db().prepare("SELECT * FROM members WHERE id = ? AND ward_id = ?").get(id, user.ward_id) as Member | undefined;
+  const m = wardMember(id, user.org_id);
   if (!m?.email) redirect("/admin/members");
   const ok = await sendInviteEmail(m, user.ward.name, user.display_name);
   go(`/admin/members/${id}`, ok ? `Invite emailed to ${m.email}.` : "The invite email didn't send. Check email in Settings.");

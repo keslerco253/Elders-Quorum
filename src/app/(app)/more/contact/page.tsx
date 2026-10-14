@@ -15,7 +15,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const verifying = sp.verify ? pendingVerification(user.id, Number(sp.verify)) : undefined;
   const textingOn = phoneEnabled();
-  // While carriers review the quorum's texting registration, members can already opt in.
+  // While carriers review the texting registration, members can already opt in.
   const canChooseText = phoneOptInVisible();
   const prefOptions: [string, string][] = [
     ...(user.phone && canChooseText ? ([["text", "Text"]] as [string, string][]) : []),
@@ -53,7 +53,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           <SubmitButton className="btn-primary btn-sm" pendingText="Sending…">
             Send code
           </SubmitButton>
-          {kind === "phone" && <p className="hint w-full">Adding your number means you agree to receive quorum texts. {SMS_DISCLOSURE}</p>}
+          {kind === "phone" && <p className="hint w-full">Adding your number means you agree to receive texts from your ward. {SMS_DISCLOSURE}</p>}
         </form>
       )}
     </div>
@@ -61,7 +61,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <PageHeader title="Contact & notifications" back={{ href: "/more", label: "More" }} subtitle="You can sign in with either one. Only you and the quorum leaders who run the app can see them." />
+      <PageHeader title="Contact & notifications" back={{ href: "/more", label: "More" }} subtitle="You can sign in with either one. Only you and your ward&apos;s leaders can see them." />
       <Flash msg={sp.msg} tone={sp.ok ? "success" : "warn"} />
 
       {verifying && (
@@ -118,11 +118,11 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           </div>
           <SubmitButton className="btn-primary btn-sm">Save</SubmitButton>
           {user.phone && canChooseText && !textingOn && (
-            <p className="rounded-lg bg-accent-soft px-3 py-2 text-xs text-accent">Texting starts once the phone carriers approve the quorum&apos;s number. You can choose it now; until then you&apos;ll get email instead.</p>
+            <p className="rounded-lg bg-accent-soft px-3 py-2 text-xs text-accent">Texting starts once the phone carriers approve the app&apos;s number. You can choose it now; until then you&apos;ll get email instead.</p>
           )}
           {user.phone && canChooseText && (
             <p className="hint">
-              Choosing to get texts means you agree to receive reminders and quorum messages by text from the quorum&apos;s number. {SMS_DISCLOSURE}
+              Choosing to get texts means you agree to receive reminders and messages from your ward and its organizations by text. {SMS_DISCLOSURE}
             </p>
           )}
         </form>

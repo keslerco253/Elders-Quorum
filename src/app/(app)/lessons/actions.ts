@@ -11,12 +11,13 @@ import { isAdmin } from "@/lib/permissions";
 import { getNotes, publishNotes, submitNotes } from "@/lib/lesson-notes";
 import { announceNotes } from "@/lib/notes-notify";
 import { confirmTeaching, declineTeaching } from "@/lib/teaching";
+import { leadersWord } from "@/lib/types";
 
 const back = (id: number, text: string, anchor = "") => redirect(`/lessons/${id}?msg=${encodeURIComponent(text)}${anchor}`);
 
 export async function volunteer(fd: FormData) {
   const user = await requireUser();
-  const lesson = getLesson(user.ward_id, Number(fd.get("lesson_id")));
+  const lesson = getLesson(user.org_id, Number(fd.get("lesson_id")));
   if (!lesson || lesson.kind !== "talk") redirect("/lessons");
   if (fd.get("withdraw")) {
     db().prepare("DELETE FROM lesson_volunteers WHERE lesson_id = ? AND member_id = ?").run(lesson.id, user.id);
@@ -25,7 +26,7 @@ export async function volunteer(fd: FormData) {
   }
   const r = db().prepare("INSERT OR IGNORE INTO lesson_volunteers (lesson_id, member_id) VALUES (?, ?)").run(lesson.id, user.id);
   if (r.changes) {
-    await notify(audienceMembers(user.ward_id, "presidency"), {
+    await notify(audienceMembers(user.org_id, "presidency"), {
       title: "Teaching volunteer",
       body: `${user.display_name} volunteered to teach on ${formatDate(lesson.date, "short")}${lesson.title ? ` ("${lesson.title}")` : ""}.`,
       url: `/admin/lessons/${lesson.id}`,
@@ -38,7 +39,7 @@ export async function volunteer(fd: FormData) {
 /** The assigned teacher can't teach: they're taken off the lesson and the presidency is told why. */
 export async function cantTeach(fd: FormData) {
   const user = await requireUser();
-  const lesson = getLesson(user.ward_id, Number(fd.get("lesson_id")));
+  const lesson = getLesson(user.org_id, Number(fd.get("lesson_id")));
   if (!lesson || lesson.teacher_id !== user.id) redirect("/lessons");
   await declineTeaching(user, lesson, String(fd.get("reason") || ""));
   revalidatePath("/", "layout");
@@ -48,7 +49,7 @@ export async function cantTeach(fd: FormData) {
 /** The assigned teacher confirms they're still teaching. */
 export async function confirmTeach(fd: FormData) {
   const user = await requireUser();
-  const lesson = getLesson(user.ward_id, Number(fd.get("lesson_id")));
+  const lesson = getLesson(user.org_id, Number(fd.get("lesson_id")));
   if (!lesson || lesson.teacher_id !== user.id) redirect("/lessons");
   confirmTeaching(lesson.id, user.id);
   revalidatePath("/", "layout");
@@ -57,7 +58,7 @@ export async function confirmTeach(fd: FormData) {
 
 export async function addComment(fd: FormData) {
   const user = await requireUser();
-  const lesson = getLesson(user.ward_id, Number(fd.get("lesson_id")));
+  const lesson = getLesson(user.org_id, Number(fd.get("lesson_id")));
   if (!lesson) redirect("/lessons");
   const body = String(fd.get("body") || "").trim().slice(0, 4000);
   if (!body) back(lesson.id, "Please write something first.");
@@ -69,7 +70,7 @@ export async function addComment(fd: FormData) {
   }
   db().prepare("INSERT INTO comments (lesson_id, parent_id, member_id, body) VALUES (?, ?, ?, ?)").run(lesson.id, parentId, user.id, body);
   await notify(
-    audienceMembers(user.ward_id, "admins").filter((m) => m.id !== user.id),
+    audienceMembers(user.org_id, "admins").filter((m) => m.id !== user.id),
     { title: "Comment waiting for approval", body: `${user.display_name}: ${body.slice(0, 120)}${body.length > 120 ? "…" : ""}`, url: "/admin/comments" },
   );
   revalidatePath(`/lessons/${lesson.id}`);
@@ -88,7 +89,7 @@ export async function deleteOwnComment(fd: FormData) {
 
 export async function saveTeacherNotes(fd: FormData) {
   const user = await requireUser();
-  const lesson = getLesson(user.ward_id, Number(fd.get("lesson_id")));
+  const lesson = getLesson(user.org_id, Number(fd.get("lesson_id")));
   if (!lesson || lesson.kind !== "talk") redirect("/lessons");
   const admin = isAdmin(user);
   if (lesson.teacher_id !== user.id && !admin) back(lesson.id, "Only this lesson's teacher can post notes.");
@@ -102,15 +103,15 @@ export async function saveTeacherNotes(fd: FormData) {
     // An admin's own save counts as approval.
     const first = publishNotes(lesson.id, user.id);
     const teacherName = getNotes(lesson.id)?.author ?? user.display_name;
-    if (first) await announceNotes(user.ward_id, lesson, teacherName);
+    if (first) await announceNotes(user.org_id, lesson, teacherName);
     revalidatePath(`/lessons/${lesson.id}`);
-    back(lesson.id, first ? "Notes posted, and the quorum has been notified." : "Notes updated.", "#notes");
+    back(lesson.id, first ? "Notes posted, and everyone has been notified." : "Notes updated.", "#notes");
   }
 
   await notify(
-    audienceMembers(user.ward_id, "admins").filter((m) => m.id !== user.id),
-    { title: "Teacher notes to approve", body: `${user.display_name} posted notes for ${formatDate(lesson.date, "short")}. Approve them to share with the quorum.`, url: "/admin/notes" },
+    audienceMembers(user.org_id, "admins").filter((m) => m.id !== user.id),
+    { title: "Teacher notes to approve", body: `${user.display_name} posted notes for ${formatDate(lesson.date, "short")}. Approve them to share with everyone.`, url: "/admin/notes" },
   );
   revalidatePath(`/lessons/${lesson.id}`);
-  back(lesson.id, "Thanks! Your notes will be shared with the quorum once a member of the presidency approves them.", "#notes");
+  back(lesson.id, `Thanks! Your notes will be shared once a member of the ${leadersWord(user.org)} approves them.`, "#notes");
 }

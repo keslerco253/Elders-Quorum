@@ -7,7 +7,7 @@ import { answerTeachingRequest } from "./actions";
 export const metadata = { title: "Will you teach?" };
 
 const DONE: Record<string, [string, string]> = {
-  accepted: ["Thank you!", "You're down to teach. You can add notes for the quorum on the lesson page."],
+  accepted: ["Thank you!", "You're down to teach. You can add notes for everyone on the lesson page."],
   declined: ["Thanks for letting us know", "The presidency has your answer."],
   taken: ["Already covered", "Someone else is teaching this lesson now. Thank you for being willing!"],
   closed: ["Already answered", "This request was already answered or withdrawn."],
@@ -57,7 +57,7 @@ export default async function AskPage({ params, searchParams }: { params: Promis
     <div className="space-y-4">
       <div className="card space-y-1">
         <div className="text-sm text-muted">Hi {r.member_name}, {r.asked_by_name ?? "the presidency"} asked if you&apos;d teach</div>
-        <h2 className="h2">{r.lesson_title || "Elders quorum lesson"}</h2>
+        <h2 className="h2">{r.lesson_title || "Lesson"}</h2>
         {r.lesson_speaker && <div className="text-sm text-muted">{r.lesson_speaker}</div>}
         <div className="text-sm">{formatDate(r.lesson_date)}</div>
         {r.message && <p className="mt-2 rounded-lg bg-surface-2 px-3 py-2 text-sm">&quot;{r.message}&quot;</p>}

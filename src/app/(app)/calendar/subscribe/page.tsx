@@ -60,13 +60,13 @@ export default async function SubscribePage({ searchParams }: { searchParams: Pr
       <PageHeader
         title="Subscribe to the calendar"
         back={{ href: "/calendar", label: "Calendar" }}
-        subtitle={`Every quorum event shows up in your own calendar app and stays up to date: new events appear and changes or cancellations update by themselves.${isAdmin(user) ? " Yours includes presidency-only events." : ""}`}
+        subtitle={`Ward events and those of your organizations show up in your own calendar app and stays up to date: new events appear and changes or cancellations update by themselves.${isAdmin(user) ? " Yours includes presidency-only events." : ""}`}
       />
       <Flash msg={sp.msg} tone={sp.ok ? "success" : "warn"} />
       <form id="reminders" action={saveCalendarAlerts} className="card mb-3 scroll-mt-20 space-y-3">
         <div>
           <div className="font-semibold">Reminders on your calendar events</div>
-          <p className="text-sm text-muted">Added to every quorum event in your subscribed calendar and to events you add one at a time.</p>
+          <p className="text-sm text-muted">Added to every event in your subscribed calendar and to events you add one at a time.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           {alertSelect("alert1", alert1, "Reminder")}

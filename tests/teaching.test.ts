@@ -16,8 +16,7 @@ describe("teacher confirmations", () => {
   const soon = DateTime.now().setZone("America/Boise").plus({ days: 3 }).toISODate()!;
 
   beforeAll(async () => {
-    d = (await import("@/lib/db")).useTestDb();
-    d.exec(`
+    d = (await import("@/lib/db")).useTestDb(`
       INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
       INSERT INTO members (id, ward_id, name, display_name, email, phone, role, contact_pref, sms_consent_at) VALUES
         (1, 1, 'P', 'Pres Person', 'p@test.local', NULL, 'presidency', 'email', NULL),

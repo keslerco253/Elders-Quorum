@@ -78,8 +78,8 @@ export function EventForm({ e, tz, date, series }: { e?: EventRow; tz: string; d
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="presidency_only" defaultChecked={!!e?.presidency_only} className="mt-1" />
         <span>
-          <strong>Presidency only</strong>
-          <span className="block text-muted">Hidden from members. Visible to the presidency and admins only.</span>
+          <strong>Leaders only</strong>
+          <span className="block text-muted">Hidden from members. Visible to this organization&apos;s leaders and admins only.</span>
         </span>
       </label>
       <label className="flex items-start gap-2 text-sm">
