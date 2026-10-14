@@ -10,3 +10,15 @@ describe("setup code", () => {
     expect(setupCodeMatches("")).toBe(false);
   });
 });
+
+describe("app address", () => {
+  it("adds https:// when the setting leaves it out", async () => {
+    const { appUrl } = await import("@/lib/config");
+    process.env.APP_URL = "mywardlink.net/";
+    expect(appUrl()).toBe("https://mywardlink.net");
+    process.env.APP_URL = "https://mywardlink.net";
+    expect(appUrl()).toBe("https://mywardlink.net");
+    process.env.APP_URL = "";
+    expect(appUrl()).toBe("http://localhost:3000");
+  });
+});

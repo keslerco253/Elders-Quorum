@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { appUrl } from "@/lib/config";
 
 /**
  * After the app moves to another server, set MOVED_TO=https://new-address on
@@ -7,7 +8,8 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname + req.nextUrl.search;
-  const to = process.env.MOVED_TO?.replace(/\/$/, "");
+  const moved = process.env.MOVED_TO?.trim().replace(/\/+$/, "");
+  const to = moved && !/^https?:\/\//i.test(moved) ? `https://${moved}` : moved;
   if (to && req.nextUrl.pathname !== "/api/health") return NextResponse.redirect(to + path, 308);
   const app = appAddress();
   if (app && req.headers.get("host") === "www." + app.host) return NextResponse.redirect(app.origin + path, 308);
@@ -16,7 +18,7 @@ export function middleware(req: NextRequest) {
 
 function appAddress() {
   try {
-    return process.env.APP_URL ? new URL(process.env.APP_URL) : undefined;
+    return process.env.APP_URL ? new URL(appUrl()) : undefined;
   } catch {
     return undefined;
   }

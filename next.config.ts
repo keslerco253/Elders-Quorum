@@ -5,7 +5,8 @@ import type { NextConfig } from "next";
 // public address is listed explicitly (APP_URL is passed in at build time).
 const publicHost = (() => {
   try {
-    return process.env.APP_URL ? new URL(process.env.APP_URL).host : undefined;
+    const raw = process.env.APP_URL?.trim();
+    return raw ? new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).host : undefined;
   } catch {
     return undefined;
   }
