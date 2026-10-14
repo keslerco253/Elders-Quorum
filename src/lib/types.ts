@@ -39,6 +39,8 @@ export interface Ward {
   join_code: string | null;
   sms_monthly_limit: number;
   created_by: number | null;
+  /** Reminder and message texts allowed (the site owner turns this on for wards others start). */
+  texting_enabled: number;
 }
 
 /** Features an organization can hide when it doesn't use them. */

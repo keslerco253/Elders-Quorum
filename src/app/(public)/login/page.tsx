@@ -11,7 +11,8 @@ import { phoneOptInVisible } from "@/lib/sms";
 export const metadata = { title: "Sign in" };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
-  if (needsSetup()) redirect("/setup");
+  // A brand-new server: the first person starts a ward (and is the site owner).
+  if (needsSetup()) redirect("/start");
   if (await getUser()) redirect("/");
   const sp = await searchParams;
   const phone = phoneOptInVisible();
@@ -47,7 +48,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <p className="mt-5 text-center text-sm text-muted">
         New here?{" "}
         <Link href="/join" className="link">
-          Join the app
+          Join your ward
+        </Link>{" "}
+        ·{" "}
+        <Link href="/start" className="link">
+          Start a ward
         </Link>
       </p>
     </div>

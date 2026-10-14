@@ -28,6 +28,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
     ...(hasFeature(user.org, "visits") ? [{ href: "/more/visit", label: "Request a visit", desc: `Ask the ${user.orgLabel} ${leadersWord(user.org)} to come by, talk, or help` }] : []),
     { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },
     ...(isAdmin(user) ? [{ href: "/admin", label: "Admin tools", desc: "Members, lessons, messages and approvals" }] : []),
+    ...(user.is_site_owner ? [{ href: "/site", label: "Site owner", desc: "Every ward, texting, backups" }] : []),
   ];
   return (
     <>

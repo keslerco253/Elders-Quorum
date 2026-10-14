@@ -1,10 +1,11 @@
 // Wards, the organizations in them, and each member's place in those.
 import crypto from "crypto";
 import { db } from "./db";
+import { deleteAccount } from "./accounts";
 export { ORG_COOKIE } from "./org-cookie";
 import { isCalling, type Calling, type CurrentUser, type Feature, type Member, type Org, type OrgEntry, type Role, type Ward } from "./types";
 
-const WARD_COLUMNS = "id, name, timezone, join_code, sms_monthly_limit, created_by";
+const WARD_COLUMNS = "id, name, timezone, join_code, sms_monthly_limit, created_by, texting_enabled";
 const ORG_COLUMNS = "id, ward_id, name, kind, hidden_features";
 
 export function getWard(id: number): Ward | undefined {
@@ -118,7 +119,14 @@ export function homeOf(memberId: number): { orgId: number | null; name: string }
 }
 
 /** Builds the signed-in user as seen from an organization. Null if they belong to no ward. */
+/** The site owner: marked in the database, or the email in the OWNER_EMAIL setting. */
+export function isSiteOwner(member: Pick<Member, "is_site_owner" | "email">): boolean {
+  const owner = process.env.OWNER_EMAIL?.trim().toLowerCase();
+  return !!member.is_site_owner || (!!owner && member.email?.toLowerCase() === owner);
+}
+
 export function currentUserFor(member: Member, wantedOrg?: number): CurrentUser | null {
+  member = { ...member, is_site_owner: isSiteOwner(member) ? 1 : 0 };
   const org = pickOrg(member.id, wantedOrg);
   if (!org) return null;
   const ward = getWard(org.ward_id)!;
@@ -170,11 +178,16 @@ export function newJoinCode(): string {
  * A new ward with its ward-wide organization. The person who creates it leads
  * that organization (with the bishopric, once they're added).
  */
-export function createWard(opts: { name: string; timezone: string; creatorId: number; calling?: Calling | null }): Ward {
+export function createWard(opts: { name: string; timezone: string; creatorId: number; calling?: Calling | null; texting?: boolean }): Ward {
   const d = db();
   return d.transaction(() => {
-    const wardId = Number(d.prepare("INSERT INTO wards (name, timezone, join_code, created_by) VALUES (?, ?, ?, ?)").run(opts.name, opts.timezone, newJoinCode(), opts.creatorId).lastInsertRowid);
-    d.prepare("INSERT INTO orgs (ward_id, name, kind) VALUES (?, 'Ward', 'ward')").run(wardId);
+    const wardId = Number(
+      d
+        .prepare("INSERT INTO wards (name, timezone, join_code, created_by, texting_enabled) VALUES (?, ?, ?, ?, ?)")
+        .run(opts.name, opts.timezone, newJoinCode(), opts.creatorId, opts.texting ? 1 : 0).lastInsertRowid,
+    );
+    // The ward level starts without lessons and plans (organizations have those).
+    d.prepare("INSERT INTO orgs (ward_id, name, kind, hidden_features) VALUES (?, 'Ward', 'ward', 'lessons,plans')").run(wardId);
     addToWard(opts.creatorId, wardId);
     d.prepare("UPDATE org_members SET role = 'presidency', calling = ? WHERE org_id = ? AND member_id = ?").run(opts.calling ?? null, wardOrg(wardId).id, opts.creatorId);
     return getWard(wardId)!;
@@ -260,6 +273,26 @@ const ORG_TABLES = [
   "todos",
   "sms_log",
 ];
+
+/**
+ * Deletes a ward, its organizations and everything in them (site owner, e.g. a
+ * ward started by mistake or misused). People left in no ward are deleted too.
+ */
+export function deleteWard(wardId: number): { accounts: number } {
+  const d = db();
+  return d.transaction(() => {
+    const people = (d.prepare("SELECT member_id FROM ward_members WHERE ward_id = ?").all(wardId) as { member_id: number }[]).map((r) => r.member_id);
+    for (const o of orgsInWard(wardId)) {
+      for (const t of ORG_TABLES) d.prepare(`DELETE FROM ${t} WHERE org_id = ?`).run(o.id);
+      d.prepare("DELETE FROM orgs WHERE id = ?").run(o.id);
+    }
+    d.prepare("DELETE FROM ward_members WHERE ward_id = ?").run(wardId);
+    d.prepare("DELETE FROM wards WHERE id = ?").run(wardId);
+    const orphans = people.filter((id) => !d.prepare("SELECT 1 FROM ward_members WHERE member_id = ?").get(id));
+    for (const id of orphans) deleteAccount(id);
+    return { accounts: orphans.length };
+  })();
+}
 
 /** Deletes an organization and everything in it. The ward-wide one can't be deleted. */
 export function deleteOrg(orgId: number): boolean {

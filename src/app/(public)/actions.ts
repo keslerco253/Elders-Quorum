@@ -1,6 +1,5 @@
 "use server";
 
-import { setupCodeMatches } from "@/lib/setup-code";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { createLoginToken, findLoginMember, findMemberByContact, isRemember, redeemCode, redeemToken } from "@/lib/auth-core";
@@ -8,10 +7,10 @@ import { endSession, startSession } from "@/lib/auth";
 import { sendLoginCode } from "@/lib/login-code";
 import { parseContact } from "@/lib/contact";
 import { phoneEnabled, phoneOptInVisible } from "@/lib/sms";
-import { needsSetup, wardByJoinCode } from "@/lib/wards";
+import { wardByJoinCode } from "@/lib/wards";
 import { addToWard, createWard } from "@/lib/orgs";
-import { DEFAULT_TZ } from "@/lib/time";
-import type { Member } from "@/lib/types";
+import { DEFAULT_TZ, validZone } from "@/lib/time";
+import { CALLINGS, isCalling, type Member } from "@/lib/types";
 
 const q = (params: Record<string, string>) => new URLSearchParams(params).toString();
 
@@ -116,23 +115,43 @@ export async function joinApp(formData: FormData) {
   redirect("/login/check?" + q({ to: c.value }));
 }
 
-export async function runSetup(formData: FormData) {
-  if (!needsSetup()) redirect("/login");
-  const setupCode = process.env.SETUP_CODE;
-  if (setupCode && !setupCodeMatches(String(formData.get("setup_code") || ""))) redirect("/setup?" + q({ error: "The setup code is incorrect." }));
-  const wardName = String(formData.get("ward_name") || "").trim();
+/**
+ * Anyone can start a ward: a new account (or an existing one, signed in from
+ * More) plus the ward, which they lead until the bishopric is added.
+ */
+export async function startWard(formData: FormData) {
+  const name = String(formData.get("name") || "").trim().slice(0, 100);
+  const raw = String(formData.get("contact") || "");
+  const wardName = String(formData.get("ward_name") || "").trim().slice(0, 80);
   const timezone = String(formData.get("timezone") || DEFAULT_TZ);
-  const name = String(formData.get("name") || "").trim();
-  const c = parseContact(String(formData.get("email") || ""));
-  if (!wardName || !name || c?.kind !== "email") redirect("/setup?" + q({ error: "Please fill in every field." }));
-
+  const calling = String(formData.get("calling") || "");
+  function back(error: string): never {
+    redirect("/start?" + q({ name, contact: raw, ward_name: wardName, error }));
+  }
+  const c = readContact(raw);
+  if (!name || !wardName) back("Please enter your name and your ward's name.");
+  if (!c) back(invalidContactMessage(raw));
+  if (!validZone(timezone)) back("Please choose your time zone.");
+  if (formData.get("agree") !== "on") back("Please check the box to show you've read what the app keeps.");
+  if (findMemberByContact(c.value)) {
+    redirect("/login?" + q({ contact: raw, error: "You already have an account. Sign in, then start your ward under More → My organizations." }));
+  }
   const d = db();
+  const recent = d.prepare("SELECT COUNT(*) AS n FROM wards WHERE created_at > datetime('now', '-1 hour')").get() as { n: number };
+  if (recent.n >= 10) back("Many wards were started in the last hour. Please try again later.");
+
   const memberId = Number(
-    d.prepare("INSERT INTO members (name, display_name, email, status, source, is_site_owner, welcomed_at) VALUES (?, ?, ?, 'active', 'setup', 1, datetime('now'))").run(name, name, c.value)
-      .lastInsertRowid,
+    d
+      .prepare(`INSERT INTO members (name, display_name, ${c.kind}, contact_pref, status, source, welcomed_at) VALUES (?, ?, ?, ?, 'active', 'request', datetime('now'))`)
+      .run(name, name, c.value, c.kind === "phone" ? "text" : "email").lastInsertRowid,
   );
-  createWard({ name: wardName, timezone, creatorId: memberId });
-  const res = createLoginToken(memberId, "year");
-  if (res.ok) await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, "email", res.token, res.code);
+  if (c.kind === "phone") d.prepare("UPDATE members SET sms_consent_at = datetime('now') WHERE id = ?").run(memberId);
+  // The first ward on a brand-new server is the site owner's: its texting is on.
+  const first = !(d.prepare("SELECT 1 FROM wards").get());
+  if (first) d.prepare("UPDATE members SET is_site_owner = 1 WHERE id = ?").run(memberId);
+  createWard({ name: wardName, timezone, creatorId: memberId, calling: isCalling(calling) && CALLINGS.ward.includes(calling) ? calling : null, texting: first });
+  const res = createLoginToken(memberId, "month");
+  if (res.ok) await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, c.kind, res.token, res.code);
   redirect("/login/check?" + q({ to: c.value }));
 }
+

@@ -4,26 +4,17 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePresidency, requireWardLeader } from "@/lib/auth";
-import { createLoginToken, findMemberByContact, normalizeEmail } from "@/lib/auth-core";
-import { addToOrg, createOrg, createWard, deleteOrg, inOrgWard, newJoinCode } from "@/lib/orgs";
-import { sendLoginCode } from "@/lib/login-code";
+import { addToOrg, createOrg, deleteOrg, inOrgWard, newJoinCode } from "@/lib/orgs";
 import { emailHtml, sendMail } from "@/lib/mail";
 import { sendSms } from "@/lib/sms";
+import { validZone } from "@/lib/time";
 import { formatPhone } from "@/lib/contact";
-import { FEATURES, type Feature, type Member } from "@/lib/types";
+import { FEATURES, type Feature } from "@/lib/types";
 
 function go(text: string): never {
   redirect(`/admin/settings?msg=${encodeURIComponent(text)}`);
 }
 
-const validZone = (tz: string) => {
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: tz });
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 export async function saveWardSettings(fd: FormData) {
   const user = await requireWardLeader();
@@ -77,24 +68,6 @@ export async function sendTestEmail() {
   if (!user.email) go("Your account has no email address.");
   const ok = await sendMail({ to: user.email, subject: "Test email", text: "Email is working.", html: emailHtml("It works!", "Email from the app is working.") });
   go(ok ? `Test email sent to ${user.email}.` : "Sending failed. Check SMTP_USER and SMTP_PASS in your settings file.");
-}
-
-export async function addWard(fd: FormData) {
-  const user = await requirePresidency();
-  if (!user.is_site_owner) go("Only the site owner can add wards.");
-  const wardName = String(fd.get("ward_name") || "").trim().slice(0, 80);
-  const tz = String(fd.get("timezone") || "");
-  const name = String(fd.get("name") || "").trim().slice(0, 100);
-  const email = normalizeEmail(String(fd.get("email") || ""));
-  if (!wardName || !name || !email.includes("@") || !validZone(tz)) go("Fill in every field to add a ward.");
-  const d = db();
-  const existing = findMemberByContact(email);
-  const memberId =
-    existing?.id ?? Number(d.prepare("INSERT INTO members (name, display_name, email, source) VALUES (?, ?, ?, 'setup')").run(name, name, email).lastInsertRowid);
-  createWard({ name: wardName, timezone: tz, creatorId: memberId });
-  const res = createLoginToken(memberId, "month");
-  if (res.ok) await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, "email", res.token, res.code);
-  go(`${wardName} was added. ${name} was emailed a sign-in link.`);
 }
 
 /** Joining a ward always takes its code; the bishopric can change it (e.g. if it was shared too widely). */

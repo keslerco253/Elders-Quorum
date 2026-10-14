@@ -2,12 +2,10 @@ import Link from "next/link";
 import { requirePresidency } from "@/lib/auth";
 import { appUrl } from "@/lib/config";
 import { emailConfigured } from "@/lib/mail";
-import { listWards } from "@/lib/wards";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { dataOnVolume } from "@/lib/setup-code";
-import { addOrganization, addWard, deleteOrganization, saveOrgSettings, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode } from "./actions";
+import { addOrganization, deleteOrganization, saveOrgSettings, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode } from "./actions";
 import { db } from "@/lib/db";
 import { hasFeature, orgRoster } from "@/lib/orgs";
 import { FEATURES, type Feature } from "@/lib/types";
@@ -214,6 +212,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <Badge>Not set up: members sign in with email only</Badge>
             )}
           </div>
+          {phoneEnabled() && !user.ward.texting_enabled && (
+            <p className="rounded-lg bg-warn-soft px-3 py-2 text-warn">
+              Reminder and message texts are off for {user.ward.name} until the app&apos;s site owner turns them on. Sign-in codes are still texted, and everything else
+              goes by notification and email.
+            </p>
+          )}
           {phoneEnabled() ? (
             <>
               <p>
@@ -253,42 +257,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           )}
         </div>
       </Section>
-      {!!user.is_site_owner && (
-        <Section title="Other wards">
-          <div className="card max-w-xl space-y-4">
-            <p className="text-sm text-muted">Wards on this app: {listWards().map((w) => w.name).join(", ")}. Each ward has its own members, organizations, calendar and leaders.</p>
-            <form action={addWard} className="space-y-3">
-              <input name="ward_name" required className="input" placeholder="Ward name, e.g. Maple Ward" />
-              <TimezoneSelect name="timezone" defaultValue={user.ward.timezone} />
-              <input name="name" required className="input" placeholder="Their bishop's (or clerk's) full name" />
-              <input name="email" type="email" required className="input" placeholder="Their email" />
-              <SubmitButton className="btn-secondary" pendingText="Adding…">
-                Add ward and email them
-              </SubmitButton>
-            </form>
-          </div>
-        </Section>
-      )}
-      {!!user.is_site_owner && (
-        <Section title="Backup">
-          <div className="card max-w-xl space-y-3 text-sm">
-            {!dataOnVolume() && (
-              <p className="rounded-lg border border-danger bg-danger/10 p-3">
-                <strong>This server has no permanent disk.</strong> Everything here is erased the next time the app is rebuilt. Download a backup now, then in Northflank add a volume with mount path{" "}
-                <code>/data</code> to the service and restore the backup on the setup page.
-              </p>
-            )}
-            <p>
-              Download everything the app keeps (every ward&apos;s members, lessons, calendar, messages and uploaded PDFs) as one file. Use it to move the app to another server: on the new
-              server&apos;s first-time setup page, choose &quot;Restore a backup&quot;.
-            </p>
-            <p className="text-muted">The file holds members&apos; private information. Keep it somewhere safe and delete it when you no longer need it.</p>
-            <a href="/api/backup" className="btn-secondary btn-sm" download>
-              Download a backup
-            </a>
-          </div>
-        </Section>
-      )}
     </>
   );
 }

@@ -63,3 +63,13 @@ export function currentLessonDate(tz: string) {
   if (now.weekday === 7 && now.hour < 13) return now.toISODate()!;
   return sundayOnOrAfter(now.plus({ days: 1 }).toISODate()!);
 }
+
+/** A time zone name the system knows, like "America/Boise". */
+export function validZone(tz: string) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}

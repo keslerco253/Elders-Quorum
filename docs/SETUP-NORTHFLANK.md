@@ -38,7 +38,8 @@ Unzip this version and run **UPDATE.bat** on the PC as usual. That adds
    | `SMTP_USER` | same as now |
    | `SMTP_PASS` | same as now (the Gmail app password) |
    | `MAIL_FROM_NAME` | same as now |
-   | `SETUP_CODE` | a phrase you'll type in step 7 — **required** for restoring |
+   | `OWNER_EMAIL` | your email (the site owner: every ward, texting, backups) |
+   | `SETUP_CODE` | optional: a phrase for restoring a backup onto an empty server |
    | `TWILIO_ACCOUNT_SID` | same as now |
    | `TWILIO_AUTH_TOKEN` | same as now |
    | `TWILIO_FROM` | `+12083579951` |

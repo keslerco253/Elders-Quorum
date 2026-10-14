@@ -64,6 +64,10 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
         Already joined?{" "}
         <Link href="/login" className="link">
           Sign in
+        </Link>{" "}
+        · Your ward isn&apos;t here yet?{" "}
+        <Link href="/start" className="link">
+          Start it
         </Link>
       </p>
     </div>

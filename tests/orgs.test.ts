@@ -188,3 +188,39 @@ describe("leaving", () => {
     expect(d.prepare("SELECT id FROM members WHERE id = 3").get()).toBeUndefined();
   });
 });
+
+describe("starting wards", () => {
+  it("leaves texting off for wards others start until the site owner turns it on", async () => {
+    const { canSendNotice } = await import("@/lib/sms");
+    const maple = orgs.createWard({ name: "Maple Ward", timezone: "America/Boise", creatorId: 3 });
+    const eq = orgs.createOrg(maple.id, "Elders Quorum");
+    expect(maple.texting_enabled).toBe(0);
+    expect(canSendNotice(eq.id)).toBe(false);
+    expect(canSendNotice(1)).toBe(true);
+    d.prepare("UPDATE wards SET texting_enabled = 1 WHERE id = ?").run(maple.id);
+    expect(canSendNotice(eq.id)).toBe(true);
+    expect(orgs.createWard({ name: "Oak Ward", timezone: "America/Boise", creatorId: 1, texting: true }).texting_enabled).toBe(1);
+  });
+
+  it("knows the site owner by the database or by OWNER_EMAIL", () => {
+    expect(orgs.isSiteOwner(member(1))).toBe(true);
+    expect(orgs.isSiteOwner(member(3))).toBe(false);
+    process.env.OWNER_EMAIL = " M@Test.Local ";
+    expect(orgs.isSiteOwner(member(3))).toBe(true);
+    expect(orgs.currentUserFor(member(3))!.is_site_owner).toBe(1);
+    delete process.env.OWNER_EMAIL;
+  });
+
+  it("deletes a ward with everything in it, and people who were only there", () => {
+    const maple = orgs.createWard({ name: "Maple Ward", timezone: "America/Boise", creatorId: 3 });
+    orgs.createOrg(maple.id, "Primary");
+    d.prepare("INSERT INTO members (id, name, display_name, email) VALUES (9, 'N', 'Newcomer', 'n@test.local')").run();
+    orgs.addToWard(9, maple.id);
+    expect(orgs.deleteWard(maple.id)).toEqual({ accounts: 1 });
+    expect(orgs.getWard(maple.id)).toBeUndefined();
+    expect(d.prepare("SELECT COUNT(*) AS n FROM orgs WHERE ward_id = ?").get(maple.id)).toEqual({ n: 0 });
+    // Member 3 is still in Villas Ward, so keeps their account.
+    expect(member(3)).toBeDefined();
+    expect(member(9)).toBeUndefined();
+  });
+});

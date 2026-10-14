@@ -679,4 +679,11 @@ CREATE INDEX members_email ON members(email COLLATE NOCASE);
 CREATE INDEX members_phone ON members(phone);
 `,
   },
+  {
+    // Anyone can start a ward. Texting costs the site owner and runs under one
+    // texting registration, so wards someone else starts have it off until the
+    // site owner turns it on. Wards that already exist keep it on.
+    id: 21,
+    sql: `ALTER TABLE wards ADD COLUMN texting_enabled INTEGER NOT NULL DEFAULT 1;`,
+  },
 ];

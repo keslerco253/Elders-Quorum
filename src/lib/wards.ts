@@ -23,5 +23,5 @@ export function needsSetup() {
 export function wardByJoinCode(code: string): Ward | undefined {
   const c = code.trim();
   if (!c) return undefined;
-  return db().prepare("SELECT id, name, timezone, join_code, sms_monthly_limit, created_by FROM wards WHERE join_code = ? COLLATE NOCASE").get(c) as Ward | undefined;
+  return db().prepare("SELECT id, name, timezone, join_code, sms_monthly_limit, created_by, texting_enabled FROM wards WHERE join_code = ? COLLATE NOCASE").get(c) as Ward | undefined;
 }

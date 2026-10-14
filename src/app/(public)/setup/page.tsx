@@ -1,65 +1,32 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { dataOnVolume } from "@/lib/setup-code";
 import { needsSetup } from "@/lib/wards";
-import { DEFAULT_TZ } from "@/lib/time";
 import { Flash } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { TimezoneSelect } from "@/components/timezone-select";
-import { runSetup } from "../actions";
 
-export const metadata = { title: "First-time setup" };
+export const metadata = { title: "New server" };
 
 export default async function SetupPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   if (!needsSetup()) redirect("/login");
   const sp = await searchParams;
   return (
     <div className="card">
-      <h2 className="h2 mb-1">First-time setup</h2>
-      <p className="mb-4 text-sm text-muted">Create your ward and your own account. You&apos;ll add the ward&apos;s organizations and everyone else after you sign in.</p>
+      <h2 className="h2 mb-1">A new, empty server</h2>
+      <p className="mb-4 text-sm text-muted">Start the first ward, or bring everything over from another server with a backup.</p>
       {!dataOnVolume() && (
         <div className="mb-4 rounded-lg border border-danger bg-danger/10 p-3 text-sm">
           <strong>This server has no permanent disk.</strong> Anything you set up or restore here is erased every time the app is rebuilt. In Northflank, open the service → <strong>Volumes</strong> → add a volume with mount path <code>/data</code>, wait for it to restart, then come back here.
         </div>
       )}
       <Flash msg={sp.error} tone="danger" />
-      <form action={runSetup} className="space-y-4">
-        {process.env.SETUP_CODE && (
-          <div>
-            <label className="label" htmlFor="setup_code">
-              Setup code
-            </label>
-            <input id="setup_code" name="setup_code" required autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false} className="input" />
-            <p className="hint">From the SETUP_CODE line in your settings file.</p>
-          </div>
-        )}
-        <div>
-          <label className="label" htmlFor="ward_name">
-            Ward name
-          </label>
-          <input id="ward_name" name="ward_name" required className="input" placeholder="e.g. Villas Ward" />
-        </div>
-        <div>
-          <label className="label" htmlFor="timezone">
-            Time zone
-          </label>
-          <TimezoneSelect id="timezone" name="timezone" defaultValue={DEFAULT_TZ} />
-        </div>
-        <div>
-          <label className="label" htmlFor="name">
-            Your full name
-          </label>
-          <input id="name" name="name" required className="input" />
-        </div>
-        <div>
-          <label className="label" htmlFor="email">
-            Your email
-          </label>
-          <input id="email" name="email" type="email" required className="input" />
-        </div>
-        <SubmitButton className="btn-primary w-full" pendingText="Creating…">
-          Create and email me a sign-in link
-        </SubmitButton>
-      </form>
+      <Link href="/start" className="btn-primary w-full">
+        Start the first ward
+      </Link>
+      <p className="mt-2 text-sm text-muted">
+        Whoever starts the first ward is the site owner{process.env.OWNER_EMAIL ? " (or the account with the OWNER_EMAIL address)" : ""}: they can see every ward, turn on texting
+        for wards others start, and back up or restore the app.
+      </p>
       <details className="mt-6 border-t border-border pt-4">
         <summary className="cursor-pointer font-medium">Moving from another server? Restore a backup</summary>
         {process.env.SETUP_CODE ? (
@@ -85,7 +52,10 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
             </SubmitButton>
           </form>
         ) : (
-          <p className="mt-3 text-sm text-muted">Add a SETUP_CODE setting to this server first; restoring needs it.</p>
+          <p className="mt-3 text-sm text-muted">
+            Start a ward with the site owner&apos;s email{process.env.OWNER_EMAIL ? "" : " (set OWNER_EMAIL on the server first)"}, then restore from{" "}
+            <strong>More → Site owner → Restore a backup</strong>. That replaces the new ward with everything in the backup.
+          </p>
         )}
       </details>
     </div>

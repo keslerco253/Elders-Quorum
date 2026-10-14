@@ -41,15 +41,20 @@ export function monthlyLimit(wardId: number): number {
   return (db().prepare("SELECT sms_monthly_limit AS n FROM wards WHERE id = ?").get(wardId) as { n: number } | undefined)?.n ?? 500;
 }
 
-const wardOfOrg = (orgId: number) => (db().prepare("SELECT ward_id FROM orgs WHERE id = ?").get(orgId) as { ward_id: number } | undefined)?.ward_id ?? 0;
+const wardOfOrg = (orgId: number) =>
+  (db().prepare("SELECT o.ward_id, w.texting_enabled FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.id = ?").get(orgId) as { ward_id: number; texting_enabled: number } | undefined) ?? {
+    ward_id: 0,
+    texting_enabled: 0,
+  };
 
 /**
  * Notices stop at the ward's monthly limit, which also counts texts members
- * send back. Sign-in codes are always sent so no one is locked out.
+ * send back, and aren't sent at all for wards the site owner hasn't turned
+ * texting on for. Sign-in codes are always sent so no one is locked out.
  */
 export function canSendNotice(orgId: number) {
-  const wardId = wardOfOrg(orgId);
-  return phoneEnabled() && textsThisMonth(wardId, "notice") + textsThisMonth(wardId, "reply") < monthlyLimit(wardId);
+  const w = wardOfOrg(orgId);
+  return phoneEnabled() && !!w.texting_enabled && textsThisMonth(w.ward_id, "notice") + textsThisMonth(w.ward_id, "reply") < monthlyLimit(w.ward_id);
 }
 
 /**

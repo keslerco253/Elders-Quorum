@@ -2,7 +2,8 @@ import { requireUser } from "@/lib/auth";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { callingLabel, roleLabel } from "@/lib/types";
-import { joinAnotherWard, saveMyOrganizations } from "./actions";
+import { joinAnotherWard, saveMyOrganizations, startAnotherWard } from "./actions";
+import { TimezoneSelect } from "@/components/timezone-select";
 
 export const metadata = { title: "My organizations" };
 
@@ -66,6 +67,17 @@ export default async function MyOrganizationsPage({ searchParams }: { searchPara
           <input name="join_code" required className="input" autoCapitalize="characters" autoComplete="off" placeholder="Join code" />
           <SubmitButton className="btn-secondary">Join ward</SubmitButton>
         </form>
+        <details className="card mt-3 max-w-md">
+          <summary className="cursor-pointer font-semibold">Start a new ward</summary>
+          <form action={startAnotherWard} className="mt-3 space-y-3">
+            <p className="text-sm text-muted">For a ward that isn&apos;t in the app yet. You&apos;ll lead it in the app until you add its bishopric.</p>
+            <input name="ward_name" required maxLength={80} className="input" placeholder="Ward name, e.g. Maple Ward" />
+            <TimezoneSelect name="timezone" defaultValue={user.ward.timezone} />
+            <SubmitButton className="btn-secondary" pendingText="Starting…">
+              Start ward
+            </SubmitButton>
+          </form>
+        </details>
       </Section>
     </>
   );
