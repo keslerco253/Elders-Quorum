@@ -5,7 +5,8 @@ import { ORG_COOKIE, orgCookieMaxAge } from "@/lib/org-cookie";
 /**
  * After the app moves to another server, set MOVED_TO=https://new-address on
  * the old one: every page and link sends people to the same page there.
- * Also sends www.<address> to the address itself, so sign-ins and forms work.
+ * Also sends www.<address> to the address itself, so sign-ins and forms work,
+ * and shows visitors who aren't signed in the home page (/about) at "/".
  */
 export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname + req.nextUrl.search;
@@ -23,6 +24,12 @@ export function middleware(req: NextRequest) {
     const res = NextResponse.redirect(url, 303);
     res.cookies.set(ORG_COOKIE, org, { path: "/", maxAge: orgCookieMaxAge, sameSite: "lax", httpOnly: true, secure: url.protocol === "https:" });
     return res;
+  }
+  // Visitors who aren't signed in see the home page that explains the app.
+  if (req.nextUrl.pathname === "/" && !req.cookies.has("eq_session")) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/about";
+    return NextResponse.rewrite(url);
   }
   return NextResponse.next();
 }
