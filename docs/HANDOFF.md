@@ -36,6 +36,13 @@ Keep the `EldersQuorumApp` folder in the Windows user folder (`C:\Users\<you>\El
    Members' installed app may need re-adding to the home screen if the address
    changes.
 
+## Moving to a hosted server
+
+To move off a home computer onto Northflank (or another host), see
+[Moving to Northflank](SETUP-NORTHFLANK.md): download a backup in
+**Admin → Settings → Backup**, restore it on the new server's setup page, then
+set `MOVED_TO` on the old one so old links and Home Screen icons follow.
+
 ## Where things live
 
 - **Live data:** Docker volume `elders-quorum-data` (database, uploaded PDFs).

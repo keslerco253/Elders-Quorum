@@ -36,6 +36,19 @@ export function db(): DB {
   return globalForDb.__eqDb;
 }
 
+/**
+ * Swaps in another database file (restoring a backup). Runs synchronously so
+ * nothing else touches the database while the files are switched.
+ */
+export function replaceDatabase(incoming: string) {
+  const file = path.join(DATA_DIR, "app.db");
+  if (globalForDb.__eqDb?.open) globalForDb.__eqDb.close();
+  globalForDb.__eqDb = undefined;
+  for (const f of [file + "-wal", file + "-shm"]) fs.rmSync(f, { force: true });
+  fs.renameSync(incoming, file);
+  db();
+}
+
 /** Use an in-memory database (tests). */
 export function useTestDb(): DB {
   const d = new Database(":memory:");

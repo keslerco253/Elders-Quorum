@@ -1,4 +1,5 @@
 import webpush from "web-push";
+import { appUrl } from "./config";
 import { db, getSetting, setSetting } from "./db";
 
 let configured = false;
@@ -52,7 +53,7 @@ export async function pushToMember(memberId: number, payload: PushPayload): Prom
   await Promise.all(
     subs.map(async (s) => {
       try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload), { TTL: 60 * 60 * 24 });
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(withFullLinks(payload)), { TTL: 60 * 60 * 24 });
         ok++;
       } catch (err) {
         const code = (err as { statusCode?: number }).statusCode;
@@ -64,7 +65,20 @@ export async function pushToMember(memberId: number, payload: PushPayload): Prom
   return ok;
 }
 
+/**
+ * Full addresses, so a phone still signed up on an old address (after a move
+ * to a new server) opens the app where it is now.
+ */
+export function withFullLinks(payload: PushPayload): PushPayload {
+  const full = (u: string) => (u.startsWith("/") ? appUrl() + u : u);
+  return { ...payload, url: full(payload.url ?? "/"), actions: payload.actions?.map((a) => ({ ...a, url: full(a.url) })) };
+}
+
 export function savePushSubscription(memberId: number, sub: { endpoint: string; keys: { p256dh: string; auth: string } }) {
+  // After the app moved to a new address, a member turning notifications on
+  // here replaces the devices they signed up on the old address.
+  const movedAt = getSetting("moved_at");
+  if (movedAt) db().prepare("DELETE FROM push_subscriptions WHERE member_id = ? AND created_at < ? AND endpoint <> ?").run(memberId, movedAt, sub.endpoint);
   db()
     .prepare(
       `INSERT INTO push_subscriptions (member_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)

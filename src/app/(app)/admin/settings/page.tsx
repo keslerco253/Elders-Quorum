@@ -148,6 +148,20 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </div>
         </Section>
       )}
+      {!!user.is_site_owner && (
+        <Section title="Backup">
+          <div className="card max-w-xl space-y-3 text-sm">
+            <p>
+              Download everything the app keeps (every ward&apos;s members, lessons, calendar, messages and uploaded PDFs) as one file. Use it to move the app to another server: on the new
+              server&apos;s first-time setup page, choose &quot;Restore a backup&quot;.
+            </p>
+            <p className="text-muted">The file holds members&apos; private information. Keep it somewhere safe and delete it when you no longer need it.</p>
+            <a href="/api/backup" className="btn-secondary btn-sm" download>
+              Download a backup
+            </a>
+          </div>
+        </Section>
+      )}
     </>
   );
 }

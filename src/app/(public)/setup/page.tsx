@@ -54,6 +54,34 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
           Create and email me a sign-in link
         </SubmitButton>
       </form>
+      <details className="mt-6 border-t border-border pt-4">
+        <summary className="cursor-pointer font-medium">Moving from another server? Restore a backup</summary>
+        {process.env.SETUP_CODE ? (
+          <form action="/api/restore" method="post" encType="multipart/form-data" className="mt-3 space-y-4">
+            <p className="text-sm text-muted">
+              Choose the file from Admin → Settings → Download a backup on the old server (or a nightly app-….db backup). Everyone&apos;s accounts and history come across; each person
+              signs in again here.
+            </p>
+            <div>
+              <label className="label" htmlFor="restore_code">
+                Setup code
+              </label>
+              <input id="restore_code" name="setup_code" required className="input" />
+            </div>
+            <div>
+              <label className="label" htmlFor="backup">
+                Backup file
+              </label>
+              <input id="backup" name="backup" type="file" required accept=".tar,.db" className="input" />
+            </div>
+            <SubmitButton className="btn-secondary w-full" pendingText="Restoring…">
+              Restore backup
+            </SubmitButton>
+          </form>
+        ) : (
+          <p className="mt-3 text-sm text-muted">Add a SETUP_CODE setting to this server first; restoring needs it.</p>
+        )}
+      </details>
     </div>
   );
 }
