@@ -1,7 +1,7 @@
-# Moving the app to Northflank (app.mywardlink.net)
+# Moving the app to Northflank (mywardlink.net)
 
 This moves the app off the home PC onto Northflank, at its own permanent
-address **https://app.mywardlink.net**. Everyone's accounts, lessons, calendar,
+address **https://mywardlink.net**. Everyone's accounts, lessons, calendar,
 messages and uploaded PDFs come along. Members sign in once more and re-add the
 app to their Home Screen.
 
@@ -27,14 +27,14 @@ Unzip this version and run **UPDATE.bat** on the PC as usual. That adds
 2. In the project, **Create new → Service → Combined service** (builds and runs from GitHub).
 3. **Repository:** connect GitHub if asked, then choose `keslerco253/elders-quorum`, branch **main**.
 4. **Build type:** **Dockerfile**. Dockerfile location `/Dockerfile`, build context `/`.
-5. **Build arguments:** add `APP_URL` = `https://app.mywardlink.net`
+5. **Build arguments:** add `APP_URL` = `https://mywardlink.net`
 6. **Resources:** the smallest plan is enough (0.2 vCPU / 512 MB is fine). **Instances: 1** — never more than one.
 7. **Networking / Ports:** port **3000**, protocol **HTTP**, **Publicly expose** turned on.
 8. **Environment variables** (runtime variables). Copy the values from your current settings file:
 
    | Name | Value |
    |---|---|
-   | `APP_URL` | `https://app.mywardlink.net` |
+   | `APP_URL` | `https://mywardlink.net` |
    | `SMTP_USER` | same as now |
    | `SMTP_PASS` | same as now (the Gmail app password) |
    | `MAIL_FROM_NAME` | same as now |
@@ -61,16 +61,19 @@ with a small volume costs a few dollars a month.
 Also under the service: **Health checks → Add** → type **HTTP**, port **3000**,
 path **`/api/health`**. (Optional, but it lets Northflank restart the app if it ever hangs.)
 
-## 4. Point app.mywardlink.net at it
+## 4. Point mywardlink.net at it
 
 1. In Northflank, go to your team/account **Settings → Domains → Add domain** and enter `mywardlink.net`.
    Northflank shows a **TXT record** to prove you own it.
 2. At your registrar's **DNS** page for mywardlink.net, add that TXT record exactly as shown. Back in Northflank, click **Verify** (can take a few minutes, sometimes an hour).
-3. Under the verified domain, **Add subdomain** `app`. Northflank shows a **CNAME** target.
-4. At your registrar, add a **CNAME** record: host/name `app`, value = that target.
-5. Back in Northflank, link `app.mywardlink.net` to your service's port **3000** (in the domain's page, or the service's **Networking** section). Northflank sets up the https certificate itself.
+3. Under the verified domain, add the domain itself (the bare `mywardlink.net`, sometimes shown as `@` or "root") and, if you like, `www` too. Northflank shows the DNS record each one needs.
+4. At your registrar, add the records Northflank shows:
+   - For the bare domain (host `@`): use the record type Northflank says. If it gives a **CNAME** target, your registrar must allow a CNAME-style record on `@` — look for **ALIAS**, **ANAME** or "CNAME flattening". Cloudflare, Namecheap, Porkbun and DNSimple do; GoDaddy and some others don't.
+   - For `www` (optional): a **CNAME**, host `www`, value = the target shown.
+   - If your registrar can't do it, send me a screenshot of its DNS page. The usual fix is to move the domain's DNS to Cloudflare (free); the domain itself stays where it is.
+5. Back in Northflank, link `mywardlink.net` (and `www` if you added it) to your service's port **3000** (in the domain's page, or the service's **Networking** section). Northflank sets up the https certificate itself.
 
-**Check:** open https://app.mywardlink.net on your phone. You should see
+**Check:** open https://mywardlink.net on your phone. You should see
 **First-time setup**. **Don't fill in the setup form** — you'll restore instead.
 
 ---
@@ -91,7 +94,7 @@ information — delete it from Downloads when you're done.
 
 ## 7. Restore it on the new app
 
-1. Open https://app.mywardlink.net/setup
+1. Open https://mywardlink.net/setup
 2. Tap **Moving from another server? Restore a backup**.
 3. Enter the **SETUP_CODE** from step 2, choose the backup file, tap **Restore backup**.
 4. You'll see "Backup restored: … members". Sign in with your email as usual.
@@ -102,7 +105,7 @@ information — delete it from Downloads when you're done.
 On the PC, double-click **OPEN-SETTINGS.bat**, add this line, save, then run **UPDATE.bat**:
 
 ```
-MOVED_TO=https://app.mywardlink.net
+MOVED_TO=https://mywardlink.net
 ```
 
 From now on, anyone who opens the old address — the old Home Screen icon, an
@@ -117,14 +120,14 @@ After that you can turn it off for good (keep a copy of
 
 1. **Reply webhook:** in Twilio, open your Messaging Service (where you set the
    webhook before) and change the incoming-message URL to
-   `https://app.mywardlink.net/api/sms/inbound` (HTTP POST). Save.
+   `https://mywardlink.net/api/sms/inbound` (HTTP POST). Save.
 2. **Test:** in the new app, **Admin → Settings → Send me a test text**, then reply to it and check **Admin → Replies**.
 3. **Campaign links:** your approved texting campaign lists the privacy and
    terms pages at the old address. Open a ticket with Twilio Support (Help →
    Support → Create ticket) asking to update the campaign's links to:
-   - Privacy policy: `https://app.mywardlink.net/privacy`
-   - Terms: `https://app.mywardlink.net/terms`
-   - Opt-in / sign-up page: `https://app.mywardlink.net/join`
+   - Privacy policy: `https://mywardlink.net/privacy`
+   - Terms: `https://mywardlink.net/terms`
+   - Opt-in / sign-up page: `https://mywardlink.net/join`
 
    Until it's done the old links still work, thanks to step 8.
 
@@ -135,8 +138,8 @@ After that you can turn it off for good (keep a copy of
 Send this from **Admin → Messages** (push notifications still reach phones set
 up on the old address, and tapping it opens the new one):
 
-> **The quorum app has a new address: app.mywardlink.net**
-> 1. Tap this message (or open app.mywardlink.net in Safari/Chrome) and sign in.
+> **The quorum app has a new address: mywardlink.net**
+> 1. Tap this message (or open mywardlink.net in Safari/Chrome) and sign in.
 > 2. Add it to your Home Screen again (Share → Add to Home Screen on iPhone), and delete the old icon.
 > 3. Open it from the new icon and turn on notifications under More.
 > 4. If you subscribed to the quorum calendar, subscribe again under Calendar → Subscribe, and remove the old one.

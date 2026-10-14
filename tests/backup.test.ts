@@ -34,7 +34,7 @@ describe("moving the app to another server", () => {
     // A brand-new server: empty data folder, new address.
     db().exec("DELETE FROM push_subscriptions; DELETE FROM members; DELETE FROM wards;");
     fs.rmSync(path.join(dir, "uploads"), { recursive: true });
-    process.env.APP_URL = "https://app.mywardlink.net";
+    process.env.APP_URL = "https://mywardlink.net";
 
     expect(restoreBackup(Buffer.from("not a backup"))).toMatchObject({ ok: false });
     expect(restoreBackup(backup)).toEqual({ ok: true, wards: 1, members: 1, files: 1 });
@@ -44,8 +44,8 @@ describe("moving the app to another server", () => {
     // Pushes link to the new address; signing up again here replaces the old phone.
     const push = await import("@/lib/push");
     expect(push.withFullLinks({ title: "t", body: "b", url: "/lessons/3", actions: [{ action: "teach", title: "Yes", url: "/teach/3?t=x" }] })).toMatchObject({
-      url: "https://app.mywardlink.net/lessons/3",
-      actions: [{ url: "https://app.mywardlink.net/teach/3?t=x" }],
+      url: "https://mywardlink.net/lessons/3",
+      actions: [{ url: "https://mywardlink.net/teach/3?t=x" }],
     });
     push.savePushSubscription(1, { endpoint: "https://push/new", keys: { p256dh: "k", auth: "a" } });
     expect(db().prepare("SELECT endpoint FROM push_subscriptions").all()).toEqual([{ endpoint: "https://push/new" }]);
