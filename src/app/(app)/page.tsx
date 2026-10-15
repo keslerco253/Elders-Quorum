@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FlyerThumb } from "@/components/flyer-thumb";
 import { OrgLink } from "@/components/org-link";
 import { firstName } from "@/lib/names";
 import { DateTime } from "luxon";
@@ -235,7 +236,8 @@ export default async function HomePage() {
                   href={inOrg(`/signups/${s.id}`, s.org.id)}
                   className="card flex items-center justify-between gap-3 hover:bg-surface-2"
                 >
-                  <span>
+                  {s.flyer_file && <FlyerThumb file={s.flyer_file} name={s.flyer_name} />}
+                  <span className="min-w-0 flex-1">
                     <span className="block font-medium">{s.title}</span>
                     <span className="text-sm text-muted">
                       {[s.date && formatDate(s.date, "short"), signupOrgs.length > 1 && s.org.label].filter(Boolean).join(" · ")}

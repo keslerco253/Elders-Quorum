@@ -78,6 +78,29 @@ describe("scheduler", () => {
     expect(collectDue(at("2026-10-17T07:00")).filter((n) => n.key.startsWith("todo"))).toEqual([]);
   });
 
+  it("reminds people who signed up for service a week before and the day before", () => {
+    const db = useTestDb();
+    db.exec(`
+      INSERT INTO members (id, name, display_name, email, status) VALUES (7, 'Kate', 'Kate Lee', 'kate@x.com', 'active'), (8, 'Bo', 'Bo Day', 'bo@x.com', 'active');
+      INSERT INTO wards (id, name, timezone, join_code) VALUES (5, 'Maple Ward', 'America/Boise', 'MAPLE');
+      INSERT INTO ward_members (ward_id, member_id) VALUES (5, 7), (5, 8);
+    `);
+    const org = Number(db.prepare("INSERT INTO orgs (ward_id, name, kind) VALUES (5, 'Elders Quorum', 'group')").run().lastInsertRowid);
+    const s = Number(db.prepare("INSERT INTO signups (org_id, title, date) VALUES (?, 'Temple Cleaning', '2026-10-30')").run(org).lastInsertRowid);
+    const adults = Number(db.prepare("INSERT INTO signup_slots (signup_id, label, capacity) VALUES (?, 'Adults', 3)").run(s).lastInsertRowid);
+    const vac = Number(db.prepare("INSERT INTO signup_slots (signup_id, label, capacity) VALUES (?, 'Bring a vacuum', 1)").run(s).lastInsertRowid);
+    db.exec(`INSERT INTO signup_entries (slot_id, member_id) VALUES (${adults}, 7), (${vac}, 7), (${adults}, 8)`);
+    const due = (t: string) => collectDue(at(t)).filter((n) => n.key.startsWith("signup"));
+    const week = due("2026-10-23T09:00");
+    expect(week.map((n) => [n.recipients[0].id, n.payload.title, n.payload.body])).toEqual([
+      [7, "Next week: Temple Cleaning", "You signed up for Adults, Bring a vacuum on Fri, Oct 30. Thank you for serving!"],
+      [8, "Next week: Temple Cleaning", "You signed up for Adults on Fri, Oct 30. Thank you for serving!"],
+    ]);
+    expect(due("2026-10-29T08:30").map((n) => n.payload.title)).toEqual(["Tomorrow: Temple Cleaning", "Tomorrow: Temple Cleaning"]);
+    expect(due("2026-10-29T07:00")).toEqual([]);
+    expect(due("2026-10-27T09:00")).toEqual([]);
+  });
+
   it("claims each key once", () => {
     expect(claimOnce("x")).toBe(true);
     expect(claimOnce("x")).toBe(false);

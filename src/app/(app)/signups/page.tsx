@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FlyerThumb } from "@/components/flyer-thumb";
 import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { listSignups, stillNeeded } from "@/lib/signups";
@@ -39,6 +40,7 @@ export default async function SignupsPage({ searchParams }: { searchParams: Prom
           {list.map((s) => (
             <li key={s.id}>
               <Link href={`/signups/${s.id}`} className="card flex items-center gap-3 hover:bg-surface-2">
+                {s.flyer_file && <FlyerThumb file={s.flyer_file} name={s.flyer_name} />}
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold">{s.title}</div>
                   <div className="text-sm text-muted">{s.date ? formatDate(s.date) : "No set date"}</div>

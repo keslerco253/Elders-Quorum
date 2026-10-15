@@ -383,7 +383,12 @@ it's due.
 **Flyer:** on a service opportunity's edit screen, attach a **Flyer** (a PDF or
 a picture, up to 15 MB). It shows on the opportunity's page: pictures directly,
 PDFs page by page, so members don't have to open anything. Tick **remove** to
-take it off, or attach a new one to replace it.
+take it off, or attach a new one to replace it. A small preview of the flyer shows next
+to the opportunity in the Service list and on members' home pages.
+
+**Reminders:** everyone signed up for a service opportunity with a date gets a
+reminder **a week before** and **the day before** (in the morning), saying what
+they signed up for. Opportunities without a date don't send reminders.
 
 ```
 Helpers | 6

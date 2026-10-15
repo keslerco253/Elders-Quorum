@@ -157,6 +157,45 @@ function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
     }));
 }
 
+/**
+ * People who signed up for a service opportunity are reminded a week before and the day
+ * before (from 8 AM, or later that day if the server was off). Opportunities without a
+ * date get no reminders.
+ */
+function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
+  const local = now.setZone(org.timezone);
+  if (local.hour < 8 || local.hour >= 20) return [];
+  const out: DueNotification[] = [];
+  for (const [daysAhead, tag, when] of [
+    [7, "week", "Next week"],
+    [1, "day", "Tomorrow"],
+  ] as const) {
+    const date = local.plus({ days: daysAhead }).toISODate()!;
+    const rows = db()
+      .prepare(
+        `SELECT s.id, s.title, s.date, e.member_id, group_concat(sl.label, ', ') AS slots
+         FROM signups s JOIN signup_slots sl ON sl.signup_id = s.id JOIN signup_entries e ON e.slot_id = sl.id JOIN members m ON m.id = e.member_id
+         WHERE s.org_id = ? AND s.date = ? AND m.status = 'active'
+         GROUP BY s.id, e.member_id`,
+      )
+      .all(org.id, date) as { id: number; title: string; date: string; member_id: number; slots: string }[];
+    for (const r of rows) {
+      const who = recipientById(r.member_id, org.id);
+      if (!who) continue;
+      out.push({
+        key: `signup-${tag}:${r.id}:${r.date}:${r.member_id}`,
+        recipients: [who],
+        payload: {
+          title: `${when}: ${r.title}`,
+          body: `You signed up for ${r.slots} on ${formatDate(r.date, "short")}. Thank you for serving!`,
+          url: `/signups/${r.id}`,
+        },
+      });
+    }
+  }
+  return out;
+}
+
 export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   const orgs = db()
     .prepare("SELECT o.id, w.timezone, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS label, o.hidden_features FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.active = 1")
@@ -166,6 +205,7 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
     ...eventReminders(o, now),
     ...(hasFeature(o, "todos") ? todoReminders(o, now) : []),
     ...(hasFeature(o, "visits") ? visitReminders(o, now) : []),
+    ...(hasFeature(o, "signups") ? signupReminders(o, now) : []),
   ]);
 }
 
