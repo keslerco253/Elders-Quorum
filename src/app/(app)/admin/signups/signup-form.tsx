@@ -1,6 +1,7 @@
 import { SubmitButton } from "@/components/client";
 import type { Signup, Slot } from "@/lib/signups";
 import { saveSignup } from "./actions";
+import { UPLOAD_ACCEPT } from "@/lib/upload-names";
 
 export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
   return (
@@ -24,6 +25,21 @@ export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
           Details
         </label>
         <textarea id="description" name="description" rows={3} className="input" defaultValue={s?.description} />
+      </div>
+      <div>
+        <label className="label" htmlFor="flyer">
+          Flyer (optional)
+        </label>
+        {s?.flyer_file && (
+          <p className="mb-2 text-sm">
+            Current: {s.flyer_name}{" "}
+            <label className="ml-2 text-muted">
+              <input type="checkbox" name="remove_flyer" /> remove
+            </label>
+          </p>
+        )}
+        <input id="flyer" name="flyer" type="file" accept={UPLOAD_ACCEPT} className="input" />
+        <p className="hint">A PDF or a picture (PNG, JPEG or a phone photo), up to 15 MB. It shows on the opportunity&apos;s page.</p>
       </div>
       <div>
         <label className="label" htmlFor="slots">

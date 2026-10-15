@@ -861,4 +861,12 @@ INSERT OR IGNORE INTO message_reads (message_id, viewer_id)
   WHERE mm.direction = 'in' AND mm.read_at IS NOT NULL AND (mm.recipient_id IS NULL OR mm.recipient_id = om.member_id);
 `,
   },
+  {
+    // A flyer (PDF or picture) on a service opportunity.
+    id: 34,
+    sql: `
+ALTER TABLE signups ADD COLUMN flyer_file TEXT;
+ALTER TABLE signups ADD COLUMN flyer_name TEXT;
+`,
+  },
 ];

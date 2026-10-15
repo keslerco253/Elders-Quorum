@@ -6,6 +6,8 @@ import { getSignup } from "@/lib/signups";
 import { formatDate } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
+import { PdfPages } from "@/components/pdf-pages";
+import { isPicture } from "@/lib/upload-names";
 import { leaveSlot, takeSlot } from "../actions";
 
 export const metadata = { title: "Service opportunity" };
@@ -33,6 +35,20 @@ export default async function SignupPage({ params, searchParams }: { params: Pro
       <Flash msg={sp.msg} />
       {!!s.closed && <p className="mb-4 rounded-lg bg-surface-2 px-4 py-3 text-sm">Signing up for this is closed.</p>}
       {s.description && <p className="card mb-4 whitespace-pre-wrap">{s.description}</p>}
+      {s.flyer_file && (
+        <div className="card mb-4">
+          {isPicture(s.flyer_file) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={`/files/${s.flyer_file}`} alt={s.flyer_name ?? "Flyer"} className="mx-auto block max-h-[80vh] w-auto max-w-full rounded-lg" />
+          ) : s.flyer_file.endsWith(".pdf") ? (
+            <PdfPages src={`/files/${s.flyer_file}`} name={s.flyer_name ?? "Flyer"} />
+          ) : (
+            <a href={`/files/${s.flyer_file}`} target="_blank" rel="noreferrer" className="plan-file-card">
+              📄 <span>{s.flyer_name}</span>
+            </a>
+          )}
+        </div>
+      )}
       <ul className="space-y-3">
         {s.slots.map((sl) => {
           const mine = sl.entries.some((e) => e.member_id === user.id);

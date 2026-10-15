@@ -380,6 +380,11 @@ it's due.
 
 **Service → New service opportunity.** Each line is a slot and how many people are needed:
 
+**Flyer:** on a service opportunity's edit screen, attach a **Flyer** (a PDF or
+a picture, up to 15 MB). It shows on the opportunity's page: pictures directly,
+PDFs page by page, so members don't have to open anything. Tick **remove** to
+take it off, or attach a new one to replace it.
+
 ```
 Helpers | 6
 Bring a trailer | 1

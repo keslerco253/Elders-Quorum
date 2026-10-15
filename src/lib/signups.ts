@@ -7,6 +7,9 @@ export interface Signup {
   description: string;
   date: string | null;
   closed: number;
+  /** A flyer: a PDF or picture (stored name, and the name it was uploaded with). */
+  flyer_file: string | null;
+  flyer_name: string | null;
 }
 
 export interface Slot {
