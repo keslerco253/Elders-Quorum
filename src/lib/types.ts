@@ -49,7 +49,7 @@ export interface Ward {
 /** Features an organization can hide when it doesn't use them. */
 export const FEATURES = {
   lessons: "Lessons and teachers",
-  signups: "Sign-ups",
+  signups: "Service opportunities",
   visits: "Visits and visit requests",
   todos: "To-dos",
 } as const;

@@ -40,6 +40,8 @@ export interface PushPayload {
    * signed with their name, without the ward header or a link.
    */
   personal?: { from: string };
+  /** A member's message to leaders: the text carries all of it (not cut short), then the link to answer. */
+  fullText?: boolean;
 }
 
 interface SubRow {

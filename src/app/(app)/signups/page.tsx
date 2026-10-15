@@ -5,7 +5,7 @@ import { listSignups } from "@/lib/signups";
 import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 
-export const metadata = { title: "Sign-ups" };
+export const metadata = { title: "Service" };
 
 export default async function SignupsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
@@ -16,7 +16,7 @@ export default async function SignupsPage({ searchParams }: { searchParams: Prom
   return (
     <>
       <PageHeader
-        title="Sign-ups"
+        title="Service"
         subtitle="Service projects, meals and other ways to serve."
         actions={
           admin && (
@@ -25,7 +25,7 @@ export default async function SignupsPage({ searchParams }: { searchParams: Prom
                 {all ? "Open only" : "Show closed"}
               </Link>
               <Link href="/admin/signups/new" className="btn-primary">
-                New sign-up
+                New service opportunity
               </Link>
             </>
           )
@@ -33,7 +33,7 @@ export default async function SignupsPage({ searchParams }: { searchParams: Prom
       />
       <Flash msg={sp.msg} />
       {list.length === 0 ? (
-        <Empty>No sign-ups right now.</Empty>
+        <Empty>No service opportunities right now.</Empty>
       ) : (
         <ul className="space-y-2">
           {list.map((s) => (

@@ -158,7 +158,7 @@ export default async function AdminPage() {
               ? [
                   {
                     href: "/signups",
-                    label: "Sign-ups",
+                    label: "Service",
                     desc: "Service projects and meals",
                   },
                 ]

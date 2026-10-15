@@ -84,7 +84,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
             <option value="/lessons">Lessons</option>
             <option value="/calendar">Calendar</option>
             <option value="/plans">Plans</option>
-            <option value="/signups">Sign-ups</option>
+            <option value="/signups">Service</option>
           </select>
           <p className="mt-1 text-xs text-muted">Tapping the notification opens the message in the app, where members can reply to the presidency. Text replies come back to the presidency too.</p>
         </div>

@@ -8,7 +8,7 @@ import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { leaveSlot, takeSlot } from "../actions";
 
-export const metadata = { title: "Sign-up" };
+export const metadata = { title: "Service opportunity" };
 
 export default async function SignupPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
@@ -20,7 +20,7 @@ export default async function SignupPage({ params, searchParams }: { params: Pro
     <>
       <PageHeader
         title={s.title}
-        back={{ href: "/signups", label: "Sign-ups" }}
+        back={{ href: "/signups", label: "Service" }}
         subtitle={s.date ? formatDate(s.date) : undefined}
         actions={
           isAdmin(user) && (
@@ -31,7 +31,7 @@ export default async function SignupPage({ params, searchParams }: { params: Pro
         }
       />
       <Flash msg={sp.msg} />
-      {!!s.closed && <p className="mb-4 rounded-lg bg-surface-2 px-4 py-3 text-sm">This sign-up is closed.</p>}
+      {!!s.closed && <p className="mb-4 rounded-lg bg-surface-2 px-4 py-3 text-sm">Signing up for this is closed.</p>}
       {s.description && <p className="card mb-4 whitespace-pre-wrap">{s.description}</p>}
       <ul className="space-y-3">
         {s.slots.map((sl) => {

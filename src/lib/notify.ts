@@ -81,6 +81,7 @@ export function audienceLabel(orgId: number, audience: Audience): string {
  */
 function smsBody(wardName: string, payload: PushPayload, url: string) {
   if (payload.personal) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n- ${payload.personal.from}`;
+  if (payload.fullText) return `${wardName}: ${payload.title}\n\n${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\nAnswer in the app: ${url}`;
   const text = `${wardName}: ${payload.title}. ${payload.textBody ?? payload.body}`.replace(/\s+/g, " ").trim();
   return `${text.length > 280 ? text.slice(0, 277) + "…" : text} ${url}`;
 }

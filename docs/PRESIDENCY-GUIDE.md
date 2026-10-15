@@ -5,7 +5,7 @@ A red number on **Admin** means something is waiting for you.
 
 ## Who can do what
 
-- **Members** use the app: lessons, calendar, sign-ups, messages.
+- **Members** use the app: lessons, calendar, service, messages.
 - **Leadership** (each organization's presidency, or the ward's bishopric,
   with its secretaries and clerks) has **Admin** for that organization:
   members, lessons, messages, visits, approvals and settings. Set someone's
@@ -270,9 +270,12 @@ Members** → **Send a personal message** (or reply in their conversation under
 Admin → Replies). There's no subject. Their text or email is just your words,
 signed "- Your Name", with no ward header and no link, and a notification
 shows your name. The rest of the presidency can see the conversation;
-choose **Private with you** for something only you should see. A private
-message's notification only says there's a private message, so the words stay
-off their lock screen.
+choose **Private with you** for something only you should see (it reaches
+them the same way, but only you see it in the app).
+
+**When a member writes to you,** your text, email and notification carry
+their whole message, so you can read it without opening the app. Answer in
+the app (the text ends with the link).
 
 Every message you send under **Admin → Send a message** also shows in each
 member's **More → Messages**, with a **Reply** button. Members can reply there,
@@ -327,9 +330,9 @@ councilors don't see visit requests.
 due date. Don't put member names or personal details in assignments. They're notified, then reminded at 8 AM the day before and the day
 it's due.
 
-## Sign-ups
+## Service
 
-**Sign-ups → New sign-up.** Each line is a slot and how many people are needed:
+**Service → New service opportunity.** Each line is a slot and how many people are needed:
 
 ```
 Helpers | 6

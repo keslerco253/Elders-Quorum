@@ -108,12 +108,11 @@ export async function receiveReply(member: { id: number; org_id: number; display
   // Only link messages this member actually received.
   const msg = messageId ? (db().prepare("SELECT 1 FROM message_recipients WHERE message_id = ? AND member_id = ?").get(messageId, member.id) ? messageId : null) : null;
   db().prepare("INSERT INTO member_messages (org_id, member_id, direction, message_id, body, via, recipient_id) VALUES (?, ?, 'in', ?, ?, ?, ?)").run(member.org_id, member.id, msg, text, via, recipientId);
+  // Leaders read the whole message in the notification, text or email; answering is in the app.
   if (to) {
-    // Private: the words stay in the app, not on a lock screen or in an inbox others may see.
-    await notify([to], { title: `Private message from ${member.display_name}`, body: "Open the app to read it.", url: `/admin/replies/${member.id}?private=1` });
+    await notify([to], { title: `Private message from ${member.display_name}`, body: text, url: `/admin/replies/${member.id}?private=1`, fullText: true, linkLabel: "Answer" });
   } else {
-    const preview = text.length > 120 ? text.slice(0, 117) + "…" : text;
-    await notify(audienceMembers(member.org_id, "presidency"), { title: `Reply from ${member.display_name}`, body: preview, url: `/admin/replies/${member.id}` });
+    await notify(audienceMembers(member.org_id, "presidency"), { title: `Reply from ${member.display_name}`, body: text, url: `/admin/replies/${member.id}`, fullText: true, linkLabel: "Answer" });
   }
 }
 
@@ -126,10 +125,8 @@ export async function sendAnswer(author: { id: number; org_id: number; display_n
   db().prepare("INSERT INTO member_messages (org_id, member_id, direction, author_id, body, recipient_id) VALUES (?, ?, 'out', ?, ?, ?)").run(author.org_id, memberId, author.id, text, privately ? author.id : null);
   await notify(
     [member],
-    privately
-      ? { title: `Private message from ${author.display_name}`, body: "Open the app to read it.", url: "/messages" }
-      : // A personal note: the notification shows who it's from; texts and emails are just the words, signed.
-        { title: author.display_name, body: text, url: "/messages", personal: { from: author.display_name } },
+    // A personal note (private or not): the notification shows who it's from; texts and emails are just the words, signed.
+    { title: author.display_name, body: text, url: "/messages", personal: { from: author.display_name } },
   );
   return true;
 }

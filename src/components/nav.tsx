@@ -182,9 +182,9 @@ export function Nav({
     { href: "/calendar", label: "Calendar", icon: "calendar" },
     { href: "/plans", label: "Plans", icon: "plan" },
   ];
-  if (main.length < 4 && features.signups) main.push({ href: "/signups", label: "Sign-ups", icon: "list" });
+  if (main.length < 4 && features.signups) main.push({ href: "/signups", label: "Service", icon: "list" });
   const desktopExtra: Item[] = [
-    ...(features.signups && !main.some((i) => i.href === "/signups") ? [{ href: "/signups", label: "Sign-ups", icon: "list" }] : []),
+    ...(features.signups && !main.some((i) => i.href === "/signups") ? [{ href: "/signups", label: "Service", icon: "list" }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: "shield", badge: adminCount }] : []),
     { href: "/more", label: "More", icon: "more", badge: moreCount },
   ];

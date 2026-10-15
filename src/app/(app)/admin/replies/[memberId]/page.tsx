@@ -84,7 +84,7 @@ export default async function ConversationPage({ params, searchParams }: { param
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs text-muted">
             {privately
-              ? "They'll be told they have a private message from you; the words stay in the app."
+              ? `Sent just to them, like any personal message (your words, signed "- ${user.display_name}"). Only you can see it here.`
               : `Sent as a notification${member.contact_pref !== "none" ? `, or by ${member.contact_pref === "both" ? "text and email" : member.contact_pref} if notifications are off` : ""}: just your words, signed "- ${user.display_name}", with no header or link. The rest of the ${leadersWord(user.org)} can see it here.`}
           </span>
           <SubmitButton pendingText="Sending…">Send</SubmitButton>

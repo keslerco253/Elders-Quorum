@@ -49,7 +49,7 @@ export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
           <input type="checkbox" name="announce" /> Send a notification to everyone in the organization
         </label>
       )}
-      <SubmitButton>Save sign-up</SubmitButton>
+      <SubmitButton>Save</SubmitButton>
     </form>
   );
 }

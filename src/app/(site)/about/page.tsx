@@ -38,7 +38,7 @@ const FEATURES = [
   { icon: "calendar", title: "One ward calendar", text: "Every organization's activities in one place, filtered when you want. Add events to your phone's calendar, or subscribe and stay up to date." },
   { icon: "people", title: "Every organization", text: "Elders quorum, Relief Society, Primary, youth, and more. Each has its own leaders, lessons and messages, and members choose the ones they belong to." },
   { icon: "chat", title: "Messages and replies", text: "Leaders send announcements by notification, text or email. Members can reply, and write privately to one leader when it's personal." },
-  { icon: "list", title: "Sign-ups", text: "Meals, moves, service projects and rides, with spots that fill as people sign up." },
+  { icon: "list", title: "Service", text: "Meals, moves, service projects and rides, with spots that fill as people sign up." },
   { icon: "home", title: "Visits", text: "Members can ask for a visit. Leaders invite, plan who's going, and get a reminder the morning of." },
   { icon: "bell", title: "Reach people their way", text: "Notifications on the phone, plus text or email for those who prefer it. Each person chooses." },
   { icon: "shield", title: "Private by design", text: "Only a name and a phone number or email. No addresses, no ads, nothing sold. Delete your account any time." },
@@ -107,7 +107,7 @@ function PhonePreview() {
             ["home", "Home"],
             ["book", "Lessons"],
             ["calendar", "Calendar"],
-            ["list", "Sign-ups"],
+            ["list", "Service"],
           ].map(([icon, label], i) => (
             <div key={label} className={`flex flex-col items-center gap-0.5 ${i === 0 ? "text-accent" : ""}`}>
               <Icon name={icon} className="h-4 w-4" />

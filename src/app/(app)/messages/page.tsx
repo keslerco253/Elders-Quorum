@@ -11,7 +11,7 @@ import { isAdmin } from "@/lib/permissions";
 
 export const metadata = { title: "Messages" };
 
-const LINK_LABELS: Record<string, string> = { "/lessons": "Lessons", "/calendar": "Calendar", "/plans": "Plans", "/signups": "Sign-ups" };
+const LINK_LABELS: Record<string, string> = { "/lessons": "Lessons", "/calendar": "Calendar", "/plans": "Plans", "/signups": "Service" };
 
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
