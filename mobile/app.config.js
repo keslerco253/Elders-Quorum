@@ -21,8 +21,9 @@ module.exports = {
     ios: {
       bundleIdentifier: "net.mywardlink.app",
       supportsTablet: true,
-      // Links to the site (e.g. sign-in emails) open in the app.
-      associatedDomains: [`applinks:${host}`],
+      // Links to the site (e.g. sign-in emails) open in the app, and texted sign-in
+      // codes ("@mywardlink.net #123456") are offered above the keyboard.
+      associatedDomains: [`applinks:${host}`, `webcredentials:${host}`],
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         // Attaching a picture to a plan (the web page's file picker) can open these.

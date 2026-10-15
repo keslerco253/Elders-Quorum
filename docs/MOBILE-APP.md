@@ -58,7 +58,9 @@ account, a free Firebase account (Google), and Node.js on your PC
    key**. EAS keeps them for every later build.
 3. Your **Team ID** is on developer.apple.com → Membership details. Add it on
    Northflank as the environment variable `APPLE_TEAM_ID` (for links that open
-   the app).
+   the app, and so texted sign-in codes fill in by themselves in the app). Check
+   https://mywardlink.net/.well-known/apple-app-site-association shows your
+   Team ID; if it says "Not found", the variable isn't set.
 
 ### 3. Google: Firebase (Android notifications) and the Play listing
 
