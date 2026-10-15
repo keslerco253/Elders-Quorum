@@ -1,24 +1,20 @@
 import Link from "next/link";
 import { requirePresidency } from "@/lib/auth";
-import { appUrl } from "@/lib/config";
-import { emailConfigured } from "@/lib/mail";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addOrganization, deleteOrganization, setOrganizationActive, setOrganizationPresident, saveOrgSettings, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode, startAnotherWard } from "./actions";
+import { addOrganization, deleteOrganization, setOrganizationActive, setOrganizationPresident, saveOrgSettings, saveWardSettings, setJoinCode, startAnotherWard } from "./actions";
 import { db } from "@/lib/db";
 import { hasFeature, orgRoster } from "@/lib/orgs";
 import { FEATURES, STANDARD_ORGS, type Feature } from "@/lib/types";
 
-import { monthlyLimit, phoneEnabled, textsThisMonth, twilioConfigured } from "@/lib/sms";
-import { inboundUrl } from "@/lib/sms-inbound";
+import { monthlyLimit, phoneEnabled, textsThisMonth } from "@/lib/sms";
 
 export const metadata = { title: "Settings" };
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePresidency();
   const sp = await searchParams;
-  const mail = emailConfigured();
   // Ward settings are for the bishopric, when looking at the ward itself.
   const ward = user.org.kind === "ward" && user.wardLeader;
   const groups = ward
@@ -225,76 +221,23 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </Section>
         </>
       )}
-      <Section title="Email">
-        <div className="card max-w-xl space-y-3 text-sm">
-          <div className="flex items-center gap-2">
-            Status: {mail ? <Badge tone="success">Connected</Badge> : <Badge tone="warn">Not set up: emails are saved to data/outbox</Badge>}
-          </div>
-          <p className="text-muted">Links in emails point to {appUrl()}</p>
-          <form action={sendTestEmail}>
-            <SubmitButton className="btn-secondary btn-sm" pendingText="Sending…">
-              Send me a test email
-            </SubmitButton>
-          </form>
-        </div>
-      </Section>
-      <Section title="Texting">
-        <div className="card max-w-xl space-y-3 text-sm">
-          <div className="flex items-center gap-2">
-            Status:{" "}
-            {twilioConfigured() ? (
-              <Badge tone="success">Connected to Twilio</Badge>
-            ) : phoneEnabled() ? (
-              <Badge tone="warn">Test mode: texts are saved to data/outbox</Badge>
-            ) : (
-              <Badge>Not set up: members sign in with email only</Badge>
-            )}
-          </div>
-          {phoneEnabled() && !user.ward.texting_enabled && (
-            <p className="rounded-lg bg-warn-soft px-3 py-2 text-warn">
-              Reminder and message texts are off for {user.ward.name} until the app&apos;s site owner turns them on. Sign-in codes are still texted, and everything else
-              goes by notification and email.
-            </p>
-          )}
-          {phoneEnabled() ? (
-            <>
+      {phoneEnabled() && (
+        <Section title="Texting">
+          <div className="card max-w-xl space-y-2 text-sm">
+            {user.ward.texting_enabled ? (
               <p>
-                This month in {user.ward.name}: <strong>{textsThisMonth(user.ward_id, "notice")}</strong> of {monthlyLimit(user.ward_id)} reminder and message texts, plus{" "}
-                <strong>{textsThisMonth(user.ward_id, "code")}</strong> sign-in codes (about 1.3¢ each).
-                {textsThisMonth(user.ward_id, "reply") > 0 && (
-                  <>
-                    {" "}
-                    Members texted back <strong>{textsThisMonth(user.ward_id, "reply")}</strong> times; those count toward the limit.
-                  </>
-                )}
+                This month in {user.ward.name}: <strong>{textsThisMonth(user.ward_id, "notice") + textsThisMonth(user.ward_id, "reply")}</strong> of {monthlyLimit(user.ward_id)} reminder
+                and message texts.
               </p>
-              <p className="text-muted">At the limit, reminder and message texts pause until next month and those members get email if they have one. Sign-in codes always send.</p>
-              <p className="text-muted">
-                So text replies reach the presidency, set Twilio&apos;s incoming-message webhook to{" "}
-                <code className="rounded bg-surface-2 px-1 break-all">{inboundUrl()}</code> (see the setup guide).
+            ) : (
+              <p className="rounded-lg bg-warn-soft px-3 py-2 text-warn">
+                Reminder and message texts are off for {user.ward.name}. Sign-in codes are still texted, and everything else goes by notification and email.
               </p>
-              {ward && (
-                <form action={saveTextLimit} className="flex flex-wrap items-end gap-2">
-                  <div>
-                    <label className="label" htmlFor="limit">
-                      Monthly text limit for the ward
-                    </label>
-                    <input id="limit" name="limit" type="number" min={0} max={100000} defaultValue={monthlyLimit(user.ward_id)} className="input w-32" />
-                  </div>
-                  <SubmitButton className="btn-secondary btn-sm">Save limit</SubmitButton>
-                </form>
-              )}
-              <form action={sendTestText}>
-                <SubmitButton className="btn-secondary btn-sm" pendingText="Sending…">
-                  Send me a test text
-                </SubmitButton>
-              </form>
-            </>
-          ) : (
-            <p className="text-muted">To let members sign in and get messages by text, follow &quot;Texting (optional)&quot; in docs/SETUP-WINDOWS.md.</p>
-          )}
-        </div>
-      </Section>
+            )}
+            <p className="text-muted">Texting and its monthly limit are set by the app&apos;s site owner. At the limit, texts pause until next month and members get email instead.</p>
+          </div>
+        </Section>
+      )}
     </>
   );
 }

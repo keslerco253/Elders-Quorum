@@ -15,7 +15,7 @@ describe("privacy retention", () => {
         (1, 1, 'Pres', 'Pres', 'p@x', 'presidency', datetime('now')),
         (2, 1, 'Recent', 'Recent', 'r@x', 'member', datetime('now', '-10 days')),
         (3, 1, 'Stale', 'Stale', 's@x', 'member', datetime('now', '-400 days')),
-        (4, 1, 'OldLeader', 'OldLeader', 'o@x', 'admin', datetime('now', '-400 days'));
+        (4, 1, 'OldLeader', 'OldLeader', 'o@x', 'presidency', datetime('now', '-400 days'));
       INSERT INTO lessons (id, ward_id, date) VALUES (1, 1, date('now', '-8 months')), (2, 1, date('now', '-40 days')), (3, 1, date('now', '+7 days'));
       INSERT INTO comments (lesson_id, member_id, body, status) VALUES (1, 2, 'old', 'approved'), (2, 2, 'recent', 'approved'), (3, 2, 'new', 'pending');
       INSERT INTO lesson_volunteers (lesson_id, member_id) VALUES (2, 2), (3, 2);

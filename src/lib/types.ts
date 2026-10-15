@@ -142,11 +142,11 @@ export interface EventRow {
   org_kind?: Org["kind"];
 }
 
-export type Calling = "bishop" | "president" | "first_counselor" | "second_counselor" | "secretary" | "assistant_secretary" | "stake_high_council";
+export type Calling = "bishop" | "president" | "first_counselor" | "second_counselor" | "executive_secretary" | "ward_clerk" | "secretary" | "assistant_secretary" | "stake_high_council";
 
 /** Callings offered in each kind of organization, in order of seniority. */
 export const CALLINGS: Record<Org["kind"], Calling[]> = {
-  ward: ["bishop", "first_counselor", "second_counselor"],
+  ward: ["bishop", "first_counselor", "second_counselor", "executive_secretary", "ward_clerk"],
   group: ["president", "first_counselor", "second_counselor", "secretary", "assistant_secretary", "stake_high_council"],
 };
 
@@ -163,6 +163,10 @@ export function callingLabel(calling: Calling, org: Pick<Org, "kind" | "name">):
       return org.kind === "ward" ? "First Counselor in the Bishopric" : "First Counselor";
     case "second_counselor":
       return org.kind === "ward" ? "Second Counselor in the Bishopric" : "Second Counselor";
+    case "executive_secretary":
+      return "Executive Secretary";
+    case "ward_clerk":
+      return "Ward Clerk";
     case "secretary":
       return "Secretary";
     case "assistant_secretary":
@@ -174,7 +178,8 @@ export function callingLabel(calling: Calling, org: Pick<Org, "kind" | "name">):
 
 export const ROLE_LABELS: Record<Role, string> = {
   member: "Member",
-  admin: "Admin",
+  // Retired: admins became leaders (with a calling) or members.
+  admin: "Member",
   presidency: "Presidency",
 };
 

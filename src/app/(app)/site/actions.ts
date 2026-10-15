@@ -9,6 +9,9 @@ import { sendLoginCode } from "@/lib/login-code";
 import { addToWard, createWard, deleteWard, getWard, wardOrg } from "@/lib/orgs";
 import { validZone } from "@/lib/time";
 import type { Member } from "@/lib/types";
+import { emailHtml, sendMail } from "@/lib/mail";
+import { sendSms } from "@/lib/sms";
+import { formatPhone } from "@/lib/contact";
 
 function go(text: string, error = false): never {
   redirect(`/site?${error ? "error" : "msg"}=${encodeURIComponent(text)}`);
@@ -71,4 +74,31 @@ export async function addWard(fd: FormData) {
   if (res.ok) await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, "email", res.token, res.code);
   revalidatePath("/site");
   go(`${wardName} was added. ${name} was emailed a sign-in link.`);
+}
+
+/** Each ward's monthly limit on reminder and message texts (they're on the site owner's Twilio account). */
+export async function saveTextLimit(fd: FormData) {
+  await requireSiteOwner();
+  const ward = getWard(Number(fd.get("ward_id")));
+  if (!ward) go("That ward is gone.", true);
+  const limit = Math.round(Number(fd.get("limit")));
+  if (!Number.isFinite(limit) || limit < 0 || limit > 100_000) go("Enter a number of texts between 0 and 100,000.", true);
+  db().prepare("UPDATE wards SET sms_monthly_limit = ? WHERE id = ?").run(limit, ward.id);
+  revalidatePath("/site");
+  go(`${ward.name}: monthly text limit set to ${limit}.`);
+}
+
+export async function sendTestEmail() {
+  const user = await requireSiteOwner();
+  if (!user.email) go("Your account has no email address.", true);
+  const ok = await sendMail({ to: user.email, subject: "Test email", text: "Email is working.", html: emailHtml("It works!", "Email from the app is working.") });
+  go(ok ? `Test email sent to ${user.email}.` : "Sending failed. Check SMTP_USER and SMTP_PASS in the server's settings.", !ok);
+}
+
+export async function sendTestText() {
+  const user = await requireSiteOwner();
+  if (!user.phone) go("Add your mobile number under More → Contact & notifications first.", true);
+  if (!user.sms_consent_at) go("Turn on texts under More → Contact & notifications first, so the app may text you.", true);
+  const res = await sendSms(user.org_id, user.phone, `${user.ward.name}: test text. Texting from the app is working.`, "notice");
+  go(res === "sent" ? `Test text sent to ${formatPhone(user.phone)}.` : "The text didn't send. Check the TWILIO_ settings on the server and that texting is on for this ward.", res !== "sent");
 }

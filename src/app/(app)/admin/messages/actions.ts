@@ -38,11 +38,11 @@ export async function sendMessage(fd: FormData) {
   );
 }
 
-/** Who can send to a group, from the form's checkboxes. Admins keep themselves on it so they can still change it. */
-function senders(fd: FormData, role: Role) {
+/** Who can send to a group, from the form's checkboxes. */
+function senders(fd: FormData) {
   return {
     presidency: fd.get("send_presidency") === "on" ? 1 : 0,
-    admins: fd.get("send_admins") === "on" || role !== "presidency" ? 1 : 0,
+    admins: 0,
     members: fd.get("send_members") === "on" ? 1 : 0,
   };
 }
@@ -52,9 +52,9 @@ export async function createGroup(fd: FormData) {
   const name = String(fd.get("name") || "").trim().slice(0, 80);
   // Any organization in the ward the person leads (admin or presidency there).
   const orgId = Number(fd.get("org_id")) || user.org_id;
-  const org = user.orgs.find((o) => o.id === orgId && (o.role === "admin" || o.role === "presidency"));
+  const org = user.orgs.find((o) => o.id === orgId && (o.role === "presidency"));
   if (!name || !org) go("/admin/groups", "Give the group a name.");
-  const s = senders(fd, org.role);
+  const s = senders(fd);
   const r = db()
     .prepare("INSERT INTO groups (org_id, name, send_presidency, send_admins, send_members) VALUES (?, ?, ?, ?, ?)")
     .run(org.id, name, s.presidency, s.admins, s.members);
@@ -69,7 +69,7 @@ export async function saveGroup(fd: FormData) {
   const name = String(fd.get("name") || "").trim().slice(0, 80);
   const ids = fd.getAll("member_id").map(Number).filter(Boolean);
   const valid = new Set(orgRoster(user.org_id).map((r) => r.id));
-  const s = senders(fd, user.role);
+  const s = senders(fd);
   db().transaction(() => {
     if (name) db().prepare("UPDATE groups SET name = ? WHERE id = ?").run(name, id);
     db().prepare("UPDATE groups SET send_presidency = ?, send_admins = ?, send_members = ? WHERE id = ?").run(s.presidency, s.admins, s.members, id);

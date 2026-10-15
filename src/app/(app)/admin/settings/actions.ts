@@ -5,10 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePresidency, requireUser, requireWardLeader } from "@/lib/auth";
 import { addToOrg, createOrg, createWard, deleteOrg, getOrg, inOrgWard, newJoinCode, wardOrg } from "@/lib/orgs";
-import { emailHtml, sendMail } from "@/lib/mail";
-import { sendSms } from "@/lib/sms";
 import { validZone } from "@/lib/time";
-import { formatPhone } from "@/lib/contact";
 import { FEATURES, type Feature } from "@/lib/types";
 
 function go(text: string): never {
@@ -91,13 +88,6 @@ export async function deleteOrganization(fd: FormData) {
   go(`${org.name} and everything in it were deleted.`);
 }
 
-export async function sendTestEmail() {
-  const user = await requirePresidency();
-  if (!user.email) go("Your account has no email address.");
-  const ok = await sendMail({ to: user.email, subject: "Test email", text: "Email is working.", html: emailHtml("It works!", "Email from the app is working.") });
-  go(ok ? `Test email sent to ${user.email}.` : "Sending failed. Check SMTP_USER and SMTP_PASS in your settings file.");
-}
-
 /** Joining a ward always takes its code; the bishopric can change it (e.g. if it was shared too widely). */
 export async function setJoinCode(fd: FormData) {
   const user = await requireWardLeader();
@@ -117,23 +107,6 @@ export async function setJoinCode(fd: FormData) {
   const text = `Join code is now ${code}.`;
   if (fd.get("return") === "/admin/invite") redirect(`/admin/invite?msg=${encodeURIComponent(text)}`);
   go(text);
-}
-
-export async function saveTextLimit(fd: FormData) {
-  const user = await requireWardLeader();
-  const limit = Math.round(Number(fd.get("limit")));
-  if (!Number.isFinite(limit) || limit < 0 || limit > 100_000) go("Enter a number of texts between 0 and 100,000.");
-  db().prepare("UPDATE wards SET sms_monthly_limit = ? WHERE id = ?").run(limit, user.ward_id);
-  revalidatePath("/admin/settings");
-  go(`Monthly text limit set to ${limit}.`);
-}
-
-export async function sendTestText() {
-  const user = await requirePresidency();
-  if (!user.phone) go("Add your mobile number under More → Contact & notifications first.");
-  if (!user.sms_consent_at) go("Turn on texts under More → Contact & notifications first, so the app may text you.");
-  const res = await sendSms(user.org_id, user.phone, `${user.ward.name}: test text. Texting from the app is working.`, "notice");
-  go(res === "sent" ? `Test text sent to ${formatPhone(user.phone)}.` : "The text didn't send. Check the TWILIO_ lines in the settings file (OPEN-SETTINGS.bat), then run UPDATE.bat.");
 }
 
 /** The bishopric (or the site owner) starts another ward; they lead it until its bishopric is added. */

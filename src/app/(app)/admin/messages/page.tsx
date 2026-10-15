@@ -32,7 +32,6 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const groups = sendableGroups(user);
   const options: [Audience, string][] = [
     ["everyone", `Everyone in ${user.orgLabel} (who gets its notifications)`],
-    ["admins", "Leaders and admins"],
     ["presidency", roleLabel("presidency", user.org)],
     ...(hasFeature(user.org, "lessons") ? [["teachers", "Upcoming teachers (next 5 weeks)"] as [Audience, string]] : []),
     ...groups.map((g): [Audience, string] => [`group:${g.id}`, `Group: ${g.name}`]),

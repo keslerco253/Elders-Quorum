@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Disclaimer } from "@/components/disclaimer";
 import type { Metadata } from "next";
 import { getUser } from "@/lib/auth";
 
@@ -258,6 +259,7 @@ export default async function AboutPage() {
               Start a ward
             </Link>
           </nav>
+          <Disclaimer className="text-left" />
         </div>
       </footer>
     </div>

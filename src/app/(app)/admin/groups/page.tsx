@@ -13,7 +13,7 @@ export default async function GroupsPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const groups = orgGroups(user.org_id).filter((g) => canManage(g, user.role));
   // Organizations this person leads, where they can put a new group.
-  const orgChoices = user.orgs.filter((o) => o.role === "admin" || o.role === "presidency");
+  const orgChoices = user.orgs.filter((o) => o.role === "presidency");
   return (
     <>
       <PageHeader title="Message groups" back={{ href: "/admin/messages", label: "Send a message" }} subtitle="Custom groups for messages, such as a service committee or the activities team." />

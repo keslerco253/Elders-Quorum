@@ -14,7 +14,7 @@ import { appUrl } from "@/lib/config";
 import { sendAccountNotice } from "@/lib/login-code";
 import { CALLINGS, isCalling, roleLabel, type Role } from "@/lib/types";
 
-const ROLES: Role[] = ["member", "admin", "presidency"];
+const ROLES: Role[] = ["member", "presidency"];
 
 function go(path: string, text: string): never {
   redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);

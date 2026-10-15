@@ -31,13 +31,12 @@ export function inGroup(groupId: number, memberId: number): boolean {
 /** Whether someone (with this role in the group's organization) can see the group and send to it. */
 export function canSendTo(g: Group, memberId: number, role: Role): boolean {
   if (role === "presidency" && g.send_presidency) return true;
-  if (role === "admin" && g.send_admins) return true;
   return !!g.send_members && inGroup(g.id, memberId);
 }
 
-/** The presidency can always change a group; admins can change the ones they can send to. */
-export function canManage(g: Group, role: Role): boolean {
-  return role === "presidency" || (role === "admin" && !!g.send_admins);
+/** The leadership can always change a group. */
+export function canManage(_g: Group, role: Role): boolean {
+  return role === "presidency";
 }
 
 /** Groups this person can send to in their current organization. */
@@ -47,7 +46,7 @@ export function sendableGroups(user: Pick<CurrentUser, "id" | "org_id" | "role">
 
 /** "The presidency and people in the group" */
 export function sendersText(g: Group, org: Pick<Org, "kind">): string {
-  const who = [g.send_presidency ? `the ${leadersWord(org)}` : "", g.send_admins ? "admins" : "", g.send_members ? "people in the group" : ""].filter(Boolean);
+  const who = [g.send_presidency ? `the ${leadersWord(org)}` : "", g.send_members ? "people in the group" : ""].filter(Boolean);
   if (who.length === 0) return `Only the ${leadersWord(org)} can change it; no one can send to it yet`;
   const text = who.length === 1 ? who[0] : `${who.slice(0, -1).join(", ")} and ${who[who.length - 1]}`;
   return text[0].toUpperCase() + text.slice(1);

@@ -84,7 +84,7 @@ export function planVersion(planId: number, id: number) {
   return db().prepare(VERSION_SQL + " AND v.id = ?").get(planId, id) as PlanVersion | undefined;
 }
 
-const leads = (role: string) => role === "admin" || role === "presidency";
+const leads = (role: string) => role === "presidency";
 
 /** Organizations in the ward this person leads (admin or presidency). */
 export function ledOrgIds(user: CurrentUser): number[] {

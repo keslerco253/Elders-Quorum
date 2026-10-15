@@ -45,7 +45,8 @@ describe("moving to wards and organizations", () => {
     expect(list[1].id).toBe(1);
     expect(d.prepare("SELECT org_id FROM lessons").get()).toEqual({ org_id: 1 });
     expect(orgs.roleIn(1, 1)).toBe("presidency");
-    expect(orgs.roleIn(2, 1)).toBe("admin");
+    // Admin is leadership only now: an admin without a calling became a member.
+    expect(orgs.roleIn(2, 1)).toBe("member");
     expect(orgs.roleIn(3, 1)).toBe("member");
     // The site owner leads the ward-wide organization until the bishopric is added.
     expect(orgs.roleIn(1, list[0].id)).toBe("presidency");
@@ -107,7 +108,7 @@ describe("notifications per organization", () => {
     d.prepare("UPDATE org_members SET notify = 0 WHERE org_id = 1 AND member_id IN (1, 2)").run();
     const ids = (orgId: number, a: Parameters<typeof audienceMembers>[1] = "everyone") => audienceMembers(orgId, a).map((r) => r.id).sort();
     expect(ids(rs.id)).toEqual([3, 4]);
-    expect(ids(1)).toEqual([1, 2, 3, 4]); // admin and president still get them as leaders
+    expect(ids(1)).toEqual([1, 3, 4]); // the president still gets them as a leader
     expect(ids(1, "presidency")).toEqual([1]);
     expect(ids(orgs.wardOrg(1).id)).toEqual([1, 2, 3, 4]);
     // Only official members and leaders are on the roster.

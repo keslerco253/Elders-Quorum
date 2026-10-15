@@ -3,6 +3,17 @@
 Everything below is under **Admin** (top of the screen) unless noted.
 A red number on **Admin** means something is waiting for you.
 
+## Who can do what
+
+- **Members** use the app: lessons, calendar, sign-ups, messages.
+- **Leadership** (each organization's presidency, or the ward's bishopric,
+  with its secretaries and clerks) has **Admin** for that organization:
+  members, lessons, messages, visits, approvals and settings. Set someone's
+  access level under Admin → Members.
+- **The site owner** (one person, set by `OWNER_EMAIL` on the server) also
+  has **More → Site owner**: every ward, email and texting setup, each ward's
+  texting on/off and monthly text limit, backups, and a way back into any ward.
+
 ## Wards and organizations
 
 The app holds **wards**, and each ward has **organizations** (Elders Quorum,
@@ -11,8 +22,8 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
 - **Switching:** tap the name at the top left to switch organization (or
   ward). Lessons, sign-ups, messages and admin tools are for the organization
   you're looking at. Everyone in the ward can look at every organization.
-- **Leaders are per organization.** Someone's role (Member, Admin,
-  Presidency/Bishopric) and calling are set separately in each organization,
+- **Leaders are per organization.** Someone's access level (Member or
+  Leadership) and calling are set separately in each organization,
   under Admin → Members. Private messages, visits, replies and to-dos stay
   inside their organization: other organizations' leaders, and the bishopric,
   don't see them.
@@ -37,7 +48,7 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
   at the top show one organization at a time. "Leaders only" events show only
   to that organization's leaders.
 - **Texts** name the ward and organization ("Villas Ward Relief Society:
-  ..."). The monthly text limit is for the whole ward. A member's texted reply
+  ..."). The monthly text limit is for the whole ward and is set by the site owner. A member's texted reply
   goes to the organization that last texted them.
 - **Another ward:** someone serving in two wards enters the second ward's join
   code under More → My organizations, then switches between them at the top.
@@ -97,7 +108,7 @@ quorum"** on the lesson page. Their notes wait in **Admin → Teacher notes to
 approve**. **Approve and share** puts them on the lesson page and sends the quorum a
 notification (only the first time for each lesson; later edits are approved
 quietly). **Send back to teacher** lets you add a short note; the teacher is
-notified and can edit. Notes an admin writes or edits are shared right away. If the teacher
+notified and can edit. Notes a leader writes or edits are shared right away. If the teacher
 withdraws (or you assign someone else or remove them), the notes they wrote
 for that lesson are removed; notes a leader wrote stay.
 
@@ -126,7 +137,7 @@ dates**. An existing one-time event can be made repeating by editing it.
 **Subscribe:** on **Calendar → Subscribe**, members can add the whole quorum
 calendar to Apple Calendar, Google Calendar or Outlook once; every event then
 appears on its own and stays up to date (calendar apps check every hour or a
-few times a day). Each member's link is private; presidency and admin links
+few times a day). Each member's link is private; leaders' links
 include presidency-only events. **Reset my link** cancels an old link. Members choose up
 to two **reminders** (default 1 hour before) that are put on every event in
 their calendar. On iPhone they must turn off **Remove Alerts** when
@@ -136,13 +147,13 @@ subscribing; Google Calendar ignores them (set reminders in Google instead).
 
 **Message groups** (Admin → Send a message → Manage groups): when you create
 one, choose its organization (if you lead more than one) and **who can see it
-and send to it**: the presidency, admins, and/or the people in the group. When
+and send to it**: the presidency and/or the people in the group. When
 people in the group can send, they get a **Message a group** box on their
 Messages tab; their message goes to the rest of the group, signed with their
 name, and replies come to the presidency. The presidency can always change a
-group; admins can change the ones they're allowed to send to.
+group.
 
-**Admin → Send a message**: choose Everyone, Admins, Presidency, Upcoming
+**Admin → Send a message**: choose Everyone, Presidency, Upcoming
 teachers, or a custom group (**Manage groups**; each group's page has
 **Send a message to this group**). Members get a push
 notification; anyone without notifications turned on gets an email.
@@ -339,8 +350,8 @@ Quorum or Relief Society.
   `## Heading` and `- bullet`) and/or attach a PDF or a picture (PNG, JPEG, GIF, WebP or a phone photo; pictures show on the plan page). Older versions are kept
   under "See earlier versions".
 - **New plan:** Plans → **New plan**, then choose who it's for.
-- **Who can edit:** the bishopric (and ward admins) can create and edit any
-  plan. An organization's presidency and admins can create and edit plans for
+- **Who can edit:** the bishopric can create and edit any
+  plan. An organization's presidency can create and edit plans for
   the organizations they lead.
 
 ## Settings

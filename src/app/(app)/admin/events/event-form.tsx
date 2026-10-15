@@ -79,7 +79,7 @@ export function EventForm({ e, tz, date, series }: { e?: EventRow; tz: string; d
         <input type="checkbox" name="presidency_only" defaultChecked={!!e?.presidency_only} className="mt-1" />
         <span>
           <strong>Leaders only</strong>
-          <span className="block text-muted">Hidden from members. Visible to this organization&apos;s leaders and admins only.</span>
+          <span className="block text-muted">Hidden from members. Visible to this organization&apos;s leaders only.</span>
         </span>
       </label>
       <label className="flex items-start gap-2 text-sm">

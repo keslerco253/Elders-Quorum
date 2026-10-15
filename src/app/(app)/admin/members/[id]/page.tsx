@@ -7,7 +7,7 @@ import { isPresidency } from "@/lib/permissions";
 import { formatDate, formatDateTime } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { callingLabel, CALLINGS, roleLabel } from "@/lib/types";
+import { callingLabel, CALLINGS, leadersWord, roleLabel } from "@/lib/types";
 import { managedOrgs, orgMemberView, orgsInWard } from "@/lib/orgs";
 import { formatPhone } from "@/lib/contact";
 import { emailInvite, removeMember, setMemberOrgs, updateMember } from "../actions";
@@ -137,8 +137,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                 </label>
                 <select id="role" name="role" className="input" defaultValue={m.role}>
                   <option value="member">Member</option>
-                  <option value="admin">Admin (can post, schedule and send messages)</option>
-                  <option value="presidency">{roleLabel("presidency", user.org)}</option>
+                  <option value="presidency">Leadership ({leadersWord(user.org)}, secretaries{user.org.kind === "ward" ? ", clerks" : ""})</option>
                 </select>
               </div>
               {user.wardLeader && (

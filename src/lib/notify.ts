@@ -65,7 +65,7 @@ export function audienceLabel(orgId: number, audience: Audience): string {
     case "everyone":
       return "Everyone";
     case "admins":
-      return "Leaders and admins";
+      return "Leaders";
     case "presidency":
       return getOrg(orgId)?.kind === "ward" ? "Bishopric" : "Presidency";
     case "teachers":

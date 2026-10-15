@@ -778,4 +778,15 @@ INSERT INTO orgs (ward_id, name, kind, active)
   WHERE NOT EXISTS (SELECT 1 FROM orgs o WHERE o.ward_id = w.id AND o.kind = 'group' AND lower(o.name) = lower(s.name));
 `,
   },
+  {
+    // Admin is for leadership only. Admins with a calling (e.g. a secretary)
+    // join the leadership; the rest become members. Groups admins could send
+    // to stay available to the leadership.
+    id: 27,
+    sql: `
+UPDATE org_members SET role = CASE WHEN calling IS NOT NULL THEN 'presidency' ELSE 'member' END WHERE role = 'admin';
+UPDATE groups SET send_presidency = 1 WHERE send_admins = 1;
+UPDATE groups SET send_admins = 0;
+`,
+  },
 ];

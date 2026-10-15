@@ -12,9 +12,6 @@ export function SenderChoices({ org, group }: { org: Pick<Org, "kind">; group?: 
           <input type="checkbox" name="send_presidency" defaultChecked={group ? !!group.send_presidency : true} /> The {leaders}
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="send_admins" defaultChecked={group ? !!group.send_admins : true} /> Admins
-        </label>
-        <label className="flex items-center gap-2">
           <input type="checkbox" name="send_members" defaultChecked={group ? !!group.send_members : false} /> People in the group (from the Messages tab)
         </label>
       </div>

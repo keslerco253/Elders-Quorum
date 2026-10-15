@@ -3,11 +3,14 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/time";
 import { dataOnVolume } from "@/lib/setup-code";
-import { phoneEnabled, textsThisMonth } from "@/lib/sms";
+import { monthlyLimit, phoneEnabled, textsThisMonth, twilioConfigured } from "@/lib/sms";
+import { inboundUrl } from "@/lib/sms-inbound";
+import { emailConfigured } from "@/lib/mail";
+import { appUrl } from "@/lib/config";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addWard, leadWard, removeWard, setWardTexting } from "./actions";
+import { addWard, leadWard, removeWard, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
 
 export const metadata = { title: "Site owner" };
 
@@ -36,7 +39,7 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
     .all() as WardRow[];
   return (
     <>
-      <PageHeader title="Site owner" back={{ href: "/more", label: "More" }} subtitle="Every ward on this app, texting, and backups. Only you see this page." />
+      <PageHeader title="Site owner" back={{ href: "/more", label: "More" }} subtitle="Every ward on this app, email and texting, and backups. Only you see this page." />
       <Flash msg={sp.msg} />
       <Flash msg={sp.error} tone="danger" />
 
@@ -51,7 +54,7 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
               <div className="text-muted">
                 {w.people} {w.people === 1 ? "person" : "people"} · {w.orgs} {w.orgs === 1 ? "organization" : "organizations"} · started {formatDate(w.created_at.slice(0, 10), "short")}
                 {w.creator && ` by ${w.creator}${w.creator_contact ? ` (${w.creator_contact})` : ""}`}
-                {phoneEnabled() && ` · ${textsThisMonth(w.id)} texts this month`}
+                {phoneEnabled() && ` · ${textsThisMonth(w.id)} of ${monthlyLimit(w.id)} texts this month`}
               </div>
               <div className="flex flex-wrap gap-2">
                 <form action={setWardTexting}>
@@ -59,6 +62,13 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
                   <input type="hidden" name="on" value={w.texting_enabled ? "0" : "1"} />
                   <SubmitButton className="btn-secondary btn-sm">{w.texting_enabled ? "Turn texting off" : "Turn texting on"}</SubmitButton>
                 </form>
+                {phoneEnabled() && !!w.texting_enabled && (
+                  <form action={saveTextLimit} className="flex items-center gap-1">
+                    <input type="hidden" name="ward_id" value={w.id} />
+                    <input name="limit" type="number" min={0} max={100000} defaultValue={monthlyLimit(w.id)} className="input w-24 py-1 text-sm" aria-label={`Monthly text limit for ${w.name}`} />
+                    <SubmitButton className="btn-secondary btn-sm">Set limit</SubmitButton>
+                  </form>
+                )}
                 <form action={leadWard}>
                   <input type="hidden" name="ward_id" value={w.id} />
                   <SubmitButton className="btn-secondary btn-sm" confirm={`Join the ${w.name} bishopric in the app, so you can manage it?`}>
@@ -82,6 +92,46 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
           Wards other people start have texting off: reminder and message texts are on your Twilio account and texting registration. Sign-in codes are always texted. Email works
           for every ward.
         </p>
+      </Section>
+
+      <Section title="Email and texting">
+        <div className="card max-w-xl space-y-3 text-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            Email: {emailConfigured() ? <Badge tone="success">Connected</Badge> : <Badge tone="warn">Not set up: emails are saved to data/outbox</Badge>}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            Texting:{" "}
+            {twilioConfigured() ? (
+              <Badge tone="success">Connected to Twilio</Badge>
+            ) : phoneEnabled() ? (
+              <Badge tone="warn">Test mode: texts are saved to data/outbox</Badge>
+            ) : (
+              <Badge>Not set up: members sign in with email only</Badge>
+            )}
+          </div>
+          <p className="text-muted">Links in emails and texts point to {appUrl()}</p>
+          {phoneEnabled() && (
+            <p className="text-muted">
+              So text replies reach the leaders, Twilio&apos;s incoming-message webhook is <code className="rounded bg-surface-2 px-1 break-all">{inboundUrl()}</code>. Each
+              ward&apos;s monthly limit (above) covers reminder and message texts; at the limit they pause until next month and members get email. Sign-in codes always send
+              (about 1.3¢ each).
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <form action={sendTestEmail}>
+              <SubmitButton className="btn-secondary btn-sm" pendingText="Sending…">
+                Send me a test email
+              </SubmitButton>
+            </form>
+            {phoneEnabled() && (
+              <form action={sendTestText}>
+                <SubmitButton className="btn-secondary btn-sm" pendingText="Sending…">
+                  Send me a test text
+                </SubmitButton>
+              </form>
+            )}
+          </div>
+        </div>
       </Section>
 
       <Section title="Start a ward for someone">

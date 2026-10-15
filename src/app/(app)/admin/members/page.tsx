@@ -6,7 +6,7 @@ import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { isPresidency } from "@/lib/permissions";
 import { addMember } from "./actions";
-import { callingLabel, isCalling, roleLabel, type Member, type Role } from "@/lib/types";
+import { callingLabel, isCalling, leadersWord, roleLabel, type Member, type Role } from "@/lib/types";
 
 export const metadata = { title: "Members" };
 
@@ -64,8 +64,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                 </label>
                 <select id="add-role" name="role" className="input" defaultValue="member">
                   <option value="member">Member</option>
-                  <option value="admin">Admin (can post, schedule and send messages)</option>
-                  <option value="presidency">{roleLabel("presidency", user.org)}</option>
+                  <option value="presidency">Leadership ({leadersWord(user.org)}, secretaries{user.org.kind === "ward" ? ", clerks" : ""})</option>
                 </select>
               </div>
               <label className="flex items-center gap-2 self-end pb-2 text-sm">
