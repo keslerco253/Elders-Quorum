@@ -281,11 +281,12 @@ Admin → Replies. Or answer in the app with the link. A reply goes to the membe
 message came to you most recently (in the last 3 days). Replies to teaching
 requests (TEACH / CAN'T) are still handled as teaching answers.
 
-- **Two people at once:** if someone else's message arrives within 2 minutes
-  before your reply (and others wrote in the last 15 minutes), the app holds
-  your reply and texts "Who is this for? Reply 1 for … or 2 for …", listing
-  everyone who wrote in those 15 minutes. Answer with the number and it goes
-  to that person.
+- **More than one person writing:** the app holds your reply and texts "Who
+  is this for? Reply 1 for … or 2 for …" when two or more people who wrote in
+  the last 15 minutes are still waiting for an answer, or when someone's
+  message arrived in the 2 minutes before your reply while someone else had
+  also written. Answer with the number and it goes to that person. Once you've
+  answered one, a reply goes to the one still waiting without asking.
 - **Pick the person yourself:** start your reply with their name and a comma,
   e.g. "Hyrum, see you at 7" (first name is enough if it's unique among people
   who wrote to you recently). A colon works too ("Hyrum: see you at 7") and

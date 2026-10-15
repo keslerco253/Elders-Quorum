@@ -307,6 +307,21 @@ describe("a leader's texted reply when two people write at once", () => {
     expect(await lib.handleInboundText({ From: leaderPhone, Body: "Sure, no problem" })).toBe("asked_who");
   });
 
+  it("asks when two people are both waiting for an answer, even if they wrote a while ago", async () => {
+    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
+    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Ride Sunday?", "app", null, { private: true, withId: 1 });
+    await conv.receiveReply({ id: 4, org_id: 1, display_name: "Jane Smith" }, "Snacks?", "app", null, { private: true, withId: 1 });
+    d.exec("UPDATE member_messages SET created_at = datetime('now', '-14 minutes')");
+    const out: { reply?: string } = {};
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes, 8:30" }, out)).toBe("asked_who");
+    expect(out.reply).toBe("Who is this for? Reply 1 for Jane Smith or 2 for Hyrum Johnson.");
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "2" })).toBe("answer_sent");
+    expect(last(2)).toMatchObject({ direction: "out", body: "Yes, 8:30" });
+    // Hyrum's answered, so Jane is the only one waiting: the next reply goes to her without asking.
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Bring fruit" })).toBe("answer_sent");
+    expect(last(4)).toMatchObject({ direction: "out", body: "Bring fruit" });
+  });
+
   it("lists everyone who just wrote", async () => {
     d.exec(`INSERT INTO members (id, name, display_name, email, contact_pref, status) VALUES
       (5, 'A', 'Amy Allen', 'amy@test.local', 'email', 'active'), (6, 'B', 'Ben Brown', 'ben@test.local', 'email', 'active')`);

@@ -69,24 +69,29 @@ export async function handleInboundText(params: Record<string, string>, out: { r
 
 type Seen = { memberId: number | null; note: string; reply: string | undefined };
 
-type Writer = { memberId: number; private: boolean; at: string };
+/** `waiting`: nobody in the presidency has answered them since their latest message. */
+type Writer = { memberId: number; private: boolean; at: string; waiting: boolean };
 
 /** Members who wrote to this leader (privately, or to their whole presidency) recently, newest first, once each. */
 function recentWriters(leaderId: number, orgId: number, since = "-3 days"): Writer[] {
   const rows = db()
     .prepare(
-      `SELECT member_id, recipient_id, created_at FROM member_messages
-       WHERE org_id = ? AND direction = 'in' AND member_id <> ? AND (recipient_id = ? OR recipient_id IS NULL) AND created_at > datetime('now', ?)
-       ORDER BY id DESC`,
+      `SELECT m.member_id, m.recipient_id, m.created_at,
+         NOT EXISTS (SELECT 1 FROM member_messages o WHERE o.org_id = m.org_id AND o.member_id = m.member_id AND o.direction = 'out' AND o.id > m.id) AS waiting
+       FROM member_messages m
+       WHERE m.org_id = ? AND m.direction = 'in' AND m.member_id <> ? AND (m.recipient_id = ? OR m.recipient_id IS NULL) AND m.created_at > datetime('now', ?)
+       ORDER BY m.id DESC`,
     )
-    .all(orgId, leaderId, leaderId, since) as { member_id: number; recipient_id: number | null; created_at: string }[];
+    .all(orgId, leaderId, leaderId, since) as { member_id: number; recipient_id: number | null; created_at: string; waiting: number }[];
   const seen = new Set<number>();
-  return rows.flatMap((r) => (seen.has(r.member_id) ? [] : (seen.add(r.member_id), [{ memberId: r.member_id, private: r.recipient_id !== null, at: r.created_at }])));
+  return rows.flatMap((r) =>
+    seen.has(r.member_id) ? [] : (seen.add(r.member_id), [{ memberId: r.member_id, private: r.recipient_id !== null, at: r.created_at, waiting: !!r.waiting }]),
+  );
 }
 
 /** How long a new message counts as "just arrived" (the leader may not have seen it before replying). */
 export const JUST_ARRIVED_SECONDS = 120;
-/** Others who wrote within this long are people the leader may be answering. */
+/** People who wrote within this long are people the leader may be answering. */
 const ACTIVE_MINUTES = 15;
 
 const ago = (sqliteTime: string) => (Date.now() - Date.parse(sqliteTime.replace(" ", "T") + "Z")) / 1000;
@@ -129,24 +134,26 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     return true;
   };
   /**
-   * Sends a leader's reply to `target`, unless someone else's message arrived just
-   * before it (they may have been answering the other person): then it's held and
-   * the leader is asked who it's for.
+   * Sends a leader's reply to `target`, unless it's unclear who it's for: then it's
+   * held and the leader is asked. Unclear means two or more people who wrote in the
+   * last 15 minutes are still waiting for an answer, or someone's message arrived
+   * just before the reply (the leader may have been answering someone else).
    */
-  const answerOrAsk = async (target: Writer | { memberId: number; private: boolean }): Promise<InboundResult | null> => {
-    const writers = recentWriters(row.id, orgId);
-    const newest = writers[0];
-    const others = writers.filter((w) => w.memberId !== newest?.memberId && ago(w.at) < ACTIVE_MINUTES * 60);
-    if (newest && ago(newest.at) < JUST_ARRIVED_SECONDS && others.length) {
-      // Everyone who wrote in that time, newest first (up to 6, to keep the text short).
-      const options = [newest, ...others].slice(0, 6);
+  const answerOrAsk = async (target: { memberId: number; private: boolean }): Promise<InboundResult | null> => {
+    const recent = recentWriters(row.id, orgId).filter((w) => ago(w.at) < ACTIVE_MINUTES * 60);
+    const waiting = recent.filter((w) => w.waiting);
+    const justArrived = recent.length > 1 && ago(recent[0].at) < JUST_ARRIVED_SECONDS;
+    if (waiting.length > 1 || justArrived) {
+      // Newest first (up to 6, to keep the text short).
+      const options = (justArrived ? recent : waiting).slice(0, 6);
       db().prepare("INSERT OR REPLACE INTO sms_pending (leader_id, org_id, body, options) VALUES (?, ?, ?, ?)").run(row.id, orgId, body, JSON.stringify(options));
       const names = options.map((o, i) => `${i + 1} for ${nameOf(o.memberId)}`);
       seen.reply = `Who is this for? Reply ${names.length > 2 ? names.slice(0, -1).join(", ") + ", or " + names.at(-1) : names.join(" or ")}.`;
       seen.note = `Asked who it's for (${options.map((o) => nameOf(o.memberId)).join(", ")})`;
       return "asked_who";
     }
-    return (await answer(target)) ? "answer_sent" : null;
+    // One person still waiting: that's who it's for.
+    return (await answer(waiting.length === 1 ? waiting[0] : target)) ? "answer_sent" : null;
   };
 
   if (leader) {
