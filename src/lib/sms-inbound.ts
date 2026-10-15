@@ -140,6 +140,15 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
    * before the reply while someone else wrote in the last 15 minutes (the leader may
    * have been answering someone else).
    */
+  /** Holds the reply and asks the leader who it's for (up to 6 people, to keep the text short). */
+  const askWho = (people: Writer[], text: string): InboundResult => {
+    const options = people.slice(0, 6);
+    db().prepare("INSERT OR REPLACE INTO sms_pending (leader_id, org_id, body, options) VALUES (?, ?, ?, ?)").run(row.id, orgId, text, JSON.stringify(options));
+    const names = options.map((o, i) => `${i + 1} for ${nameOf(o.memberId)}`);
+    seen.reply = `Who is this for? Reply ${names.length > 2 ? names.slice(0, -1).join(", ") + ", or " + names.at(-1) : names.join(" or ")}.`;
+    seen.note = `Asked who it's for (${options.map((o) => nameOf(o.memberId)).join(", ")})`;
+    return "asked_who";
+  };
   const answerOrAsk = async (target: { memberId: number; private: boolean }): Promise<InboundResult | null> => {
     const writers = recentWriters(row.id, orgId);
     const recent = writers.filter((w) => ago(w.at) < ACTIVE_MINUTES * 60);
@@ -147,13 +156,8 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     const justArrived = recent.length > 1 && ago(recent[0].at) < JUST_ARRIVED_SECONDS;
     if (waiting.length > 1 || justArrived) {
       // Everyone still waiting, plus (after a just-arrived message) whoever wrote in the last
-      // 15 minutes. Newest first, up to 6 to keep the text short.
-      const options = writers.filter((w) => w.waiting || (justArrived && recent.includes(w))).slice(0, 6);
-      db().prepare("INSERT OR REPLACE INTO sms_pending (leader_id, org_id, body, options) VALUES (?, ?, ?, ?)").run(row.id, orgId, body, JSON.stringify(options));
-      const names = options.map((o, i) => `${i + 1} for ${nameOf(o.memberId)}`);
-      seen.reply = `Who is this for? Reply ${names.length > 2 ? names.slice(0, -1).join(", ") + ", or " + names.at(-1) : names.join(" or ")}.`;
-      seen.note = `Asked who it's for (${options.map((o) => nameOf(o.memberId)).join(", ")})`;
-      return "asked_who";
+      // 15 minutes. Newest first.
+      return askWho(writers.filter((w) => w.waiting || (justArrived && recent.includes(w))), body);
     }
     // One person still waiting: that's who it's for.
     return (await answer(waiting.length === 1 ? waiting[0] : target)) ? "answer_sent" : null;
@@ -182,6 +186,8 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
         return name === wanted || name.split(/\s+/)[0] === wanted;
       });
       if (matches.length === 1 && (await answer(matches[0], text))) return "answer_sent";
+      // Two people with that name (e.g. two Hyrums): ask which one.
+      if (matches.length > 1) return askWho(matches, text);
     }
     // A leader answering the member's message the app just texted them.
     if (row.text_reply_member_id) {

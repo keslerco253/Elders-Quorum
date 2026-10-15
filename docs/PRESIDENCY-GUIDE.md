@@ -288,8 +288,9 @@ requests (TEACH / CAN'T) are still handled as teaching answers.
   written in the last 15 minutes. Answer with the number and it goes to that person. Once you've
   answered one, a reply goes to the one still waiting without asking.
 - **Pick the person yourself:** start your reply with their name and a comma,
-  e.g. "Hyrum, see you at 7" (first name is enough if it's unique among people
-  who wrote to you recently). A colon works too ("Hyrum: see you at 7") and
+  e.g. "Hyrum, see you at 7". A first name is enough; if two people who
+  wrote to you have that first name, the app asks which one (or use the full
+  name, "Hyrum Johnson, …"). A colon works too ("Hyrum: see you at 7") and
   leaves the name off the message.
 
 **Site owner:** More → Site owner → **Incoming texts** lists the last month's

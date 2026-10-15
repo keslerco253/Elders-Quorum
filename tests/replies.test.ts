@@ -350,6 +350,24 @@ describe("a leader's texted reply when two people write at once", () => {
     expect(last(2)).toMatchObject({ direction: "out", body: "Yes" });
   });
 
+  it("asks which one when two people who wrote have that first name", async () => {
+    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
+    d.exec(`INSERT INTO members (id, name, display_name, email, contact_pref, status) VALUES (7, 'H', 'Hyrum Smith', 'hs@test.local', 'email', 'active')`);
+    (await import("@/lib/orgs")).addToOrg(7, 1);
+    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Ride?", "app", null, { private: true, withId: 1 });
+    await conv.receiveReply({ id: 7, org_id: 1, display_name: "Hyrum Smith" }, "Chairs?", "app", null, { private: true, withId: 1 });
+    d.exec("UPDATE member_messages SET created_at = datetime('now', '-1 hour')");
+    await conv.sendAnswer({ id: 1, org_id: 1, display_name: "Pres Person" }, 7, "Got it", true);
+    const out: { reply?: string } = {};
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Hyrum, 8:30 works" }, out)).toBe("asked_who");
+    expect(out.reply).toBe("Who is this for? Reply 1 for Hyrum Smith or 2 for Hyrum Johnson.");
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "2" })).toBe("answer_sent");
+    expect(last(2)).toMatchObject({ direction: "out", body: "Hyrum, 8:30 works" });
+    // The full name picks one directly.
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Hyrum Smith, thanks" })).toBe("answer_sent");
+    expect(last(7)).toMatchObject({ direction: "out", body: "Hyrum Smith, thanks" });
+  });
+
   it("doesn't ask when only one person is writing", async () => {
     d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
     await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Thanks!", "app", null, { private: true, withId: 1 });
