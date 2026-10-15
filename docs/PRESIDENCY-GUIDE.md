@@ -356,8 +356,10 @@ Quorum or Relief Society.
     own line. On phones, wide pictures fill the screen.
   - Text has **B**, *I*, • List and Link buttons; add a caption under any
     picture.
-- **Update a plan:** open it → **Update plan**. Each save is a new version;
-  older ones are under "See earlier versions".
+- **Update a plan:** open it → **Update plan**. Each save is kept: the
+  **Update history** at the bottom of the edit page lists every save with its
+  date, time and who made it, and opens the plan as it was then. Members just
+  see the current plan.
 - **New plan:** Plans → **New plan**, then choose who it's for.
 - **Who can edit:** the bishopric can create and edit any
   plan. An organization's presidency can create and edit plans for
