@@ -911,4 +911,26 @@ CREATE TABLE rate_hits (
 CREATE INDEX rate_hits_key ON rate_hits(key, created_at);
 `,
   },
+  {
+    // Starting a new ward is a request the site owner approves (after checking it's real).
+    id: 39,
+    sql: `
+CREATE TABLE ward_requests (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  contact TEXT NOT NULL,
+  contact_kind TEXT NOT NULL CHECK (contact_kind IN ('email','phone')),
+  ward_name TEXT NOT NULL,
+  stake TEXT NOT NULL DEFAULT '',
+  calling TEXT,
+  timezone TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  member_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','declined')),
+  ward_id INTEGER REFERENCES wards(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  decided_at TEXT
+);
+`,
+  },
 ];

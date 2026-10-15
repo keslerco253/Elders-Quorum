@@ -15,6 +15,7 @@ import { wardByJoinCode } from "@/lib/wards";
 import { addToWard, createWard } from "@/lib/orgs";
 import { DEFAULT_TZ, validZone } from "@/lib/time";
 import { CALLINGS, isCalling, type Member } from "@/lib/types";
+import { requestWard } from "@/lib/ward-requests";
 
 const q = (params: Record<string, string>) => new URLSearchParams(params).toString();
 
@@ -187,6 +188,21 @@ export async function startWard(formData: FormData) {
   }
   const d = db();
   if (!allowHit(`start:${await ip()}`, 3, 24 * 60)) back(BUSY);
+  // After the first ward (the site owner's), a new ward is a request the site owner approves.
+  if (d.prepare("SELECT 1 FROM wards").get()) {
+    await requestWard({
+      name,
+      contact: c.value,
+      contact_kind: c.kind,
+      ward_name: wardName,
+      stake: String(formData.get("stake") || "").trim().slice(0, 80),
+      calling: isCalling(calling) && CALLINGS.ward.includes(calling) ? calling : null,
+      timezone,
+      note: String(formData.get("note") || "").trim().slice(0, 1000),
+      member_id: null,
+    });
+    redirect("/start?sent=1");
+  }
   const recent = d.prepare("SELECT COUNT(*) AS n FROM wards WHERE created_at > datetime('now', '-1 hour')").get() as { n: number };
   if (recent.n >= 10) back("Many wards were started in the last hour. Please try again later.");
 
