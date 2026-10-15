@@ -25,6 +25,9 @@ module.exports = {
       associatedDomains: [`applinks:${host}`],
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
+        // Attaching a picture to a plan (the web page's file picker) can open these.
+        NSPhotoLibraryUsageDescription: "Lets you attach pictures, like a plan or flyer, for your ward.",
+        NSCameraUsageDescription: "Lets you take a picture to attach, like a plan or flyer, for your ward.",
       },
     },
     android: {

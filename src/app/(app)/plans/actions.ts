@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { allowedAudience, canCreatePlans, canEditPlan, createPlan, currentVersion, deletePlan, getPlan, managesWardPlans, saveVersion, setAudience } from "@/lib/plans";
-import { savePdf } from "@/lib/uploads";
+import { saveUpload } from "@/lib/uploads";
 import { audienceMembers, notify, type Recipient } from "@/lib/notify";
 import { wardOrg } from "@/lib/orgs";
 
@@ -12,18 +12,18 @@ function back(path: string, msg: string): never {
   redirect(`${path}?msg=${encodeURIComponent(msg)}`);
 }
 
-/** The PDF to keep with this version: a new upload, the previous one, or none. */
+/** The attachment (PDF or picture) to keep with this version: a new upload, the previous one, or none. */
 async function pdfFor(fd: FormData, prev: { pdf_file: string | null; pdf_name: string | null } | undefined, path: string) {
   let pdfFile = fd.get("remove_pdf") === "on" ? null : (prev?.pdf_file ?? null);
   let pdfName = pdfFile ? (prev?.pdf_name ?? null) : null;
   const file = fd.get("pdf");
   if (file instanceof File && file.size > 0) {
-    if (file.size > 10_000_000) back(path, "PDF must be under 10 MB.");
+    if (file.size > 10_000_000) back(path, "The file must be under 10 MB.");
     try {
-      pdfFile = await savePdf(file);
+      pdfFile = await saveUpload(file);
       pdfName = file.name;
     } catch {
-      back(path, "That file isn't a PDF.");
+      back(path, "That kind of file can't be attached. Use a PDF or a picture (PNG, JPEG, GIF, WebP or an iPhone photo).");
     }
   }
   return { pdfFile, pdfName };

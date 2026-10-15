@@ -5,8 +5,8 @@ import path from "path";
 import { appUrl } from "./config";
 import { DATA_DIR, db, replaceDatabase, setSetting } from "./db";
 import { packTar, unpackTar } from "./tar";
+import { UPLOAD_NAME } from "./upload-names";
 
-const UPLOAD_NAME = /^[a-f0-9]{24}\.pdf$/;
 
 interface BackupInfo {
   app: "elders-quorum";

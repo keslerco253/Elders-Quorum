@@ -20,6 +20,7 @@ export interface PlanVersion {
   plan_id: number;
   title: string;
   body: string;
+  /** The attachment: a PDF or a picture (stored name, and the name it was uploaded with). */
   pdf_file: string | null;
   pdf_name: string | null;
   created_at: string;

@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { audienceText, canEditPlan, currentVersion, getPlan, planByLegacyKind, planHistory, planVersion } from "@/lib/plans";
 import { renderMarkdown } from "@/lib/markdown";
+import { isPicture } from "@/lib/upload-names";
 import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 
@@ -54,11 +55,17 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
         <Empty>This plan hasn&apos;t been posted yet.</Empty>
       ) : (
         <article className="card">
-          {shown.pdf_file && (
-            <a href={`/files/${shown.pdf_file}`} target="_blank" rel="noreferrer" className="btn-secondary mb-4">
-              📄 Open PDF: {shown.pdf_name}
-            </a>
-          )}
+          {shown.pdf_file &&
+            (isPicture(shown.pdf_file) ? (
+              <a href={`/files/${shown.pdf_file}`} target="_blank" rel="noreferrer" className="mb-4 block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/files/${shown.pdf_file}`} alt={shown.pdf_name ?? "Plan picture"} className="w-full rounded-lg border border-border" />
+              </a>
+            ) : (
+              <a href={`/files/${shown.pdf_file}`} target="_blank" rel="noreferrer" className="btn-secondary mb-4">
+                📄 Open {shown.pdf_file.endsWith(".pdf") ? "PDF" : "file"}: {shown.pdf_name}
+              </a>
+            ))}
           {shown.body ? <div className="prose-eq" dangerouslySetInnerHTML={{ __html: renderMarkdown(shown.body) }} /> : !shown.pdf_file && <p className="text-muted">No details yet.</p>}
         </article>
       )}

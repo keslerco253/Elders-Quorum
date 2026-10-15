@@ -1,4 +1,5 @@
 import { SubmitButton } from "@/components/client";
+import { UPLOAD_ACCEPT } from "@/lib/upload-names";
 import { ledOrgIds, managesWardPlans, type PlanVersion, type WardPlan } from "@/lib/plans";
 import type { CurrentUser } from "@/lib/types";
 
@@ -53,7 +54,7 @@ export function PlanForm({ user, plan, version, action }: { user: CurrentUser; p
       </div>
       <div>
         <label className="label" htmlFor="pdf">
-          PDF (optional)
+          Attachment (optional)
         </label>
         {version?.pdf_file && (
           <p className="mb-2 text-sm">
@@ -63,7 +64,8 @@ export function PlanForm({ user, plan, version, action }: { user: CurrentUser; p
             </label>
           </p>
         )}
-        <input id="pdf" name="pdf" type="file" accept="application/pdf" className="input" />
+        <input id="pdf" name="pdf" type="file" accept={UPLOAD_ACCEPT} className="input" />
+        <p className="hint">A PDF or a picture (PNG, JPEG, GIF, WebP or a photo from your phone), up to 10 MB. Pictures show on the plan page.</p>
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="announce" /> Send a notification that this plan was {plan ? "updated" : "posted"}

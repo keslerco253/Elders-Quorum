@@ -319,7 +319,7 @@ Women shows on their Plans tabs and in the ward's list, but not in Elders
 Quorum or Relief Society.
 
 - **Update a plan:** open it → **Update plan**. Write it in the box (use
-  `## Heading` and `- bullet`) and/or attach a PDF. Older versions are kept
+  `## Heading` and `- bullet`) and/or attach a PDF or a picture (PNG, JPEG, GIF, WebP or a phone photo; pictures show on the plan page). Older versions are kept
   under "See earlier versions".
 - **New plan:** Plans → **New plan**, then choose who it's for.
 - **Who can edit:** the bishopric (and ward admins) can create and edit any
