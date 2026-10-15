@@ -28,7 +28,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     const qs = p.toString();
     return `/calendar${qs ? `?${qs}` : ""}`;
   };
-  const showOrg = !only && user.orgs.length > 1;
+  // The calendar holds every organization's events, so each says where it's from.
+  const showOrg = !only;
   const byDay = new Map<string, typeof events>();
   for (const e of events) {
     const k = DateTime.fromISO(e.starts_at, { zone: "utc" }).setZone(tz).toISODate()!;

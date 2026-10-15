@@ -45,6 +45,20 @@ export function listSignups(orgId: number, includeClosed: boolean, today: string
     .all(...(includeClosed ? [orgId] : [orgId, today])) as (Signup & { capacity: number; taken: number })[];
 }
 
+/** Every organization's service opportunities in a ward (for the ward-level Service page), with where each is from. */
+export function listWardSignups(wardId: number, includeClosed: boolean, today: string) {
+  return db()
+    .prepare(
+      `SELECT s.*, CASE WHEN o.kind = 'ward' THEN 'Ward' ELSE o.name END AS org_label,
+        (SELECT COALESCE(SUM(capacity), 0) FROM signup_slots WHERE signup_id = s.id) AS capacity,
+        (SELECT COUNT(*) FROM signup_entries e JOIN signup_slots sl ON sl.id = e.slot_id WHERE sl.signup_id = s.id) AS taken
+       FROM signups s JOIN orgs o ON o.id = s.org_id
+       WHERE o.ward_id = ? AND o.active = 1 ${includeClosed ? "" : "AND s.closed = 0 AND (s.date IS NULL OR s.date >= ?)"}
+       ORDER BY s.closed, s.date IS NULL, s.date, s.id DESC`,
+    )
+    .all(...(includeClosed ? [wardId] : [wardId, today])) as (Signup & { capacity: number; taken: number; org_label: string })[];
+}
+
 export function getSignup(orgId: number, id: number) {
   const s = db().prepare("SELECT * FROM signups WHERE id = ? AND org_id = ?").get(id, orgId) as Signup | undefined;
   if (!s) return undefined;

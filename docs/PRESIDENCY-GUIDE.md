@@ -19,6 +19,10 @@ A red number on **Admin** means something is waiting for you.
 The app holds **wards**, and each ward has **organizations** (Elders Quorum,
 Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
 
+- **The ward level:** switch to the ward itself to see everything at once:
+  **Calendar** has every organization's events, **Plans** every plan, and
+  **Service** every organization's service opportunities, each labeled with
+  where it's from.
 - **Switching:** tap the name at the top left to switch organization (or
   ward). Lessons, sign-ups, messages and admin tools are for the organization
   you're looking at. Everyone in the ward can look at every organization.
