@@ -239,8 +239,8 @@ and time, and who's going. A visit gets there two ways:
   home visit**. Pick the date, time and who's going; a personal message is
   written for you ("We would love to come visit you and your family in your
   home on Tuesday, October 20 at 7:00 PM…") and you can change it. They answer
-  **Yes, that works**, **That time doesn't work** (with a better time), or
-  **Not right now**, from the notification, email, text link or a card on their
+  **Yes, that works**, **Suggest a different date or time**, or
+  **Now is not a convenient time for us**, from the notification, email, text link or a card on their
   Home page. You're notified, and Upcoming visits shows **Invited, waiting**,
   **✓ Confirmed** or **Asked for another time** with their suggestion and a
   **Pick a new time** button that sends an updated invitation.

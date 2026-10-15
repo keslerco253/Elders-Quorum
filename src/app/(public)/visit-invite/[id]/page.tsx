@@ -60,7 +60,7 @@ export default async function VisitInvitePage({ params, searchParams }: { params
         </SubmitButton>
       </form>
       <details className="card" open={sp.a === "new_time"}>
-        <summary className="cursor-pointer font-medium">That time doesn&apos;t work</summary>
+        <summary className="cursor-pointer font-medium">Suggest a different date or time</summary>
         <form action={replyToInvitation} className="mt-3 space-y-3">
           {hidden("new_time")}
           <label className="label" htmlFor="reply">
@@ -74,7 +74,7 @@ export default async function VisitInvitePage({ params, searchParams }: { params
         </form>
       </details>
       <details className="card">
-        <summary className="cursor-pointer font-medium">Not right now</summary>
+        <summary className="cursor-pointer font-medium">Now is not a convenient time for us</summary>
         <form action={replyToInvitation} className="mt-3 space-y-3">
           {hidden("declined")}
           <label className="label" htmlFor="note">
