@@ -87,7 +87,7 @@ function recentWriters(leaderId: number, orgId: number, since = "-3 days"): Writ
 /** How long a new message counts as "just arrived" (the leader may not have seen it before replying). */
 export const JUST_ARRIVED_SECONDS = 120;
 /** Others who wrote within this long are people the leader may be answering. */
-const ACTIVE_MINUTES = 30;
+const ACTIVE_MINUTES = 15;
 
 const ago = (sqliteTime: string) => (Date.now() - Date.parse(sqliteTime.replace(" ", "T") + "Z")) / 1000;
 
