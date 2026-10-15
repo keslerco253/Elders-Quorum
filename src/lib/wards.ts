@@ -6,10 +6,9 @@ export { getWard, listWards };
 
 export const DEFAULT_APP_NAME = "My Ward Link";
 
-/** Name shown before sign-in: the single ward's name, or a generic name if there are several. */
+/** Name shown before sign-in (sign-in page, installed app, privacy and terms): the app's own name, since many wards use it. */
 export function publicAppName() {
-  const wards = listWards();
-  return wards.length === 1 ? wards[0].name : DEFAULT_APP_NAME;
+  return DEFAULT_APP_NAME;
 }
 
 /** No one leads anything yet: the server is brand new (first-time setup). */

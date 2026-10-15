@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Disclaimer } from "@/components/disclaimer";
+import { Disclaimer, DISCLAIMER_TEXT } from "@/components/disclaimer";
 import type { Metadata } from "next";
 import { getUser } from "@/lib/auth";
 
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     "A free, volunteer-run app for wards and their organizations: lessons and teachers, the ward calendar, sign-ups, messages and visits. Not an official website of The Church of Jesus Christ of Latter-day Saints.",
 };
 
-const DISCLAIMER = "My Ward Link is an independent app run by volunteers. It is not an official website of The Church of Jesus Christ of Latter-day Saints, and is not affiliated with or endorsed by the Church.";
+const DISCLAIMER = DISCLAIMER_TEXT;
 
 const ICONS: Record<string, string> = {
   book: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zm0 0v16M8 7h7",
