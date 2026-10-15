@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { openLessonSundays, upcomingLessons } from "@/lib/lessons";
+import { markGeneralConferences, openLessonSundays, upcomingLessons } from "@/lib/lessons";
 import { formatDate, sundayOnOrAfter, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -17,6 +17,8 @@ export default async function AdminLessonsPage({
   const user = await requireAdmin();
   const sp = await searchParams;
   const today = todayIn(user.ward.timezone);
+  // General Conference Sundays (first Sunday of April and October) are marked on their own.
+  markGeneralConferences(user.org_id, today);
   const lessons = upcomingLessons(user.org_id, today, 80);
   // Where pasted links go: Sundays from today with no talk yet, in order.
   const open = openLessonSundays(user.org_id, today);
@@ -80,8 +82,9 @@ export default async function AdminLessonsPage({
           <p className="text-sm text-muted">
             Paste Gospel Library talk links in order, one per line. They fill
             the open Sundays in date order, skipping any that are already
-            filled, and titles and speakers are looked up automatically. Tip: first mark General and Stake Conference
-            Sundays (tap a Sunday below) so they&apos;re skipped.
+            filled, and titles and speakers are looked up automatically. General Conference Sundays are
+            marked for you; mark any Stake Conference Sunday first (tap it
+            below) so it&apos;s skipped.
           </p>
           <textarea
             name="urls"

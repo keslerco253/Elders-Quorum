@@ -61,6 +61,12 @@ export function sundayOnOrAfter(isoDate: string) {
 }
 
 /** All Sundays from start (inclusive, rounded up to Sunday) for `count` weeks. */
+/** General Conference weekend: the first Sunday of April and of October. */
+export function isGeneralConferenceSunday(iso: string) {
+  const d = DateTime.fromISO(iso);
+  return d.isValid && d.weekday === 7 && (d.month === 4 || d.month === 10) && d.day <= 7;
+}
+
 export function sundays(startIso: string, count: number) {
   const first = DateTime.fromISO(sundayOnOrAfter(startIso));
   return Array.from({ length: count }, (_, i) => first.plus({ weeks: i }).toISODate()!);

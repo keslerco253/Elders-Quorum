@@ -70,13 +70,16 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
 
 1. **Admin → Lessons → 1. Add Sundays**: start date = the Sunday after
    conference, 26 weeks.
-2. Tap each Stake Conference and General Conference Sunday in the list and set
-   **This Sunday is** to the conference. Those weeks show "no lesson" and
+2. **General Conference** Sundays (the first Sunday of April and October)
+   are marked for you. Tap any **Stake Conference** Sunday in the list and set
+   **This Sunday is** to Stake Conference. Those weeks show "no lesson" and
    reminders announce the conference instead.
 3. **2. Paste talk links**: in Gospel Library on the web, open each talk you
    chose and copy its address. Paste them all, one per line, in order. They fill
-   the open Sundays and the titles and speakers are looked up for you.
-4. Open any Sunday to fix a title or swap a talk.
+   the open Sundays from the next open one, skipping Sundays that already have a
+   talk or a conference, and the titles and speakers are looked up for you.
+4. Open any Sunday to fix a title or change its date. Moving a lesson to a
+   Sunday that already has one swaps the two.
 
 Members get reminders automatically: **Sunday 7 PM** about the next Sunday's
 lesson and **Saturday 8 AM** about tomorrow's.

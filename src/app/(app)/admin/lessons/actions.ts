@@ -6,7 +6,7 @@ import { askToTeach, cancelRequest } from "@/lib/teaching-requests";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin, requirePresidency } from "@/lib/auth";
-import { getLesson, openLessonSundays } from "@/lib/lessons";
+import { getLesson, markGeneralConferences, openLessonSundays } from "@/lib/lessons";
 import { fetchTalkInfo } from "@/lib/talk-info";
 import { notify } from "@/lib/notify";
 import { formatDate, sundays, todayIn } from "@/lib/time";
@@ -30,11 +30,16 @@ export async function addSundays(fd: FormData) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) go("/admin/lessons", "Choose a start date.");
   const ins = db().prepare("INSERT OR IGNORE INTO lessons (org_id, date) VALUES (?, ?)");
   let added = 0;
+  let conferences = 0;
   db().transaction(() => {
     for (const d of sundays(start, weeks)) added += ins.run(user.org_id, d).changes;
+    conferences = markGeneralConferences(user.org_id, start);
   })();
   refresh();
-  go("/admin/lessons", `${added} Sundays added. Next, mark conference Sundays and paste the talk links.`);
+  go(
+    "/admin/lessons",
+    `${added} Sundays added.${conferences ? ` ${conferences === 1 ? "General Conference was" : `${conferences} General Conference Sundays were`} marked for you (first Sunday of April and October).` : ""} Next, mark any Stake Conference Sundays and paste the talk links.`,
+  );
 }
 
 export async function fillTalks(fd: FormData) {
@@ -44,7 +49,8 @@ export async function fillTalks(fd: FormData) {
     .map((u) => u.trim())
     .filter((u) => /^https?:\/\//.test(u));
   if (!urls.length) go("/admin/lessons", "Paste at least one talk link.");
-  // The next open Sundays from today, skipping any that already have a talk.
+  // The next open Sundays from today, skipping any that already have a talk (or are General Conference).
+  markGeneralConferences(user.org_id, todayIn(user.ward.timezone));
   const open = openLessonSundays(user.org_id, todayIn(user.ward.timezone)).slice(0, urls.length);
   const infos = await Promise.all(urls.slice(0, open.length).map((u) => fetchTalkInfo(u)));
   const upd = db().prepare("UPDATE lessons SET url = ?, title = CASE WHEN title = '' THEN ? ELSE title END, speaker = CASE WHEN speaker = '' THEN ? ELSE speaker END WHERE id = ?");

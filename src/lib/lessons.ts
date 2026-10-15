@@ -1,3 +1,4 @@
+import { isGeneralConferenceSunday } from "./time";
 import { db } from "./db";
 import type { Lesson } from "./types";
 
@@ -20,6 +21,20 @@ const LIST_SQL = `
 
 export function upcomingLessons(orgId: number, fromDate: string, limit = 60): LessonListItem[] {
   return db().prepare(LIST_SQL + " AND l.date >= ? ORDER BY l.date LIMIT ?").all(orgId, fromDate, limit) as LessonListItem[];
+}
+
+/**
+ * Marks General Conference Sundays (first Sunday of April and October) that are
+ * still blank, so they're skipped when talks are filled and no lesson is announced.
+ */
+export function markGeneralConferences(orgId: number, fromDate: string): number {
+  const blanks = db()
+    .prepare("SELECT id, date FROM lessons WHERE org_id = ? AND date >= ? AND kind = 'talk' AND url = '' AND title = '' AND teacher_id IS NULL")
+    .all(orgId, fromDate) as { id: number; date: string }[];
+  const mark = db().prepare("UPDATE lessons SET kind = 'general_conference' WHERE id = ?");
+  let n = 0;
+  for (const l of blanks) if (isGeneralConferenceSunday(l.date)) n += mark.run(l.id).changes;
+  return n;
 }
 
 /**
