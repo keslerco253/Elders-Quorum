@@ -307,6 +307,21 @@ describe("a leader's texted reply when two people write at once", () => {
     expect(await lib.handleInboundText({ From: leaderPhone, Body: "Sure, no problem" })).toBe("asked_who");
   });
 
+  it("lists everyone who just wrote", async () => {
+    d.exec(`INSERT INTO members (id, name, display_name, email, contact_pref, status) VALUES
+      (5, 'A', 'Amy Allen', 'amy@test.local', 'email', 'active'), (6, 'B', 'Ben Brown', 'ben@test.local', 'email', 'active')`);
+    const { addToOrg } = await import("@/lib/orgs");
+    addToOrg(5, 1);
+    addToOrg(6, 1);
+    for (const [id, name] of [[2, "Hyrum Johnson"], [4, "Jane Smith"], [5, "Amy Allen"], [6, "Ben Brown"]] as const)
+      await conv.receiveReply({ id, org_id: 1, display_name: name }, "Question", "app", null, { private: true, withId: 1 });
+    const out: { reply?: string } = {};
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes" }, out)).toBe("asked_who");
+    expect(out.reply).toBe("Who is this for? Reply 1 for Ben Brown, 2 for Amy Allen, 3 for Jane Smith, or 4 for Hyrum Johnson.");
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "4" })).toBe("answer_sent");
+    expect(last(2)).toMatchObject({ direction: "out", body: "Yes" });
+  });
+
   it("doesn't ask when only one person is writing", async () => {
     d.exec("UPDATE member_messages SET created_at = datetime('now', '-2 hours')");
     await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Thanks!", "app", null, { private: true, withId: 1 });

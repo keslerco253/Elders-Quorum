@@ -138,7 +138,8 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     const newest = writers[0];
     const others = writers.filter((w) => w.memberId !== newest?.memberId && ago(w.at) < ACTIVE_MINUTES * 60);
     if (newest && ago(newest.at) < JUST_ARRIVED_SECONDS && others.length) {
-      const options = [newest, ...others].slice(0, 3);
+      // Everyone who wrote in that time, newest first (up to 6, to keep the text short).
+      const options = [newest, ...others].slice(0, 6);
       db().prepare("INSERT OR REPLACE INTO sms_pending (leader_id, org_id, body, options) VALUES (?, ?, ?, ?)").run(row.id, orgId, body, JSON.stringify(options));
       const names = options.map((o, i) => `${i + 1} for ${nameOf(o.memberId)}`);
       seen.reply = `Who is this for? Reply ${names.length > 2 ? names.slice(0, -1).join(", ") + ", or " + names.at(-1) : names.join(" or ")}.`;
