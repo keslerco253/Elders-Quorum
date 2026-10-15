@@ -1,9 +1,10 @@
 import { SubmitButton } from "@/components/client";
-import { UPLOAD_ACCEPT } from "@/lib/upload-names";
+import { versionBlocks } from "@/lib/plan-blocks";
+import { PlanEditor } from "./plan-editor";
 import { ledOrgIds, managesWardPlans, type PlanVersion, type WardPlan } from "@/lib/plans";
 import type { CurrentUser } from "@/lib/types";
 
-/** Title, who it's for, the plan itself and an optional PDF. Used to post and to update a plan. */
+/** Title, who it's for, and the page itself. Used to post and to update a plan. */
 export function PlanForm({ user, plan, version, action }: { user: CurrentUser; plan?: WardPlan; version?: PlanVersion; action: (fd: FormData) => Promise<void> }) {
   const ward = managesWardPlans(user);
   const mine = ledOrgIds(user);
@@ -44,28 +45,8 @@ export function PlanForm({ user, plan, version, action }: { user: CurrentUser; p
         </fieldset>
       )}
       <div>
-        <label className="label" htmlFor="body">
-          Plan
-        </label>
-        <textarea id="body" name="body" rows={16} className="input font-mono text-sm" defaultValue={version?.body ?? ""} placeholder={"## Goals\n- Every family submits one name to the temple\n\n## Upcoming\n- Temple night: third Thursday"} />
-        <p className="hint">
-          Formatting: <code>## Heading</code>, <code>- bullet</code>, <code>**bold**</code>, <code>[link text](https://…)</code>
-        </p>
-      </div>
-      <div>
-        <label className="label" htmlFor="pdf">
-          Attachment (optional)
-        </label>
-        {version?.pdf_file && (
-          <p className="mb-2 text-sm">
-            Current: {version.pdf_name}{" "}
-            <label className="ml-2 text-muted">
-              <input type="checkbox" name="remove_pdf" /> remove
-            </label>
-          </p>
-        )}
-        <input id="pdf" name="pdf" type="file" accept={UPLOAD_ACCEPT} className="input" />
-        <p className="hint">A PDF or a picture (PNG, JPEG, GIF, WebP or a photo from your phone), up to 10 MB. Pictures show on the plan page.</p>
+        <div className="label">Page</div>
+        <PlanEditor initial={version ? versionBlocks(version) : []} />
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="announce" /> Send a notification that this plan was {plan ? "updated" : "posted"}

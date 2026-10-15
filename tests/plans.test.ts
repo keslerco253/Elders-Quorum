@@ -78,3 +78,31 @@ describe("ward plans", () => {
     expect(plans.listPlans(maple.id).map((p) => p.legacy_kind)).toEqual(["temple", "mission"]);
   });
 });
+
+describe("plan pages", () => {
+  it("keeps only well-formed blocks, and files uploaded to the plan's own ward", async () => {
+    const { parseBlocks, versionBlocks, blocksText } = await import("@/lib/plan-blocks");
+    d.prepare("INSERT INTO plan_files (name, ward_id, original_name) VALUES ('aaaaaaaaaaaaaaaaaaaaaaaa.jpg', 1, 'temple.jpg')").run();
+    const other = orgs.createWard({ name: "Maple Ward", timezone: "America/Boise", creatorId: 3 });
+    d.prepare("INSERT INTO plan_files (name, ward_id, original_name) VALUES ('bbbbbbbbbbbbbbbbbbbbbbbb.pdf', ?, 'theirs.pdf')").run(other.id);
+    const sent = JSON.stringify([
+      { id: "h", type: "heading", text: "Goals" },
+      { id: "p", type: "image", file: "aaaaaaaaaaaaaaaaaaaaaaaa.jpg", name: "temple.jpg", width: 400, align: "sideways", caption: "Our temple" },
+      { id: "x", type: "pdf", file: "bbbbbbbbbbbbbbbbbbbbbbbb.pdf", name: "theirs.pdf", width: 50, align: "left" },
+      { id: "s", type: "script", text: "<script>" },
+      { id: "t", type: "text", text: "**Every family** submits a name." },
+    ]);
+    const blocks = parseBlocks(sent, plans.wardFileCheck(1));
+    expect(blocks.map((b) => b.type)).toEqual(["heading", "image", "text"]);
+    expect(blocks[1]).toMatchObject({ width: 100, align: "center", caption: "Our temple" });
+    expect(parseBlocks("not json", () => true)).toEqual([]);
+
+    const plan = plans.listPlans(1)[0];
+    plans.saveVersion({ planId: plan.id, orgId: 1, title: "Temple plan", blocks, createdBy: 1 });
+    const v = plans.currentVersion(plan.id)!;
+    expect(versionBlocks(v)).toEqual(blocks);
+    expect(v.body).toBe(blocksText(blocks));
+    // Versions from before the page builder: their attachment, then their text.
+    expect(versionBlocks({ blocks: null, body: "Old text", pdf_file: "cccccccccccccccccccccccc.pdf", pdf_name: "old.pdf" }).map((b) => b.type)).toEqual(["pdf", "text"]);
+  });
+});

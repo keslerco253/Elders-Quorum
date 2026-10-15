@@ -346,9 +346,18 @@ organizations**. For example, a youth temple plan for Young Men and Young
 Women shows on their Plans tabs and in the ward's list, but not in Elders
 Quorum or Relief Society.
 
-- **Update a plan:** open it → **Update plan**. Write it in the box (use
-  `## Heading` and `- bullet`) and/or attach a PDF or a picture (PNG, JPEG, GIF, WebP or a phone photo; pictures show on the plan page). Older versions are kept
-  under "See earlier versions".
+- **Building the page:** a plan is built like a web page, from blocks. Use
+  **Add: Heading, Text, Pictures or PDFs, Divider** (or drop files onto the
+  page, or paste a picture). Pictures show right on the page and PDFs show
+  their pages, so nobody has to tap to open them.
+  - **Move** a block: drag its ⠿ handle (or use ↑ ↓).
+  - **Size** a picture or PDF: drag its blue corner, or tap S, M, L or Full.
+  - **Place** it: Left or Right puts text beside it; Center puts it on its
+    own line. On phones, wide pictures fill the screen.
+  - Text has **B**, *I*, • List and Link buttons; add a caption under any
+    picture.
+- **Update a plan:** open it → **Update plan**. Each save is a new version;
+  older ones are under "See earlier versions".
 - **New plan:** Plans → **New plan**, then choose who it's for.
 - **Who can edit:** the bishopric can create and edit any
   plan. An organization's presidency can create and edit plans for
@@ -356,9 +365,9 @@ Quorum or Relief Society.
 
 ## Settings
 
-**Admin → Settings**: change the app name or time zone, send a test email, and
-(site owner only) add another ward in the stake. Each ward gets its own
-members, lessons and calendar.
+**Admin → Settings** (bishopric, looking at the ward): the ward's name, time
+zone, join code, features and organizations, and starting another ward.
+Email, texting and backups are on the site owner's page.
 
 ## Notifications
 

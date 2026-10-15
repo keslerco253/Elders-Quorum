@@ -789,4 +789,19 @@ UPDATE groups SET send_presidency = 1 WHERE send_admins = 1;
 UPDATE groups SET send_admins = 0;
 `,
   },
+  {
+    // Plans are built as a page of blocks (headings, text, pictures, PDFs).
+    // plan_files records which ward each uploaded file belongs to.
+    id: 28,
+    sql: `
+ALTER TABLE plan_versions ADD COLUMN blocks TEXT;
+CREATE TABLE plan_files (
+  name TEXT PRIMARY KEY,
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  original_name TEXT NOT NULL,
+  uploaded_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`,
+  },
 ];

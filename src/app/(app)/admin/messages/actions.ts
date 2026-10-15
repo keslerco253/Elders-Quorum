@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { type Audience } from "@/lib/notify";
 import { canManage, canSendTo, getGroup, sendToAudience } from "@/lib/groups";
-import type { CurrentUser, Role } from "@/lib/types";
+import type { CurrentUser } from "@/lib/types";
 import { orgRoster } from "@/lib/orgs";
 
 function go(path: string, text: string): never {

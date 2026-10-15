@@ -170,3 +170,61 @@ body {
   .prose-eq th, .prose-eq td { @apply border border-border px-2 py-1 text-left; }
   .prose-eq hr { @apply my-5 border-border; }
 }
+
+/* Plan pages: blocks with pictures and PDFs placed left, right or centered. */
+@layer components {
+  .plan-page {
+    display: flow-root;
+    @apply text-[15px] leading-relaxed;
+  }
+  .plan-page > h2 { @apply mt-6 mb-2 text-xl font-bold first:mt-0; }
+  .plan-page > hr { clear: both; @apply my-6 border-border; }
+  .plan-media { width: var(--w); @apply mx-auto mt-2 mb-5; }
+  /* Centered pictures and PDFs start on their own line, below anything placed left or right. */
+  .plan-media.plan-center { clear: both; display: flow-root; }
+  .plan-media.plan-left { float: left; @apply mt-1 mr-6 mb-4 ml-0; }
+  .plan-media.plan-right { float: right; @apply mt-1 mr-0 mb-4 ml-6; }
+  .plan-media img { @apply block w-full rounded-xl shadow-sm; }
+  .plan-media figcaption { @apply mt-1.5 text-center text-sm text-muted; }
+  .plan-pdf-page { @apply block h-auto w-full rounded-lg border border-border bg-white shadow-sm; }
+  .plan-pdf-loading { @apply rounded-lg border border-dashed border-border px-4 py-10 text-center text-sm text-muted; }
+  .plan-file-card { @apply flex items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 py-3 font-medium hover:bg-surface; }
+  /* Phones: wide pictures take the full width; small ones keep text beside them. */
+  @media (max-width: 640px) {
+    .plan-media.plan-wide { float: none; width: 100%; @apply mx-0; }
+    .plan-media:not(.plan-wide) { width: max(var(--w), 38%); }
+  }
+}
+
+/* The plan editor: each block shows as it will look, with its controls on hover or when selected. */
+@layer components {
+  .plan-block-flow { display: flow-root; }
+  .plan-edit-block { @apply rounded-lg outline-offset-4; }
+  .plan-edit-block:hover, .plan-edit-block.is-selected { @apply outline-1 outline-border outline-dashed; }
+  .plan-edit-block.is-selected { @apply outline-accent; }
+  .plan-edit-controls {
+    @apply absolute -top-3 right-1 z-[5] hidden items-center gap-0.5 rounded-lg border border-border bg-surface px-1 text-sm shadow-sm;
+  }
+  .plan-edit-block:hover > .plan-edit-controls, .plan-edit-block.is-selected > .plan-edit-controls { @apply flex; }
+  .plan-edit-controls button { @apply rounded px-1.5 py-0.5 text-muted hover:bg-surface-2 hover:text-text disabled:opacity-30; }
+  .plan-grip { cursor: grab; touch-action: none; @apply text-base; }
+  .plan-edit-heading { @apply mt-4 mb-1 w-full bg-transparent text-xl font-bold outline-none placeholder:text-muted/60; }
+  .plan-edit-text { @apply block w-full resize-none overflow-hidden bg-transparent leading-relaxed outline-none placeholder:text-muted/60; }
+  .plan-text-tools { @apply mb-1 hidden gap-1 text-xs; }
+  .plan-edit-block.is-selected .plan-text-tools { @apply flex; }
+  .plan-text-tools button, .plan-media-tools button { @apply rounded-md border border-border bg-surface px-2 py-0.5 text-muted hover:text-text; }
+  .plan-media-tools { @apply mb-2 flex flex-wrap items-center gap-1 text-xs; }
+  .plan-media-tools button.is-on { @apply border-accent bg-accent-soft text-accent; }
+  .plan-resize {
+    touch-action: none;
+    cursor: nwse-resize;
+    @apply absolute -right-2 -bottom-2 h-5 w-5 rounded-full border-2 border-surface bg-accent opacity-0 shadow;
+  }
+  .plan-edit-block:hover .plan-resize, .plan-edit-block.is-selected .plan-resize { @apply opacity-100; }
+  .plan-size-badge { @apply absolute top-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-xs text-white; }
+  .plan-edit-caption { @apply mt-1.5 w-full bg-transparent text-center text-sm text-muted outline-none; }
+  /* Phones: controls always show on the selected block. */
+  @media (hover: none) {
+    .plan-edit-controls { @apply -top-4; }
+  }
+}

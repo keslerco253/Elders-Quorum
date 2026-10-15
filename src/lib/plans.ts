@@ -1,5 +1,6 @@
 import { db } from "./db";
 import type { CurrentUser } from "./types";
+import { blocksText, type Block } from "./plan-blocks";
 
 // Ward plans (temple and family history, ward mission, a youth plan...). Each
 // belongs to a ward and is for the whole ward, or for chosen organizations.
@@ -23,6 +24,8 @@ export interface PlanVersion {
   /** The attachment: a PDF or a picture (stored name, and the name it was uploaded with). */
   pdf_file: string | null;
   pdf_name: string | null;
+  /** The page, as JSON blocks (see plan-blocks.ts); null for versions from before the page builder. */
+  blocks: string | null;
   created_at: string;
   author: string | null;
 }
@@ -131,10 +134,10 @@ export function createPlan(wardId: number, name: string, orgIds: number[], creat
   return id;
 }
 
-export function saveVersion(v: { planId: number; orgId: number; title: string; body: string; pdfFile: string | null; pdfName: string | null; createdBy: number }) {
+export function saveVersion(v: { planId: number; orgId: number; title: string; blocks: Block[]; createdBy: number }) {
   db()
-    .prepare("INSERT INTO plan_versions (plan_id, org_id, title, body, pdf_file, pdf_name, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)")
-    .run(v.planId, v.orgId, v.title, v.body, v.pdfFile, v.pdfName, v.createdBy);
+    .prepare("INSERT INTO plan_versions (plan_id, org_id, title, body, blocks, created_by) VALUES (?, ?, ?, ?, ?, ?)")
+    .run(v.planId, v.orgId, v.title, blocksText(v.blocks), JSON.stringify(v.blocks), v.createdBy);
   db().prepare("UPDATE ward_plans SET name = ? WHERE id = ?").run(v.title, v.planId);
 }
 
@@ -147,4 +150,11 @@ export function audienceText(plan: Pick<WardPlan, "org_ids">, orgs: { id: number
   const names = plan.org_ids.map((id) => orgs.find((o) => o.id === id)?.label).filter(Boolean) as string[];
   if (!names.length) return "Whole ward";
   return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+}
+
+/** Files uploaded for this ward's plans (so a page can only show its own ward's files). */
+export function wardFileCheck(wardId: number): (name: string) => boolean {
+  const names = new Set((db().prepare("SELECT name FROM plan_files WHERE ward_id = ?").all(wardId) as { name: string }[]).map((r) => r.name));
+  const legacy = db().prepare("SELECT 1 FROM plan_versions v JOIN ward_plans p ON p.id = v.plan_id WHERE v.pdf_file = ? AND p.ward_id = ?");
+  return (name) => names.has(name) || !!legacy.get(name, wardId);
 }

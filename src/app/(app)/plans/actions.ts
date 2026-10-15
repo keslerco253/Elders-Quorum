@@ -3,8 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { allowedAudience, canCreatePlans, canEditPlan, createPlan, currentVersion, deletePlan, getPlan, managesWardPlans, saveVersion, setAudience } from "@/lib/plans";
-import { saveUpload } from "@/lib/uploads";
+import { allowedAudience, canCreatePlans, canEditPlan, createPlan, deletePlan, getPlan, managesWardPlans, saveVersion, setAudience, wardFileCheck } from "@/lib/plans";
+import { parseBlocks, type Block } from "@/lib/plan-blocks";
 import { audienceMembers, notify, type Recipient } from "@/lib/notify";
 import { wardOrg } from "@/lib/orgs";
 
@@ -12,21 +12,9 @@ function back(path: string, msg: string): never {
   redirect(`${path}?msg=${encodeURIComponent(msg)}`);
 }
 
-/** The attachment (PDF or picture) to keep with this version: a new upload, the previous one, or none. */
-async function pdfFor(fd: FormData, prev: { pdf_file: string | null; pdf_name: string | null } | undefined, path: string) {
-  let pdfFile = fd.get("remove_pdf") === "on" ? null : (prev?.pdf_file ?? null);
-  let pdfName = pdfFile ? (prev?.pdf_name ?? null) : null;
-  const file = fd.get("pdf");
-  if (file instanceof File && file.size > 0) {
-    if (file.size > 10_000_000) back(path, "The file must be under 10 MB.");
-    try {
-      pdfFile = await saveUpload(file);
-      pdfName = file.name;
-    } catch {
-      back(path, "That kind of file can't be attached. Use a PDF or a picture (PNG, JPEG, GIF, WebP or an iPhone photo).");
-    }
-  }
-  return { pdfFile, pdfName };
+/** The page from the editor; files must have been uploaded to this ward. */
+function readBlocks(fd: FormData, wardId: number): Block[] {
+  return parseBlocks(String(fd.get("blocks") || "[]"), wardFileCheck(wardId));
 }
 
 /** "Whole ward" (no organizations) or the organizations ticked. */
@@ -54,9 +42,8 @@ export async function createPlanAction(fd: FormData) {
   if (!title) back("/plans/new", "Give the plan a title.");
   const audience = allowedAudience(user, readAudience(fd));
   if (audience === null || (!audience.length && !managesWardPlans(user))) back("/plans/new", "Choose which of your organizations this plan is for.");
-  const { pdfFile, pdfName } = await pdfFor(fd, undefined, "/plans/new");
   const id = createPlan(user.ward_id, title, audience, user.id);
-  saveVersion({ planId: id, orgId: user.org_id, title, body: String(fd.get("body") || "").slice(0, 100_000), pdfFile, pdfName, createdBy: user.id });
+  saveVersion({ planId: id, orgId: user.org_id, title, blocks: readBlocks(fd, user.ward_id), createdBy: user.id });
   if (fd.get("announce") === "on") await announce(user.ward_id, audience, title, id);
   revalidatePath("/plans", "layout");
   back(`/plans/${id}`, "Plan posted.");
@@ -75,8 +62,7 @@ export async function savePlanVersion(fd: FormData) {
     if (wanted === null || (!wanted.length && !managesWardPlans(user))) back(path, "Choose which of your organizations this plan is for.");
     audience = wanted;
   }
-  const { pdfFile, pdfName } = await pdfFor(fd, currentVersion(plan.id), path);
-  saveVersion({ planId: plan.id, orgId: user.org_id, title, body: String(fd.get("body") || "").slice(0, 100_000), pdfFile, pdfName, createdBy: user.id });
+  saveVersion({ planId: plan.id, orgId: user.org_id, title, blocks: readBlocks(fd, user.ward_id), createdBy: user.id });
   setAudience(plan.id, audience);
   if (fd.get("announce") === "on") await announce(user.ward_id, audience, title, plan.id);
   revalidatePath("/plans", "layout");

@@ -1,0 +1,44 @@
+import { renderMarkdown } from "@/lib/markdown";
+import { isPicture } from "@/lib/upload-names";
+import { mediaProps, type Block, type MediaBlock } from "@/lib/plan-blocks";
+import { PdfPages } from "./pdf-pages";
+
+/** A plan page as members see it. */
+export function PlanPage({ blocks }: { blocks: Block[] }) {
+  return (
+    <div className="plan-page">
+      {blocks.map((b) => {
+        switch (b.type) {
+          case "heading":
+            return b.text ? <h2 key={b.id}>{b.text}</h2> : null;
+          case "text":
+            return <div key={b.id} className="prose-eq" dangerouslySetInnerHTML={{ __html: renderMarkdown(b.text) }} />;
+          case "divider":
+            return <hr key={b.id} />;
+          case "image":
+          case "pdf":
+            return (
+              <figure key={b.id} {...mediaProps(b)}>
+                <Media block={b} />
+                {b.caption && <figcaption>{b.caption}</figcaption>}
+              </figure>
+            );
+        }
+      })}
+    </div>
+  );
+}
+
+export function Media({ block: b }: { block: MediaBlock }) {
+  const src = `/files/${b.file}`;
+  if (b.type === "image" && isPicture(b.file)) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={b.caption || b.name} loading="lazy" />;
+  }
+  if (b.type === "pdf" && b.pages && b.file.endsWith(".pdf")) return <PdfPages src={src} name={b.name} />;
+  return (
+    <a href={src} target="_blank" rel="noreferrer" className="plan-file-card">
+      📄 <span>{b.name}</span>
+    </a>
+  );
+}
