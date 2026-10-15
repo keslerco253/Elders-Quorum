@@ -238,7 +238,7 @@ describe("replies to the presidency", () => {
     expect(link).toMatch(/\/n\/\d+$/);
     const { GET } = await import("@/app/n/[id]/route");
     const res = await GET(new Request(link), { params: Promise.resolve({ id: link.split("/").pop()! }) });
-    expect(res.headers.get("location")).toMatch(/\/admin\/replies\/2\?private=1&n=\d+&org=1$/);
+    expect(res.headers.get("location")).toMatch(/\/admin\/replies\/2\?private=1&n=\d+&org=1#end$/);
 
     // The leader replies to that text: it goes to the member, privately, like answering in the app.
     const beforeAnswer = new Set(fs.readdirSync(path.join(dir, "outbox")));
@@ -396,5 +396,58 @@ describe("a leader's texted reply when two people write at once", () => {
     await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Thanks!", "app", null, { private: true, withId: 1 });
     expect(await lib.handleInboundText({ From: leaderPhone, Body: "You bet" })).toBe("answer_sent");
     expect(last(2)).toMatchObject({ direction: "out", body: "You bet" });
+  });
+});
+
+describe("a leader's inbox", () => {
+  let conv: typeof import("@/lib/conversations");
+  let orgs: typeof import("@/lib/orgs");
+
+  beforeAll(async () => {
+    (await import("@/lib/db")).useTestDb(`
+      INSERT INTO wards (id, name) VALUES (1, 'Villas Ward EQ');
+      INSERT INTO members (id, ward_id, name, display_name, email, contact_pref, role) VALUES
+        (1, 1, 'Pres', 'Pres Person', 'pres@test.local', 'email', 'presidency'),
+        (2, 1, 'Hyrum', 'Hyrum Johnson', 'hyrum@test.local', 'email', 'member'),
+        (3, 1, 'Jane', 'Jane Smith', 'jane@test.local', 'email', 'member');
+    `);
+    conv = await import("@/lib/conversations");
+    orgs = await import("@/lib/orgs");
+  });
+
+  it("lists every conversation in every organization the leader leads, with unread and search filters", async () => {
+    const maple = orgs.createWard({ name: "Maple Ward", timezone: "America/Boise", creatorId: 1 });
+    const mapleOrg = orgs.wardOrg(maple.id).id;
+    orgs.addToOrg(3, mapleOrg);
+    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Ride Sunday?", "app", null);
+    await conv.receiveReply({ id: 3, org_id: mapleOrg, display_name: "Jane Smith" }, "Projector?", "app", null, { private: true, withId: 1 });
+    await conv.sendAnswer({ id: 1, org_id: 1, display_name: "Pres Person" }, 2, "Yes, 8:30");
+    conv.markThreadRead(1, 2, { private: false }, 1);
+
+    const rows = conv.leaderInbox(1);
+    expect(rows.map((r) => [r.member_name, r.org_label, r.recipient_id !== null, r.unread])).toEqual([
+      ["Hyrum Johnson", "Villas Ward EQ · Elders Quorum", false, 0],
+      ["Jane Smith", "Maple Ward", true, 1],
+    ]);
+    expect(rows[0]).toMatchObject({ last_direction: "out", last_author_id: 1, last_body: "Yes, 8:30" });
+    expect(conv.leaderInbox(1, { unreadOnly: true }).map((r) => r.member_name)).toEqual(["Jane Smith"]);
+    expect(conv.leaderInbox(1, { q: "hyr" }).map((r) => r.member_name)).toEqual(["Hyrum Johnson"]);
+    expect(conv.leaderUnread(1)).toBe(1);
+    // Members (who lead nothing) have no inbox.
+    expect(conv.leaderInbox(2)).toEqual([]);
+  });
+});
+
+describe("message times", () => {
+  it("read like a phone's message list", async () => {
+    const { friendlyTime } = await import("@/lib/time");
+    const { DateTime } = await import("luxon");
+    const now = DateTime.fromISO("2026-10-15T20:00:00Z"); // Thu Oct 15, 2:00 PM in Boise
+    const tz = "America/Boise";
+    expect(friendlyTime("2026-10-15 15:30:00", tz, now)).toBe("9:30 AM");
+    expect(friendlyTime("2026-10-14 15:30:00", tz, now)).toBe("Yesterday");
+    expect(friendlyTime("2026-10-12 15:30:00", tz, now)).toBe("Monday");
+    expect(friendlyTime("2026-10-01 15:30:00", tz, now)).toBe("Oct 1");
+    expect(friendlyTime("2025-12-24 15:30:00", tz, now)).toBe("Dec 24, 2025");
   });
 });

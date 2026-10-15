@@ -10,7 +10,7 @@ export async function replyToPresidency(fd: FormData) {
   const user = await requireUser();
   const body = String(fd.get("body") || "").trim();
   const messageId = Number(fd.get("message_id")) || null;
-  const back = (msg: string, ok = false): never => redirect(`/messages?msg=${encodeURIComponent(msg)}${ok ? "&ok=1" : messageId ? `&re=${messageId}` : ""}#conversation`);
+  const back = (msg: string, ok = false): never => redirect(`/messages?tab=mine&msg=${encodeURIComponent(msg)}${ok ? "&ok=1" : messageId ? `&re=${messageId}` : ""}#conversation`);
   if (!body) back("Write a message first.");
   if (recentReplies(user.id) >= 20) back("You've sent a lot of messages in the last hour. Please try again a little later.");
   const to = Number(fd.get("to")) || 0;
@@ -22,7 +22,7 @@ export async function replyToPresidency(fd: FormData) {
 /** Someone in a message group writes to it (when the group allows that). Signed with their name. */
 export async function sendToGroup(fd: FormData) {
   const user = await requireUser();
-  const back = (msg: string, ok = false): never => redirect(`/messages?gmsg=${encodeURIComponent(msg)}${ok ? "&ok=1" : ""}#group-message`);
+  const back = (msg: string, ok = false): never => redirect(`/messages?tab=mine&gmsg=${encodeURIComponent(msg)}${ok ? "&ok=1" : ""}#group-message`);
   const g = getGroup(Number(fd.get("group_id")), user.org_id);
   const body = String(fd.get("body") || "").trim().slice(0, 1000);
   if (!g || !canSendTo(g, user.id, user.role)) return back("You can't send to that group.");

@@ -114,10 +114,11 @@ export async function receiveReply(member: { id: number; org_id: number; display
       title: `Private message from ${member.display_name}`,
       textTitle: `${member.display_name} (private)`,
       body: text,
-      url: `/admin/replies/${member.id}?private=1`,
+      url: `/admin/replies/${member.id}?private=1#end`,
       fullText: true,
       linkLabel: "Answer",
       replyTo: { memberId: member.id, private: true },
+      tag: `conv-${member.org_id}-${member.id}-p`,
     });
   } else {
     // The presidency, but never the sender (a leader writing as a member).
@@ -125,10 +126,11 @@ export async function receiveReply(member: { id: number; org_id: number; display
       title: `Reply from ${member.display_name}`,
       textTitle: member.display_name,
       body: text,
-      url: `/admin/replies/${member.id}`,
+      url: `/admin/replies/${member.id}#end`,
       fullText: true,
       linkLabel: "Answer",
       replyTo: { memberId: member.id, private: false },
+      tag: `conv-${member.org_id}-${member.id}`,
     });
   }
 }
@@ -143,7 +145,7 @@ export async function sendAnswer(author: { id: number; org_id: number; display_n
   await notify(
     [member],
     // A personal note (private or not): the notification shows who it's from; texts and emails are just the words, signed.
-    { title: author.display_name, body: text, url: "/messages", personal: { from: author.display_name } },
+    { title: author.display_name, body: text, url: "/messages?tab=mine#conversation", personal: { from: author.display_name }, tag: `answers-${author.org_id}` },
   );
   return true;
 }
@@ -178,21 +180,25 @@ export function wardConversations(orgId: number, viewerId: number): Conversation
   return db()
     .prepare(
       `SELECT c.member_id, mem.display_name AS member_name, c.recipient_id, c.body AS last_body, c.direction AS last_direction, c.created_at AS last_at,
-         (SELECT COUNT(*) FROM member_messages u WHERE u.org_id = c.org_id AND u.member_id = c.member_id AND u.recipient_id IS c.recipient_id AND u.direction = 'in' AND u.read_at IS NULL) AS unread
+         (SELECT COUNT(*) FROM member_messages u WHERE u.org_id = c.org_id AND u.member_id = c.member_id AND u.recipient_id IS c.recipient_id AND u.direction = 'in'
+           AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = u.id AND r.viewer_id = ?)) AS unread
        FROM member_messages c JOIN members mem ON mem.id = c.member_id
        WHERE c.org_id = ? AND (c.recipient_id IS NULL OR c.recipient_id = ?)
          AND c.id = (SELECT MAX(id) FROM member_messages x WHERE x.org_id = c.org_id AND x.member_id = c.member_id AND x.recipient_id IS c.recipient_id)
        ORDER BY c.created_at DESC, c.id DESC`,
     )
-    .all(orgId, viewerId) as ConversationSummary[];
+    .all(viewerId, orgId, viewerId) as ConversationSummary[];
 }
 
-/** Unread messages this presidency member can see. */
+/** Messages this presidency member can see and hasn't read yet (each leader has their own). */
 export function unreadReplies(orgId: number, viewerId: number): number {
   return (
-    db().prepare("SELECT COUNT(*) AS n FROM member_messages WHERE org_id = ? AND direction = 'in' AND read_at IS NULL AND (recipient_id IS NULL OR recipient_id = ?)").get(orgId, viewerId) as {
-      n: number;
-    }
+    db()
+      .prepare(
+        `SELECT COUNT(*) AS n FROM member_messages m WHERE m.org_id = ? AND m.direction = 'in' AND (m.recipient_id IS NULL OR m.recipient_id = ?) AND m.member_id <> ?
+           AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = m.id AND r.viewer_id = ?)`,
+      )
+      .get(orgId, viewerId, viewerId, viewerId) as { n: number }
   ).n;
 }
 
@@ -215,13 +221,74 @@ export function markAnswersRead(memberId: number, orgId: number) {
   db().prepare("UPDATE member_messages SET read_at = datetime('now') WHERE member_id = ? AND org_id = ? AND direction = 'out' AND read_at IS NULL").run(memberId, orgId);
 }
 
-/** Marks one thread's incoming messages read for the presidency. */
-export function markThreadRead(orgId: number, memberId: number, thread: Thread) {
+/** Marks one thread's incoming messages read by this leader (and, for the member, seen by a leader). */
+export function markThreadRead(orgId: number, memberId: number, thread: Thread, viewerId: number) {
   const t = threadSql(thread);
+  db()
+    .prepare(`INSERT OR IGNORE INTO message_reads (message_id, viewer_id) SELECT id, ? FROM member_messages WHERE org_id = ? AND member_id = ? AND direction = 'in' AND ${t.sql}`)
+    .run(viewerId, orgId, memberId, ...t.args);
   db().prepare(`UPDATE member_messages SET read_at = datetime('now') WHERE org_id = ? AND member_id = ? AND direction = 'in' AND read_at IS NULL AND ${t.sql}`).run(orgId, memberId, ...t.args);
+}
+
+/** "Mark as unread": the thread's newest incoming message is unread again for this leader. */
+export function markThreadUnread(orgId: number, memberId: number, thread: Thread, viewerId: number) {
+  const t = threadSql(thread);
+  const last = db().prepare(`SELECT id FROM member_messages WHERE org_id = ? AND member_id = ? AND direction = 'in' AND ${t.sql} ORDER BY id DESC LIMIT 1`).get(orgId, memberId, ...t.args) as
+    | { id: number }
+    | undefined;
+  if (last) db().prepare("DELETE FROM message_reads WHERE message_id = ? AND viewer_id = ?").run(last.id, viewerId);
 }
 
 /** Counts a member's messages in the last hour, to stop runaway texting or posting. */
 export function recentReplies(memberId: number): number {
   return (db().prepare("SELECT COUNT(*) AS n FROM member_messages WHERE member_id = ? AND direction = 'in' AND created_at > datetime('now', '-1 hour')").get(memberId) as { n: number }).n;
+}
+
+export interface InboxRow extends ConversationSummary {
+  org_id: number;
+  /** "Villas Ward" or "Villas Ward · Elders Quorum". */
+  org_label: string;
+  /** Who wrote the last answer (when the last message is one). */
+  last_author_id: number | null;
+  last_author_name: string | null;
+}
+
+/** Organizations (turned on, in any ward) where this person is in the presidency. */
+export function ledOrgIds(memberId: number): number[] {
+  return (
+    db()
+      .prepare("SELECT om.org_id FROM org_members om JOIN orgs o ON o.id = om.org_id JOIN ward_members wm ON wm.ward_id = o.ward_id AND wm.member_id = om.member_id WHERE om.member_id = ? AND om.role = 'presidency' AND o.active = 1")
+      .all(memberId) as { org_id: number }[]
+  ).map((r) => r.org_id);
+}
+
+/**
+ * A leader's inbox: one row per conversation (whole presidency, or private to them) in
+ * every organization they lead, newest first. `unreadOnly` keeps those with unread
+ * messages; `q` matches the member's name.
+ */
+export function leaderInbox(viewerId: number, opts: { unreadOnly?: boolean; q?: string } = {}): InboxRow[] {
+  const orgIds = ledOrgIds(viewerId);
+  if (!orgIds.length) return [];
+  const rows = db()
+    .prepare(
+      `SELECT c.org_id, c.member_id, mem.display_name AS member_name, c.recipient_id, c.body AS last_body, c.direction AS last_direction, c.created_at AS last_at,
+         c.author_id AS last_author_id, au.display_name AS last_author_name,
+         CASE WHEN o.kind = 'ward' THEN w.name ELSE w.name || ' · ' || o.name END AS org_label,
+         (SELECT COUNT(*) FROM member_messages u WHERE u.org_id = c.org_id AND u.member_id = c.member_id AND u.recipient_id IS c.recipient_id AND u.direction = 'in'
+           AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = u.id AND r.viewer_id = ?)) AS unread
+       FROM member_messages c JOIN members mem ON mem.id = c.member_id JOIN orgs o ON o.id = c.org_id JOIN wards w ON w.id = o.ward_id
+         LEFT JOIN members au ON au.id = c.author_id
+       WHERE c.org_id IN (${orgIds.map(() => "?").join(",")}) AND (c.recipient_id IS NULL OR c.recipient_id = ?) AND c.member_id <> ?
+         AND c.id = (SELECT MAX(id) FROM member_messages x WHERE x.org_id = c.org_id AND x.member_id = c.member_id AND x.recipient_id IS c.recipient_id)
+       ORDER BY c.created_at DESC, c.id DESC`,
+    )
+    .all(viewerId, ...orgIds, viewerId, viewerId) as InboxRow[];
+  const q = (opts.q ?? "").trim().toLowerCase();
+  return rows.filter((r) => (!opts.unreadOnly || r.unread > 0) && (!q || r.member_name.toLowerCase().includes(q)));
+}
+
+/** Unread messages waiting for this leader across every organization they lead. */
+export function leaderUnread(viewerId: number): number {
+  return leaderInbox(viewerId).reduce((n, r) => n + r.unread, 0);
 }

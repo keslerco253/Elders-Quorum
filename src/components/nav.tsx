@@ -14,6 +14,7 @@ const icons: Record<string, string> = {
   more: "M5 12h.01M12 12h.01M19 12h.01",
   list: "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01",
   shield: "M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z",
+  chat: "M4 5h16v11H8l-4 4z",
 };
 
 function Icon({ name }: { name: string }) {
@@ -82,6 +83,8 @@ function useStickToBottom(ref: React.RefObject<HTMLElement | null>) {
 }
 
 function isActive(path: string, href: string) {
+  // A conversation with a member is part of Messages, not Admin.
+  if (path.startsWith("/admin/replies")) return href === "/messages";
   return href === "/" ? path === "/" : path === href || path.startsWith(href + "/");
 }
 
@@ -150,6 +153,7 @@ export function Nav({
   isAdmin,
   adminCount,
   moreCount = 0,
+  messagesCount = 0,
 }: {
   current: SwitchTarget;
   ward: string;
@@ -158,6 +162,8 @@ export function Nav({
   isAdmin: boolean;
   adminCount: number;
   moreCount?: number;
+  /** Unread messages: answers to them, and (for leaders) members writing to them. */
+  messagesCount?: number;
 }) {
   const path = usePathname();
   const router = useRouter();
@@ -167,14 +173,14 @@ export function Nav({
   // once something is read or handled. While a count shows, check it again
   // on each page change.
   const lastPath = useRef(path);
-  const showingCounts = !!(adminCount || moreCount);
+  const showingCounts = !!(adminCount || moreCount || messagesCount);
   useEffect(() => {
     if (lastPath.current === path) return;
     lastPath.current = path;
     if (showingCounts) router.refresh();
   }, [path, showingCounts, router]);
   // The page being read clears these, so don't show the dot there.
-  if (path.startsWith("/messages") || path.startsWith("/notifications")) moreCount = 0;
+  if (path.startsWith("/notifications")) moreCount = 0;
   // Lessons only where the organization uses them; Sign-ups takes a free spot.
   const main: Item[] = [
     { href: "/", label: "Home", icon: "home" },
@@ -185,6 +191,7 @@ export function Nav({
   if (main.length < 4 && features.signups) main.push({ href: "/signups", label: "Service", icon: "list" });
   const desktopExtra: Item[] = [
     ...(features.signups && !main.some((i) => i.href === "/signups") ? [{ href: "/signups", label: "Service", icon: "list" }] : []),
+    { href: "/messages", label: "Messages", icon: "chat", badge: messagesCount },
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: "shield", badge: adminCount }] : []),
     { href: "/more", label: "More", icon: "more", badge: moreCount },
   ];
@@ -206,8 +213,15 @@ export function Nav({
               </Link>
             ))}
           </nav>
+          {/* Phones: Messages and Admin sit in the header (the tab bar has no room). */}
+          <Link href="/messages" aria-label={`Messages${messagesCount ? `, ${messagesCount} unread` : ""}`} className="relative ml-auto rounded-lg p-1.5 text-accent md:hidden">
+            <Icon name="chat" />
+            {messagesCount > 0 && (
+              <span className="absolute -top-0.5 -right-1 min-w-4 rounded-full bg-danger px-1 text-center text-[10px] leading-4 font-bold text-white">{messagesCount}</span>
+            )}
+          </Link>
           {isAdmin && (
-            <Link href="/admin" className="relative ml-auto rounded-lg px-2 py-1 text-sm font-medium text-accent md:hidden">
+            <Link href="/admin" className="relative rounded-lg px-2 py-1 text-sm font-medium text-accent md:hidden">
               Admin
               {adminCount > 0 && <span className="ml-1 rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-bold text-white">{adminCount}</span>}
             </Link>

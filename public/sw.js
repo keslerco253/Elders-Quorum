@@ -19,6 +19,9 @@ self.addEventListener("push", (event) => {
       // Buttons show on Android and computers; iPhones open data.url instead.
       actions: (data.actions || []).slice(0, 2).map((a) => ({ action: a.action, title: a.title })),
       data: { url: data.url || "/", actions: data.actions || [] },
+      // One notification per conversation: a newer message from the same person replaces the
+      // older one (still alerting), instead of a pile of separate notifications.
+      ...(data.tag ? { tag: data.tag, renotify: true } : {}),
     }),
   );
 });

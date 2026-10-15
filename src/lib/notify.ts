@@ -107,11 +107,12 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
       const text = `${payload.body}\n\n- ${payload.personal.from}`;
       return sendMail({ to: r.email, subject: `A message from ${payload.personal.from}`, text, html: emailHtml("", text) });
     }
+    const body = payload.emailNote ? `${payload.body}\n\n${payload.emailNote}` : payload.body;
     return sendMail({
       to: r.email,
       subject: payload.title,
-      text: `${payload.body}\n\n${url}`,
-      html: emailHtml(payload.title, payload.body, { url, label: payload.linkLabel ?? "Open the app" }),
+      text: `${body}\n\n${url}`,
+      html: emailHtml(payload.title, body, { url, label: payload.linkLabel ?? "Open the app" }),
     });
   };
   const sendText = async (r: Recipient, url: string) => {

@@ -44,6 +44,10 @@ export interface PushPayload {
   fullText?: boolean;
   /** A leader texted this can answer the member by replying to the text. */
   replyTo?: { memberId: number; private: boolean };
+  /** A line under an email's text (e.g. that replies go in the app, not by email). */
+  emailNote?: string;
+  /** Notifications with the same tag replace each other (one per conversation). */
+  tag?: string;
   /** Shorter heading for a fullText text, e.g. "Hyrum Johnson (private)". */
   textTitle?: string;
 }

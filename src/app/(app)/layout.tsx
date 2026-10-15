@@ -3,7 +3,7 @@ import { isAdmin } from "@/lib/permissions";
 import { adminCounts } from "@/lib/admin-counts";
 import { Nav } from "@/components/nav";
 import { hasFeature, ledOrgsAnywhere, orgLabel, orgsInWard } from "@/lib/orgs";
-import { unreadAnswers } from "@/lib/conversations";
+import { leaderUnread, unreadAnswers } from "@/lib/conversations";
 import { unreadNotifications } from "@/lib/notification-log";
 import { NotificationSeen } from "@/components/notification-seen";
 import { StayFresh } from "@/components/stay-fresh";
@@ -24,7 +24,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         // Leaders keep the Admin tab while looking at another organization; it shows where to switch.
         isAdmin={isAdmin(user) || ledOrgsAnywhere(user.id).length > 0}
         adminCount={counts.total}
-        moreCount={unreadAnswers(user.id) + unreadNotifications(user.id)}
+        moreCount={unreadNotifications(user.id)}
+        messagesCount={unreadAnswers(user.id) + leaderUnread(user.id)}
       />
       <NotificationSeen />
       <StayFresh />

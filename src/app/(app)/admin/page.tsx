@@ -51,8 +51,8 @@ export default async function AdminPage() {
     : 0;
   const waiting: Tile[] = [
     {
-      href: "/admin/replies",
-      label: "Replies",
+      href: "/messages?show=unread",
+      label: "Messages",
       desc: `Members writing to the ${leadersWord(user.org)}`,
       count: c.replies,
       show: p,
@@ -121,7 +121,7 @@ export default async function AdminPage() {
             : `Admin tools for ${user.orgLabel}`
         }
       />
-      {c.total > 0 && (
+      {waiting.some((t) => t.count && t.show !== false) && (
         <Section title="Waiting on you">
           <Tiles tiles={waiting.filter((t) => t.count)} />
         </Section>
@@ -181,9 +181,9 @@ export default async function AdminPage() {
           <Tiles
             tiles={[
               {
-                href: "/admin/replies",
-                label: "Replies",
-                desc: "Conversations with members",
+                href: "/messages",
+                label: "Messages",
+                desc: "Your inbox of conversations with members",
                 count: c.replies,
               },
               ...(has("visits")

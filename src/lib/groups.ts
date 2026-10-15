@@ -83,7 +83,15 @@ export async function sendToAudience(opts: {
     for (const r of recipients) ins.run(id, r.id);
     return id;
   })();
-  const result = await notify(recipients, { title: opts.title, body: opts.body, url: `/messages?re=${messageId}`, ...(opts.personal ? { personal: opts.personal } : {}) });
+  const result = await notify(recipients, {
+    title: opts.title,
+    body: opts.body,
+    url: `/messages?tab=mine&re=${messageId}#conversation`,
+    // Replying to the email itself wouldn't reach the leaders (it goes to the app's mailbox).
+    linkLabel: "Reply in the app",
+    emailNote: "To reply, use the button below or text back. Replies to this email aren't seen by your leaders.",
+    ...(opts.personal ? { personal: opts.personal } : {}),
+  });
   d.prepare("UPDATE messages SET push_count = ?, email_count = ?, text_count = ? WHERE id = ?").run(result.push, result.email, result.text, messageId);
   return { ...result, count: recipients.length, messageId };
 }

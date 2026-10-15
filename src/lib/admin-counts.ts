@@ -43,6 +43,7 @@ export function adminCounts(user: CurrentUser) {
     visitRequests,
     replies,
     teacherNeeded,
-    total: comments + notes + eventRequests + access + volunteers + visitRequests + replies + teacherNeeded + newTimes,
+    // Unread messages from members count on the Messages tab, not here.
+    total: comments + notes + eventRequests + access + volunteers + visitRequests + teacherNeeded + newTimes,
   };
 }

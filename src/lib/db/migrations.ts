@@ -844,4 +844,21 @@ CREATE TABLE sms_pending (
 );
 `,
   },
+  {
+    // Each leader has their own read/unread for members' messages, like email. (read_at on
+    // the message stays "seen by a leader", for the member's "Seen".) Messages already read
+    // count as read for every leader who could see them.
+    id: 33,
+    sql: `
+CREATE TABLE message_reads (
+  message_id INTEGER NOT NULL REFERENCES member_messages(id) ON DELETE CASCADE,
+  viewer_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  PRIMARY KEY (message_id, viewer_id)
+);
+INSERT OR IGNORE INTO message_reads (message_id, viewer_id)
+  SELECT mm.id, om.member_id FROM member_messages mm
+  JOIN org_members om ON om.org_id = mm.org_id AND om.role = 'presidency'
+  WHERE mm.direction = 'in' AND mm.read_at IS NOT NULL AND (mm.recipient_id IS NULL OR mm.recipient_id = om.member_id);
+`,
+  },
 ];

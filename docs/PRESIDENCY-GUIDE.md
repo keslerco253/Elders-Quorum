@@ -265,6 +265,26 @@ assignments stay in LCR.
 
 ## Replies (presidency only)
 
+**Messages (your inbox):** tap **Messages** at the top (the speech bubble on a
+phone). Leaders see two tabs:
+- **Inbox**: one row per person who has written to you (and a separate row for
+  each private conversation), from every organization you lead, newest first.
+  A blue dot and red count mean unread; **Needs reply** means their message is
+  the last one. Use **Unread** to see only what's new, and the search box to
+  find someone by name. **New message** starts a conversation with anyone in
+  the organization you're looking at.
+- **My messages**: your own conversation with your presidency, and messages
+  sent to you, like any member.
+
+Open a conversation to see the whole back-and-forth. New messages appear on
+their own while it's open. Under your last answer it says **Seen** once they've
+read it. Links, emails and phone numbers in messages can be tapped. Your
+unfinished reply is kept if you leave and come back; **Ctrl+Enter** (⌘+Enter on
+a Mac) sends. **Mark as unread** keeps it in your Unread list. Each leader has
+their own read and unread: a counselor opening a conversation doesn't mark it
+read for you. Notifications from the same person replace each other instead of
+piling up, and open at the newest message.
+
 **Personal messages:** to write to one member, open them in **Admin →
 Members** → **Send a personal message** (or reply in their conversation under
 Admin → Replies). There's no subject. Their text or email is just your words,

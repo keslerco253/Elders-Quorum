@@ -27,6 +27,18 @@ export function formatDateTime(utc: string, tz: string, fmt = "ccc, LLL d · h:m
   return parseUtc(utc).setZone(tz).toFormat(fmt);
 }
 
+/** Like a phone's message list: "2:14 PM" today, "Yesterday", "Monday" this week, then "Oct 3" (and the year if it's not this year). */
+export function friendlyTime(utc: string, tz: string, now: DateTime = DateTime.now()): string {
+  const t = parseUtc(utc).setZone(tz);
+  const today = now.setZone(tz).startOf("day");
+  const day = t.startOf("day");
+  const days = Math.round(today.diff(day, "days").days);
+  if (days <= 0) return t.toFormat("h:mm a");
+  if (days === 1) return "Yesterday";
+  if (days < 7) return t.toFormat("cccc");
+  return t.toFormat(t.year === today.year ? "LLL d" : "LLL d, yyyy");
+}
+
 export function formatTime(utcIso: string, tz: string) {
   return DateTime.fromISO(utcIso, { zone: "utc" }).setZone(tz).toFormat("h:mm a");
 }

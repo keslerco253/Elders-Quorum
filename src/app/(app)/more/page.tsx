@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
-import { unreadAnswers } from "@/lib/conversations";
+import { leaderUnread, unreadAnswers } from "@/lib/conversations";
 import { unreadNotifications } from "@/lib/notification-log";
 import { callingLabel, leadersWord, roleLabel } from "@/lib/types";
 import { hasFeature, ledOrgsAnywhere } from "@/lib/orgs";
@@ -19,7 +19,7 @@ export const metadata = { title: "More" };
 export default async function MorePage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
   const sp = await searchParams;
-  const unread = unreadAnswers(user.id);
+  const unread = unreadAnswers(user.id) + leaderUnread(user.id);
   const newNotes = unreadNotifications(user.id);
   const links: { href: string; label: string; desc: string; count?: number }[] = [
     { href: "/notifications", label: "Notifications", count: newNotes, desc: "Read the full text of everything the app sent you" },
