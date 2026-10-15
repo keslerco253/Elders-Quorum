@@ -7,7 +7,7 @@ import { adminCounts } from "@/lib/admin-counts";
 import { eventsBetween } from "@/lib/events";
 import { upcomingLessons } from "@/lib/lessons";
 import { getNotes } from "@/lib/lesson-notes";
-import { listSignups } from "@/lib/signups";
+import { listSignups, stillNeeded } from "@/lib/signups";
 import {
   currentLessonDate,
   formatDate,
@@ -242,7 +242,7 @@ export default async function HomePage() {
                     </span>
                   </span>
                   {s.taken < s.capacity ? (
-                    <Badge tone="info">{s.capacity - s.taken} open</Badge>
+                    <Badge tone="info">{stillNeeded(s.capacity - s.taken)}</Badge>
                   ) : (
                     <Badge tone="success">Full</Badge>
                   )}

@@ -52,3 +52,6 @@ export function parseSlotLines(text: string) {
     })
     .filter((s) => s.label);
 }
+
+/** "1 person still needed", "3 people still needed". */
+export const stillNeeded = (n: number) => `${n} ${n === 1 ? "person" : "people"} still needed`;

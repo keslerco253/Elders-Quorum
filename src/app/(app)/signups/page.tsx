@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
-import { listSignups } from "@/lib/signups";
+import { listSignups, stillNeeded } from "@/lib/signups";
 import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 
@@ -43,7 +43,7 @@ export default async function SignupsPage({ searchParams }: { searchParams: Prom
                   <div className="font-semibold">{s.title}</div>
                   <div className="text-sm text-muted">{s.date ? formatDate(s.date) : "No set date"}</div>
                 </div>
-                {s.closed ? <Badge>Closed</Badge> : s.taken >= s.capacity && s.capacity > 0 ? <Badge tone="success">Full</Badge> : <Badge tone="info">{s.capacity - s.taken} spots open</Badge>}
+                {s.closed ? <Badge>Closed</Badge> : s.taken >= s.capacity && s.capacity > 0 ? <Badge tone="success">Full</Badge> : <Badge tone="info">{stillNeeded(s.capacity - s.taken)}</Badge>}
                 <span className="text-muted">›</span>
               </Link>
             </li>
