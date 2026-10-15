@@ -112,6 +112,7 @@ export async function receiveReply(member: { id: number; org_id: number; display
   if (to) {
     await notify([to], {
       title: `Private message from ${member.display_name}`,
+      textTitle: `${member.display_name} (private)`,
       body: text,
       url: `/admin/replies/${member.id}?private=1`,
       fullText: true,
@@ -122,6 +123,7 @@ export async function receiveReply(member: { id: number; org_id: number; display
     // The presidency, but never the sender (a leader writing as a member).
     await notify(audienceMembers(member.org_id, "presidency").filter((r) => r.id !== member.id), {
       title: `Reply from ${member.display_name}`,
+      textTitle: member.display_name,
       body: text,
       url: `/admin/replies/${member.id}`,
       fullText: true,

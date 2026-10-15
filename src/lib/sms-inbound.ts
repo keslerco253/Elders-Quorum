@@ -38,7 +38,6 @@ export type InboundResult =
 
 /** What the app texts back after a teacher's TEACH / CANT reply. */
 export const AUTO_REPLIES: Partial<Record<InboundResult, string>> = {
-  answer_sent: "Sent. Your answer is also in their conversation in the app.",
   teacher_confirmed: "Thanks! You're confirmed to teach. See you Sunday.",
   teacher_declined: "Thanks for letting us know. The presidency will find another teacher.",
   request_accepted: "Thank you! You're down to teach. You can add notes on the lesson page.",

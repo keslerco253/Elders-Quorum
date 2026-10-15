@@ -43,7 +43,8 @@ describe("texting", () => {
     expect(sms).toHaveLength(1);
     const body = fs.readFileSync(path.join(dir, "outbox", sms[0]), "utf8");
     expect(body).toContain("Test Ward EQ Elders Quorum: Reminder. Lesson Sunday");
-    expect(body).toContain("/lessons/1");
+    // Texts carry the short link, which opens /lessons/1.
+    expect(body).toMatch(/Lesson Sunday \S+\/n\/\d+\n?$/);
   });
 
   it("never texts someone who hasn't agreed to texts", async () => {

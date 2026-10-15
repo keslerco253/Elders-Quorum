@@ -232,9 +232,13 @@ describe("replies to the presidency", () => {
       .readdirSync(path.join(dir, "outbox"))
       .find((f) => !before.has(f) && f.includes("sms-"))!;
     const text = fs.readFileSync(path.join(dir, "outbox", sms), "utf8");
-    expect(text).toContain("Private message from Member Person");
-    expect(text).toContain(long);
-    expect(text).toMatch(/Reply to this text to answer them, or open: \S+\/admin\/replies\/2/);
+    // Short: who it's from, their words, and a short link to the conversation.
+    expect(text).toContain(`Member Person (private): ${long}\n\nReply in app: `);
+    const link = text.match(/Reply in app: (\S+)/)![1];
+    expect(link).toMatch(/\/n\/\d+$/);
+    const { GET } = await import("@/app/n/[id]/route");
+    const res = await GET(new Request(link), { params: Promise.resolve({ id: link.split("/").pop()! }) });
+    expect(res.headers.get("location")).toMatch(/\/admin\/replies\/2\?private=1&n=\d+&org=1$/);
 
     // The leader replies to that text: it goes to the member, privately, like answering in the app.
     const beforeAnswer = new Set(fs.readdirSync(path.join(dir, "outbox")));

@@ -121,7 +121,7 @@ describe("notifications per organization", () => {
     const rs = orgs.createOrg(1, "Relief Society");
     await notify([recipientById(3, rs.id)!], { title: "Dinner", body: "Thursday", url: "/" });
     const sms = fs.readdirSync(path.join(dir, "outbox")).filter((f) => f.includes("sms-"));
-    expect(fs.readFileSync(path.join(dir, "outbox", sms.pop()!), "utf8")).toContain(`Villas Ward Relief Society: Dinner. Thursday ${process.env.APP_URL ?? "http://localhost:3000"}/?n=`);
+    expect(fs.readFileSync(path.join(dir, "outbox", sms.pop()!), "utf8")).toMatch(new RegExp(`Villas Ward Relief Society: Dinner. Thursday ${process.env.APP_URL ?? "http://localhost:3000"}/n/\\d+$`, "m"));
     await notify([recipientById(3, 1)!], { title: "Lesson", body: "Sunday", url: "/lessons" });
     expect(textsThisMonth(1, "notice")).toBe(2);
     // The ward's limit (3) covers all its organizations.

@@ -81,8 +81,7 @@ export function audienceLabel(orgId: number, audience: Audience): string {
  */
 function smsBody(wardName: string, payload: PushPayload, url: string) {
   if (payload.personal) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n- ${payload.personal.from}`;
-  if (payload.fullText)
-    return `${wardName}: ${payload.title}\n\n${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n${payload.replyTo ? "Reply to this text to answer them, or open" : "Answer in the app"}: ${url}`;
+  if (payload.fullText) return `${payload.textTitle ?? payload.title}: ${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\nReply in app: ${url}`;
   const text = `${wardName}: ${payload.title}. ${payload.textBody ?? payload.body}`.replace(/\s+/g, " ").trim();
   return `${text.length > 280 ? text.slice(0, 277) + "…" : text} ${url}`;
 }
@@ -131,7 +130,9 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
   for (const r of recipients) {
     // Kept for the member's Notifications list; the link marks it read when they open it.
     const logId = Number(
-      d().prepare("INSERT INTO notification_log (member_id, title, body, url) VALUES (?, ?, ?, ?)").run(r.id, payload.title, payload.body, payload.url ?? "/").lastInsertRowid,
+      d()
+        .prepare("INSERT INTO notification_log (member_id, org_id, title, body, url) VALUES (?, ?, ?, ?, ?)")
+        .run(r.id, r.org_id, payload.title, payload.body, payload.url ?? "/").lastInsertRowid,
     );
     // ?org= opens it in the organization it's about.
     const p = { ...payload, url: withOrg(withSeen(payload.url ?? "/", logId), r.org_id) };
@@ -147,7 +148,8 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
       const channels = always.length ? always : got ? [] : fallbackChannels(r, canText);
       const deliver = async (channel: "email" | "text") => {
         if (channel === "email" && (await sendEmail(r, url))) email++;
-        else if (channel === "text" && (await sendText(r, url))) text++;
+        // Texts get the short link (/n/<id>), which opens the same page.
+        else if (channel === "text" && (await sendText(r, `${appUrl()}/n/${logId}`))) text++;
         else return;
         got = true;
       };
@@ -163,7 +165,7 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
 }
 
 /** Adds ?n=<id> so opening the link marks that notification read. */
-function withSeen(path: string, id: number) {
+export function withSeen(path: string, id: number) {
   const [base, hash] = path.split("#");
   return `${base}${base.includes("?") ? "&" : "?"}n=${id}${hash ? `#${hash}` : ""}`;
 }

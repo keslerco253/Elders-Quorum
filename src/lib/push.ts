@@ -44,6 +44,8 @@ export interface PushPayload {
   fullText?: boolean;
   /** A leader texted this can answer the member by replying to the text. */
   replyTo?: { memberId: number; private: boolean };
+  /** Shorter heading for a fullText text, e.g. "Hyrum Johnson (private)". */
+  textTitle?: string;
 }
 
 interface SubRow {

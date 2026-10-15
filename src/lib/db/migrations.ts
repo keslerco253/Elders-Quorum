@@ -826,4 +826,9 @@ CREATE TABLE sms_inbound_log (
 );
 `,
   },
+  {
+    // Texts carry a short link (/n/<id>) that opens the notification in its organization.
+    id: 31,
+    sql: `ALTER TABLE notification_log ADD COLUMN org_id INTEGER REFERENCES orgs(id) ON DELETE SET NULL;`,
+  },
 ];
