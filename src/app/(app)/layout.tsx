@@ -6,6 +6,7 @@ import { hasFeature, orgLabel, orgsInWard } from "@/lib/orgs";
 import { unreadAnswers } from "@/lib/conversations";
 import { unreadNotifications } from "@/lib/notification-log";
 import { NotificationSeen } from "@/components/notification-seen";
+import { StayFresh } from "@/components/stay-fresh";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -24,6 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         moreCount={unreadAnswers(user.id) + unreadNotifications(user.id)}
       />
       <NotificationSeen />
+      <StayFresh />
       <main className="mx-auto max-w-5xl px-4 pt-5 pb-28 md:pb-12">{children}</main>
     </>
   );

@@ -746,4 +746,13 @@ DROP TABLE plans;
 UPDATE orgs SET hidden_features = trim(replace(replace(',' || hidden_features || ',', ',plans,', ','), ',,', ','), ',');
 `,
   },
+  {
+    // The organization a member last switched to, on any device, so their
+    // phone and computer show the same one.
+    id: 24,
+    sql: `
+ALTER TABLE members ADD COLUMN last_org_id INTEGER REFERENCES orgs(id) ON DELETE SET NULL;
+ALTER TABLE members ADD COLUMN last_org_at INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];

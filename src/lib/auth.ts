@@ -6,13 +6,13 @@ import { isHttps } from "./config";
 import { createSession, deleteSession, userForSession, type Remember } from "./auth-core";
 import { isAdmin, isPresidency } from "./permissions";
 import type { CurrentUser } from "./types";
-import { ORG_COOKIE } from "./orgs";
+import { ORG_COOKIE, parseOrgCookie } from "./org-cookie";
 
 const COOKIE = "eq_session";
 
 export const getUser = cache(async (): Promise<CurrentUser | null> => {
   const jar = await cookies();
-  return userForSession(jar.get(COOKIE)?.value, Number(jar.get(ORG_COOKIE)?.value) || undefined);
+  return userForSession(jar.get(COOKIE)?.value, parseOrgCookie(jar.get(ORG_COOKIE)?.value));
 });
 
 export async function requireUser(): Promise<CurrentUser> {

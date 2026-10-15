@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { appUrl } from "@/lib/config";
-import { ORG_COOKIE, orgCookieMaxAge } from "@/lib/org-cookie";
+import { ORG_COOKIE, orgCookieMaxAge, orgCookieValue } from "@/lib/org-cookie";
 
 /**
  * After the app moves to another server, set MOVED_TO=https://new-address on
@@ -22,7 +22,7 @@ export function middleware(req: NextRequest) {
     const url = req.nextUrl.clone();
     url.searchParams.delete("org");
     const res = NextResponse.redirect(url, 303);
-    res.cookies.set(ORG_COOKIE, org, { path: "/", maxAge: orgCookieMaxAge, sameSite: "lax", httpOnly: true, secure: url.protocol === "https:" });
+    res.cookies.set(ORG_COOKIE, orgCookieValue(org), { path: "/", maxAge: orgCookieMaxAge, sameSite: "lax", httpOnly: true, secure: url.protocol === "https:" });
     return res;
   }
   // Visitors who aren't signed in see the home page that explains the app;

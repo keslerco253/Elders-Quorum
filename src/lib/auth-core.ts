@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { DateTime } from "luxon";
 import { db } from "./db";
 import type { CurrentUser, Member } from "./types";
-import { currentUserFor } from "./orgs";
+import { currentUserFor, getOrg, inWard } from "./orgs";
 import { parseContact } from "./contact";
 
 export const REMEMBER_OPTIONS = {
@@ -113,8 +113,12 @@ export function createSession(memberId: number, remember: Remember, userAgent?: 
   return { id, expires: expires.toJSDate() };
 }
 
-/** The signed-in member, seen from the organization they picked (wantedOrg) or a sensible default. */
-export function userForSession(sessionId: string | undefined, wantedOrg?: number): CurrentUser | null {
+/**
+ * The signed-in member, seen from the organization they last switched to on
+ * any device: this device's choice (wanted) if it's newer than the one saved
+ * on their account, which it then replaces. Otherwise a sensible default.
+ */
+export function userForSession(sessionId: string | undefined, wanted?: { orgId: number; at: number }): CurrentUser | null {
   if (!sessionId) return null;
   const d = db();
   const member = d
@@ -124,7 +128,13 @@ export function userForSession(sessionId: string | undefined, wantedOrg?: number
     )
     .get(sha256(sessionId), nowIso()) as Member | undefined;
   if (!member) return null;
-  return currentUserFor(member, wantedOrg);
+  let orgId = member.last_org_id ?? undefined;
+  const wantedOrg = wanted && getOrg(wanted.orgId);
+  if (wanted && wantedOrg && inWard(member.id, wantedOrg.ward_id) && wanted.at > member.last_org_at && wanted.orgId !== member.last_org_id) {
+    d.prepare("UPDATE members SET last_org_id = ?, last_org_at = ? WHERE id = ?").run(wanted.orgId, wanted.at, member.id);
+    orgId = wanted.orgId;
+  } else if (!orgId) orgId = wanted?.orgId;
+  return currentUserFor(member, orgId);
 }
 
 export function deleteSession(sessionId: string) {

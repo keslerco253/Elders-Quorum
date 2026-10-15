@@ -19,6 +19,9 @@ export interface Member {
   sms_consent_at: string | null;
   /** Organization the member last got a text about (where a texted reply goes). */
   last_text_org_id: number | null;
+  /** Organization the member last switched to (on any device), and when (ms). */
+  last_org_id: number | null;
+  last_org_at: number;
   /** Minutes-before reminders for their calendar, e.g. "1440,60" ("" for none). */
   calendar_alerts: string;
   /** Bumped to cancel the member's old calendar subscription link. */

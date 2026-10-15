@@ -224,3 +224,23 @@ describe("starting wards", () => {
     expect(member(9)).toBeUndefined();
   });
 });
+
+describe("the organization you're looking at", () => {
+  it("follows the latest switch on any device", async () => {
+    const { createSession, userForSession } = await import("@/lib/auth-core");
+    const rs = orgs.createOrg(1, "Relief Society");
+    const phone = createSession(1, "month").id;
+    const computer = createSession(1, "month").id;
+    // The phone switches to Relief Society.
+    expect(userForSession(phone, { orgId: rs.id, at: 1000 })!.org_id).toBe(rs.id);
+    // The computer still has an older choice (Elders Quorum) in its cookie: it follows the phone.
+    expect(userForSession(computer, { orgId: 1, at: 500 })!.org_id).toBe(rs.id);
+    expect(userForSession(computer)!.org_id).toBe(rs.id);
+    // Then the computer switches back; the phone follows.
+    expect(userForSession(computer, { orgId: 1, at: 2000 })!.org_id).toBe(1);
+    expect(userForSession(phone, { orgId: rs.id, at: 1000 })!.org_id).toBe(1);
+    // An organization in a ward they aren't in is ignored.
+    const maple = orgs.createWard({ name: "Maple Ward", timezone: "America/Boise", creatorId: 2 });
+    expect(userForSession(phone, { orgId: orgs.wardOrg(maple.id).id, at: 3000 })!.org_id).toBe(1);
+  });
+});
