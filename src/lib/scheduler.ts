@@ -15,6 +15,8 @@ import { extendAllSeries } from "./event-series";
 import { upcomingVisits, visitorIds, whenText } from "./planned-visits";
 import { VISIT_TYPES } from "./visits";
 import { firstName } from "./names";
+import { renderTemplate } from "./templates";
+import { joinNames } from "./invite-text";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
 interface OrgCtx {
@@ -60,11 +62,10 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
     let payload: PushPayload;
     if (lesson.kind !== "talk") {
       const conf = lesson.kind === "general_conference" ? "General Conference" : "Stake Conference";
-      payload = { title: `${when}: ${conf}`, body: `No ${org.label} lesson ${w.tag === "sat" ? "tomorrow" : "this week"}. We hope to see you at ${conf}.`, url: `/lessons/${lesson.id}` };
+      payload = { ...renderTemplate(org.id, "lesson_conference", { day: when, conference: conf, org: org.label, this_week: w.tag === "sat" ? "tomorrow" : "this week" }), url: `/lessons/${lesson.id}` };
     } else {
       payload = {
-        title: `${when}'s lesson${lesson.title ? `: ${lesson.title}` : ""}`,
-        body: [lesson.speaker && `By ${lesson.speaker}.`, lesson.teacher_name && `Taught by ${lesson.teacher_name}.`, "Tap to read the talk and share your thoughts."].filter(Boolean).join(" "),
+        ...renderTemplate(org.id, "lesson_reminder", { day: when, lesson_title: lesson.title, speaker: lesson.speaker, teacher: lesson.teacher_name }),
         url: `/lessons/${lesson.id}`,
       };
     }
@@ -122,7 +123,7 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       out.push({
         key: `${keyPrefix}:${e.id}:${e.starts_at}`,
         recipients: audienceMembers(org.id, e.presidency_only ? "admins" : "everyone"),
-        payload: { title: `Reminder: ${e.title}`, body: `${formatDateTime(e.starts_at, org.timezone)}${e.location ? ` at ${e.location}` : ""}`, url: `/calendar/${e.id}` },
+        payload: { ...renderTemplate(org.id, "event_reminder", { event: e.title, date_time: formatDateTime(e.starts_at, org.timezone), location: e.location }), url: `/calendar/${e.id}` },
       });
     }
   }
@@ -174,27 +175,28 @@ function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       key: `visit-rem:${p.id}:${p.date}:${p.time ?? ""}`,
       recipients: [...leaders].map((id) => recipientById(id, org.id)).filter((r): r is Recipient => !!r),
       payload: {
-        title: `Visit ${today ? "today" : "tomorrow"}: ${p.member_name}`,
-        body: `${when} (${kind})${p.visitors ? `, with ${p.visitors}` : ""}.${p.invite_status === "accepted" ? " They said yes." : ""}`,
+        ...renderTemplate(org.id, "visit_reminder_leaders", { member: p.member_name, day: today ? "today" : "tomorrow", date_time: when, visit_type: kind, visitors: p.visitors }),
         url: "/admin/visits",
       },
     });
     if (p.member_told) {
       const member = recipientById(p.member_id, org.id);
       const leaders = org.kind === "ward" ? "bishopric" : `${org.label} presidency`;
-      const names = p.visitors?.split(", ") ?? [];
-      const who = names.length ? `${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0]} from the ${leaders}` : `the ${leaders}`;
-      const plural = !p.visitors || p.visitors.includes(",");
-      const what =
-        p.type === "phone" ? `${plural ? "are" : "is"} planning to call you` : p.type === "church" ? `${plural ? "are" : "is"} looking forward to meeting with you at church` : `${plural ? "are" : "is"} planning to visit you in your home`;
-      const at = `${today ? "today" : "tomorrow"}${p.time ? ` at ${DateTime.fromISO(p.time).toFormat("h:mm a")}` : ""}`;
+      const msg = renderTemplate(org.id, "visit_reminder_member", {
+        first_name: firstName(p.member_name),
+        visitors: joinNames(p.visitors?.split(", ") ?? []),
+        leaders: `the ${leaders}`,
+        visit_kind: p.type === "phone" ? "call you" : p.type === "church" ? "meet with you at church" : "visit you in your home",
+        day: today ? "today" : "tomorrow",
+        time: p.time ? DateTime.fromISO(p.time).toFormat("h:mm a") : "",
+        is_are: (p.visitors ?? "").includes(",") ? "are" : "is",
+      });
       if (member)
         out.push({
           key: `visit-rem-m:${p.id}:${p.date}:${p.time ?? ""}`,
           recipients: [member],
           payload: {
-            title: "Visit reminder",
-            body: `Hi ${firstName(p.member_name)}! Just a quick reminder that ${who} ${what} ${at}. If something has come up, please just let us know by replying to this message. See you soon!`,
+            ...msg,
             url: "/",
             // Just the words, signed, like a personal message; a texted reply goes to the presidency.
             personal: { from: org.kind === "ward" ? "The bishopric" : `The ${leaders}` },
@@ -238,8 +240,7 @@ function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
         key: `signup-${tag}:${r.id}:${r.date}:${r.member_id}`,
         recipients: [who],
         payload: {
-          title: `${when}: ${r.title}`,
-          body: `You signed up for ${r.slots} on ${formatDate(r.date, "short")}. Thank you for serving!`,
+          ...renderTemplate(org.id, "service_reminder", { when, title: r.title, slots: r.slots, date: formatDate(r.date, "short") }),
           url: `/signups/${r.id}`,
         },
       });

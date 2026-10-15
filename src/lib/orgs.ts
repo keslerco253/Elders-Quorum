@@ -279,6 +279,7 @@ const ORG_TABLES = [
   "signups",
   "todos",
   "sms_log",
+  "message_templates",
 ];
 
 /**

@@ -956,4 +956,20 @@ ALTER TABLE planned_visits ADD COLUMN member_told INTEGER NOT NULL DEFAULT 0;
 UPDATE planned_visits SET member_told = 1 WHERE invite_status IS NOT NULL;
 `,
   },
+  {
+    // An organization's own wording for messages the app sends on its own
+    // (Admin -> Message wording). Missing rows use the app's wording.
+    id: 42,
+    sql: `
+CREATE TABLE message_templates (
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  key TEXT NOT NULL,
+  title TEXT,
+  body TEXT NOT NULL,
+  updated_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (org_id, key)
+);
+`,
+  },
 ];

@@ -1,5 +1,7 @@
 "use server";
 
+import { orgTemplate, renderTemplate } from "@/lib/templates";
+
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -100,9 +102,9 @@ export async function savePlannedVisit(fd: FormData) {
   const names = (d.prepare(`SELECT display_name FROM members WHERE id IN (${visitors.map(() => "?").join(",")}) ORDER BY display_name`).all(...visitors) as { display_name: string }[]).map((r) => r.display_name);
   const who = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
   const when = whenText(date, time);
-  const message = type === "phone" ? `${who} will call you ${when}.` : type === "church" ? `${who} would like to meet with you at church ${when}.` : `${who} ${names.length > 1 ? "plan" : "plans"} to visit you ${when}.`;
+  const message = renderTemplate(user.org_id, "visit_scheduled", { visitors: who, visit_kind: type === "phone" ? "call you" : type === "church" ? "meet with you at church" : "visit you", date_time: when }).body;
   const mode = String(fd.get("notify_mode") || (fd.get("tell_member") === "on" ? "datetime" : "none"));
-  const invitation = mode === "invite" ? String(fd.get("invite_message") || "").trim() || inviteMessage(firstName(member.display_name), date, time, names, leadersPhrase(user.org)) : "";
+  const invitation = mode === "invite" ? String(fd.get("invite_message") || "").trim() || inviteMessage(firstName(member.display_name), date, time, names, leadersPhrase(user.org), orgTemplate(user.org_id, "visit_invitation").body) : "";
   if (request) {
     d.prepare("UPDATE visit_requests SET status = 'scheduled', reply = ?, handled_by = ?, updated_at = datetime('now') WHERE id = ?").run(invitation || message, user.id, request.id);
   }

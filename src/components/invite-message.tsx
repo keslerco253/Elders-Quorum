@@ -7,7 +7,7 @@ import { inviteMessage } from "@/lib/invite-text";
  * The personal invitation text. It's rewritten as the date, time and "who's
  * going" boxes change, until the presidency member edits it themselves.
  */
-export function InviteMessage({ members, presidency, leaders }: { members: { id: number; first: string }[]; presidency: { id: number; name: string }[]; leaders: string }) {
+export function InviteMessage({ members, presidency, leaders, template }: { members: { id: number; first: string }[]; presidency: { id: number; name: string }[]; leaders: string; template?: string }) {
   const [text, setText] = useState("");
   const edited = useRef(false);
 
@@ -22,7 +22,7 @@ export function InviteMessage({ members, presidency, leaders }: { members: { id:
       const memberId = Number((form.querySelector('[name="member_id"]') as HTMLInputElement | HTMLSelectElement | null)?.value);
       const firstName = members.find((m) => m.id === memberId)?.first ?? "there";
       const going = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="visitor_id"]:checked')).map((i) => presidency.find((p) => p.id === Number(i.value))?.name ?? "");
-      setText(inviteMessage(firstName, date, time, going.filter(Boolean), leaders));
+      setText(inviteMessage(firstName, date, time, going.filter(Boolean), leaders, template));
     };
     rebuild();
     form.addEventListener("input", rebuild);
@@ -31,7 +31,7 @@ export function InviteMessage({ members, presidency, leaders }: { members: { id:
       form.removeEventListener("input", rebuild);
       form.removeEventListener("change", rebuild);
     };
-  }, [members, presidency, leaders]);
+  }, [members, presidency, leaders, template]);
 
   return (
     <div>

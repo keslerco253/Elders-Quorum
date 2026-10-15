@@ -1,3 +1,4 @@
+import { orgTemplate } from "@/lib/templates";
 import { notFound } from "next/navigation";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -123,7 +124,7 @@ export default async function PlanVisitPage({ searchParams }: { searchParams: Pr
               <span className="block text-xs text-muted">They can reply &quot;Yes, that works&quot;, suggest another time, or say not right now. You&apos;re notified of their answer.</span>
             </span>
           </label>
-          <InviteMessage members={members.map((m) => ({ id: m.id, first: firstName(m.display_name) }))} presidency={presidency.map((p) => ({ id: p.id, name: p.display_name }))} leaders={leadersPhrase(user.org)} />
+          <InviteMessage members={members.map((m) => ({ id: m.id, first: firstName(m.display_name) }))} presidency={presidency.map((p) => ({ id: p.id, name: p.display_name }))} leaders={leadersPhrase(user.org)} template={orgTemplate(user.org_id, "visit_invitation").body} />
           <label className="flex items-start gap-2 text-sm">
             <input type="radio" name="notify_mode" value="datetime" defaultChecked={defaultMode === "datetime"} className="mt-1" />
             <span>

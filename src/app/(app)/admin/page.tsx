@@ -134,6 +134,15 @@ export default async function AdminPage() {
               label: "Leader guide",
               desc: "How to do everything in the app as a leader",
             },
+            ...(isPresidency(user)
+              ? [
+                  {
+                    href: "/admin/templates",
+                    label: "Message wording",
+                    desc: "Reminders and texts the app sends, in your own words",
+                  },
+                ]
+              : []),
             {
               href: "/admin/invite",
               label: "Invite members",

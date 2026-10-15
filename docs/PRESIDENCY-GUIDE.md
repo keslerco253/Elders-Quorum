@@ -454,6 +454,22 @@ Quorum or Relief Society.
   plan. An organization's presidency can create and edit plans for
   the organizations they lead.
 
+## Message wording
+
+**Admin → Message wording** lists the reminders and messages the app sends on
+its own: the visit reminders (to the member and to the presidency), the
+suggested visit invitation, the "date and time" message for a planned visit,
+lesson reminders (and the conference-weekend one), event reminders and
+service reminders. Open one to change its title and text so it sounds like
+you; each organization keeps its own wording.
+
+- Words in `{curly brackets}` are filled in for each message (tap one to add
+  it). Each message lists what it can use, like `{first_name}` or `{time}`.
+- Text in `[square brackets]` is left out when something in it is blank, so
+  `[ at {location}]` disappears for an event with no place.
+- The preview shows how it will read. **Reset to the app's wording** undoes
+  your changes; it also shows who changed it last.
+
 ## Settings
 
 **Admin → Settings** (bishopric, looking at the ward): the ward's name, time
