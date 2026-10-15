@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PdfPages } from "@/components/pdf-pages";
 import { isPicture, UPLOAD_ACCEPT } from "@/lib/upload-names";
-import { MIN_WIDTH, mediaBlock, mediaProps, newBlockId, type Align, type Block, type MediaBlock } from "@/lib/plan-blocks";
+import {
+  MIN_WIDTH,
+  mediaBlock,
+  mediaProps,
+  newBlockId,
+  type Align,
+  type Block,
+  type MediaBlock,
+} from "@/lib/plan-blocks";
 
 // Builds a plan like a web page: headings, text, pictures and PDFs. Blocks are
 // dragged by their handle to move them; pictures and PDFs are sized by dragging
@@ -20,7 +28,9 @@ const SIZES: [string, number][] = [
 ];
 
 export function PlanEditor({ initial }: { initial: Block[] }) {
-  const [items, setItems] = useState<Item[]>(initial.length ? initial : [{ id: newBlockId(), type: "text", text: "" }]);
+  const [items, setItems] = useState<Item[]>(
+    initial.length ? initial : [{ id: newBlockId(), type: "text", text: "" }],
+  );
   const [selected, setSelected] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ id: string; to: number } | null>(null);
   const [dropAt, setDropAt] = useState<number | null>(null);
@@ -34,8 +44,12 @@ export function PlanEditor({ initial }: { initial: Block[] }) {
     setItems(fn);
     setDirty(true);
   }, []);
-  const change = (id: string, patch: Partial<Block>) => update((list) => list.map((b) => (b.id === id ? ({ ...b, ...patch } as Item) : b)));
-  const remove = (id: string) => update((list) => list.filter((b) => b.id !== id));
+  const change = (id: string, patch: Partial<Block>) =>
+    update((list) =>
+      list.map((b) => (b.id === id ? ({ ...b, ...patch } as Item) : b)),
+    );
+  const remove = (id: string) =>
+    update((list) => list.filter((b) => b.id !== id));
   const move = (id: string, to: number) =>
     update((list) => {
       const from = list.findIndex((b) => b.id === id);
@@ -91,18 +105,32 @@ export function PlanEditor({ initial }: { initial: Block[] }) {
 
   async function upload(files: File[], index: number) {
     setError("");
-    const holders: Uploading[] = files.map((f) => ({ id: newBlockId(), type: "uploading", name: f.name }));
+    const holders: Uploading[] = files.map((f) => ({
+      id: newBlockId(),
+      type: "uploading",
+      name: f.name,
+    }));
     insertAt(index, holders);
     await Promise.all(
       files.map(async (f, n) => {
         const fd = new FormData();
         fd.append("file", f);
         try {
-          const res = await fetch("/api/plans/upload", { method: "POST", body: fd });
-          const data = (await res.json()) as { file?: string; name?: string; error?: string };
-          if (!res.ok || !data.file) throw new Error(data.error || `${f.name} didn't upload.`);
+          const res = await fetch("/api/plans/upload", {
+            method: "POST",
+            body: fd,
+          });
+          const data = (await res.json()) as {
+            file?: string;
+            name?: string;
+            error?: string;
+          };
+          if (!res.ok || !data.file)
+            throw new Error(data.error || `${f.name} didn't upload.`);
           const block = mediaBlock(data.file, data.name || f.name);
-          setItems((list) => list.map((b) => (b.id === holders[n].id ? block : b)));
+          setItems((list) =>
+            list.map((b) => (b.id === holders[n].id ? block : b)),
+          );
           setSelected(block.id);
         } catch (e) {
           setError(e instanceof Error ? e.message : `${f.name} didn't upload.`);
@@ -160,10 +188,7 @@ export function PlanEditor({ initial }: { initial: Block[] }) {
   return (
     <div>
       <input type="hidden" name="blocks" value={JSON.stringify(saved)} />
-      <Toolbar
-        onAdd={add}
-        onFiles={() => filePicker.current?.click()}
-      />
+      <Toolbar onAdd={add} onFiles={() => filePicker.current?.click()} />
       <input
         ref={filePicker}
         type="file"
@@ -176,7 +201,11 @@ export function PlanEditor({ initial }: { initial: Block[] }) {
           if (files.length) upload(files, nextIndex());
         }}
       />
-      {error && <p className="mb-2 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
+      {error && (
+        <p className="mb-2 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
       <div
         ref={page}
         className={`plan-page plan-editor rounded-xl border border-border bg-surface p-4 sm:p-6 ${dropAt !== null ? "ring-2 ring-accent" : ""}`}
@@ -199,7 +228,9 @@ export function PlanEditor({ initial }: { initial: Block[] }) {
             marker={marker === i}
             selected={selected === b.id}
             dragging={drag?.id === b.id}
-            register={(el) => (el ? refs.current.set(b.id, el) : refs.current.delete(b.id))}
+            register={(el) =>
+              el ? refs.current.set(b.id, el) : refs.current.delete(b.id)
+            }
             onSelect={() => setSelected(b.id)}
             onGrip={(e) => startMove(e, b.id)}
             onUp={() => move(b.id, i - 1)}
@@ -210,30 +241,53 @@ export function PlanEditor({ initial }: { initial: Block[] }) {
           />
         ))}
         {marker === items.length && <DropLine />}
-        {items.length === 0 && <p className="py-8 text-center text-muted">Add a heading, text, pictures or PDFs above, or drop files here.</p>}
+        {items.length === 0 && (
+          <p className="py-8 text-center text-muted">
+            Add a heading, text, pictures or PDFs above, or drop files here.
+          </p>
+        )}
       </div>
       <p className="hint mt-2">
-        Drag <span aria-hidden>⠿</span> to move a block. Drag a picture&apos;s corner to size it, and choose left or right to put text beside it. You can also drop
-        pictures and PDFs onto the page, or paste a picture.
+        Drag <span aria-hidden>⠿</span> to move a block. Drag a picture&apos;s
+        corner to size it, and choose left or right to put text beside it. You
+        can also drop pictures and PDFs onto the page, or paste a picture.
       </p>
     </div>
   );
 }
 
-function Toolbar({ onAdd, onFiles }: { onAdd: (b: Block) => void; onFiles: () => void }) {
+function Toolbar({
+  onAdd,
+  onFiles,
+}: {
+  onAdd: (b: Block) => void;
+  onFiles: () => void;
+}) {
   return (
     <div className="sticky top-14 z-10 -mx-1 mb-3 flex flex-wrap gap-2 bg-bg/90 px-1 py-2 backdrop-blur">
       <span className="self-center text-sm font-semibold text-muted">Add:</span>
-      <button type="button" className="btn-secondary btn-sm" onClick={() => onAdd({ id: newBlockId(), type: "heading", text: "" })}>
+      <button
+        type="button"
+        className="btn-secondary btn-sm"
+        onClick={() => onAdd({ id: newBlockId(), type: "heading", text: "" })}
+      >
         Heading
       </button>
-      <button type="button" className="btn-secondary btn-sm" onClick={() => onAdd({ id: newBlockId(), type: "text", text: "" })}>
+      <button
+        type="button"
+        className="btn-secondary btn-sm"
+        onClick={() => onAdd({ id: newBlockId(), type: "text", text: "" })}
+      >
         Text
       </button>
       <button type="button" className="btn-primary btn-sm" onClick={onFiles}>
         Pictures or PDFs
       </button>
-      <button type="button" className="btn-secondary btn-sm" onClick={() => onAdd({ id: newBlockId(), type: "divider" })}>
+      <button
+        type="button"
+        className="btn-secondary btn-sm"
+        onClick={() => onAdd({ id: newBlockId(), type: "divider" })}
+      >
         Divider
       </button>
     </div>
@@ -266,7 +320,19 @@ function BlockShell(props: {
 }) {
   const { block: b, selected } = props;
   const media = b.type === "image" || b.type === "pdf";
-  const outer = media ? mediaProps(b) : { className: "plan-block-flow", style: undefined };
+  const outer = media
+    ? mediaProps(b)
+    : { className: "plan-block-flow", style: undefined };
+  const controls = (
+    <BlockControls
+      index={props.index}
+      total={props.total}
+      onGrip={props.onGrip}
+      onUp={props.onUp}
+      onDown={props.onDown}
+      onRemove={props.onRemove}
+    />
+  );
   return (
     <>
       {props.marker && <DropLine />}
@@ -277,44 +343,124 @@ function BlockShell(props: {
         onFocusCapture={props.onSelect}
         onPointerDownCapture={props.onSelect}
       >
-        <div className="plan-edit-controls">
-          <button type="button" className="plan-grip" onPointerDown={props.onGrip} aria-label="Drag to move" title="Drag to move">
-            ⠿
-          </button>
-          <button type="button" onClick={props.onUp} disabled={props.index === 0} aria-label="Move up" title="Move up">
-            ↑
-          </button>
-          <button type="button" onClick={props.onDown} disabled={props.index === props.total - 1} aria-label="Move down" title="Move down">
-            ↓
-          </button>
-          <button type="button" onClick={props.onRemove} aria-label="Remove" title="Remove" className="text-danger">
-            ✕
-          </button>
-        </div>
-        <BlockBody block={b} selected={selected} onChange={props.onChange} pageEl={props.pageEl} />
+        {!media && <div className="plan-edit-controls">{controls}</div>}
+        <BlockBody
+          block={b}
+          selected={selected}
+          onChange={props.onChange}
+          pageEl={props.pageEl}
+          controls={controls}
+        />
       </div>
     </>
   );
 }
 
-function BlockBody({ block: b, selected, onChange, pageEl }: { block: Item; selected: boolean; onChange: (patch: Partial<Block>) => void; pageEl: React.RefObject<HTMLDivElement | null> }) {
+/** Move and remove buttons for one block. */
+function BlockControls(props: {
+  index: number;
+  total: number;
+  onGrip: (e: React.PointerEvent) => void;
+  onUp: () => void;
+  onDown: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <>
+      <button
+        type="button"
+        className="plan-grip"
+        onPointerDown={props.onGrip}
+        aria-label="Drag to move"
+        title="Drag to move"
+      >
+        ⠿
+      </button>
+      <button
+        type="button"
+        onClick={props.onUp}
+        disabled={props.index === 0}
+        aria-label="Move up"
+        title="Move up"
+      >
+        ↑
+      </button>
+      <button
+        type="button"
+        onClick={props.onDown}
+        disabled={props.index === props.total - 1}
+        aria-label="Move down"
+        title="Move down"
+      >
+        ↓
+      </button>
+      <button
+        type="button"
+        onClick={props.onRemove}
+        aria-label="Remove"
+        title="Remove"
+        className="text-danger"
+      >
+        ✕
+      </button>
+    </>
+  );
+}
+
+function BlockBody({
+  block: b,
+  selected,
+  onChange,
+  pageEl,
+  controls,
+}: {
+  block: Item;
+  selected: boolean;
+  onChange: (patch: Partial<Block>) => void;
+  pageEl: React.RefObject<HTMLDivElement | null>;
+  controls: React.ReactNode;
+}) {
   switch (b.type) {
     case "uploading":
       return <div className="plan-pdf-loading">Uploading {b.name}…</div>;
     case "heading":
-      return <input className="plan-edit-heading" value={b.text} maxLength={200} placeholder="Heading" onChange={(e) => onChange({ text: e.target.value })} />;
+      return (
+        <input
+          className="plan-edit-heading"
+          value={b.text}
+          maxLength={200}
+          placeholder="Heading"
+          onChange={(e) => onChange({ text: e.target.value })}
+        />
+      );
     case "divider":
       return <hr />;
     case "text":
-      return <TextBlock text={b.text} onChange={(text) => onChange({ text })} />;
+      return (
+        <TextBlock text={b.text} onChange={(text) => onChange({ text })} />
+      );
     case "image":
     case "pdf":
-      return <MediaEditor block={b} selected={selected} onChange={onChange} pageEl={pageEl} />;
+      return (
+        <MediaEditor
+          block={b}
+          selected={selected}
+          onChange={onChange}
+          pageEl={pageEl}
+          controls={controls}
+        />
+      );
   }
 }
 
 /** Text with a few formatting buttons (it's stored as simple Markdown). */
-function TextBlock({ text, onChange }: { text: string; onChange: (text: string) => void }) {
+function TextBlock({
+  text,
+  onChange,
+}: {
+  text: string;
+  onChange: (text: string) => void;
+}) {
   const area = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const el = area.current;
@@ -330,7 +476,10 @@ function TextBlock({ text, onChange }: { text: string; onChange: (text: string) 
     onChange(text.slice(0, s) + before + picked + after + text.slice(e));
     requestAnimationFrame(() => {
       el.focus();
-      el.setSelectionRange(s + before.length, s + before.length + picked.length);
+      el.setSelectionRange(
+        s + before.length,
+        s + before.length + picked.length,
+      );
     });
   };
   const bullets = () => {
@@ -339,31 +488,67 @@ function TextBlock({ text, onChange }: { text: string; onChange: (text: string) 
     const s = text.lastIndexOf("\n", el.selectionStart - 1) + 1;
     const e = text.indexOf("\n", el.selectionEnd);
     const end = e < 0 ? text.length : e;
-    const lines = text.slice(s, end).split("\n").map((l) => (l.startsWith("- ") ? l.slice(2) : `- ${l}`));
+    const lines = text
+      .slice(s, end)
+      .split("\n")
+      .map((l) => (l.startsWith("- ") ? l.slice(2) : `- ${l}`));
     onChange(text.slice(0, s) + lines.join("\n") + text.slice(end));
   };
   return (
     <div>
       <div className="plan-text-tools">
-        <button type="button" onClick={() => wrap("**")} title="Bold" className="font-bold">
+        <button
+          type="button"
+          onClick={() => wrap("**")}
+          title="Bold"
+          className="font-bold"
+        >
           B
         </button>
-        <button type="button" onClick={() => wrap("*")} title="Italic" className="italic">
+        <button
+          type="button"
+          onClick={() => wrap("*")}
+          title="Italic"
+          className="italic"
+        >
           I
         </button>
         <button type="button" onClick={bullets} title="Bulleted list">
           • List
         </button>
-        <button type="button" onClick={() => wrap("[", "](https://)", "link text")} title="Link">
+        <button
+          type="button"
+          onClick={() => wrap("[", "](https://)", "link text")}
+          title="Link"
+        >
           Link
         </button>
       </div>
-      <textarea ref={area} className="plan-edit-text" value={text} rows={3} placeholder="Write here…" onChange={(e) => onChange(e.target.value)} />
+      <textarea
+        ref={area}
+        className="plan-edit-text"
+        value={text}
+        rows={3}
+        placeholder="Write here…"
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
 }
 
-function MediaEditor({ block: b, selected, onChange, pageEl }: { block: MediaBlock; selected: boolean; onChange: (patch: Partial<Block>) => void; pageEl: React.RefObject<HTMLDivElement | null> }) {
+function MediaEditor({
+  block: b,
+  selected,
+  onChange,
+  pageEl,
+  controls,
+}: {
+  block: MediaBlock;
+  selected: boolean;
+  onChange: (patch: Partial<Block>) => void;
+  pageEl: React.RefObject<HTMLDivElement | null>;
+  controls: React.ReactNode;
+}) {
   const src = `/files/${b.file}`;
   // Dragging the corner: width follows the pointer as a share of the page.
   const resize = (e: React.PointerEvent) => {
@@ -376,7 +561,10 @@ function MediaEditor({ block: b, selected, onChange, pageEl }: { block: MediaBlo
     const start = b.width;
     const dir = b.align === "right" ? -1 : b.align === "center" ? 2 : 1;
     const onMove = (ev: PointerEvent) => {
-      const w = Math.round((start + ((ev.clientX - startX) * dir * 100) / pageWidth) / 5) * 5;
+      const w =
+        Math.round(
+          (start + ((ev.clientX - startX) * dir * 100) / pageWidth) / 5,
+        ) * 5;
       onChange({ width: Math.min(100, Math.max(MIN_WIDTH, w)) });
     };
     const done = () => {
@@ -390,27 +578,48 @@ function MediaEditor({ block: b, selected, onChange, pageEl }: { block: MediaBlo
   };
   return (
     <>
+      {/* One toolbar floating above the picture, at its own width, so a small picture doesn't squeeze it. */}
       {selected && (
-        <div className="plan-media-tools">
+        <div
+          className={`plan-media-tools ${b.align === "right" ? "right-0" : "left-0"}`}
+        >
           {(["left", "center", "right"] as Align[]).map((a) => (
-            <button key={a} type="button" onClick={() => onChange({ align: a })} className={b.align === a ? "is-on" : ""} title={a === "center" ? "Centered" : `On the ${a}, text beside it`}>
+            <button
+              key={a}
+              type="button"
+              onClick={() => onChange({ align: a })}
+              className={b.align === a ? "is-on" : ""}
+              title={
+                a === "center" ? "Centered" : `On the ${a}, text beside it`
+              }
+            >
               {a === "left" ? "◧ Left" : a === "right" ? "Right ◨" : "▣ Center"}
             </button>
           ))}
           <span className="mx-1 text-border">|</span>
           {SIZES.map(([label, w]) => (
-            <button key={label} type="button" onClick={() => onChange({ width: w })} className={b.width === w ? "is-on" : ""}>
+            <button
+              key={label}
+              type="button"
+              onClick={() => onChange({ width: w })}
+              className={b.width === w ? "is-on" : ""}
+            >
               {label}
             </button>
           ))}
           {b.type === "pdf" && b.file.endsWith(".pdf") && (
             <>
               <span className="mx-1 text-border">|</span>
-              <button type="button" onClick={() => onChange({ pages: !b.pages })}>
+              <button
+                type="button"
+                onClick={() => onChange({ pages: !b.pages })}
+              >
                 {b.pages ? "Show as a link" : "Show pages"}
               </button>
             </>
           )}
+          <span className="mx-1 text-border">|</span>
+          <span className="plan-media-moves">{controls}</span>
         </div>
       )}
       <div className="relative">
@@ -424,11 +633,23 @@ function MediaEditor({ block: b, selected, onChange, pageEl }: { block: MediaBlo
             📄 <span>{b.name}</span>
           </div>
         )}
-        <button type="button" className="plan-resize" onPointerDown={resize} aria-label="Drag to resize" title="Drag to resize" />
+        <button
+          type="button"
+          className="plan-resize"
+          onPointerDown={resize}
+          aria-label="Drag to resize"
+          title="Drag to resize"
+        />
         {selected && <span className="plan-size-badge">{b.width}%</span>}
       </div>
       {(selected || b.caption) && (
-        <input className="plan-edit-caption" value={b.caption} maxLength={300} placeholder="Caption (optional)" onChange={(e) => onChange({ caption: e.target.value })} />
+        <input
+          className="plan-edit-caption"
+          value={b.caption}
+          maxLength={300}
+          placeholder="Caption (optional)"
+          onChange={(e) => onChange({ caption: e.target.value })}
+        />
       )}
     </>
   );

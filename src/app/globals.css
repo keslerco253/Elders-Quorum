@@ -213,7 +213,25 @@ body {
   .plan-text-tools { @apply mb-1 hidden gap-1 text-xs; }
   .plan-edit-block.is-selected .plan-text-tools { @apply flex; }
   .plan-text-tools button, .plan-media-tools button { @apply rounded-md border border-border bg-surface px-2 py-0.5 text-muted hover:text-text; }
-  .plan-media-tools { @apply mb-2 flex flex-wrap items-center gap-1 text-xs; }
+  .plan-media-tools {
+    width: max-content;
+    max-width: min(calc(100vw - 2rem), 40rem);
+    @apply absolute bottom-full z-20 mb-2 flex flex-wrap items-center gap-1 rounded-lg border border-border bg-surface p-1 text-xs shadow-md;
+  }
+  .plan-media-moves { @apply flex items-center gap-0.5; }
+  /* Phones: the picture's toolbar sits at the bottom of the screen, above the tab bar. */
+  @media (max-width: 640px) {
+    .plan-media-tools {
+      position: fixed;
+      left: 0.5rem;
+      right: 0.5rem;
+      bottom: calc(4.75rem + env(safe-area-inset-bottom));
+      width: auto;
+      max-width: none;
+      @apply z-40 mb-0 justify-center p-2 text-sm;
+    }
+  }
+  .plan-media-moves button { @apply rounded px-1.5 py-0.5 text-sm text-muted hover:bg-surface-2 hover:text-text disabled:opacity-30; }
   .plan-media-tools button.is-on { @apply border-accent bg-accent-soft text-accent; }
   .plan-resize {
     touch-action: none;
