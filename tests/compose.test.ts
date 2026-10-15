@@ -49,3 +49,34 @@ describe("new message choices", () => {
     expect(compose.sentAnnouncements(3)).toEqual([]);
   });
 });
+
+describe("member inbox", () => {
+  it("shows conversations and announcements newest first, with unread state", async () => {
+    const conv = await import("@/lib/conversations");
+    const mi = await import("@/lib/member-inbox");
+    await groups.sendToAudience({ orgId: eq, senderId: 2, audience: "everyone", title: "Service Saturday", body: "Meet at 9", tz: "America/Boise" });
+    await conv.sendAnswer({ id: 2, org_id: eq, display_name: "Pres" }, 3, "Thanks for helping", true);
+    const rows = mi.memberInbox(3);
+    expect(rows.map((r) => r.kind)).toEqual(["thread", "announcement"]);
+    expect(rows[0]).toMatchObject({ with_id: 2, with_name: "Pres", unread: 1 });
+    expect(mi.unreadAnnouncements(3)).toBe(1);
+    // The sender's own announcement isn't in their inbox.
+    expect(mi.memberInbox(2).some((r) => r.kind === "announcement")).toBe(false);
+    const a = rows[1] as import("@/lib/member-inbox").AnnouncementRow;
+    expect(mi.openAnnouncement(3, a.id)?.title).toBe("Service Saturday");
+    expect(mi.unreadAnnouncements(3)).toBe(0);
+    expect(mi.openAnnouncement(4, a.id)).toBeUndefined();
+    expect(mi.openMemberThread(3, eq, 2).map((c) => c.body)).toEqual(["Thanks for helping"]);
+    expect(conv.unreadAnswers(3)).toBe(0);
+  });
+
+  it("lists what a member sent, and who they can write to", async () => {
+    const conv = await import("@/lib/conversations");
+    const mi = await import("@/lib/member-inbox");
+    await conv.receiveReply({ id: 3, org_id: eq, display_name: "Cal" }, "Can I help with moves?", "app", null);
+    expect(mi.memberSent(3).map((r) => [r.to, r.body])).toEqual([["the presidency", "Can I help with moves?"]]);
+    const choices = compose.memberComposeChoices(3).find((o) => o.orgId === eq)!;
+    expect(choices.choices.map((c) => c.value)).toEqual([`p:${eq}:0`, `p:${eq}:2`]);
+  });
+});
+

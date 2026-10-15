@@ -148,8 +148,8 @@ subscribing; Google Calendar ignores them (set reminders in Google instead).
 **Message groups** (Admin → Message groups): when you create
 one, choose its organization (if you lead more than one) and **who can see it
 and send to it**: the presidency and/or the people in the group. When
-people in the group can send, they get a **Message a group** box on their
-Messages tab; their message goes to the rest of the group, signed with their
+people in the group can send, the group shows up in the **To** list of their
+**New message**; their message goes to the rest of the group, signed with their
 name, and replies come to the presidency. The presidency can always change a
 group.
 
@@ -278,8 +278,18 @@ phone). Leaders see three tabs, and a **New message** button at the top:
   find someone by name.
 - **Sent**: announcements sent to everyone, the presidency, teachers or a
   group, with who sent them and how many were reached.
-- **My messages**: your own conversation with your presidency, and messages
-  sent to you, like any member.
+- **My messages**: your own messages as a member, exactly as members see them
+  (below), with its own **Inbox** and **Sent**.
+
+**What members see in Messages:** a **New message** button and two tabs, like
+a phone's messages app. **Inbox** has one row per conversation (with the whole
+presidency, or privately with one leader) and one row per announcement, newest
+first, across all their organizations; a blue dot means unread. Tapping a
+conversation opens it like a text thread, with the reply box at the bottom.
+Tapping an announcement shows it in full with a box to reply to the
+presidency. **Sent** lists what they've written, with **Seen** once a leader
+has read it. **New message** lets them choose the whole presidency (or
+bishopric), one leader privately, or a group that lets members send.
 
 Open a conversation to see the whole back-and-forth. New messages appear on
 their own while it's open. Under your last answer it says **Seen** once they've
@@ -329,7 +339,7 @@ in their conversation (Admin → Replies) and the presidency (or the one person
 they were writing with privately) is texted or notified with it.
 
 Every announcement you send from **New message** also shows in each
-member's **More → Messages**, with a **Reply** button. Members can reply there,
+member's Messages inbox, where they can open it and reply. Members can reply there,
 or simply text back if they got it by text. Replies go to **Admin → Replies**
 (and count in **Waiting on you**), and every presidency member is notified.
 

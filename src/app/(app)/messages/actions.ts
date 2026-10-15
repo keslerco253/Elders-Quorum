@@ -3,32 +3,53 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { receiveReply, recentReplies } from "@/lib/conversations";
+import { ledOrgIds, receiveReply, recentReplies } from "@/lib/conversations";
 import { canSendTo, getGroup, memberGroupSendsToday, sendToAudience } from "@/lib/groups";
+import { getWard, myOrgs } from "@/lib/orgs";
+import type { CurrentUser } from "@/lib/types";
 
-export async function replyToPresidency(fd: FormData) {
-  const user = await requireUser();
-  const body = String(fd.get("body") || "").trim();
-  const messageId = Number(fd.get("message_id")) || null;
-  const back = (msg: string, ok = false): never => redirect(`/messages?tab=mine&msg=${encodeURIComponent(msg)}${ok ? "&ok=1" : messageId ? `&re=${messageId}` : ""}#conversation`);
+const threadUrl = (orgId: number, withId: number, msg?: string) => `/messages/thread/${withId || "all"}?org=${orgId}${msg ? `&msg=${encodeURIComponent(msg)}` : ""}#end`;
+
+/** A member writes to an organization's leaders: all of them, or one privately. */
+async function writeToLeaders(user: CurrentUser, orgId: number, withId: number, body: string, messageId: number | null, back: (msg: string) => never) {
+  if (!myOrgs(user.id).some((o) => o.id === orgId)) back("You can't write to that organization.");
   if (!body) back("Write a message first.");
   if (recentReplies(user.id) >= 20) back("You've sent a lot of messages in the last hour. Please try again a little later.");
-  const to = Number(fd.get("to")) || 0;
-  await receiveReply(user, body, "app", messageId, to ? { private: true, withId: to } : { private: false });
+  await receiveReply({ id: user.id, org_id: orgId, display_name: user.display_name }, body, "app", messageId, withId ? { private: true, withId } : { private: false });
   revalidatePath("/", "layout");
-  back(to ? "Sent privately." : "Sent to the presidency.", true);
+  redirect(threadUrl(orgId, withId));
 }
 
-/** Someone in a message group writes to it (when the group allows that). Signed with their name. */
-export async function sendToGroup(fd: FormData) {
+/** The reply box at the bottom of a conversation (or under an announcement). */
+export async function sendInThread(fd: FormData) {
   const user = await requireUser();
-  const back = (msg: string, ok = false): never => redirect(`/messages?tab=mine&gmsg=${encodeURIComponent(msg)}${ok ? "&ok=1" : ""}#group-message`);
-  const g = getGroup(Number(fd.get("group_id")), user.org_id);
-  const body = String(fd.get("body") || "").trim().slice(0, 1000);
-  if (!g || !canSendTo(g, user.id, user.role)) return back("You can't send to that group.");
+  const orgId = Number(fd.get("org_id"));
+  const withId = Number(fd.get("with")) || 0;
+  const messageId = Number(fd.get("message_id")) || null;
+  const body = String(fd.get("body") || "").trim();
+  const back = (msg: string): never => redirect(messageId ? `/messages/a/${messageId}?msg=${encodeURIComponent(msg)}` : threadUrl(orgId, withId, msg));
+  await writeToLeaders(user, orgId, withId, body, messageId, back);
+}
+
+/** New message, for members: to their leaders (all or one privately), or to a message group that lets members send. */
+export async function memberCompose(fd: FormData) {
+  const user = await requireUser();
+  const to = String(fd.get("to") || "");
+  const body = String(fd.get("body") || "").trim();
+  const back = (msg: string): never => redirect(`/messages/new?as=member&to=${encodeURIComponent(to)}&msg=${encodeURIComponent(msg)}`);
+  const m = to.match(/^([pg]):(\d+):(\d+)$/);
+  if (!m) back("Choose who to send to.");
+  const [, kind, org, id] = m!;
+  const orgId = Number(org);
+  if (kind === "p") await writeToLeaders(user, orgId, Number(id), body, null, back);
+  const membership = myOrgs(user.id).find((o) => o.id === orgId);
+  const g = membership ? getGroup(Number(id), orgId) : undefined;
+  if (!g || !canSendTo(g, user.id, membership!.role)) back("You can't send to that group.");
   if (!body) back("Write a message first.");
   if (memberGroupSendsToday(user.id) >= 10) back("You've sent a lot of group messages today. Please try again tomorrow.");
-  const r = await sendToAudience({ orgId: user.org_id, senderId: user.id, audience: `group:${g.id}`, title: user.display_name, body, tz: user.ward.timezone, personal: { from: user.display_name } });
+  const tz = getWard(membership!.ward_id)?.timezone ?? user.ward.timezone;
+  const r = await sendToAudience({ orgId, senderId: user.id, audience: `group:${g!.id}`, title: user.display_name, body: body.slice(0, 1000), tz, personal: { from: user.display_name } });
   revalidatePath("/", "layout");
-  back(`Sent to ${r.count} in ${g.name}.`, true);
+  const sent = ledOrgIds(user.id).length ? "/messages?tab=mine&view=sent" : "/messages?view=sent";
+  redirect(`${sent}&msg=${encodeURIComponent(`Sent to ${r.count} in ${g!.name}.`)}`);
 }

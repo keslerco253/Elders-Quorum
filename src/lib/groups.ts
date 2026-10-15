@@ -86,7 +86,7 @@ export async function sendToAudience(opts: {
   const result = await notify(recipients, {
     title: opts.title,
     body: opts.body,
-    url: `/messages?tab=mine&re=${messageId}#conversation`,
+    url: `/messages/a/${messageId}`,
     // Replying to the email itself wouldn't reach the leaders (it goes to the app's mailbox).
     linkLabel: "Reply in the app",
     emailNote: "To reply, use the button below or text back. Replies to this email aren't seen by your leaders.",

@@ -885,4 +885,12 @@ ALTER TABLE signups ADD COLUMN reminder1_days INTEGER DEFAULT 7;
 ALTER TABLE signups ADD COLUMN reminder2_days INTEGER DEFAULT 1;
 `,
   },
+  {
+    // Members' inbox: which announcements they've opened. Everything already sent counts as read.
+    id: 36,
+    sql: `
+ALTER TABLE message_recipients ADD COLUMN read_at TEXT;
+UPDATE message_recipients SET read_at = datetime('now');
+`,
+  },
 ];

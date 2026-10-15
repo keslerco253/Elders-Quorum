@@ -1,8 +1,8 @@
 import { db } from "./db";
 import { audienceMembers, type Audience } from "./notify";
 import { canSendTo, orgGroups } from "./groups";
-import { getOrg, getWard, hasFeature, orgLabel, orgRoster } from "./orgs";
-import { ledOrgIds } from "./conversations";
+import { getOrg, getWard, hasFeature, myOrgs, orgLabel, orgRoster } from "./orgs";
+import { contactLabel, ledOrgIds, presidencyContacts } from "./conversations";
 import { leadersWord } from "./types";
 
 // What a leader can send from Messages → New message: an announcement to a whole
@@ -93,4 +93,35 @@ export function sentAnnouncements(viewerId: number, limit = 40): SentAnnouncemen
       return !!group && canSendTo(group, viewerId, "presidency");
     })
     .slice(0, limit);
+}
+
+export interface MemberChoice {
+  value: string;
+  label: string;
+}
+
+export interface MemberOrgChoices {
+  orgId: number;
+  label: string;
+  choices: MemberChoice[];
+}
+
+/**
+ * Who a member can write to from New message, in each of their organizations: its whole
+ * presidency (or bishopric), one of them privately, or a message group that lets members send.
+ * Values: "p:<orgId>:0" (everyone in the presidency), "p:<orgId>:<leaderId>", "g:<orgId>:<groupId>".
+ */
+export function memberComposeChoices(memberId: number): MemberOrgChoices[] {
+  const out: MemberOrgChoices[] = [];
+  for (const o of myOrgs(memberId)) {
+    const contacts = presidencyContacts(o.id).filter((c) => c.id !== memberId);
+    const choices: MemberChoice[] = [];
+    if (contacts.length) {
+      choices.push({ value: `p:${o.id}:0`, label: `The whole ${leadersWord(o)}` });
+      for (const c of contacts) choices.push({ value: `p:${o.id}:${c.id}`, label: `Only ${contactLabel(c, o)} (private)` });
+    }
+    for (const g of orgGroups(o.id).filter((g) => canSendTo(g, memberId, o.role))) choices.push({ value: `g:${o.id}:${g.id}`, label: `Group: ${g.name}` });
+    if (choices.length) out.push({ orgId: o.id, label: o.label, choices });
+  }
+  return out;
 }

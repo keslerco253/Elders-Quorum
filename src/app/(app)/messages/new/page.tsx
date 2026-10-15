@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { composeChoices } from "@/lib/compose";
-import { Flash, PageHeader } from "@/components/ui";
+import { composeChoices, memberComposeChoices } from "@/lib/compose";
+import { Empty, Flash, PageHeader } from "@/components/ui";
 import { ComposeForm } from "../compose-form";
+import { MemberComposeForm } from "../member-compose-form";
 
 export const metadata = { title: "New message" };
 
@@ -11,8 +11,19 @@ export default async function NewMessagePage({ searchParams }: { searchParams: P
   const user = await requireUser();
   const sp = await searchParams;
   const { orgs, people } = composeChoices(user.id);
-  // Members write to their leaders (or a group) from My messages.
-  if (!orgs.length) redirect("/messages?tab=mine");
+  // Members (and leaders writing as a member) write to their leaders or a group.
+  if (!orgs.length || sp.as === "member") {
+    const choices = memberComposeChoices(user.id);
+    const valid = choices.flatMap((o) => o.choices.map((c) => c.value));
+    const back = orgs.length ? "/messages?tab=mine" : "/messages";
+    return (
+      <>
+        <PageHeader title="New message" back={{ href: back, label: "Messages" }} subtitle="To your leaders, or a group you can send to. Replies show up in your Messages." />
+        <Flash msg={sp.msg} tone="warn" />
+        {choices.length ? <MemberComposeForm orgs={choices} initial={valid.includes(sp.to ?? "") ? sp.to! : valid.includes(`p:${user.org_id}:0`) ? `p:${user.org_id}:0` : ""} /> : <Empty>There&apos;s no one to write to yet: your organization has no leaders set up.</Empty>}
+      </>
+    );
+  }
   const valid = [...orgs.flatMap((o) => o.audiences.map((a) => a.value)), ...people.map((p) => p.value)];
   const initial = valid.includes(sp.to ?? "") ? sp.to! : "";
   return (
@@ -24,6 +35,10 @@ export default async function NewMessagePage({ searchParams }: { searchParams: P
         Groups (like a committee) are set up under{" "}
         <Link href="/admin/groups" className="link">
           Admin → Message groups
+        </Link>
+        . To write to another organization&apos;s leaders as a member,{" "}
+        <Link href="/messages/new?as=member" className="link">
+          use this instead
         </Link>
         .
       </p>

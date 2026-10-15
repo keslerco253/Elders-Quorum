@@ -4,6 +4,7 @@ import { adminCounts } from "@/lib/admin-counts";
 import { Nav } from "@/components/nav";
 import { hasFeature, ledOrgsAnywhere, orgLabel, orgsInWard } from "@/lib/orgs";
 import { leaderUnread, unreadAnswers } from "@/lib/conversations";
+import { unreadAnnouncements } from "@/lib/member-inbox";
 import { unreadNotifications } from "@/lib/notification-log";
 import { NotificationSeen } from "@/components/notification-seen";
 import { StayFresh } from "@/components/stay-fresh";
@@ -25,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         isAdmin={isAdmin(user) || ledOrgsAnywhere(user.id).length > 0}
         adminCount={counts.total}
         moreCount={unreadNotifications(user.id)}
-        messagesCount={unreadAnswers(user.id) + leaderUnread(user.id)}
+        messagesCount={unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id)}
       />
       <NotificationSeen />
       <StayFresh />
