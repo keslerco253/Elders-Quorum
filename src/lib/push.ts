@@ -50,6 +50,8 @@ export interface PushPayload {
   tag?: string;
   /** Shorter heading for a fullText text, e.g. "Hyrum Johnson (private)". */
   textTitle?: string;
+  /** The text is just the words in full, then this label and the link (e.g. "Reply here"), with no heading. */
+  textLink?: string;
 }
 
 interface SubRow {

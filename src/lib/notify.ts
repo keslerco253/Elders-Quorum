@@ -81,6 +81,8 @@ export function audienceLabel(orgId: number, audience: Audience): string {
  */
 function smsBody(wardName: string, payload: PushPayload, url: string) {
   if (payload.personal) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n- ${payload.personal.from}`;
+  // Already says who it's from (a visit invitation): the words in full, then the link.
+  if (payload.textLink) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n${payload.textLink}: ${url}`;
   // A member's message to a leader: their words, who it's from, then the link.
   if (payload.fullText) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n${payload.textTitle ?? payload.title}\n\nReply in app: ${url}`;
   const text = `${wardName}: ${payload.title}. ${payload.textBody ?? payload.body}`.replace(/\s+/g, " ").trim();

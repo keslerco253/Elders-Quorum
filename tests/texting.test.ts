@@ -61,6 +61,15 @@ describe("texting", () => {
     const r2 = await notify([recipientById(5, 2)!], { title: "NC", body: "x", url: "/" });
     expect(r2).toEqual({ push: 0, email: 1, text: 0, reached: 1 });
   });
+  it("texts a visit invitation in full, with no heading, then the reply link", async () => {
+    const long = "Hi Every! We would love to come visit you and your family in your home on Friday, October 16 at 7:00 PM. Mark Johnson from the Elders Quorum presidency is looking forward to seeing you. If that time doesn't work, tap below to suggest another.";
+    await notify([recipientById(4, 2)!], { title: "An invitation from the Second Ward EQ presidency", body: long, url: "/visit-invite/1?t=x", textLink: "Reply here" });
+    const f = fs.readdirSync(path.join(dir, "outbox")).filter((n) => n.includes("sms-12085550104")).sort().pop()!;
+    const sms = fs.readFileSync(path.join(dir, "outbox", f), "utf8");
+    expect(sms).toContain(long);
+    expect(sms).not.toContain("An invitation from");
+    expect(sms).toMatch(/Reply here: http\S+\/n\/\d+/);
+  });
 });
 
 describe("sign-in code texts", () => {

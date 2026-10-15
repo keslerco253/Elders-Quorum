@@ -141,7 +141,7 @@ export async function sendInvitation(plan: PlannedVisit, message: string, author
       body: text,
       url: invitePath(plan),
       linkLabel: "Reply to the invitation",
-      textBody: `${text} Tap to reply:`,
+      textLink: "Reply here",
     });
   }
 }
