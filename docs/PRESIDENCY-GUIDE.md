@@ -286,7 +286,9 @@ requests (TEACH / CAN'T) are still handled as teaching answers.
   the last 3 days are still waiting for an answer, or when someone's message
   arrived in the 2 minutes before your reply while someone else had also
   written in the last 15 minutes. Answer with the number and it goes to that person. Once you've
-  answered one, a reply goes to the one still waiting without asking.
+  answered one, a reply goes to the one still waiting without asking. If you lead in more than one
+  ward or organization, everyone waiting on you in any of them is included, and
+  your answer goes out from the ward and organization they wrote to.
 - **Pick the person yourself:** start your reply with their name and a comma,
   e.g. "Hyrum, see you at 7". A first name is enough; if two people who
   wrote to you have that first name, the app asks which one (or use the full

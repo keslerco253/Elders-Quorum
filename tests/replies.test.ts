@@ -368,6 +368,29 @@ describe("a leader's texted reply when two people write at once", () => {
     expect(last(7)).toMatchObject({ direction: "out", body: "Hyrum Smith, thanks" });
   });
 
+  it("covers every ward and organization the leader leads", async () => {
+    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
+    const orgs = await import("@/lib/orgs");
+    // The leader also leads a second ward, where Kate writes to them.
+    const maple = orgs.createWard({ name: "Maple Ward", timezone: "America/Boise", creatorId: 1, calling: "bishop" });
+    const mapleOrg = orgs.wardOrg(maple.id).id;
+    d.exec(`INSERT INTO members (id, name, display_name, email, contact_pref, status) VALUES (8, 'K', 'Kate Lee', 'kate@test.local', 'email', 'active')`);
+    orgs.addToOrg(8, mapleOrg);
+    await conv.receiveReply({ id: 8, org_id: mapleOrg, display_name: "Kate Lee" }, "Can I borrow the projector?", "app", null, { private: true, withId: 1 });
+    // Then Hyrum writes in Villas (the last text the leader got).
+    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Ride?", "app", null, { private: true, withId: 1 });
+    d.exec("UPDATE member_messages SET created_at = datetime('now', '-30 minutes')");
+    const out: { reply?: string } = {};
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes, pick it up Friday" }, out)).toBe("asked_who");
+    expect(out.reply).toBe("Who is this for? Reply 1 for Hyrum Johnson or 2 for Kate Lee.");
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "2" })).toBe("answer_sent");
+    // Answered in Maple Ward, where Kate wrote.
+    expect(conv.conversation(mapleOrg, 8, { private: true, withId: 1 }).at(-1)).toMatchObject({ direction: "out", body: "Yes, pick it up Friday" });
+    // Kate's name works across wards too.
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Kate, it's in the library" })).toBe("answer_sent");
+    expect(conv.conversation(mapleOrg, 8, { private: true, withId: 1 }).at(-1)?.body).toBe("Kate, it's in the library");
+  });
+
   it("doesn't ask when only one person is writing", async () => {
     d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
     await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Thanks!", "app", null, { private: true, withId: 1 });
