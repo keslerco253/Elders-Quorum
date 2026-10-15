@@ -81,7 +81,8 @@ export function audienceLabel(orgId: number, audience: Audience): string {
  */
 function smsBody(wardName: string, payload: PushPayload, url: string) {
   if (payload.personal) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n- ${payload.personal.from}`;
-  if (payload.fullText) return `${wardName}: ${payload.title}\n\n${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\nAnswer in the app: ${url}`;
+  if (payload.fullText)
+    return `${wardName}: ${payload.title}\n\n${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n${payload.replyTo ? "Reply to this text to answer them, or open" : "Answer in the app"}: ${url}`;
   const text = `${wardName}: ${payload.title}. ${payload.textBody ?? payload.body}`.replace(/\s+/g, " ").trim();
   return `${text.length > 280 ? text.slice(0, 277) + "…" : text} ${url}`;
 }
@@ -117,8 +118,11 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
     if (!r.phone) return false;
     if (!orgNames.has(r.org_id)) orgNames.set(r.org_id, orgFullName(r.org_id));
     const res = await sendSms(r.org_id, r.phone, smsBody(orgNames.get(r.org_id)!, payload, url), "notice");
-    // A texted reply goes to this organization.
-    if (res === "sent") d().prepare("UPDATE members SET last_text_org_id = ? WHERE id = ?").run(r.org_id, r.id);
+    // A texted reply goes to this organization (and, after a member's message, to that member).
+    if (res === "sent")
+      d()
+        .prepare("UPDATE members SET last_text_org_id = ?, text_reply_member_id = ?, text_reply_private = ? WHERE id = ?")
+        .run(r.org_id, payload.replyTo?.memberId ?? null, payload.replyTo?.private ? 1 : 0, r.id);
     // They replied STOP: stop texting them; use email if they have one.
     if (res === "opted_out") d().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END, always_text = 0 WHERE id = ?").run(r.id);
     return res === "sent";

@@ -234,7 +234,18 @@ describe("replies to the presidency", () => {
     const text = fs.readFileSync(path.join(dir, "outbox", sms), "utf8");
     expect(text).toContain("Private message from Member Person");
     expect(text).toContain(long);
-    expect(text).toMatch(/Answer in the app: \S+\/admin\/replies\/2/);
+    expect(text).toMatch(/Reply to this text to answer them, or open: \S+\/admin\/replies\/2/);
+
+    // The leader replies to that text: it goes to the member, privately, like answering in the app.
+    const beforeAnswer = new Set(fs.readdirSync(path.join(dir, "outbox")));
+    expect(await lib.handleInboundText({ From: "+12085550199", Body: "Happy to help. I'll call you tonight." })).toBe("answer_sent");
+    const thread = conv.conversation(1, 2, { private: true, withId: 3 });
+    expect(thread[thread.length - 1]).toMatchObject({ direction: "out", body: "Happy to help. I'll call you tonight." });
+    const toMember = fs.readdirSync(path.join(dir, "outbox")).find((f) => !beforeAnswer.has(f) && f.includes("12085550101"))!;
+    expect(fs.readFileSync(path.join(dir, "outbox", toMember), "utf8")).toContain("Happy to help. I'll call you tonight.\n\n- Counselor Person");
+    // Any other text from the app ends that: the next reply is the leader's own message again.
+    d.exec("UPDATE members SET text_reply_member_id = NULL WHERE id = 3");
+    expect(await lib.handleInboundText({ From: "+12085550199", Body: "A note from me" })).toBe("saved");
     d.exec(
       "UPDATE members SET phone = NULL, contact_pref = 'email', sms_consent_at = NULL WHERE id = 3",
     );

@@ -274,8 +274,16 @@ choose **Private with you** for something only you should see (it reaches
 them the same way, but only you see it in the app).
 
 **When a member writes to you,** your text, email and notification carry
-their whole message, so you can read it without opening the app. Answer in
-the app (the text ends with the link).
+their whole message, so you can read it without opening the app. To answer,
+**just reply to that text**: it goes to the member (privately if their message
+was private), signed with your name, and shows in their conversation under
+Admin → Replies. Or answer in the app with the link. A reply goes to the last
+member whose message the app texted you; once the app texts you anything else,
+a reply is your own message to your presidency again.
+
+**When a member texts back** to anything you sent them, their reply is saved
+in their conversation (Admin → Replies) and the presidency (or the one person
+they were writing with privately) is texted or notified with it.
 
 Every message you send under **Admin → Send a message** also shows in each
 member's **More → Messages**, with a **Reply** button. Members can reply there,

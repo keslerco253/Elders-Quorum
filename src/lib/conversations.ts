@@ -110,9 +110,23 @@ export async function receiveReply(member: { id: number; org_id: number; display
   db().prepare("INSERT INTO member_messages (org_id, member_id, direction, message_id, body, via, recipient_id) VALUES (?, ?, 'in', ?, ?, ?, ?)").run(member.org_id, member.id, msg, text, via, recipientId);
   // Leaders read the whole message in the notification, text or email; answering is in the app.
   if (to) {
-    await notify([to], { title: `Private message from ${member.display_name}`, body: text, url: `/admin/replies/${member.id}?private=1`, fullText: true, linkLabel: "Answer" });
+    await notify([to], {
+      title: `Private message from ${member.display_name}`,
+      body: text,
+      url: `/admin/replies/${member.id}?private=1`,
+      fullText: true,
+      linkLabel: "Answer",
+      replyTo: { memberId: member.id, private: true },
+    });
   } else {
-    await notify(audienceMembers(member.org_id, "presidency"), { title: `Reply from ${member.display_name}`, body: text, url: `/admin/replies/${member.id}`, fullText: true, linkLabel: "Answer" });
+    await notify(audienceMembers(member.org_id, "presidency"), {
+      title: `Reply from ${member.display_name}`,
+      body: text,
+      url: `/admin/replies/${member.id}`,
+      fullText: true,
+      linkLabel: "Answer",
+      replyTo: { memberId: member.id, private: false },
+    });
   }
 }
 

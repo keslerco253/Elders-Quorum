@@ -804,4 +804,13 @@ CREATE TABLE plan_files (
 );
 `,
   },
+  {
+    // A leader who texts back after being texted a member's message answers
+    // that member. Set when that text is sent; cleared by any other text.
+    id: 29,
+    sql: `
+ALTER TABLE members ADD COLUMN text_reply_member_id INTEGER REFERENCES members(id) ON DELETE SET NULL;
+ALTER TABLE members ADD COLUMN text_reply_private INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];

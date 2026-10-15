@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { db } from "./db";
 import { appUrl } from "./config";
 import { normalizePhone } from "./contact";
-import { receiveReply, recentMessageFor, recentReplies, threadForTextReply } from "./conversations";
+import { receiveReply, recentMessageFor, recentReplies, sendAnswer, threadForTextReply } from "./conversations";
 import { twilioConfigured } from "./sms";
 import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching";
 import { getOrg, getWard, homeOf } from "./orgs";
@@ -26,6 +26,7 @@ const SKIP_WORDS = ["HELP", "INFO", "START", "UNSTOP"];
 
 export type InboundResult =
   | "saved"
+  | "answer_sent"
   | "opted_out"
   | "ignored"
   | "unknown_sender"
@@ -37,6 +38,7 @@ export type InboundResult =
 
 /** What the app texts back after a teacher's TEACH / CANT reply. */
 export const AUTO_REPLIES: Partial<Record<InboundResult, string>> = {
+  answer_sent: "Sent. Your answer is also in their conversation in the app.",
   teacher_confirmed: "Thanks! You're confirmed to teach. See you Sunday.",
   teacher_declined: "Thanks for letting us know. The presidency will find another teacher.",
   request_accepted: "Thank you! You're down to teach. You can add notes on the lesson page.",
@@ -60,8 +62,10 @@ export async function handleInboundText(params: Record<string, string>): Promise
   const body = (params.Body || "").trim();
   if (!from || !body) return "ignored";
   const row = db()
-    .prepare("SELECT id, last_text_org_id, display_name FROM members WHERE phone = ? AND status = 'active' ORDER BY last_login_at DESC LIMIT 1")
-    .get(from) as { id: number; last_text_org_id: number | null; display_name: string } | undefined;
+    .prepare(
+      "SELECT id, last_text_org_id, display_name, text_reply_member_id, text_reply_private FROM members WHERE phone = ? AND status = 'active' ORDER BY last_login_at DESC LIMIT 1",
+    )
+    .get(from) as { id: number; last_text_org_id: number | null; display_name: string; text_reply_member_id: number | null; text_reply_private: number } | undefined;
   // Texts from numbers that aren't in the app aren't stored.
   if (!row) return "unknown_sender";
   // A reply goes to the organization that last texted them.
@@ -80,6 +84,11 @@ export async function handleInboundText(params: Record<string, string>): Promise
   if (optOut === "HELP" || optOut === "START" || SKIP_WORDS.includes(word)) return "ignored";
 
   if (twilioConfigured()) db().prepare("INSERT INTO sms_log (org_id, kind) VALUES (?, 'reply')").run(member.org_id);
+
+  // A leader answering the member's message they were just texted (while still a leader there).
+  if (row.text_reply_member_id && db().prepare("SELECT 1 FROM org_members WHERE org_id = ? AND member_id = ? AND role = 'presidency'").get(orgId, row.id)) {
+    if (await sendAnswer(member, row.text_reply_member_id, body, !!row.text_reply_private)) return "answer_sent";
+  }
 
   const teach = parseTeachReply(body);
   const tz = getWard(getOrg(member.org_id)?.ward_id ?? 0)?.timezone ?? "America/Boise";

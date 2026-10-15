@@ -42,6 +42,8 @@ export interface PushPayload {
   personal?: { from: string };
   /** A member's message to leaders: the text carries all of it (not cut short), then the link to answer. */
   fullText?: boolean;
+  /** A leader texted this can answer the member by replying to the text. */
+  replyTo?: { memberId: number; private: boolean };
 }
 
 interface SubRow {
