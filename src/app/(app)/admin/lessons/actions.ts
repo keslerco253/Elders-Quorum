@@ -75,14 +75,24 @@ export async function saveLesson(fd: FormData) {
     title ||= info.title;
     speaker ||= info.speaker;
   }
-  const date = String(fd.get("date") || lesson.date);
-  try {
-    db().prepare("UPDATE lessons SET kind = ?, title = ?, speaker = ?, url = ?, date = ? WHERE id = ?").run(kind, title, speaker, url, date, lesson.id);
-  } catch {
-    go(`/admin/lessons/${lesson.id}`, "There's already a lesson on that date.");
-  }
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("date"))) ? String(fd.get("date")) : lesson.date;
+  const d = db();
+  // Moving it to a Sunday that already has a lesson (even a blank one) swaps the two.
+  const other = date !== lesson.date ? (d.prepare("SELECT id, title FROM lessons WHERE org_id = ? AND date = ? AND id <> ?").get(user.org_id, date, lesson.id) as { id: number; title: string } | undefined) : undefined;
+  d.transaction(() => {
+    if (other) d.prepare("UPDATE lessons SET date = ? WHERE id = ?").run(`swap-${other.id}`, other.id);
+    d.prepare("UPDATE lessons SET kind = ?, title = ?, speaker = ?, url = ?, date = ? WHERE id = ?").run(kind, title, speaker, url, date, lesson.id);
+    if (other) d.prepare("UPDATE lessons SET date = ? WHERE id = ?").run(lesson.date, other.id);
+  })();
   refresh();
-  go(`/admin/lessons/${lesson.id}`, "Lesson saved.");
+  go(
+    `/admin/lessons/${lesson.id}`,
+    other
+      ? `Lesson moved to ${formatDate(date, "short")}. ${other.title ? `"${other.title}" moved to` : "The blank Sunday it replaced is now"} ${formatDate(lesson.date, "short")}.`
+      : date !== lesson.date
+        ? `Lesson moved to ${formatDate(date, "short")}.`
+        : "Lesson saved.",
+  );
 }
 
 export async function assignTeacher(fd: FormData) {
