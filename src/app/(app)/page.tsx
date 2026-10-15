@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { OrgLink } from "@/components/org-link";
 import { firstName } from "@/lib/names";
 import { DateTime } from "luxon";
 import { requireUser } from "@/lib/auth";
@@ -19,28 +20,31 @@ import { QuickLinks } from "@/components/quick-links";
 import { PushToggle } from "@/components/push-toggle";
 import { askPath, pendingRequestsFor } from "@/lib/teaching-requests";
 import { invitePath, pendingInvitesFor, whenText } from "@/lib/planned-visits";
-import { hasFeature } from "@/lib/orgs";
+import { hasFeature, leadersPhrase, myOrgs } from "@/lib/orgs";
+import { withOrg } from "@/lib/org-cookie";
 
 export default async function HomePage() {
   const user = await requireUser();
   const tz = user.ward.timezone;
   const today = todayIn(tz);
-  const lessons = upcomingLessons(user.org_id, currentLessonDate(tz), 3);
-  const [next, ...later] = lessons;
-  const nextHasNotes = !!(next && getNotes(next.id)?.published_body);
+  // Everything coming up in every organization they belong to (and their wards), not
+  // just the one they're looking at.
+  const mine = myOrgs(user.id);
+  if (!mine.some((o) => o.id === user.org_id)) mine.push({ ...user.org, label: user.orgLabel, role: user.role });
+  // Links into another organization open there (?org=).
+  const inOrg = (href: string, orgId: number) => (orgId === user.org_id ? href : withOrg(href, orgId));
+  const lessonOrgs = mine.filter((o) => hasFeature(o, "lessons"));
+  const lessonNexts = lessonOrgs.map((o) => ({ org: o, lesson: upcomingLessons(o.id, currentLessonDate(tz), lessonOrgs.length > 1 ? 1 : 3) }));
   const now = DateTime.now();
-  // This organization's events and the ward's.
-  const wardOrgId = user.orgs.find((o) => o.kind === "ward")?.id;
-  const events = eventsBetween(
-    user.id,
-    now.toUTC().toISO()!,
-    now.plus({ days: 45 }).toUTC().toISO()!,
-    {
-      wardId: user.ward_id,
-      orgIds: [user.org_id, ...(wardOrgId ? [wardOrgId] : [])],
-    },
-  ).slice(0, 4);
-  const signups = listSignups(user.org_id, false, today).slice(0, 3);
+  const events = eventsBetween(user.id, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!, { joinedOnly: true }).slice(0, 6);
+  const eventOrgs = new Set(events.map((e) => e.org_id)).size > 1;
+  const signupOrgs = mine.filter((o) => hasFeature(o, "signups"));
+  const signups = signupOrgs
+    .flatMap((o) => listSignups(o.id, false, today).map((s) => ({ ...s, org: o })))
+    .sort((a, b) => (a.date ?? "9999").localeCompare(b.date ?? "9999"))
+    .slice(0, 4);
+  // Organizations a visit can be requested from.
+  const visitOrgs = mine.filter((o) => hasFeature(o, "visits"));
   const pending = adminCounts(user).total;
   const asks = pendingRequestsFor(user.id, today);
   const invites = pendingInvitesFor(user.id, today);
@@ -119,80 +123,65 @@ export default async function HomePage() {
         <PushToggle compact />
       </div>
 
-      {hasFeature(user.org, "lessons") && (
-        <Section
-          title={next && next.date === today ? "Today" : "This Sunday"}
-          actions={
-            <Link href="/lessons" className="link text-sm">
-              All lessons
-            </Link>
-          }
-        >
-          {next ? (
-            <Link
-              href={`/lessons/${next.id}`}
-              className="card flex gap-4 hover:bg-surface-2"
-            >
-              <DateChip date={next.date} highlight />
-              <div className="min-w-0 flex-1">
-                {conferenceLabel(next.kind) ? (
-                  <div className="font-semibold">
-                    {conferenceLabel(next.kind)}: no {user.orgLabel} lesson
-                  </div>
-                ) : (
-                  <>
+      {lessonNexts.map(({ org, lesson: [next, ...later] }) => {
+        const nextHasNotes = !!(next && getNotes(next.id)?.published_body);
+        const many = lessonNexts.length > 1;
+        return (
+          <Section
+            key={org.id}
+            title={`${many ? `${org.label}: ` : ""}${next && next.date === today ? "Today" : "This Sunday"}`}
+            actions={
+              <OrgLink href={inOrg("/lessons", org.id)} className="link text-sm">
+                All lessons
+              </OrgLink>
+            }
+          >
+            {next ? (
+              <OrgLink href={inOrg(`/lessons/${next.id}`, org.id)} className="card flex gap-4 hover:bg-surface-2">
+                <DateChip date={next.date} highlight />
+                <div className="min-w-0 flex-1">
+                  {conferenceLabel(next.kind) ? (
                     <div className="font-semibold">
-                      {next.title || "Talk to be announced"}
+                      {conferenceLabel(next.kind)}: no {org.label} lesson
                     </div>
-                    {next.speaker && (
-                      <div className="text-sm text-muted">{next.speaker}</div>
-                    )}
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                      {next.teacher_name ? (
-                        <span className="text-muted">
-                          Teacher: {next.teacher_name}
-                        </span>
-                      ) : (
-                        <Badge tone="warn">Teacher needed</Badge>
-                      )}
-                      {nextHasNotes && (
-                        <Badge tone="info">Teacher&apos;s notes posted</Badge>
-                      )}
-                      {next.comment_count > 0 && (
-                        <span className="text-muted">
-                          · {next.comment_count} comments
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-3 text-sm font-semibold text-accent">
-                      Study and share your thoughts ›
-                    </div>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <div className="font-semibold">{next.title || "Talk to be announced"}</div>
+                      {next.speaker && <div className="text-sm text-muted">{next.speaker}</div>}
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                        {next.teacher_name ? (
+                          <span className="text-muted">Teacher: {next.teacher_name}</span>
+                        ) : (
+                          <Badge tone="warn">Teacher needed</Badge>
+                        )}
+                        {nextHasNotes && <Badge tone="info">Teacher&apos;s notes posted</Badge>}
+                        {next.comment_count > 0 && <span className="text-muted">· {next.comment_count} comments</span>}
+                      </div>
+                      <div className="mt-3 text-sm font-semibold text-accent">Study and share your thoughts ›</div>
+                    </>
+                  )}
+                </div>
+              </OrgLink>
+            ) : (
+              <div className="card text-sm text-muted">No lesson posted yet.</div>
+            )}
+            {later.length > 0 && (
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {later.map((l) => (
+                  <OrgLink
+                    key={l.id}
+                    href={inOrg(`/lessons/${l.id}`, org.id)}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-sm hover:bg-surface-2"
+                  >
+                    <DateChip date={l.date} />
+                    <span className="min-w-0 flex-1 truncate">{conferenceLabel(l.kind) ?? (l.title || "Talk to be announced")}</span>
+                  </OrgLink>
+                ))}
               </div>
-            </Link>
-          ) : (
-            <div className="card text-sm text-muted">No lesson posted yet.</div>
-          )}
-          {later.length > 0 && (
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {later.map((l) => (
-                <Link
-                  key={l.id}
-                  href={`/lessons/${l.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-sm hover:bg-surface-2"
-                >
-                  <DateChip date={l.date} />
-                  <span className="min-w-0 flex-1 truncate">
-                    {conferenceLabel(l.kind) ??
-                      (l.title || "Talk to be announced")}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </Section>
-      )}
+            )}
+          </Section>
+        );
+      })}
 
       <Section
         title="Coming up"
@@ -220,6 +209,7 @@ export default async function HomePage() {
                       {formatDateTime(e.starts_at, tz)}
                       {e.location && ` · ${e.location}`}
                     </div>
+                    {eventOrgs && <div className="text-xs text-muted">{e.org_label}</div>}
                   </div>
                   {!!e.presidency_only && <Badge tone="warn">Leaders only</Badge>}
                 </Link>
@@ -234,49 +224,46 @@ export default async function HomePage() {
           title="Ways to serve"
           actions={
             <Link href="/signups" className="link text-sm">
-              All sign-ups
+              All service
             </Link>
           }
         >
           <ul className="space-y-2">
             {signups.map((s) => (
               <li key={s.id}>
-                <Link
-                  href={`/signups/${s.id}`}
+                <OrgLink
+                  href={inOrg(`/signups/${s.id}`, s.org.id)}
                   className="card flex items-center justify-between gap-3 hover:bg-surface-2"
                 >
                   <span>
                     <span className="block font-medium">{s.title}</span>
-                    {s.date && (
-                      <span className="text-sm text-muted">
-                        {formatDate(s.date, "short")}
-                      </span>
-                    )}
+                    <span className="text-sm text-muted">
+                      {[s.date && formatDate(s.date, "short"), signupOrgs.length > 1 && s.org.label].filter(Boolean).join(" · ")}
+                    </span>
                   </span>
                   {s.taken < s.capacity ? (
                     <Badge tone="info">{s.capacity - s.taken} open</Badge>
                   ) : (
                     <Badge tone="success">Full</Badge>
                   )}
-                </Link>
+                </OrgLink>
               </li>
             ))}
           </ul>
         </Section>
       )}
 
-      <Link
-        href="/more/visit"
-        className="card mb-6 flex items-center justify-between gap-3 hover:bg-surface-2"
-      >
-        <span>
-          <span className="block font-medium">Would you like a visit?</span>
-          <span className="text-sm text-muted">
-            Ask the presidency to come by, talk, or help.
+      {visitOrgs.length > 0 && (
+        <Link href="/more/visit" className="card mb-6 flex items-center justify-between gap-3 hover:bg-surface-2">
+          <span>
+            <span className="block font-medium">Would you like a visit?</span>
+            <span className="text-sm text-muted">
+              Ask {visitOrgs.length === 1 ? leadersPhrase(visitOrgs[0]) : "your leaders"} to come by, talk, or help.
+            </span>
           </span>
-        </span>
-        <span className="text-muted">›</span>
-      </Link>
+          <span className="text-muted">›</span>
+        </Link>
+      )}
 
       <Section title="Church apps">
         <QuickLinks />

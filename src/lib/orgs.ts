@@ -334,3 +334,29 @@ export function ledOrgsAnywhere(memberId: number): { id: number; label: string; 
       .all(memberId) as { id: number; label: string; ward: string }[]
   );
 }
+
+export interface MyOrg extends Org {
+  /** "Elders Quorum", the ward's name for the ward itself, with the ward added when they're in more than one. */
+  label: string;
+  role: Role;
+}
+
+/**
+ * The organizations someone belongs to (officially, or as a leader), in every ward
+ * they're in, plus each ward itself. Turned-off organizations are left out. Ward
+ * first, then organizations by name.
+ */
+export function myOrgs(memberId: number): MyOrg[] {
+  const rows = db()
+    .prepare(
+      `SELECT o.id, o.ward_id, o.name, o.kind, o.hidden_features, o.active, w.name AS ward_name, COALESCE(om.role, 'member') AS role
+       FROM orgs o JOIN wards w ON w.id = o.ward_id
+       JOIN ward_members wm ON wm.ward_id = o.ward_id AND wm.member_id = ?
+       LEFT JOIN org_members om ON om.org_id = o.id AND om.member_id = wm.member_id
+       WHERE o.active = 1 AND (o.kind = 'ward' OR om.official = 1 OR om.role <> 'member')
+       ORDER BY w.name COLLATE NOCASE, o.kind = 'group', o.name COLLATE NOCASE`,
+    )
+    .all(memberId) as (Org & { ward_name: string; role: Role })[];
+  const manyWards = new Set(rows.map((r) => r.ward_id)).size > 1;
+  return rows.map(({ ward_name, ...o }) => ({ ...o, label: o.kind === "ward" ? ward_name : manyWards ? `${ward_name} ${o.name}` : o.name }));
+}

@@ -4,7 +4,7 @@ import { isAdmin } from "@/lib/permissions";
 import { leaderUnread, unreadAnswers } from "@/lib/conversations";
 import { unreadNotifications } from "@/lib/notification-log";
 import { callingLabel, leadersWord, roleLabel } from "@/lib/types";
-import { hasFeature, ledOrgsAnywhere } from "@/lib/orgs";
+import { hasFeature, ledOrgsAnywhere, myOrgs } from "@/lib/orgs";
 import { formatPhone } from "@/lib/contact";
 import { CountDot, Flash, PageHeader, Section } from "@/components/ui";
 import { adminCounts } from "@/lib/admin-counts";
@@ -26,7 +26,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
     { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },
     { href: "/messages", label: "Messages", count: unread, desc: `Messages from ${user.orgLabel} and replies from its ${leadersWord(user.org)}` },
     ...(hasFeature(user.org, "signups") ? [{ href: "/signups", label: "Service", desc: "Service projects, meals, rides and more" }] : []),
-    ...(hasFeature(user.org, "visits") ? [{ href: "/more/visit", label: "Request a visit", desc: `Ask the ${user.orgLabel} ${leadersWord(user.org)} to come by, talk, or help` }] : []),
+    ...(myOrgs(user.id).some((o) => hasFeature(o, "visits")) ? [{ href: "/more/visit", label: "Request a visit", desc: "Ask your leaders to come by, talk, or help" }] : []),
     { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },
     ...(isAdmin(user) || ledOrgsAnywhere(user.id).length ? [{ href: "/admin", label: "Admin tools", count: adminCounts(user).total, desc: "Members, lessons, messages and approvals" }] : []),
     ...(user.is_site_owner ? [{ href: "/site", label: "Site owner", desc: "Every ward, texting, backups" }] : []),

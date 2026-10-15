@@ -427,3 +427,16 @@ keeps the full text of everything the app sent you for 30 days (a red dot on
 More means something unread). On Android and computers notifications stay on
 screen until tapped. On iPhone each person can choose that themselves:
 **Settings → Notifications → (the app) → Banner Style → Persistent**.
+
+## A member's home page
+
+Each member's home page shows what's coming up in **every organization they
+belong to** (and the ward), not only the one they're looking at: next Sunday's
+lesson for each organization that has lessons, upcoming events (labeled with
+their organization), and service opportunities. Tapping one opens it in its
+organization.
+
+**Request a visit** asks members who they'd like to hear from (one of their
+organizations' presidencies, or the bishopric). If there's only one choice, it's
+picked for them. A member can have one open request with each.
+

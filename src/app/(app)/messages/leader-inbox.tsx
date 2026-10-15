@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { OrgLink } from "@/components/org-link";
 import { leaderInbox } from "@/lib/conversations";
 import { friendlyTime } from "@/lib/time";
 import { firstName } from "@/lib/names";
@@ -40,7 +41,7 @@ export function LeaderInbox({ viewerId, tz, unreadOnly, q }: { viewerId: number;
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
           {rows.map((c) => (
             <li key={`${c.org_id}-${c.member_id}-${c.recipient_id ?? "all"}`}>
-              <Link
+              <OrgLink
                 href={`/admin/replies/${c.member_id}?org=${c.org_id}${c.recipient_id ? "&private=1" : ""}#end`}
                 className={`flex items-center gap-3 px-4 py-3 hover:bg-surface-2 ${c.unread ? "bg-accent-soft/40" : ""}`}
               >
@@ -61,7 +62,7 @@ export function LeaderInbox({ viewerId, tz, unreadOnly, q }: { viewerId: number;
                   <span className="text-xs text-muted">{friendlyTime(c.last_at, tz)}</span>
                   {c.unread > 0 && <span className="rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-bold text-white">{c.unread}</span>}
                 </div>
-              </Link>
+              </OrgLink>
             </li>
           ))}
         </ul>

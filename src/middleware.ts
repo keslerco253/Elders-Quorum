@@ -18,7 +18,10 @@ export function middleware(req: NextRequest) {
   // ?org=<id> (from notifications and links between organizations) switches
   // to that organization, then shows the same page without it.
   const org = req.nextUrl.searchParams.get("org");
-  if (org && /^\d+$/.test(org) && req.method === "GET") {
+  // A link the browser fetches ahead of time (Next.js prefetch) must not switch
+  // organizations: only following the link does.
+  const prefetch = req.headers.get("next-router-prefetch") === "1" || req.headers.get("purpose") === "prefetch" || req.headers.get("sec-purpose")?.includes("prefetch");
+  if (org && /^\d+$/.test(org) && req.method === "GET" && !prefetch) {
     const url = req.nextUrl.clone();
     url.searchParams.delete("org");
     const res = NextResponse.redirect(url, 303);

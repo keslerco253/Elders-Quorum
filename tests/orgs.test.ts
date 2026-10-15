@@ -289,3 +289,16 @@ describe("leaders looking at another organization", () => {
     expect(orgs.ledOrgsAnywhere(2)).toEqual([]);
   });
 });
+
+describe("a member's own organizations", () => {
+  it("lists the organizations they belong to or lead, in every ward, plus each ward", () => {
+    const rs = orgs.createOrg(1, "Relief Society");
+    orgs.addToOrg(4, rs.id);
+    // Following an organization's notifications without belonging doesn't count.
+    d.prepare("UPDATE org_members SET official = 0, notify = 1 WHERE org_id = 1 AND member_id = 4").run();
+    expect(orgs.myOrgs(4).map((o) => o.label)).toEqual(["Villas Ward", "Relief Society"]);
+    const maple = orgs.createWard({ name: "Maple Ward", timezone: "America/Boise", creatorId: 4 });
+    expect(orgs.myOrgs(4).map((o) => o.label)).toEqual(["Maple Ward", "Villas Ward", "Villas Ward Relief Society"]);
+    expect(orgs.myOrgs(4).find((o) => o.ward_id === maple.id)?.role).toBe("presidency");
+  });
+});

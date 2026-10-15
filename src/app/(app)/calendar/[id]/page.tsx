@@ -41,9 +41,9 @@ export default async function EventPage({ params, searchParams }: { params: Prom
         back={{ href: "/calendar", label: "Calendar" }}
         actions={
           admin && (
-            <Link href={`/admin/events/${e.id}?org=${e.org_id}`} className="btn-secondary">
+            <a href={`/admin/events/${e.id}?org=${e.org_id}`} className="btn-secondary">
               Edit
-            </Link>
+            </a>
           )
         }
       />
