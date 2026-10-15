@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { formatDate } from "@/lib/time";
+import { formatDate, formatDateTime } from "@/lib/time";
 import { dataOnVolume } from "@/lib/setup-code";
 import { monthlyLimit, phoneEnabled, textsThisMonth, twilioConfigured } from "@/lib/sms";
 import { inboundUrl } from "@/lib/sms-inbound";
@@ -25,6 +25,20 @@ interface WardRow {
   orgs: number;
 }
 
+/** What happened to an incoming text, in words. */
+const TEXT_RESULTS: Record<string, string> = {
+  saved: "Saved as a message",
+  answer_sent: "Sent as a leader's answer",
+  opted_out: "Opted out (STOP)",
+  ignored: "Ignored (HELP/START, or too many)",
+  unknown_sender: "Number not in the app",
+  teacher_confirmed: "Confirmed teaching",
+  teacher_declined: "Can't teach",
+  request_accepted: "Accepted teaching request",
+  request_declined: "Declined teaching request",
+  request_taken: "Teaching request already taken",
+};
+
 export default async function SiteOwnerPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
   if (!user.is_site_owner) redirect("/");
@@ -37,6 +51,11 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
        FROM wards w LEFT JOIN members m ON m.id = w.created_by ORDER BY w.created_at DESC`,
     )
     .all() as WardRow[];
+  const incoming = db()
+    .prepare(
+      `SELECT l.id, l.result, l.note, l.created_at, m.display_name AS name FROM sms_inbound_log l LEFT JOIN members m ON m.id = l.member_id ORDER BY l.id DESC LIMIT 25`,
+    )
+    .all() as { id: number; result: string; note: string; created_at: string; name: string | null }[];
   return (
     <>
       <PageHeader title="Site owner" back={{ href: "/more", label: "More" }} subtitle="Every ward on this app, email and texting, and backups. Only you see this page." />
@@ -133,6 +152,29 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
           </div>
         </div>
       </Section>
+
+      {phoneEnabled() && (
+        <Section title="Incoming texts">
+          <div className="card max-w-xl text-sm">
+            <p className="mb-2 text-muted">Texts people sent to the app&apos;s number in the last 30 days, and where each went (the words are in their conversations).</p>
+            {incoming.length === 0 ? (
+              <p className="text-muted">None yet.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {incoming.map((t) => (
+                  <li key={t.id} className="flex flex-wrap justify-between gap-x-3 py-1.5">
+                    <span>
+                      <span className="font-medium">{t.name ?? "Unknown number"}</span>
+                      <span className="text-muted"> · {[TEXT_RESULTS[t.result] ?? t.result, t.note].filter(Boolean).join(": ")}</span>
+                    </span>
+                    <span className="text-muted">{formatDateTime(t.created_at, user.ward.timezone, "LLL d, h:mm a")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </Section>
+      )}
 
       <Section title="Start a ward for someone">
         <form action={addWard} className="card max-w-xl space-y-3">

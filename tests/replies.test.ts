@@ -243,9 +243,18 @@ describe("replies to the presidency", () => {
     expect(thread[thread.length - 1]).toMatchObject({ direction: "out", body: "Happy to help. I'll call you tonight." });
     const toMember = fs.readdirSync(path.join(dir, "outbox")).find((f) => !beforeAnswer.has(f) && f.includes("12085550101"))!;
     expect(fs.readFileSync(path.join(dir, "outbox", toMember), "utf8")).toContain("Happy to help. I'll call you tonight.\n\n- Counselor Person");
-    // Any other text from the app ends that: the next reply is the leader's own message again.
+    // Replying to an older text (sent before this, or after other texts) still answers the
+    // newest message a member sent them in the last few days.
     d.exec("UPDATE members SET text_reply_member_id = NULL WHERE id = 3");
+    expect(await lib.handleInboundText({ From: "+12085550199", Body: "One more thing" })).toBe("answer_sent");
+    expect(conv.conversation(1, 2, { private: true, withId: 3 }).at(-1)).toMatchObject({ direction: "out", body: "One more thing" });
+    // The site owner's log says where each text went.
+    expect(d.prepare("SELECT result, note FROM sms_inbound_log ORDER BY id DESC LIMIT 1").get()).toEqual({ result: "answer_sent", note: "Answer to Member Person (private)" });
+    // With no member message to answer, a leader's text is their own message, and they aren't notified of it themselves.
+    d.exec("UPDATE member_messages SET created_at = datetime('now', '-10 days')");
+    const beforeOwn = new Set(fs.readdirSync(path.join(dir, "outbox")));
     expect(await lib.handleInboundText({ From: "+12085550199", Body: "A note from me" })).toBe("saved");
+    expect(fs.readdirSync(path.join(dir, "outbox")).filter((f) => !beforeOwn.has(f) && f.includes("12085550199"))).toEqual([]);
     d.exec(
       "UPDATE members SET phone = NULL, contact_pref = 'email', sms_consent_at = NULL WHERE id = 3",
     );

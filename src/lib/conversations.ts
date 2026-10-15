@@ -119,7 +119,8 @@ export async function receiveReply(member: { id: number; org_id: number; display
       replyTo: { memberId: member.id, private: true },
     });
   } else {
-    await notify(audienceMembers(member.org_id, "presidency"), {
+    // The presidency, but never the sender (a leader writing as a member).
+    await notify(audienceMembers(member.org_id, "presidency").filter((r) => r.id !== member.id), {
       title: `Reply from ${member.display_name}`,
       body: text,
       url: `/admin/replies/${member.id}`,

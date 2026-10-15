@@ -813,4 +813,17 @@ ALTER TABLE members ADD COLUMN text_reply_member_id INTEGER REFERENCES members(i
 ALTER TABLE members ADD COLUMN text_reply_private INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    // What happened to each incoming text, for the site owner (kept 30 days; no message text).
+    id: 30,
+    sql: `
+CREATE TABLE sms_inbound_log (
+  id INTEGER PRIMARY KEY,
+  member_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  result TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`,
+  },
 ];

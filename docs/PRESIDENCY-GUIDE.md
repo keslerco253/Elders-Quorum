@@ -277,9 +277,13 @@ them the same way, but only you see it in the app).
 their whole message, so you can read it without opening the app. To answer,
 **just reply to that text**: it goes to the member (privately if their message
 was private), signed with your name, and shows in their conversation under
-Admin → Replies. Or answer in the app with the link. A reply goes to the last
-member whose message the app texted you; once the app texts you anything else,
-a reply is your own message to your presidency again.
+Admin → Replies. Or answer in the app with the link. A reply goes to the member whose
+message came to you most recently (in the last 3 days). Replies to teaching
+requests (TEACH / CAN'T) are still handled as teaching answers.
+
+**Site owner:** More → Site owner → **Incoming texts** lists the last month's
+incoming texts and where each one went (an answer to whom, a message to the
+presidency, a teaching reply, an unknown number).
 
 **When a member texts back** to anything you sent them, their reply is saved
 in their conversation (Admin → Replies) and the presidency (or the one person
