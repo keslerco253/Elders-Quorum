@@ -264,7 +264,7 @@ and time, and who's going. A visit gets there two ways:
   send them a confirmation) moves it to Upcoming visits; you can also record
   **They want another time** or **They'd rather not right now**.
 
-Whoever is going gets a reminder the morning of the visit. Afterwards tap
+The whole presidency (and anyone else going) gets a reminder the same day, 3 hours before the visit (by notification, or text or email as each person chose). The member gets one too if they were sent the date and time or an invitation. A visit before 10 AM is reminded at 8 PM the evening before; one with no time set, at 8 AM that day. Afterwards tap
 **Record visit** (the form is filled in from the plan); that moves it to the
 visit history and closes the member's request. **Change** reschedules it and
 **Cancel** removes it (a request goes back to Visit requests). If the member

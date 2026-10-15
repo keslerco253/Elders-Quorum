@@ -106,6 +106,7 @@ export async function savePlannedVisit(fd: FormData) {
   if (request) {
     d.prepare("UPDATE visit_requests SET status = 'scheduled', reply = ?, handled_by = ?, updated_at = datetime('now') WHERE id = ?").run(invitation || message, user.id, request.id);
   }
+  if (mode === "invite" || mode === "datetime") d.prepare("UPDATE planned_visits SET member_told = 1 WHERE id = ?").run(planId);
   if (mode === "invite") await sendInvitation(getPlannedVisit(user.org_id, planId)!, invitation, user.id);
   else if (mode === "datetime") await sendAnswer(user, memberId, message);
   revalidatePath("/admin", "layout");

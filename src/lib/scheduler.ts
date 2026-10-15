@@ -145,23 +145,53 @@ function todoReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   }));
 }
 
-/** The morning of a planned visit (8 AM-8 PM if the server was off), remind whoever is going. */
+/** How long before a visit its reminder goes out. */
+export const VISIT_REMINDER_HOURS = 3;
+
+/**
+ * A planned visit's reminder, the same day and at least 3 hours ahead, to the
+ * presidency and whoever is going, and to the member being visited (if they were
+ * told about it). A visit before 10 AM is reminded at 8 PM the evening before
+ * (not before 7 AM); one with no time set, at 8 AM that day.
+ */
 function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
-  if (local.hour < 8 || local.hour >= 20) return [];
-  return upcomingVisits(org.id)
-    .filter((p) => p.date === local.toISODate() && p.invite_status !== "declined")
-    .map((p) => ({
-      key: `visit-day:${p.id}:${p.date}:${p.time ?? ""}`,
-      recipients: visitorIds(p)
-        .map((id) => recipientById(id, org.id))
-        .filter((r): r is Recipient => !!r),
+  const out: DueNotification[] = [];
+  for (const p of upcomingVisits(org.id)) {
+    const day = DateTime.fromISO(p.date, { zone: org.timezone });
+    const start = p.time ? DateTime.fromISO(`${p.date}T${p.time}`, { zone: org.timezone }) : day.set({ hour: 20 });
+    let due = p.time ? start.minus({ hours: VISIT_REMINDER_HOURS }) : day.set({ hour: 8 });
+    if (due.hour < 7 || due < day) due = day.minus({ days: 1 }).set({ hour: 20 });
+    if (local < due || local >= start) continue;
+    const when = whenText(p.date, p.time);
+    const kind = VISIT_TYPES[p.type]?.toLowerCase() ?? p.type;
+    const today = due.hasSame(day, "day");
+    const leaders = new Set([...audienceMembers(org.id, "presidency").map((r) => r.id), ...visitorIds(p)]);
+    leaders.delete(p.member_id);
+    out.push({
+      key: `visit-rem:${p.id}:${p.date}:${p.time ?? ""}`,
+      recipients: [...leaders].map((id) => recipientById(id, org.id)).filter((r): r is Recipient => !!r),
       payload: {
-        title: `Visit today: ${p.member_name}`,
-        body: `${whenText(p.date, p.time)} (${VISIT_TYPES[p.type]?.toLowerCase() ?? p.type})${p.visitors ? `, with ${p.visitors}` : ""}.${p.invite_status === "pending" ? " They haven't answered the invitation yet." : p.invite_status === "new_time" ? " They asked for another time." : ""}`,
+        title: `Visit ${today ? "today" : "tomorrow"}: ${p.member_name}`,
+        body: `${when} (${kind})${p.visitors ? `, with ${p.visitors}` : ""}.${p.invite_status === "accepted" ? " They said yes." : ""}`,
         url: "/admin/visits",
       },
-    }));
+    });
+    if (p.member_told) {
+      const member = recipientById(p.member_id, org.id);
+      if (member)
+        out.push({
+          key: `visit-rem-m:${p.id}:${p.date}:${p.time ?? ""}`,
+          recipients: [member],
+          payload: {
+            title: `Reminder: visit ${today ? "today" : "tomorrow"}`,
+            body: `${p.visitors ?? `Your ${org.label} leaders`} ${p.type === "phone" ? "will call you" : p.type === "church" ? "will meet with you at church" : (p.visitors ?? "").includes(",") ? "plan to visit you" : "plans to visit you"} ${when}.`,
+            url: "/",
+          },
+        });
+    }
+  }
+  return out;
 }
 
 /**

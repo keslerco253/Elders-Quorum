@@ -23,6 +23,8 @@ export interface PlannedVisit {
   invite_message: string;
   member_reply: string;
   responded_at: string | null;
+  /** They were sent the date and time, or an invitation (so they get its reminder too). */
+  member_told: number;
 }
 
 const SELECT = `SELECT p.*, m.display_name AS member_name,
