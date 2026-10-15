@@ -18,6 +18,7 @@ export const isRemember = (v: unknown): v is Remember => typeof v === "string" &
 const TOKEN_MINUTES = 20;
 const MAX_CODE_ATTEMPTS = 5;
 const MAX_TOKENS_PER_HOUR = 5;
+const MAX_WRONG_CODES_PER_DAY = 15;
 
 export const sha256 = (s: string) => crypto.createHash("sha256").update(s).digest("hex");
 const nowIso = () => DateTime.utc().toISO()!;
@@ -93,6 +94,9 @@ export function redeemCode(contact: string, code: string) {
     .prepare("SELECT * FROM login_tokens WHERE member_id = ? AND used_at IS NULL AND expires_at > ? ORDER BY id DESC LIMIT 1")
     .get(member.id, nowIso()) as TokenRow | undefined;
   if (!row || row.attempts >= MAX_CODE_ATTEMPTS) return null;
+  // Across all their codes: no more than this many wrong tries a day, so a code can't be guessed.
+  const wrongToday = (d.prepare("SELECT COALESCE(SUM(attempts), 0) AS n FROM login_tokens WHERE member_id = ? AND created_at > datetime('now', '-1 day')").get(member.id) as { n: number }).n;
+  if (wrongToday >= MAX_WRONG_CODES_PER_DAY) return null;
   const expected = d.prepare("SELECT code_hash FROM login_tokens WHERE id = ?").get(row.id) as { code_hash: string };
   if (expected.code_hash !== sha256(`${member.id}:${code.replace(/\D/g, "")}`)) {
     d.prepare("UPDATE login_tokens SET attempts = attempts + 1 WHERE id = ?").run(row.id);

@@ -899,4 +899,16 @@ UPDATE message_recipients SET read_at = datetime('now');
     id: 37,
     sql: `ALTER TABLE members ADD COLUMN text_as_member INTEGER NOT NULL DEFAULT 0;`,
   },
+  {
+    // Counts recent attempts (sign-in codes asked for, wrong codes, join codes tried)
+    // per device and across the site, so they can't be guessed or abused at scale.
+    id: 38,
+    sql: `
+CREATE TABLE rate_hits (
+  key TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX rate_hits_key ON rate_hits(key, created_at);
+`,
+  },
 ];

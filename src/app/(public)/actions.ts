@@ -1,7 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { allowHit, clientIp, overLimit } from "@/lib/rate-limit";
 import { removeAppToken } from "@/lib/push";
 import { APP_TOKEN_COOKIE } from "@/lib/native-app";
 import { db } from "@/lib/db";
@@ -16,6 +17,9 @@ import { DEFAULT_TZ, validZone } from "@/lib/time";
 import { CALLINGS, isCalling, type Member } from "@/lib/types";
 
 const q = (params: Record<string, string>) => new URLSearchParams(params).toString();
+
+const ip = async () => clientIp(await headers());
+const BUSY = "Too many tries from this device. Please wait a while and try again.";
 
 /** Reads the "phone number or email" box. Phone numbers only count once texting is set up. */
 function readContact(raw: string) {
@@ -50,6 +54,9 @@ export async function requestLogin(formData: FormData) {
   const c = readContact(raw);
   if (!c || !isRemember(remember)) redirect("/login?" + q({ contact: raw, error: invalidContactMessage(raw) }));
 
+  // Sign-in codes cost a text or email each: limit them per device and across the site.
+  const where = await ip();
+  if (!allowHit(`login:${where}`, 15, 60) || !allowHit("login:all", 300, 60)) redirect("/login?" + q({ contact: raw, error: BUSY }));
   const member = findLoginMember(c.value);
   if (!member) {
     const other = findMemberByContact(c.value);
@@ -77,8 +84,13 @@ export async function verifyCode(formData: FormData) {
       redirect("/");
     }
   }
+  const where = await ip();
+  if (overLimit(`badcode:${where}`, 30, 60)) redirect("/login/check?" + q({ to, error: BUSY }));
   const result = redeemCode(to, code);
-  if (!result) redirect("/login/check?" + q({ to, error: "That code didn't work. Check the newest code and try again." }));
+  if (!result) {
+    allowHit(`badcode:${where}`, 30, 60);
+    redirect("/login/check?" + q({ to, error: "That code didn't work. Check the newest code and try again." }));
+  }
   await startSession(result.memberId, result.remember);
   redirect("/");
 }
@@ -119,7 +131,13 @@ export async function joinApp(formData: FormData) {
   const recent = d.prepare("SELECT COUNT(*) AS n FROM members WHERE source = 'request' AND created_at > datetime('now', '-1 hour')").get() as { n: number };
   if (recent.n >= 20) back("Too many people are joining right now. Please try again later.");
 
+  const where = await ip();
+  if (overLimit(`badjoin:${where}`, 10, 60) || overLimit("badjoin:all", 100, 60)) back(BUSY);
   const ward = wardByJoinCode(code);
+  if (!ward) {
+    allowHit(`badjoin:${where}`, 10, 60);
+    allowHit("badjoin:all", 100, 60);
+  }
   if (!ward) back(code ? "That join code didn't match. Check it with your bishopric or an organization presidency." : "Please enter your ward's join code.");
 
   const existing = findMemberByContact(c.value);
@@ -168,6 +186,7 @@ export async function startWard(formData: FormData) {
     redirect("/login?" + q({ contact: raw, error: "You already have an account. Sign in, then start your ward under More → My organizations." }));
   }
   const d = db();
+  if (!allowHit(`start:${await ip()}`, 3, 24 * 60)) back(BUSY);
   const recent = d.prepare("SELECT COUNT(*) AS n FROM wards WHERE created_at > datetime('now', '-1 hour')").get() as { n: number };
   if (recent.n >= 10) back("Many wards were started in the last hour. Please try again later.");
 
