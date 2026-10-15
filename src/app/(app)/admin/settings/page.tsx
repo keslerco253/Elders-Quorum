@@ -5,7 +5,7 @@ import { emailConfigured } from "@/lib/mail";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addOrganization, deleteOrganization, saveOrgSettings, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode } from "./actions";
+import { addOrganization, deleteOrganization, saveOrgSettings, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode, startAnotherWard } from "./actions";
 import { db } from "@/lib/db";
 import { hasFeature, orgRoster } from "@/lib/orgs";
 import { FEATURES, type Feature } from "@/lib/types";
@@ -184,6 +184,19 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 </details>
               )}
             </div>
+          </Section>
+          <Section title="Another ward">
+            <details id="start-ward" className="card max-w-xl text-sm">
+              <summary className="cursor-pointer font-semibold">Start a new ward</summary>
+              <form action={startAnotherWard} className="mt-3 space-y-3">
+                <p className="text-muted">For a ward that isn&apos;t in the app yet. You&apos;ll lead it in the app until you add its bishopric there.</p>
+                <input name="ward_name" required maxLength={80} className="input" placeholder="Ward name, e.g. Maple Ward" />
+                <TimezoneSelect name="timezone" defaultValue={user.ward.timezone} />
+                <SubmitButton className="btn-secondary" pendingText="Starting…">
+                  Start ward
+                </SubmitButton>
+              </form>
+            </details>
           </Section>
         </>
       )}

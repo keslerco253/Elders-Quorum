@@ -4,8 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { addToWard, createWard, wardOrg } from "@/lib/orgs";
-import { validZone } from "@/lib/time";
+import { addToWard } from "@/lib/orgs";
 import { wardByJoinCode } from "@/lib/wards";
 
 function go(text: string, ok = true): never {
@@ -49,17 +48,4 @@ export async function joinAnotherWard(fd: FormData) {
   revalidatePath("/", "layout");
   // Switch to the new ward so they can choose its organizations.
   redirect(`/more/organizations?org=${wardOrg.id}&ok=1&msg=${encodeURIComponent(`You joined ${ward.name}. Choose your organizations there below.`)}`);
-}
-
-/** A signed-in member starts another ward (they lead it with the bishopric). */
-export async function startAnotherWard(fd: FormData) {
-  const user = await requireUser();
-  const name = String(fd.get("ward_name") || "").trim().slice(0, 80);
-  const tz = String(fd.get("timezone") || user.ward.timezone);
-  if (!name || !validZone(tz)) go("Enter the ward's name and time zone.", false);
-  const recent = db().prepare("SELECT COUNT(*) AS n FROM wards WHERE created_by = ? AND created_at > datetime('now', '-1 day')").get(user.id) as { n: number };
-  if (recent.n >= 3 && !user.is_site_owner) go("You've started several wards today. Please try again tomorrow.", false);
-  const ward = createWard({ name, timezone: tz, creatorId: user.id, texting: !!user.is_site_owner });
-  revalidatePath("/", "layout");
-  redirect(`/admin/settings?org=${wardOrg(ward.id).id}&msg=${encodeURIComponent(`${name} is ready. Share its join code, then add its organizations below.`)}`);
 }

@@ -3,8 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requirePresidency, requireWardLeader } from "@/lib/auth";
-import { addToOrg, createOrg, deleteOrg, inOrgWard, newJoinCode } from "@/lib/orgs";
+import { requirePresidency, requireUser, requireWardLeader } from "@/lib/auth";
+import { addToOrg, createOrg, createWard, deleteOrg, inOrgWard, newJoinCode, wardOrg } from "@/lib/orgs";
 import { emailHtml, sendMail } from "@/lib/mail";
 import { sendSms } from "@/lib/sms";
 import { validZone } from "@/lib/time";
@@ -106,4 +106,19 @@ export async function sendTestText() {
   if (!user.sms_consent_at) go("Turn on texts under More → Contact & notifications first, so the app may text you.");
   const res = await sendSms(user.org_id, user.phone, `${user.ward.name}: test text. Texting from the app is working.`, "notice");
   go(res === "sent" ? `Test text sent to ${formatPhone(user.phone)}.` : "The text didn't send. Check the TWILIO_ lines in the settings file (OPEN-SETTINGS.bat), then run UPDATE.bat.");
+}
+
+/** The bishopric (or the site owner) starts another ward; they lead it until its bishopric is added. */
+export async function startAnotherWard(fd: FormData) {
+  const user = await requireUser();
+  if (!user.wardLeader && !user.is_site_owner) redirect("/");
+  const back = (msg: string): never => redirect(`/admin/settings?msg=${encodeURIComponent(msg)}#start-ward`);
+  const name = String(fd.get("ward_name") || "").trim().slice(0, 80);
+  const tz = String(fd.get("timezone") || user.ward.timezone);
+  if (!name || !validZone(tz)) back("Enter the ward's name and time zone.");
+  const recent = db().prepare("SELECT COUNT(*) AS n FROM wards WHERE created_by = ? AND created_at > datetime('now', '-1 day')").get(user.id) as { n: number };
+  if (recent.n >= 3 && !user.is_site_owner) back("You've started several wards today. Please try again tomorrow.");
+  const ward = createWard({ name, timezone: tz, creatorId: user.id, texting: !!user.is_site_owner });
+  revalidatePath("/", "layout");
+  redirect(`/admin/settings?org=${wardOrg(ward.id).id}&msg=${encodeURIComponent(`${name} is ready. Share its join code, then add its organizations below.`)}`);
 }

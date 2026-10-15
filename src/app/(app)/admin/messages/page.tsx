@@ -8,6 +8,7 @@ import { SubmitButton } from "@/components/client";
 import { sendMessage } from "./actions";
 import { roleLabel } from "@/lib/types";
 import { hasFeature } from "@/lib/orgs";
+import { sendableGroups } from "@/lib/groups";
 
 export const metadata = { title: "Send a message" };
 
@@ -28,7 +29,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const w = user.org_id;
   const tz = user.ward.timezone;
-  const groups = db().prepare("SELECT id, name FROM groups WHERE org_id = ? ORDER BY name").all(w) as { id: number; name: string }[];
+  const groups = sendableGroups(user);
   const options: [Audience, string][] = [
     ["everyone", `Everyone in ${user.orgLabel} (who gets its notifications)`],
     ["admins", "Leaders and admins"],

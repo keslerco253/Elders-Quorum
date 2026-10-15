@@ -24,6 +24,8 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
   → **Organizations**. The bishopric (looking at the ward) can tick any
   organization; a presidency can tick its own. Leaders of an organization
   can't be unticked there; change their access level in that organization.
+- **Starting another ward (bishopric):** switch to the ward, then Admin →
+  Settings → Another ward → Start a new ward.
 - **Adding an organization (bishopric):** switch to the ward, then Admin →
   Settings → Organizations → Add an organization. Pick its president if you
   like; they add their counselors and secretary from Members. Each
@@ -130,10 +132,17 @@ subscribing; Google Calendar ignores them (set reminders in Google instead).
 
 ## Messages
 
+**Message groups** (Admin → Send a message → Manage groups): when you create
+one, choose its organization (if you lead more than one) and **who can see it
+and send to it**: the presidency, admins, and/or the people in the group. When
+people in the group can send, they get a **Message a group** box on their
+Messages tab; their message goes to the rest of the group, signed with their
+name, and replies come to the presidency. The presidency can always change a
+group; admins can change the ones they're allowed to send to.
+
 **Admin → Send a message**: choose Everyone, Admins, Presidency, Upcoming
 teachers, or a custom group (**Manage groups**; each group's page has
-**Send a message to this group**). Groups aren't on the Messages tab, which is
-for writing to the presidency as a member. Members get a push
+**Send a message to this group**). Members get a push
 notification; anyone without notifications turned on gets an email.
 Check "Also email members who haven't signed in yet" to reach everyone on the
 list.

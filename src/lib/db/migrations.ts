@@ -755,4 +755,14 @@ ALTER TABLE members ADD COLUMN last_org_id INTEGER REFERENCES orgs(id) ON DELETE
 ALTER TABLE members ADD COLUMN last_org_at INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    // Who can see a message group and send to it: the presidency, admins,
+    // and/or the people in the group. Existing groups keep working as before.
+    id: 25,
+    sql: `
+ALTER TABLE groups ADD COLUMN send_presidency INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE groups ADD COLUMN send_admins INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE groups ADD COLUMN send_members INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];

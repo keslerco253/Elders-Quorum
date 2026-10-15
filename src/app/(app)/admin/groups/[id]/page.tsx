@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { canManage, canSendTo, getGroup } from "@/lib/groups";
+import { SenderChoices } from "../sender-choices";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { deleteGroup, saveGroup } from "../../messages/actions";
@@ -13,17 +15,19 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
   const user = await requireAdmin();
   const id = Number((await params).id);
   const sp = await searchParams;
-  const g = db().prepare("SELECT id, name FROM groups WHERE id = ? AND org_id = ?").get(id, user.org_id) as { id: number; name: string } | undefined;
-  if (!g) notFound();
+  const g = getGroup(id, user.org_id);
+  if (!g || !canManage(g, user.role)) notFound();
   const inGroup = new Set((db().prepare("SELECT member_id FROM group_members WHERE group_id = ?").all(id) as { member_id: number }[]).map((r) => r.member_id));
   const members = orgRoster(user.org_id);
   return (
     <>
-      <PageHeader title={g.name} back={{ href: "/admin/groups", label: "Groups" }} />
+      <PageHeader title={g.name} back={{ href: "/admin/groups", label: "Groups" }} subtitle={`In ${user.orgLabel}`} />
       <Flash msg={sp.msg} />
-      <Link href={`/admin/messages?to=group:${g.id}`} className="btn-primary btn-sm mb-4">
-        Send a message to this group
-      </Link>
+      {canSendTo(g, user.id, user.role) && (
+        <Link href={`/admin/messages?to=group:${g.id}`} className="btn-primary btn-sm mb-4">
+          Send a message to this group
+        </Link>
+      )}
       <form action={saveGroup} className="card space-y-4">
         <input type="hidden" name="item_id" value={g.id} />
         <div>
@@ -32,8 +36,9 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
           </label>
           <input id="name" name="name" defaultValue={g.name} className="input max-w-sm" />
         </div>
+        <SenderChoices org={user.org} group={g} />
         <fieldset>
-          <legend className="label">Members</legend>
+          <legend className="label">People in the group</legend>
           <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
             {members.map((m) => (
               <label key={m.id} className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-surface-2">

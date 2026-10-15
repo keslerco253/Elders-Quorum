@@ -5,7 +5,8 @@ import { leadersWord, roleLabel } from "@/lib/types";
 import { formatDateTime } from "@/lib/time";
 import { Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { replyToPresidency } from "./actions";
+import { replyToPresidency, sendToGroup } from "./actions";
+import { sendableGroups } from "@/lib/groups";
 import { isAdmin } from "@/lib/permissions";
 
 export const metadata = { title: "Messages" };
@@ -23,6 +24,8 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   markAnswersRead(user.id, user.org_id);
   const elsewhere = orgsWithUnreadAnswers(user.id).filter((id) => id !== user.org_id);
   const contacts = presidencyContacts(user.org_id);
+  // Leaders send to groups from Admin → Send a message.
+  const myGroups = isAdmin(user) ? [] : sendableGroups(user);
   // Default "Send to": whoever they asked for, else keep a private conversation private.
   const last = thread[thread.length - 1];
   const wanted = Number(sp.to) || (!replyingTo && last?.recipient_id) || 0;
@@ -114,6 +117,38 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           </form>
         </Section>
       </div>
+
+      {myGroups.length > 0 && (
+        <div id="group-message" className="scroll-mt-20">
+          <Section title="Message a group">
+            <Flash msg={sp.gmsg} tone={sp.ok ? "success" : "warn"} />
+            <form action={sendToGroup} className="card max-w-2xl space-y-3">
+              <div>
+                <label className="label" htmlFor="group_id">
+                  Send to
+                </label>
+                <select id="group_id" name="group_id" className="input">
+                  {myGroups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <label className="label" htmlFor="group-body">
+                Message
+              </label>
+              <textarea id="group-body" name="body" rows={3} maxLength={1000} required className="input" />
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-muted">Everyone in the group gets it, signed with your name. Replies go to the {leaders}.</span>
+                <SubmitButton pendingText="Sending…" confirm="Send this to the whole group?">
+                  Send to group
+                </SubmitButton>
+              </div>
+            </form>
+          </Section>
+        </div>
+      )}
 
       <Section title={`From ${user.orgLabel}`}>
         {messages.length === 0 ? (
