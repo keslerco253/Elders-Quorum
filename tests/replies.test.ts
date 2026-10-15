@@ -417,6 +417,40 @@ describe("a leader's texted reply when two people write at once", () => {
   });
 });
 
+describe("a leader's texted reply about a visit answer", () => {
+  let lib: typeof import("@/lib/sms-inbound");
+  let conv: typeof import("@/lib/conversations");
+  const leaderPhone = "+12085550177";
+
+  beforeAll(async () => {
+    (await import("@/lib/db")).useTestDb(`
+      INSERT INTO wards (id, name) VALUES (1, 'Test Ward EQ');
+      INSERT INTO members (id, ward_id, name, display_name, email, phone, contact_pref, role, sms_consent_at) VALUES
+        (1, 1, 'Pres', 'Pres Person', 'pres@test.local', '${leaderPhone}', 'text', 'presidency', datetime('now')),
+        (2, 1, 'Hyrum', 'Hyrum Johnson', 'hyrum@test.local', NULL, 'email', 'member', NULL),
+        (4, 1, 'Jane', 'Jane Smith', 'jane@test.local', NULL, 'email', 'member', NULL);
+    `);
+    lib = await import("@/lib/sms-inbound");
+    conv = await import("@/lib/conversations");
+  });
+
+  it("sends a leader's text back about a visit answer to that member, not whoever wrote last", async () => {
+    const pv = await import("@/lib/planned-visits");
+    // Hyrum wrote earlier, and the leader answered him.
+    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Can you help Saturday?", "app", null, { private: true, withId: 1 });
+    await conv.sendAnswer({ id: 1, org_id: 1, display_name: "Pres Person" }, 2, "Got it", true);
+    (await import("@/lib/db")).db().exec("UPDATE member_messages SET created_at = datetime('now', '-1 hour') WHERE member_id = 2");
+    const plan = pv.savePlan({ orgId: 1, memberId: 4, date: "2030-10-16", time: "19:00", type: "home", note: "", requestId: null, visitors: [1], createdBy: 1 });
+    await pv.sendInvitation(pv.getPlannedVisit(1, plan)!, "Hi Jane! We would love to visit.", 1);
+    await pv.answerInvitation(pv.getPlannedVisit(1, plan)!, "new_time", "Wednesday between 6 and 7");
+    // Her answer is in her conversation, under the invitation.
+    expect(conv.conversation(1, 4, { private: false }).at(-1)).toMatchObject({ direction: "in", body: expect.stringContaining("Wednesday between 6 and 7") });
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "We will plan on Wednesday at 6 PM" })).toBe("answer_sent");
+    expect(conv.conversation(1, 4, { private: false }).at(-1)).toMatchObject({ direction: "out", body: "We will plan on Wednesday at 6 PM" });
+    expect(conv.conversation(1, 2, { private: true, withId: 1 }).at(-1)?.body).toBe("Got it");
+  });
+});
+
 describe("a leader's inbox", () => {
   let conv: typeof import("@/lib/conversations");
   let orgs: typeof import("@/lib/orgs");

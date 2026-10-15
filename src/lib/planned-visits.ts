@@ -162,10 +162,23 @@ export async function answerInvitation(plan: PlannedVisit, answer: InviteAnswer,
       : answer === "new_time"
         ? `${plan.member_name} asked for another time than ${when}${text ? `: "${text}"` : "."}`
         : `${plan.member_name} would rather not have a visit right now.${text ? ` "${text}"` : ""}`;
+  // Their answer also goes in their conversation with the presidency (right under the
+  // invitation), so a leader can answer them there or by texting back.
+  const said =
+    answer === "accepted"
+      ? `Yes, ${when} works for us.`
+      : answer === "new_time"
+        ? `Could we find a different date or time than ${when}?`
+        : "Now is not a convenient time for us.";
+  db()
+    .prepare("INSERT INTO member_messages (org_id, member_id, direction, body, via) VALUES (?, ?, 'in', ?, 'app')")
+    .run(plan.org_id, plan.member_id, `${said}${text ? ` ${text}` : ""}`);
   await notify(audienceMembers(plan.org_id, "presidency"), {
     title: answer === "accepted" ? "Visit confirmed" : answer === "new_time" ? "Another time, please" : "Visit invitation declined",
     body,
     url: "/admin/visits",
+    // A leader texting back is answering this member (not whoever wrote last).
+    replyTo: { memberId: plan.member_id, private: false },
   });
 }
 
