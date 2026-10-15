@@ -41,9 +41,11 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
   can't be unticked there; change their access level in that organization.
 - **Starting another ward (bishopric):** switch to the ward, then Admin →
   Settings → Another ward → Start a new ward. Every new ward (from there or
-  the website's Start a ward page) is a request: the site owner checks it's
-  real, then approves it under Site owner → Ward requests, and the requester
-  gets a sign-in link.
+  the website's Start a ward page) is set up right away but stays **under
+  review**: whoever started it can see it, but nothing can be done in it, it
+  can't be joined, and nothing is sent from it, until the site owner checks it's
+  real and approves it under Site owner → New wards to approve. They're told
+  when it's approved.
 - **Members' contact info:** leaders can fix the name, phone or email only for
   someone who hasn't signed in yet. After that, only the member changes it
   (More → Contact & notifications, with a code). Someone already using the app

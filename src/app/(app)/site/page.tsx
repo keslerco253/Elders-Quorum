@@ -10,10 +10,9 @@ import { appUrl } from "@/lib/config";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addWard, approveRequest, declineRequest, leadWard, removeWard, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
-import { pendingWardRequests, recentDecidedRequests } from "@/lib/ward-requests";
+import { addWard, approveNewWard, declineNewWard, leadWard, removeWard, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
+import { pendingWards } from "@/lib/ward-review";
 import { formatPhone } from "@/lib/contact";
-import { callingLabel, isCalling } from "@/lib/types";
 
 export const metadata = { title: "Site owner" };
 
@@ -61,51 +60,62 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
       `SELECT l.id, l.result, l.note, l.created_at, m.display_name AS name FROM sms_inbound_log l LEFT JOIN members m ON m.id = l.member_id ORDER BY l.id DESC LIMIT 25`,
     )
     .all() as { id: number; result: string; note: string; created_at: string; name: string | null }[];
-  const requests = pendingWardRequests();
-  const decided = recentDecidedRequests();
+  const pending = pendingWards();
   return (
     <>
       <PageHeader title="Site owner" back={{ href: "/more", label: "More" }} subtitle="Every ward on this app, email and texting, and backups. Only you see this page." />
       <Flash msg={sp.msg} />
       <Flash msg={sp.error} tone="danger" />
 
-      <div id="ward-requests" className="scroll-mt-20">
-        <Section title={`Ward requests${requests.length ? ` (${requests.length})` : ""}`}>
-          {requests.length === 0 ? (
-            <p className="text-sm text-muted">No requests waiting. New wards started from the website or the app show up here for you to approve.</p>
+      <div id="new-wards" className="scroll-mt-20">
+        <Section title={`New wards to approve${pending.length ? ` (${pending.length})` : ""}`}>
+          {pending.length === 0 ? (
+            <p className="text-sm text-muted">Nothing waiting. When someone starts a ward, it&apos;s set up right away but stays under review (they can see it, but nothing can be done or sent in it) until you approve it here.</p>
           ) : (
             <ul className="space-y-3">
-              {requests.map((r) => (
-                <li key={r.id} className="card space-y-2 text-sm">
+              {pending.map((w) => (
+                <li key={w.id} className="card space-y-2 text-sm">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="text-base font-semibold">
-                      {r.ward_name}
-                      {r.stake && <span className="font-normal text-muted"> · {r.stake}</span>}
+                      {w.name}
+                      {w.stake && <span className="font-normal text-muted"> · {w.stake}</span>}
                     </span>
-                    <span className="text-xs text-muted">{formatDateTime(r.created_at, user.ward.timezone, "LLL d, h:mm a")}</span>
+                    <span className="text-xs text-muted">{formatDateTime(w.created_at, user.ward.timezone, "LLL d, h:mm a")}</span>
                   </div>
                   <div>
-                    <strong>{r.name}</strong>
-                    {r.calling && isCalling(r.calling) && <> · {callingLabel(r.calling, { kind: "ward", name: "" })}</>} ·{" "}
-                    {r.contact_kind === "phone" ? <a className="link" href={`tel:${r.contact}`}>{formatPhone(r.contact)}</a> : <a className="link" href={`mailto:${r.contact}`}>{r.contact}</a>}
-                    {r.member_id ? <Badge tone="info">Already signed in to the app</Badge> : <Badge>New to the app</Badge>}
+                    Started by <strong>{w.creator ?? "someone"}</strong>
+                    {w.creator_contact && (
+                      <>
+                        {" "}·{" "}
+                        {w.creator_contact.includes("@") ? (
+                          <a className="link" href={`mailto:${w.creator_contact}`}>
+                            {w.creator_contact}
+                          </a>
+                        ) : (
+                          <a className="link" href={`tel:${w.creator_contact}`}>
+                            {formatPhone(w.creator_contact)}
+                          </a>
+                        )}
+                      </>
+                    )}
                   </div>
-                  {r.note && <p className="rounded-lg bg-surface-2 px-3 py-2 whitespace-pre-wrap">{r.note}</p>}
-                  <p className="text-xs text-muted">Check it&apos;s real first (for example, call them or check with their stake) before approving.</p>
+                  {w.request_note && <p className="rounded-lg bg-surface-2 px-3 py-2 whitespace-pre-wrap">{w.request_note}</p>}
+                  <p className="text-xs text-muted">Check it&apos;s real first (for example, call them or check with their stake).</p>
                   <div className="flex flex-wrap items-start gap-2">
-                    <form action={approveRequest}>
-                      <input type="hidden" name="id" value={r.id} />
-                      <SubmitButton pendingText="Approving…" confirm={`Create ${r.ward_name} and send ${r.name} a sign-in link?`}>
+                    <form action={approveNewWard}>
+                      <input type="hidden" name="ward_id" value={w.id} />
+                      <SubmitButton pendingText="Approving…" confirm={`Open ${w.name} and tell ${w.creator ?? "them"}?`}>
                         Approve
                       </SubmitButton>
                     </form>
                     <details className="flex-1">
                       <summary className="btn-secondary inline-block cursor-pointer">Decline</summary>
-                      <form action={declineRequest} className="mt-2 space-y-2">
-                        <input type="hidden" name="id" value={r.id} />
-                        <textarea name="note" rows={2} maxLength={500} className="input" placeholder={r.contact_kind === "email" ? "Optional note in the email to them" : "They gave a phone number, so they won't be told automatically"} />
+                      <form action={declineNewWard} className="mt-2 space-y-2">
+                        <input type="hidden" name="ward_id" value={w.id} />
+                        <textarea name="note" rows={2} maxLength={500} className="input" placeholder="Optional note to them" />
+                        <p className="text-xs text-muted">The ward is deleted, with their account if it isn&apos;t in another ward.</p>
                         <SubmitButton className="btn-danger btn-sm" pendingText="Declining…">
-                          Decline request
+                          Decline and delete
                         </SubmitButton>
                       </form>
                     </details>
@@ -113,18 +123,6 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
                 </li>
               ))}
             </ul>
-          )}
-          {decided.length > 0 && (
-            <details className="mt-3 text-sm">
-              <summary className="cursor-pointer text-muted">Recent decisions</summary>
-              <ul className="mt-2 space-y-1">
-                {decided.map((r) => (
-                  <li key={r.id}>
-                    {r.ward_name} ({r.name}): {r.status === "approved" ? "approved" : "declined"} {r.decided_at && formatDate(r.decided_at.slice(0, 10))}
-                  </li>
-                ))}
-              </ul>
-            </details>
           )}
         </Section>
       </div>

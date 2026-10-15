@@ -131,6 +131,9 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
     return res === "sent";
   };
 
+  // Nothing is sent from a ward that's still under review.
+  const pendingOrgs = new Set((d().prepare("SELECT o.id FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE w.pending = 1").all() as { id: number }[]).map((o) => o.id));
+  recipients = recipients.filter((r) => !pendingOrgs.has(r.org_id));
   for (const r of recipients) {
     // Kept for the member's Notifications list; the link marks it read when they open it.
     const logId = Number(

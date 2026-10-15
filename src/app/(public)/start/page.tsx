@@ -15,24 +15,13 @@ export default async function StartWardPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const phone = phoneOptInVisible();
   const empty = needsSetup();
-  if (sp.sent)
-    return (
-      <div className="card space-y-2">
-        <h2 className="h2">Thanks! Your request was sent.</h2>
-        <p className="text-sm text-muted">
-          To keep every ward&apos;s information safe, each new ward is checked before it&apos;s set up. We may contact you to confirm. Once it&apos;s approved, you&apos;ll get a sign-in link by text or email.
-        </p>
-        <Link href="/login" className="link text-sm">
-          Back to sign in
-        </Link>
-      </div>
-    );
   return (
     <div className="card">
       <h2 className="h2 mb-1">Start your ward</h2>
       <p className="mb-4 text-sm text-muted">
-        Ask to set up the app for your ward. {empty ? "" : "Each new ward is checked before it's set up, so we may contact you to confirm. "}Once it&apos;s ready, you&apos;ll get a join code to share, add your ward&apos;s
-        organizations, and choose who leads each one. Already in a ward here?{" "}
+        Set up the app for your ward: you&apos;ll get a join code to share, add your ward&apos;s organizations, and choose who leads each one.{" "}
+        {empty ? "" : "Each new ward is reviewed before it opens (we may contact you to confirm), so you'll see it right away but can start using it once it's approved. "}
+        Already in a ward here?{" "}
         <Link href="/login" className="link">
           Sign in
         </Link>{" "}
@@ -103,7 +92,7 @@ export default async function StartWardPage({ searchParams }: { searchParams: Pr
         {!empty && (
           <div>
             <label className="label" htmlFor="note">
-              Anything that helps us confirm your request <span className="font-normal text-muted">(optional)</span>
+              Anything that helps us confirm your ward <span className="font-normal text-muted">(optional)</span>
             </label>
             <textarea id="note" name="note" rows={3} maxLength={1000} className="input" placeholder="e.g. your bishop's name, or a good time to call" />
           </div>
@@ -122,8 +111,8 @@ export default async function StartWardPage({ searchParams }: { searchParams: Pr
             </Link>
           </span>
         </label>
-        <SubmitButton className="btn-primary w-full" pendingText="Sending…">
-          {empty ? "Start the ward and sign me in" : "Send my request"}
+        <SubmitButton className="btn-primary w-full" pendingText="Starting…">
+          Start the ward and sign me in
         </SubmitButton>
       </form>
     </div>

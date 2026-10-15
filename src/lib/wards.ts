@@ -22,5 +22,6 @@ export function needsSetup() {
 export function wardByJoinCode(code: string): Ward | undefined {
   const c = code.trim();
   if (!c) return undefined;
-  return db().prepare("SELECT id, name, timezone, join_code, sms_monthly_limit, created_by, texting_enabled FROM wards WHERE join_code = ? COLLATE NOCASE").get(c) as Ward | undefined;
+  // A ward under review can't be joined yet.
+  return db().prepare("SELECT * FROM wards WHERE join_code = ? COLLATE NOCASE AND pending = 0").get(c) as Ward | undefined;
 }

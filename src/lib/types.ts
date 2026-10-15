@@ -46,6 +46,10 @@ export interface Ward {
   created_by: number | null;
   /** Reminder and message texts allowed (the site owner turns this on for wards others start). */
   texting_enabled: number;
+  /** 1 while the site owner hasn't approved it yet (it's "under review"). */
+  pending: number;
+  stake: string;
+  request_note: string;
 }
 
 /** Features an organization can hide when it doesn't use them. */

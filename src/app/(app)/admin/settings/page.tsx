@@ -212,14 +212,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <form action={startAnotherWard} className="mt-3 space-y-3">
                 <p className="text-muted">
                   For a ward that isn&apos;t in the app yet. You&apos;ll lead it in the app until you add its bishopric there.
-                  {!user.is_site_owner && " The app's site owner approves new wards first; you'll get a message when it's ready."}
+                  {!user.is_site_owner && " It's set up right away, then opens once the app's site owner approves it (you'll get a message)."}
                 </p>
                 <input name="ward_name" required maxLength={80} className="input" placeholder="Ward name, e.g. Maple Ward" />
                 {!user.is_site_owner && <input name="stake" maxLength={80} className="input" placeholder="Stake, e.g. Meridian Idaho Stake" />}
                 <TimezoneSelect name="timezone" defaultValue={user.ward.timezone} />
                 {!user.is_site_owner && <textarea name="note" rows={2} maxLength={1000} className="input" placeholder="Anything that helps us confirm it (optional)" />}
-                <SubmitButton className="btn-secondary" pendingText="Sending…">
-                  {user.is_site_owner ? "Start ward" : "Request the ward"}
+                <SubmitButton className="btn-secondary" pendingText="Starting…">
+                  Start ward
                 </SubmitButton>
               </form>
             </details>

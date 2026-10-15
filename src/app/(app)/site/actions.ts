@@ -12,7 +12,7 @@ import type { Member } from "@/lib/types";
 import { emailHtml, sendMail } from "@/lib/mail";
 import { sendSms } from "@/lib/sms";
 import { formatPhone } from "@/lib/contact";
-import { approveWardRequest, declineWardRequest } from "@/lib/ward-requests";
+import { approveWard, declineWard } from "@/lib/ward-review";
 
 function go(text: string, error = false): never {
   redirect(`/site?${error ? "error" : "msg"}=${encodeURIComponent(text)}`);
@@ -104,19 +104,19 @@ export async function sendTestText() {
   go(res === "sent" ? `Test text sent to ${formatPhone(user.phone)}.` : "The text didn't send. Check the TWILIO_ settings on the server and that texting is on for this ward.", res !== "sent");
 }
 
-/** Approves a ward request (after checking it's real): creates the ward and sends them a sign-in link. */
-export async function approveRequest(fd: FormData) {
+/** Approves a new ward (after checking it's real): it opens, and whoever started it is told. */
+export async function approveNewWard(fd: FormData) {
   await requireSiteOwner();
-  const r = await approveWardRequest(Number(fd.get("id")));
-  if (!r) go("That request was already handled.", true);
+  const w = await approveWard(Number(fd.get("ward_id")));
+  if (!w) go("That ward was already handled.", true);
   revalidatePath("/", "layout");
-  go(`${r.ward_name} was created. ${r.name} was sent a sign-in link.`);
+  go(`${w.name} is approved. ${w.creator ?? "Whoever started it"} was told.`);
 }
 
-export async function declineRequest(fd: FormData) {
+export async function declineNewWard(fd: FormData) {
   await requireSiteOwner();
-  const r = await declineWardRequest(Number(fd.get("id")), String(fd.get("note") || "").trim().slice(0, 500));
-  if (!r) go("That request was already handled.", true);
-  revalidatePath("/site");
-  go(`The request for ${r.ward_name} was declined${r.contact_kind === "email" ? ` and ${r.name} was emailed` : ""}.`);
+  const w = await declineWard(Number(fd.get("ward_id")), String(fd.get("note") || "").trim().slice(0, 500));
+  if (!w) go("That ward was already handled.", true);
+  revalidatePath("/", "layout");
+  go(`${w.name} was declined and deleted.`);
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { requestWard } from "@/lib/ward-requests";
+import { tellOwnerAboutNewWard } from "@/lib/ward-review";
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -122,24 +122,10 @@ export async function startAnotherWard(fd: FormData) {
   if (!name || !validZone(tz)) back("Enter the ward's name and time zone.");
   const recent = db().prepare("SELECT COUNT(*) AS n FROM wards WHERE created_by = ? AND created_at > datetime('now', '-1 day')").get(user.id) as { n: number };
   if (recent.n >= 3 && !user.is_site_owner) back("You've started several wards today. Please try again tomorrow.");
-  // Anyone but the site owner asks; the site owner checks it's real and approves it.
-  if (!user.is_site_owner) {
-    const pending = db().prepare("SELECT 1 FROM ward_requests WHERE member_id = ? AND status = 'pending'").get(user.id);
-    if (pending) back("You already have a ward request waiting for approval.");
-    await requestWard({
-      name: user.display_name,
-      contact: user.email ?? user.phone ?? "",
-      contact_kind: user.email ? "email" : "phone",
-      ward_name: name,
-      stake: String(fd.get("stake") || "").trim().slice(0, 80),
-      calling: null,
-      timezone: tz,
-      note: String(fd.get("note") || "").trim().slice(0, 1000),
-      member_id: user.id,
-    });
-    back(`Thanks! Your request to start ${name} was sent. You'll get a message when it's approved.`);
-  }
-  const ward = createWard({ name, timezone: tz, creatorId: user.id, texting: true });
+  // Anyone but the site owner: set up now, under review until the site owner approves it.
+  const pending = user.is_site_owner ? undefined : { stake: String(fd.get("stake") || "").trim().slice(0, 80), note: String(fd.get("note") || "").trim().slice(0, 1000) };
+  const ward = createWard({ name, timezone: tz, creatorId: user.id, texting: !!user.is_site_owner, pending });
+  if (pending) await tellOwnerAboutNewWard(ward.id);
   revalidatePath("/", "layout");
   redirect(`/admin/settings?org=${wardOrg(ward.id).id}&msg=${encodeURIComponent(`${name} is ready. Share its join code, then turn off any organizations it doesn't use below.`)}`);
 }

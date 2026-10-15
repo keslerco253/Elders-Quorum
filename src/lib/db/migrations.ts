@@ -943,4 +943,17 @@ ALTER TABLE members ADD COLUMN email_verified_at TEXT;
 UPDATE members SET email_verified_at = datetime('now') WHERE email IS NOT NULL AND last_login_at IS NOT NULL;
 `,
   },
+  {
+    // A ward someone starts is set up right away but stays "under review" (nothing
+    // can be done in it, and nothing is sent) until the site owner approves it.
+    // Visits: whether the member was told about it (they get its reminder too).
+    id: 41,
+    sql: `
+ALTER TABLE wards ADD COLUMN pending INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE wards ADD COLUMN stake TEXT NOT NULL DEFAULT '';
+ALTER TABLE wards ADD COLUMN request_note TEXT NOT NULL DEFAULT '';
+ALTER TABLE planned_visits ADD COLUMN member_told INTEGER NOT NULL DEFAULT 0;
+UPDATE planned_visits SET member_told = 1 WHERE invite_status IS NOT NULL;
+`,
+  },
 ];

@@ -21,6 +21,8 @@ export async function requireUser(): Promise<CurrentUser> {
   if (!user) redirect("/login");
   // Members the presidency added see the welcome screen (what the app keeps, text consent) first.
   if (!user.welcomed_at) redirect("/welcome");
+  // A new ward waits for the site owner's approval before anything can be done in it.
+  if (user.ward.pending && !user.is_site_owner) redirect("/review");
   return user;
 }
 
