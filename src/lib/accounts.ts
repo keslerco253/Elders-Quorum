@@ -3,13 +3,12 @@ import { db } from "./db";
 /**
  * Permanently deletes a member's account and everything they contributed
  * (comments, sign-ups, RSVPs, requests, devices). Records they created as an
- * admin (events, plans, lessons) stay but no longer point to them.
+ * admin (events, lessons) stay but no longer point to them.
  */
 export function deleteAccount(memberId: number) {
   const d = db();
   d.transaction(() => {
     for (const [table, col] of [
-      ["plans", "created_by"],
       ["events", "created_by"],
       ["messages", "sender_id"],
       ["signups", "created_by"],

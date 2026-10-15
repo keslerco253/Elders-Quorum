@@ -166,15 +166,11 @@ export default async function AdminPage() {
                   },
                 ]
               : []),
-            ...(has("plans")
-              ? [
-                  {
-                    href: "/plans",
-                    label: "Plans",
-                    desc: "Temple & family history, ward mission",
-                  },
-                ]
-              : []),
+            {
+              href: "/plans",
+              label: "Plans",
+              desc: "Temple & family history, ward mission, and more",
+            },
             {
               href: "/admin/members",
               label: "Members",

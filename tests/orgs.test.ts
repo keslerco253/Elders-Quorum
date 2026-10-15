@@ -66,9 +66,9 @@ describe("moving to wards and organizations", () => {
 
 describe("organizations in a ward", () => {
   it("lets the bishopric add one with a president; members see it and choose it", () => {
-    const rs = orgs.createOrg(1, "Relief Society", ["plans"]);
+    const rs = orgs.createOrg(1, "Relief Society", ["visits"]);
     orgs.addToOrg(4, rs.id, { role: "presidency", calling: "president" });
-    expect(orgs.hasFeature(rs, "plans")).toBe(false);
+    expect(orgs.hasFeature(rs, "visits")).toBe(false);
     expect(orgs.hasFeature(rs, "lessons")).toBe(true);
     // Everyone in the ward can look at it; their role there is "member" unless they lead it.
     expect(orgs.currentUserFor(member(3), rs.id)).toMatchObject({ org_id: rs.id, role: "member" });

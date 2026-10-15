@@ -75,8 +75,12 @@ export function audienceLabel(orgId: number, audience: Audience): string {
   return g ? `Group: ${g.name}` : "Group";
 }
 
-/** Short text for a notice, with the ward and organization so people know who it's from. */
+/**
+ * Short text for a notice, with the ward and organization so people know who
+ * it's from. A personal note is just the words and the sender's name.
+ */
 function smsBody(wardName: string, payload: PushPayload, url: string) {
+  if (payload.personal) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n- ${payload.personal.from}`;
   const text = `${wardName}: ${payload.title}. ${payload.textBody ?? payload.body}`.replace(/\s+/g, " ").trim();
   return `${text.length > 280 ? text.slice(0, 277) + "…" : text} ${url}`;
 }
@@ -95,14 +99,19 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
   let reached = 0;
   const orgNames = new Map<number, string>();
 
-  const sendEmail = async (r: Recipient, url: string) =>
-    !!r.email &&
-    (await sendMail({
+  const sendEmail = async (r: Recipient, url: string) => {
+    if (!r.email) return false;
+    if (payload.personal) {
+      const text = `${payload.body}\n\n- ${payload.personal.from}`;
+      return sendMail({ to: r.email, subject: `A message from ${payload.personal.from}`, text, html: emailHtml("", text) });
+    }
+    return sendMail({
       to: r.email,
       subject: payload.title,
       text: `${payload.body}\n\n${url}`,
       html: emailHtml(payload.title, payload.body, { url, label: payload.linkLabel ?? "Open the app" }),
-    }));
+    });
+  };
   const sendText = async (r: Recipient, url: string) => {
     if (!r.phone) return false;
     if (!orgNames.has(r.org_id)) orgNames.set(r.org_id, orgFullName(r.org_id));

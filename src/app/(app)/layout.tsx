@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         current={{ id: user.org_id, label: user.orgLabel, ward: user.ward.name }}
         ward={user.ward.name}
         targets={targets}
-        features={{ lessons: hasFeature(user.org, "lessons"), plans: hasFeature(user.org, "plans"), signups: hasFeature(user.org, "signups") }}
+        features={{ lessons: hasFeature(user.org, "lessons"), signups: hasFeature(user.org, "signups") }}
         isAdmin={isAdmin(user)}
         adminCount={counts.total}
         moreCount={unreadAnswers(user.id) + unreadNotifications(user.id)}

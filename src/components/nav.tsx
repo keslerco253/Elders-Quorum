@@ -154,7 +154,7 @@ export function Nav({
   current: SwitchTarget;
   ward: string;
   targets: SwitchTarget[];
-  features: { lessons: boolean; plans: boolean; signups: boolean };
+  features: { lessons: boolean; signups: boolean };
   isAdmin: boolean;
   adminCount: number;
   moreCount?: number;
@@ -164,12 +164,12 @@ export function Nav({
   useStickToBottom(tabBar);
   // The page being read clears these, so don't show the dot there.
   if (path.startsWith("/messages") || path.startsWith("/notifications")) moreCount = 0;
-  // Lessons and Plans only where the organization uses them; Sign-ups takes a free spot.
+  // Lessons only where the organization uses them; Sign-ups takes a free spot.
   const main: Item[] = [
     { href: "/", label: "Home", icon: "home" },
     ...(features.lessons ? [{ href: "/lessons", label: "Lessons", icon: "book" }] : []),
     { href: "/calendar", label: "Calendar", icon: "calendar" },
-    ...(features.plans ? [{ href: "/plans", label: "Plans", icon: "plan" }] : []),
+    { href: "/plans", label: "Plans", icon: "plan" },
   ];
   if (main.length < 4 && features.signups) main.push({ href: "/signups", label: "Sign-ups", icon: "list" });
   const desktopExtra: Item[] = [

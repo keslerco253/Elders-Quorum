@@ -186,8 +186,10 @@ export function createWard(opts: { name: string; timezone: string; creatorId: nu
         .prepare("INSERT INTO wards (name, timezone, join_code, created_by, texting_enabled) VALUES (?, ?, ?, ?, ?)")
         .run(opts.name, opts.timezone, newJoinCode(), opts.creatorId, opts.texting ? 1 : 0).lastInsertRowid,
     );
-    // The ward level starts without lessons and plans (organizations have those).
-    d.prepare("INSERT INTO orgs (ward_id, name, kind, hidden_features) VALUES (?, 'Ward', 'ward', 'lessons,plans')").run(wardId);
+    // The ward level starts without lessons (organizations have those), and
+    // with the two plans every ward keeps.
+    d.prepare("INSERT INTO orgs (ward_id, name, kind, hidden_features) VALUES (?, 'Ward', 'ward', 'lessons')").run(wardId);
+    d.prepare("INSERT INTO ward_plans (ward_id, name, legacy_kind) VALUES (?, 'Temple & Family History Plan', 'temple'), (?, 'Ward Mission Plan', 'mission')").run(wardId, wardId);
     addToWard(opts.creatorId, wardId);
     d.prepare("UPDATE org_members SET role = 'presidency', calling = ? WHERE org_id = ? AND member_id = ?").run(opts.calling ?? null, wardOrg(wardId).id, opts.creatorId);
     return getWard(wardId)!;
@@ -265,7 +267,6 @@ const ORG_TABLES = [
   "event_series",
   "event_requests",
   "lessons",
-  "plans",
   "visits",
   "groups",
   "messages",

@@ -53,8 +53,20 @@ describe("replies to the presidency", () => {
   });
 
   it("sends the presidency's answer and tracks what the member has read", async () => {
+    const before = new Set(fs.readdirSync(path.join(dir, "outbox")));
     expect(await conv.sendAnswer({ id: 1, org_id: 1, display_name: "Pres Person" }, 2, "Thanks! See you at 9.")).toBe(true);
     expect(conv.unreadAnswers(2)).toBe(1);
+    // A personal note: just the words, signed, with no ward header or link.
+    const mail = fs.readdirSync(path.join(dir, "outbox")).find((f) => !before.has(f) && f.includes("mem@"))!;
+    const text = fs.readFileSync(path.join(dir, "outbox", mail), "utf8");
+    expect(text).toBe("To: mem@test.local\nSubject: A message from Pres Person\n\nThanks! See you at 9.\n\n- Pres Person\n");
+    d.exec("UPDATE members SET contact_pref = 'text', sms_consent_at = datetime('now') WHERE id = 2");
+    const before2 = new Set(fs.readdirSync(path.join(dir, "outbox")));
+    await conv.sendAnswer({ id: 1, org_id: 1, display_name: "Pres Person" }, 2, "Running 5 minutes late.");
+    const sms = fs.readdirSync(path.join(dir, "outbox")).find((f) => !before2.has(f) && f.includes("sms-"))!;
+    expect(fs.readFileSync(path.join(dir, "outbox", sms), "utf8")).toBe("SMS To: +12085550101\n\nRunning 5 minutes late.\n\n- Pres Person\n");
+    d.exec("UPDATE members SET contact_pref = 'email', sms_consent_at = NULL WHERE id = 2");
+    conv.markAnswersRead(2, 1);
     conv.markAnswersRead(2, 1);
     expect(conv.unreadAnswers(2)).toBe(0);
     expect(conv.wardConversations(1, 1)[0]).toMatchObject({ member_name: "Member Person", last_direction: "out", unread: 1 });

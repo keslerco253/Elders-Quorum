@@ -60,6 +60,7 @@ export function escapeHtml(s: string) {
 }
 
 /** Simple branded HTML wrapper for notification emails. */
+/** heading "" leaves the heading out (e.g. a personal note). */
 export function emailHtml(heading: string, bodyText: string, link?: { url: string; label: string }) {
   const paragraphs = escapeHtml(bodyText)
     .split(/\n{2,}/)
@@ -69,5 +70,5 @@ export function emailHtml(heading: string, bodyText: string, link?: { url: strin
     ? `<p style="margin:22px 0"><a href="${escapeHtml(link.url)}" style="background:#1d3a5f;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">${escapeHtml(link.label)}</a></p>`
     : "";
   return `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;color:#1f2933;line-height:1.5">
-<h2 style="color:#1d3a5f;margin:0 0 16px">${escapeHtml(heading)}</h2>${paragraphs}${button}</div>`;
+${heading ? `<h2 style="color:#1d3a5f;margin:0 0 16px">${escapeHtml(heading)}</h2>` : ""}${paragraphs}${button}</div>`;
 }

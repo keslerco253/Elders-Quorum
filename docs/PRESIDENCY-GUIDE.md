@@ -237,6 +237,15 @@ assignments stay in LCR.
 
 ## Replies (presidency only)
 
+**Personal messages:** to write to one member, open them in **Admin →
+Members** → **Send a personal message** (or reply in their conversation under
+Admin → Replies). There's no subject. Their text or email is just your words,
+signed "- Your Name", with no ward header and no link, and a notification
+shows your name. The rest of the presidency can see the conversation;
+choose **Private with you** for something only you should see. A private
+message's notification only says there's a private message, so the words stay
+off their lock screen.
+
 Every message you send under **Admin → Send a message** also shows in each
 member's **More → Messages**, with a **Reply** button. Members can reply there,
 or simply text back if they got it by text. Replies go to **Admin → Replies**
@@ -303,9 +312,19 @@ For meals, put one line per day with `| 1`.
 
 ## Plans
 
-**Plans → Temple & Family History Plan → Update plan** (same for the Ward
-Mission Plan). Write it in the box (use `## Heading` and `- bullet`) and/or
-attach a PDF. Older versions are kept under "See earlier versions".
+Plans belong to the ward, and the **Plans** tab shows in every organization.
+Each plan is for **the whole ward** (it shows everywhere) or for **chosen
+organizations**. For example, a youth temple plan for Young Men and Young
+Women shows on their Plans tabs and in the ward's list, but not in Elders
+Quorum or Relief Society.
+
+- **Update a plan:** open it → **Update plan**. Write it in the box (use
+  `## Heading` and `- bullet`) and/or attach a PDF. Older versions are kept
+  under "See earlier versions".
+- **New plan:** Plans → **New plan**, then choose who it's for.
+- **Who can edit:** the bishopric (and ward admins) can create and edit any
+  plan. An organization's presidency and admins can create and edit plans for
+  the organizations they lead.
 
 ## Settings
 

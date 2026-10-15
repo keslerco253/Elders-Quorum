@@ -35,6 +35,11 @@ export interface PushPayload {
   linkLabel?: string;
   /** Replaces body in a text message, e.g. to add "Reply TEACH…". */
   textBody?: string;
+  /**
+   * A personal note from one leader: the text and email carry just the words,
+   * signed with their name, without the ward header or a link.
+   */
+  personal?: { from: string };
 }
 
 interface SubRow {

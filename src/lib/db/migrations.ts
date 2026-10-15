@@ -701,4 +701,49 @@ CREATE TABLE native_push_tokens (
 CREATE INDEX native_push_tokens_member ON native_push_tokens(member_id);
 `,
   },
+  {
+    // Plans belong to the ward. Each is for the whole ward (no ward_plan_orgs
+    // rows) or for chosen organizations (e.g. Young Men and Young Women). The
+    // temple and mission plans each ward had become its first two ward plans,
+    // keeping every version; plans.org_id now just says where an edit was made.
+    id: 23,
+    sql: `
+CREATE TABLE ward_plans (
+  id INTEGER PRIMARY KEY,
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  legacy_kind TEXT,
+  created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX ward_plans_ward ON ward_plans(ward_id);
+CREATE TABLE ward_plan_orgs (
+  plan_id INTEGER NOT NULL REFERENCES ward_plans(id) ON DELETE CASCADE,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  PRIMARY KEY (plan_id, org_id)
+);
+INSERT INTO ward_plans (ward_id, name, legacy_kind) SELECT id, 'Temple & Family History Plan', 'temple' FROM wards;
+INSERT INTO ward_plans (ward_id, name, legacy_kind) SELECT id, 'Ward Mission Plan', 'mission' FROM wards;
+
+CREATE TABLE plan_versions (
+  id INTEGER PRIMARY KEY,
+  plan_id INTEGER NOT NULL REFERENCES ward_plans(id) ON DELETE CASCADE,
+  org_id INTEGER REFERENCES orgs(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL DEFAULT '',
+  pdf_file TEXT,
+  pdf_name TEXT,
+  created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX plan_versions_plan ON plan_versions(plan_id, id);
+INSERT INTO plan_versions (id, plan_id, org_id, title, body, pdf_file, pdf_name, created_by, created_at)
+  SELECT p.id, wp.id, p.org_id, p.title, p.body, p.pdf_file, p.pdf_name, p.created_by, p.created_at
+  FROM plans p JOIN orgs o ON o.id = p.org_id JOIN ward_plans wp ON wp.ward_id = o.ward_id AND wp.legacy_kind = p.kind;
+DROP TABLE plans;
+
+-- Plans show in every organization now.
+UPDATE orgs SET hidden_features = trim(replace(replace(',' || hidden_features || ',', ',plans,', ','), ',,', ','), ',');
+`,
+  },
 ];

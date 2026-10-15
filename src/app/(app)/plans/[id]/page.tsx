@@ -1,42 +1,51 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { isAdmin } from "@/lib/permissions";
-import { currentPlan, isPlanKind, PLAN_INFO, planHistory, planVersion } from "@/lib/plans";
+import { audienceText, canEditPlan, currentVersion, getPlan, planByLegacyKind, planHistory, planVersion } from "@/lib/plans";
 import { renderMarkdown } from "@/lib/markdown";
 import { formatDateTime } from "@/lib/time";
-import { Empty, Flash, PageHeader } from "@/components/ui";
+import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 
-export default async function PlanPage({ params, searchParams }: { params: Promise<{ kind: string }>; searchParams: Promise<Record<string, string>> }) {
+export default async function PlanPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
-  const { kind } = await params;
+  const { id } = await params;
   const sp = await searchParams;
-  if (!isPlanKind(kind)) notFound();
-  const latest = currentPlan(user.org_id, kind);
-  const shown = sp.v ? planVersion(user.org_id, kind, Number(sp.v)) : latest;
+  // Old links: /plans/temple, /plans/mission.
+  if (!/^\d+$/.test(id)) {
+    const legacy = planByLegacyKind(user.ward_id, id);
+    if (!legacy) notFound();
+    redirect(`/plans/${legacy.id}`);
+  }
+  const plan = getPlan(user.ward_id, Number(id));
+  if (!plan) notFound();
+  const latest = currentVersion(plan.id);
+  const shown = sp.v ? planVersion(plan.id, Number(sp.v)) : latest;
   const old = shown && latest && shown.id !== latest.id;
-  const history = sp.history ? planHistory(user.org_id, kind) : [];
+  const history = sp.history ? planHistory(plan.id) : [];
   const tz = user.ward.timezone;
 
   return (
     <>
       <PageHeader
-        title={shown?.title || PLAN_INFO[kind].title}
+        title={shown?.title || plan.name}
         back={{ href: "/plans", label: "Plans" }}
         subtitle={shown ? `Updated ${formatDateTime(shown.created_at, tz, "LLLL d, yyyy")}${shown.author ? ` by ${shown.author}` : ""}` : undefined}
         actions={
-          isAdmin(user) && (
-            <Link href={`/plans/${kind}/edit`} className="btn-primary">
+          canEditPlan(user, plan) && (
+            <Link href={`/plans/${plan.id}/edit`} className="btn-primary">
               {latest ? "Update plan" : "Post plan"}
             </Link>
           )
         }
       />
       <Flash msg={sp.msg} />
+      <div className="mb-4">
+        <Badge tone={plan.org_ids.length ? "info" : undefined}>For: {audienceText(plan, user.orgs)}</Badge>
+      </div>
       {old && (
         <div className="mb-4 rounded-lg bg-warn-soft px-4 py-3 text-sm text-warn">
           You&apos;re viewing an older version.{" "}
-          <Link href={`/plans/${kind}`} className="font-semibold underline">
+          <Link href={`/plans/${plan.id}`} className="font-semibold underline">
             See the current plan
           </Link>
         </div>
@@ -61,7 +70,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
               <ul className="divide-y divide-border rounded-xl border border-border bg-surface text-sm">
                 {history.map((h, i) => (
                   <li key={h.id}>
-                    <Link href={`/plans/${kind}?v=${h.id}`} className="flex justify-between px-4 py-2 hover:bg-surface-2">
+                    <Link href={`/plans/${plan.id}?v=${h.id}`} className="flex justify-between px-4 py-2 hover:bg-surface-2">
                       <span>
                         {formatDateTime(h.created_at, tz, "LLL d, yyyy h:mm a")}
                         {i === 0 && " (current)"}
@@ -73,7 +82,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
               </ul>
             </>
           ) : (
-            <Link href={`/plans/${kind}?history=1${sp.v ? `&v=${sp.v}` : ""}`} className="link text-sm">
+            <Link href={`/plans/${plan.id}?history=1${sp.v ? `&v=${sp.v}` : ""}`} className="link text-sm">
               See earlier versions
             </Link>
           )}

@@ -128,7 +128,8 @@ export async function sendAnswer(author: { id: number; org_id: number; display_n
     [member],
     privately
       ? { title: `Private message from ${author.display_name}`, body: "Open the app to read it.", url: "/messages" }
-      : { title: org.kind === "ward" ? "Message from the bishopric" : "Message from the presidency", body: `${author.display_name}: ${text}`, url: "/messages" },
+      : // A personal note: the notification shows who it's from; texts and emails are just the words, signed.
+        { title: author.display_name, body: text, url: "/messages", personal: { from: author.display_name } },
   );
   return true;
 }

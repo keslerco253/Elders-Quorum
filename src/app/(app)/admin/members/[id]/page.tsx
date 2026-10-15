@@ -163,6 +163,13 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
         {presidency && (
           <div className="space-y-3">
             <div className="card text-sm">
+              <div className="font-semibold">Personal message</div>
+              <p className="mt-1 text-muted">Write to {firstName(m.display_name)} directly. They get just your words, signed with your name.</p>
+              <Link href={`/admin/replies/${m.id}#end`} className="btn-primary btn-sm mt-3">
+                Send a personal message
+              </Link>
+            </div>
+            <div className="card text-sm">
               <div className="font-semibold">{user.org.kind === "ward" ? "Bishopric visits" : "Presidency visits"}</div>
               <p className="mt-1 text-muted">{lastVisit ? `Last: ${formatDate(lastVisit.date)}` : "No visits recorded."}</p>
               <div className="mt-3 flex flex-wrap gap-2">

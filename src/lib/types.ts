@@ -46,7 +46,6 @@ export interface Ward {
 /** Features an organization can hide when it doesn't use them. */
 export const FEATURES = {
   lessons: "Lessons and teachers",
-  plans: "Temple and mission plans",
   signups: "Sign-ups",
   visits: "Visits and visit requests",
   todos: "To-dos",

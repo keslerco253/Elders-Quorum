@@ -1,31 +1,48 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { currentPlan, PLAN_INFO, type PlanKind } from "@/lib/plans";
+import { audienceText, canCreatePlans, listPlans, PLAN_BLURBS } from "@/lib/plans";
 import { formatDateTime } from "@/lib/time";
-import { PageHeader } from "@/components/ui";
+import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 
 export const metadata = { title: "Plans" };
 
-export default async function PlansPage() {
+export default async function PlansPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
+  const sp = await searchParams;
+  const plans = listPlans(user.ward_id, user.org);
   return (
     <>
-      <PageHeader title="Ward plans" subtitle="Review our ward plans and look for ways to serve." />
-      <div className="grid gap-4 md:grid-cols-2">
-        {(Object.keys(PLAN_INFO) as PlanKind[]).map((k) => {
-          const p = currentPlan(user.org_id, k);
-          return (
-            <Link key={k} href={`/plans/${k}`} className="card block hover:bg-surface-2">
-              <div className="mb-1 text-2xl" aria-hidden>
-                {k === "temple" ? "🌳" : "🤝"}
-              </div>
-              <h2 className="h2">{PLAN_INFO[k].title}</h2>
-              <p className="mt-1 text-sm text-muted">{PLAN_INFO[k].blurb}</p>
-              <p className="mt-3 text-xs text-muted">{p ? `Updated ${formatDateTime(p.created_at, user.ward.timezone, "LLL d, yyyy")}` : "Not posted yet"}</p>
+      <PageHeader
+        title="Ward plans"
+        subtitle={user.org.kind === "ward" ? "Every plan in the ward." : `Whole-ward plans and ${user.orgLabel}'s own.`}
+        actions={
+          canCreatePlans(user) && (
+            <Link href="/plans/new" className="btn-primary">
+              New plan
             </Link>
-          );
-        })}
-      </div>
+          )
+        }
+      />
+      <Flash msg={sp.msg} />
+      {plans.length === 0 ? (
+        <Empty>No plans yet.</Empty>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {plans.map((p) => (
+            <Link key={p.id} href={`/plans/${p.id}`} className="card block hover:bg-surface-2">
+              <div className="mb-1 text-2xl" aria-hidden>
+                {p.legacy_kind === "temple" ? "🌳" : p.legacy_kind === "mission" ? "🤝" : "📋"}
+              </div>
+              <h2 className="h2">{p.name}</h2>
+              {p.legacy_kind && PLAN_BLURBS[p.legacy_kind] && <p className="mt-1 text-sm text-muted">{PLAN_BLURBS[p.legacy_kind]}</p>}
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
+                <Badge tone={p.org_ids.length ? "info" : undefined}>{audienceText(p, user.orgs)}</Badge>
+                {p.updated_at ? `Updated ${formatDateTime(p.updated_at, user.ward.timezone, "LLL d, yyyy")}` : "Not posted yet"}
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </>
   );
 }

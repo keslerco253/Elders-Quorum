@@ -9,6 +9,7 @@ import { formatDateTime } from "@/lib/time";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { answerMember } from "../actions";
+import { leadersWord } from "@/lib/types";
 
 export const metadata = { title: "Conversation" };
 
@@ -77,14 +78,14 @@ export default async function ConversationPage({ params, searchParams }: { param
         <input type="hidden" name="member_id" value={member.id} />
         {privately && <input type="hidden" name="private" value="1" />}
         <label className="label" htmlFor="body">
-          {privately ? `Private reply to ${first}` : `Reply to ${first}`}
+          {privately ? `Private reply to ${first}` : thread.length ? `Reply to ${first}` : `Personal message to ${first}`}
         </label>
         <textarea id="body" name="body" rows={3} maxLength={1000} required className="input" />
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs text-muted">
             {privately
               ? "They'll be told they have a private message from you; the words stay in the app."
-              : `Sent as a notification${member.contact_pref !== "none" ? `, or by ${member.contact_pref === "both" ? "text and email" : member.contact_pref} if notifications are off` : ""}. Signed with your name.`}
+              : `Sent as a notification${member.contact_pref !== "none" ? `, or by ${member.contact_pref === "both" ? "text and email" : member.contact_pref} if notifications are off` : ""}: just your words, signed "- ${user.display_name}", with no header or link. The rest of the ${leadersWord(user.org)} can see it here.`}
           </span>
           <SubmitButton pendingText="Sending…">Send</SubmitButton>
         </div>
