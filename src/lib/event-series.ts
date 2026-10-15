@@ -24,6 +24,9 @@ export interface SeriesRow {
   presidency_only: number;
   rsvp_enabled: number;
   reminder_minutes: number | null;
+  reminder2_minutes: number | null;
+  flyer_file: string | null;
+  flyer_name: string | null;
   generated_until: string | null;
   created_by: number | null;
 }
@@ -52,7 +55,7 @@ export function extendSeries(s: SeriesRow, today = DateTime.now().setZone(tzOf(s
   if (from > to) return 0;
   const d = db();
   const ins = d.prepare(
-    "INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, created_by, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, reminder2_minutes, flyer_file, flyer_name, created_by, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const dates = occurrenceDates(recurrenceOf(s), from, to);
   d.transaction(() => {
@@ -68,6 +71,9 @@ export function extendSeries(s: SeriesRow, today = DateTime.now().setZone(tzOf(s
         s.presidency_only,
         s.rsvp_enabled,
         s.reminder_minutes,
+        s.reminder2_minutes,
+        s.flyer_file,
+        s.flyer_name,
         s.created_by,
         s.id,
       );
@@ -83,8 +89,8 @@ export function createSeries(input: SeriesInput, firstEventId?: number): number 
   const id = Number(
     d
       .prepare(
-        `INSERT INTO event_series (org_id, pattern, start_date, start_time, duration_minutes, until_date, max_count, title, description, location, presidency_only, rsvp_enabled, reminder_minutes, created_by, generated_until)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO event_series (org_id, pattern, start_date, start_time, duration_minutes, until_date, max_count, title, description, location, presidency_only, rsvp_enabled, reminder_minutes, reminder2_minutes, flyer_file, flyer_name, created_by, generated_until)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.org_id,
@@ -100,6 +106,9 @@ export function createSeries(input: SeriesInput, firstEventId?: number): number 
         input.presidency_only,
         input.rsvp_enabled,
         input.reminder_minutes,
+        input.reminder2_minutes,
+        input.flyer_file,
+        input.flyer_name,
         input.created_by,
         firstEventId ? input.start_date : null,
       ).lastInsertRowid,

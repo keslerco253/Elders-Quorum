@@ -5,6 +5,7 @@ import type { SeriesRow } from "@/lib/event-series";
 import { RepeatFields } from "@/components/repeat-fields";
 import { SubmitButton } from "@/components/client";
 import { saveEvent } from "./actions";
+import { UPLOAD_ACCEPT } from "@/lib/upload-names";
 
 /** `date` (yyyy-mm-dd) pre-fills a new event for that day, 7–8 PM. */
 export function EventForm({ e, tz, date, series }: { e?: EventRow; tz: string; date?: string; series?: SeriesRow }) {
@@ -64,16 +65,45 @@ export function EventForm({ e, tz, date, series }: { e?: EventRow; tz: string; d
         <textarea id="description" name="description" rows={4} className="input" defaultValue={e?.description} />
       </div>
       <div>
-        <label className="label" htmlFor="reminder_minutes">
-          Reminder
+        <label className="label" htmlFor="flyer">
+          Flyer (optional)
         </label>
-        <select id="reminder_minutes" name="reminder_minutes" className="input" defaultValue={e ? String(e.reminder_minutes ?? "") : "1440"}>
-          {REMINDER_OPTIONS.map(([v, label]) => (
-            <option key={label} value={v ?? ""}>
-              {label}
-            </option>
-          ))}
-        </select>
+        {e?.flyer_file && (
+          <p className="mb-2 text-sm">
+            Current: {e.flyer_name}{" "}
+            <label className="ml-2 text-muted">
+              <input type="checkbox" name="remove_flyer" /> remove
+            </label>
+          </p>
+        )}
+        <input id="flyer" name="flyer" type="file" accept={UPLOAD_ACCEPT} className="input" />
+        <p className="hint">A PDF or a picture, up to 15 MB. It shows on the event&apos;s page, with a small preview on members&apos; home pages.</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="label" htmlFor="reminder_minutes">
+            Reminder
+          </label>
+          <select id="reminder_minutes" name="reminder_minutes" className="input" defaultValue={e ? String(e.reminder_minutes ?? "") : "1440"}>
+            {REMINDER_OPTIONS.map(([v, label]) => (
+              <option key={label} value={v ?? ""}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="label" htmlFor="reminder2_minutes">
+            Second reminder
+          </label>
+          <select id="reminder2_minutes" name="reminder2_minutes" className="input" defaultValue={e ? String(e.reminder2_minutes ?? "") : ""}>
+            {REMINDER_OPTIONS.map(([v, label]) => (
+              <option key={label} value={v ?? ""}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="presidency_only" defaultChecked={!!e?.presidency_only} className="mt-1" />

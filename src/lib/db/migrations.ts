@@ -869,4 +869,20 @@ ALTER TABLE signups ADD COLUMN flyer_file TEXT;
 ALTER TABLE signups ADD COLUMN flyer_name TEXT;
 `,
   },
+  {
+    // Events: a flyer and a second reminder (also on repeating-event series, so every
+    // date gets them). Service opportunities: two reminders, set per opportunity
+    // (days before; NULL = none), a week and a day before by default.
+    id: 35,
+    sql: `
+ALTER TABLE events ADD COLUMN reminder2_minutes INTEGER;
+ALTER TABLE events ADD COLUMN flyer_file TEXT;
+ALTER TABLE events ADD COLUMN flyer_name TEXT;
+ALTER TABLE event_series ADD COLUMN reminder2_minutes INTEGER;
+ALTER TABLE event_series ADD COLUMN flyer_file TEXT;
+ALTER TABLE event_series ADD COLUMN flyer_name TEXT;
+ALTER TABLE signups ADD COLUMN reminder1_days INTEGER DEFAULT 7;
+ALTER TABLE signups ADD COLUMN reminder2_days INTEGER DEFAULT 1;
+`,
+  },
 ];

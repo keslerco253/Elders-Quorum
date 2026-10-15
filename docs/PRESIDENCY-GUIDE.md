@@ -129,7 +129,7 @@ you edit or delete one, choose **only this date** or **this and all future
 dates**. An existing one-time event can be made repeating by editing it.
 
 - **Calendar → Add event.** Check **Presidency only** for meetings members
-  shouldn't see. Choose a reminder (default: the day before). Check **Ask people
+  shouldn't see. Choose a reminder (default: the day before) and, if you like, a **second reminder** (for example a week before). Attach a **Flyer** (a PDF or picture): it shows on the event's page, with a small preview next to the event on members' home pages. Check **Ask people
   to RSVP** for a headcount.
 - Member suggestions show in **Admin → Event requests**. Approving adds the
   event and notifies the member; you can then adjust it.
@@ -386,9 +386,11 @@ PDFs page by page, so members don't have to open anything. Tick **remove** to
 take it off, or attach a new one to replace it. A small preview of the flyer shows next
 to the opportunity in the Service list and on members' home pages.
 
-**Reminders:** everyone signed up for a service opportunity with a date gets a
-reminder **a week before** and **the day before** (in the morning), saying what
-they signed up for. Opportunities without a date don't send reminders.
+**Reminders:** everyone signed up for a service opportunity with a date gets two
+reminders (from 8 AM), saying what they signed up for. They're **a week before**
+and **the day before** unless you change them on the opportunity's edit screen
+(**Reminder** and **Second reminder**: the morning of, 1, 2 or 3 days, 1 or 2
+weeks before, or no reminder). Opportunities without a date don't send reminders.
 
 ```
 Helpers | 6

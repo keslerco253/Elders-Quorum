@@ -18,6 +18,9 @@ const base: SeriesInput = {
   presidency_only: 0,
   rsvp_enabled: 1,
   reminder_minutes: 1440,
+  reminder2_minutes: null,
+  flyer_file: null,
+  flyer_name: null,
   created_by: 1,
 };
 const events = (seriesId: number) => d.prepare("SELECT starts_at, ends_at, title FROM events WHERE series_id = ? ORDER BY starts_at").all(seriesId) as { starts_at: string; ends_at: string; title: string }[];
@@ -25,6 +28,15 @@ const events = (seriesId: number) => d.prepare("SELECT starts_at, ends_at, title
 describe("repeating event series", () => {
   beforeEach(() => {
     d = useTestDb("INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise'); INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'P', 'p@x', 'presidency');");
+  });
+
+  it("gives every date the series' flyer and both reminders", () => {
+    const id = createSeries({ ...base, reminder2_minutes: 10080, flyer_file: "aaaaaaaaaaaaaaaaaaaaaaaa.png", flyer_name: "Temple night.png" });
+    const rows = d.prepare("SELECT reminder_minutes, reminder2_minutes, flyer_file, flyer_name FROM events WHERE series_id = ?").all(id);
+    expect(rows.length).toBeGreaterThan(1);
+    expect(new Set(rows.map((r) => JSON.stringify(r)))).toEqual(
+      new Set([JSON.stringify({ reminder_minutes: 1440, reminder2_minutes: 10080, flyer_file: "aaaaaaaaaaaaaaaaaaaaaaaa.png", flyer_name: "Temple night.png" })]),
+    );
   });
 
   it("creates the third Friday at 7 PM local time, a year ahead, through daylight saving", () => {

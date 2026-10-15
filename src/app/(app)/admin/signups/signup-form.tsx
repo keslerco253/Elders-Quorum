@@ -1,5 +1,5 @@
 import { SubmitButton } from "@/components/client";
-import type { Signup, Slot } from "@/lib/signups";
+import { SIGNUP_REMINDER_OPTIONS, type Signup, type Slot } from "@/lib/signups";
 import { saveSignup } from "./actions";
 import { UPLOAD_ACCEPT } from "@/lib/upload-names";
 
@@ -55,6 +55,23 @@ export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
           placeholder={"Helpers | 6\nBring a trailer | 1\n\nor for meals:\nMonday dinner | 1\nTuesday dinner | 1"}
         />
         <p className="hint">If you remove or rename a slot, the people signed up for it are removed.</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {(["reminder1_days", "reminder2_days"] as const).map((field, i) => (
+          <div key={field}>
+            <label className="label" htmlFor={field}>
+              {i === 0 ? "Reminder" : "Second reminder"}
+            </label>
+            <select id={field} name={field} className="input" defaultValue={String((s ? s[field] : i === 0 ? 7 : 1) ?? "")}>
+              {SIGNUP_REMINDER_OPTIONS.map(([v, label]) => (
+                <option key={label} value={v ?? ""}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
+        <p className="hint sm:col-span-2">Sent to everyone signed up (from 8 AM), when the opportunity has a date.</p>
       </div>
       {s ? (
         <label className="flex items-center gap-2 text-sm">

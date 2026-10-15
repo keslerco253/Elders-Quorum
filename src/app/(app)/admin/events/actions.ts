@@ -8,6 +8,7 @@ import { localInputToUtc, formatDateTime } from "@/lib/time";
 import { notify, recipientById } from "@/lib/notify";
 import { DateTime } from "luxon";
 import { createSeries, endSeriesBefore, getSeries, type SeriesInput } from "@/lib/event-series";
+import { saveUpload } from "@/lib/uploads";
 import { describeRecurrence, patternOptions, type Pattern } from "@/lib/recurrence";
 import type { EventRow } from "@/lib/types";
 
@@ -19,6 +20,7 @@ function readEvent(fd: FormData, tz: string) {
   const start = localInputToUtc(String(fd.get("starts_at") || ""), tz);
   const end = localInputToUtc(String(fd.get("ends_at") || ""), tz);
   const reminder = String(fd.get("reminder_minutes") || "");
+  const reminder2 = String(fd.get("reminder2_minutes") || "");
   return {
     title: String(fd.get("title") || "").trim(),
     description: String(fd.get("description") || "").trim(),
@@ -28,6 +30,10 @@ function readEvent(fd: FormData, tz: string) {
     presidencyOnly: fd.get("presidency_only") === "on" ? 1 : 0,
     rsvp: fd.get("rsvp_enabled") === "on" ? 1 : 0,
     reminder: reminder ? Number(reminder) : null,
+    reminder2: reminder2 ? Number(reminder2) : null,
+    // Set by saveEvent once any new flyer is uploaded.
+    flyerFile: null as string | null,
+    flyerName: null as string | null,
   };
 }
 
@@ -60,6 +66,9 @@ function seriesInput(user: { id: number; org_id: number }, e: ReturnType<typeof 
     presidency_only: e.presidencyOnly,
     rsvp_enabled: e.rsvp,
     reminder_minutes: e.reminder,
+    reminder2_minutes: e.reminder2,
+    flyer_file: e.flyerFile,
+    flyer_name: e.flyerName,
     created_by: user.id,
   };
 }
@@ -78,10 +87,28 @@ export async function saveEvent(fd: FormData) {
   const endLocal = DateTime.fromISO(e.end!, { zone: "utc" }).setZone(tz);
   const repeat = readRepeat(fd, startLocal);
   const d = db();
+  // The flyer: a new upload, the one it had, or none.
+  const prev = id ? (d.prepare("SELECT flyer_file, flyer_name FROM events WHERE id = ? AND org_id = ?").get(id, user.org_id) as { flyer_file: string | null; flyer_name: string | null } | undefined) : undefined;
+  e.flyerFile = fd.get("remove_flyer") === "on" ? null : (prev?.flyer_file ?? null);
+  e.flyerName = e.flyerFile ? (prev?.flyer_name ?? null) : null;
+  const file = fd.get("flyer");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > 15_000_000) go(back, "The flyer must be under 15 MB.");
+    try {
+      e.flyerFile = await saveUpload(file);
+      e.flyerName = file.name.slice(0, 200) || "Flyer";
+      // Recorded with the ward, so only its members can open it.
+      d.prepare("INSERT INTO plan_files (name, ward_id, original_name, uploaded_by) VALUES (?, ?, ?, ?)").run(e.flyerFile, user.ward_id, e.flyerName, user.id);
+    } catch {
+      go(back, "That kind of file can't be attached. Use a PDF or a picture (PNG, JPEG, GIF, WebP or an iPhone photo).");
+    }
+  }
   const update = (eventId: number) =>
     d
-      .prepare("UPDATE events SET title = ?, description = ?, location = ?, starts_at = ?, ends_at = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ? WHERE id = ? AND org_id = ?")
-      .run(e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, eventId, user.org_id);
+      .prepare(
+        "UPDATE events SET title = ?, description = ?, location = ?, starts_at = ?, ends_at = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ?, reminder2_minutes = ?, flyer_file = ?, flyer_name = ? WHERE id = ? AND org_id = ?",
+      )
+      .run(e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, eventId, user.org_id);
   let eventId = id;
   let note = "Event saved.";
 
@@ -95,8 +122,10 @@ export async function saveEvent(fd: FormData) {
     } else {
       eventId = Number(
         d
-          .prepare("INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-          .run(user.org_id, e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, user.id).lastInsertRowid,
+          .prepare(
+            "INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, reminder2_minutes, flyer_file, flyer_name, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          )
+          .run(user.org_id, e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, user.id).lastInsertRowid,
       );
     }
   } else {
@@ -116,25 +145,10 @@ export async function saveEvent(fd: FormData) {
       if (sameShape) {
         // Same dates and times: update the details on this and later dates, keeping RSVPs.
         d.transaction(() => {
-          d.prepare("UPDATE events SET title = ?, description = ?, location = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ? WHERE series_id = ? AND starts_at >= ?").run(
-            e.title,
-            e.description,
-            e.location,
-            e.presidencyOnly,
-            e.rsvp,
-            e.reminder,
-            series.id,
-            existing.starts_at,
-          );
-          d.prepare("UPDATE event_series SET title = ?, description = ?, location = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ? WHERE id = ?").run(
-            e.title,
-            e.description,
-            e.location,
-            e.presidencyOnly,
-            e.rsvp,
-            e.reminder,
-            series.id,
-          );
+          const details = [e.title, e.description, e.location, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName];
+          const SET = "title = ?, description = ?, location = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ?, reminder2_minutes = ?, flyer_file = ?, flyer_name = ?";
+          d.prepare(`UPDATE events SET ${SET} WHERE series_id = ? AND starts_at >= ?`).run(...details, series.id, existing.starts_at);
+          d.prepare(`UPDATE event_series SET ${SET} WHERE id = ?`).run(...details, series.id);
         })();
         note = "Saved for this and all future dates.";
       } else if (repeat) {

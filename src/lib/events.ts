@@ -12,6 +12,7 @@ export const REMINDER_OPTIONS: [number | null, string][] = [
   [1440, "1 day before"],
   [2880, "2 days before"],
   [10080, "1 week before"],
+  [20160, "2 weeks before"],
 ];
 
 // Leaders-only events show only to that organization's presidency and admins.

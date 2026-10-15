@@ -136,6 +136,10 @@ export interface EventRow {
   presidency_only: number;
   rsvp_enabled: number;
   reminder_minutes: number | null;
+  reminder2_minutes: number | null;
+  /** A flyer: a PDF or picture (stored name, and the name it was uploaded with). */
+  flyer_file: string | null;
+  flyer_name: string | null;
   series_id: number | null;
   /** Which organization's event (filled in by the calendar queries). */
   org_label?: string;

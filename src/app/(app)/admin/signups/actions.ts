@@ -19,6 +19,14 @@ export async function saveSignup(fd: FormData) {
   const description = String(fd.get("description") || "").trim();
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("date"))) ? String(fd.get("date")) : null;
   const closed = fd.get("closed") === "on" ? 1 : 0;
+  // Reminders: days before the date (0 = the morning of), or blank for none.
+  const days = (name: string) => {
+    const v = String(fd.get(name) ?? "");
+    const n = Number(v);
+    return v !== "" && Number.isInteger(n) && n >= 0 && n <= 30 ? n : null;
+  };
+  const r1 = days("reminder1_days");
+  const r2 = days("reminder2_days");
   const slots = parseSlotLines(String(fd.get("slots") || ""));
   const back = id ? `/admin/signups/${id}` : "/admin/signups/new";
   if (!title || !slots.length) go(back, "Add a title and at least one slot.");
@@ -44,15 +52,15 @@ export async function saveSignup(fd: FormData) {
     if (sid) {
       if (
         !d
-          .prepare("UPDATE signups SET title = ?, description = ?, date = ?, closed = ?, flyer_file = ?, flyer_name = ? WHERE id = ? AND org_id = ?")
-          .run(title, description, date, closed, flyerFile, flyerName, sid, user.org_id).changes
+          .prepare("UPDATE signups SET title = ?, description = ?, date = ?, closed = ?, flyer_file = ?, flyer_name = ?, reminder1_days = ?, reminder2_days = ? WHERE id = ? AND org_id = ?")
+          .run(title, description, date, closed, flyerFile, flyerName, r1, r2, sid, user.org_id).changes
       )
         return null;
     } else {
       sid = Number(
         d
-          .prepare("INSERT INTO signups (org_id, title, description, date, created_by, flyer_file, flyer_name) VALUES (?, ?, ?, ?, ?, ?, ?)")
-          .run(user.org_id, title, description, date, user.id, flyerFile, flyerName).lastInsertRowid,
+          .prepare("INSERT INTO signups (org_id, title, description, date, created_by, flyer_file, flyer_name, reminder1_days, reminder2_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+          .run(user.org_id, title, description, date, user.id, flyerFile, flyerName, r1, r2).lastInsertRowid,
       );
     }
     // Keep slots (and who signed up) when the label is unchanged.

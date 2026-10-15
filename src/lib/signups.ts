@@ -10,7 +10,21 @@ export interface Signup {
   /** A flyer: a PDF or picture (stored name, and the name it was uploaded with). */
   flyer_file: string | null;
   flyer_name: string | null;
+  /** Reminders to people signed up: days before the date (0 = the morning of), or null for none. */
+  reminder1_days: number | null;
+  reminder2_days: number | null;
 }
+
+/** Choices for a service opportunity's reminders (days before its date). */
+export const SIGNUP_REMINDER_OPTIONS: [number | null, string][] = [
+  [null, "No reminder"],
+  [0, "The morning of"],
+  [1, "1 day before"],
+  [2, "2 days before"],
+  [3, "3 days before"],
+  [7, "1 week before"],
+  [14, "2 weeks before"],
+];
 
 export interface Slot {
   id: number;

@@ -10,6 +10,7 @@ import { getSeries, recurrenceOf } from "@/lib/event-series";
 import { describeRecurrence } from "@/lib/recurrence";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
+import { FlyerView } from "@/components/flyer-view";
 import { rsvp } from "../actions";
 import { roleIn } from "@/lib/orgs";
 
@@ -69,6 +70,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
           </div>
         )}
         {e.description && <p className="whitespace-pre-wrap">{e.description}</p>}
+        {e.flyer_file && <FlyerView file={e.flyer_file} name={e.flyer_name} className="" />}
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">
           <a href={googleCalendarUrl(e)} target="_blank" rel="noreferrer" className="btn-primary">
             Add to Google Calendar

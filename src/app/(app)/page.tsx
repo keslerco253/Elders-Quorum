@@ -204,6 +204,7 @@ export default async function HomePage() {
                   href={`/calendar/${e.id}`}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2"
                 >
+                  {e.flyer_file && <FlyerThumb file={e.flyer_file} name={e.flyer_name} />}
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{e.title}</div>
                     <div className="text-sm text-muted">

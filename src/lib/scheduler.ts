@@ -104,18 +104,25 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const nowIso = now.toUTC().toISO()!;
   const events = db()
-    .prepare("SELECT * FROM events WHERE org_id = ? AND reminder_minutes IS NOT NULL AND starts_at > ? AND starts_at < ?")
-    .all(org.id, nowIso, now.plus({ days: 8 }).toUTC().toISO()) as EventRow[];
+    .prepare("SELECT * FROM events WHERE org_id = ? AND (reminder_minutes IS NOT NULL OR reminder2_minutes IS NOT NULL) AND starts_at > ? AND starts_at < ?")
+    .all(org.id, nowIso, now.plus({ days: 15 }).toUTC().toISO()) as EventRow[];
   const out: DueNotification[] = [];
   for (const e of events) {
-    const remindAt = DateTime.fromISO(e.starts_at, { zone: "utc" }).minus({ minutes: e.reminder_minutes! });
-    // Send once the reminder time passes, but skip it if we're more than 6 hours late.
-    if (remindAt > now || now.diff(remindAt, "hours").hours > 6) continue;
-    out.push({
-      key: `event:${e.id}:${e.starts_at}`,
-      recipients: audienceMembers(org.id, e.presidency_only ? "admins" : "everyone"),
-      payload: { title: `Reminder: ${e.title}`, body: `${formatDateTime(e.starts_at, org.timezone)}${e.location ? ` at ${e.location}` : ""}`, url: `/calendar/${e.id}` },
-    });
+    // An event can have two reminders (e.g. a week before and a day before).
+    for (const [minutes, keyPrefix] of [
+      [e.reminder_minutes, "event"],
+      [e.reminder2_minutes, "event2"],
+    ] as const) {
+      if (minutes === null || minutes === undefined) continue;
+      const remindAt = DateTime.fromISO(e.starts_at, { zone: "utc" }).minus({ minutes });
+      // Send once the reminder time passes, but skip it if we're more than 6 hours late.
+      if (remindAt > now || now.diff(remindAt, "hours").hours > 6) continue;
+      out.push({
+        key: `${keyPrefix}:${e.id}:${e.starts_at}`,
+        recipients: audienceMembers(org.id, e.presidency_only ? "admins" : "everyone"),
+        payload: { title: `Reminder: ${e.title}`, body: `${formatDateTime(e.starts_at, org.timezone)}${e.location ? ` at ${e.location}` : ""}`, url: `/calendar/${e.id}` },
+      });
+    }
   }
   return out;
 }
@@ -158,30 +165,33 @@ function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 }
 
 /**
- * People who signed up for a service opportunity are reminded a week before and the day
- * before (from 8 AM, or later that day if the server was off). Opportunities without a
- * date get no reminders.
+ * People who signed up for a service opportunity get its reminders (two, each a number
+ * of days before its date; a week and a day before unless changed), from 8 AM, or
+ * later that day if the server was off. Opportunities without a date get none.
  */
 function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
   if (local.hour < 8 || local.hour >= 20) return [];
+  const today = local.toISODate()!;
+  const rows = db()
+    .prepare(
+      `SELECT s.id, s.title, s.date, s.reminder1_days, s.reminder2_days, e.member_id, group_concat(sl.label, ', ') AS slots
+       FROM signups s JOIN signup_slots sl ON sl.signup_id = s.id JOIN signup_entries e ON e.slot_id = sl.id JOIN members m ON m.id = e.member_id
+       WHERE s.org_id = ? AND s.date >= ? AND s.date <= date(?, '+14 days') AND m.status = 'active'
+       GROUP BY s.id, e.member_id`,
+    )
+    .all(org.id, today, today) as { id: number; title: string; date: string; reminder1_days: number | null; reminder2_days: number | null; member_id: number; slots: string }[];
   const out: DueNotification[] = [];
-  for (const [daysAhead, tag, when] of [
-    [7, "week", "Next week"],
-    [1, "day", "Tomorrow"],
-  ] as const) {
-    const date = local.plus({ days: daysAhead }).toISODate()!;
-    const rows = db()
-      .prepare(
-        `SELECT s.id, s.title, s.date, e.member_id, group_concat(sl.label, ', ') AS slots
-         FROM signups s JOIN signup_slots sl ON sl.signup_id = s.id JOIN signup_entries e ON e.slot_id = sl.id JOIN members m ON m.id = e.member_id
-         WHERE s.org_id = ? AND s.date = ? AND m.status = 'active'
-         GROUP BY s.id, e.member_id`,
-      )
-      .all(org.id, date) as { id: number; title: string; date: string; member_id: number; slots: string }[];
-    for (const r of rows) {
+  for (const r of rows) {
+    const daysAway = Math.round(DateTime.fromISO(r.date).diff(DateTime.fromISO(today), "days").days);
+    for (const [days, tag] of [
+      [r.reminder1_days, "r1"],
+      [r.reminder2_days, "r2"],
+    ] as const) {
+      if (days === null || days !== daysAway) continue;
       const who = recipientById(r.member_id, org.id);
       if (!who) continue;
+      const when = days === 0 ? "Today" : days === 1 ? "Tomorrow" : days === 7 ? "Next week" : days === 14 ? "In two weeks" : `In ${days} days`;
       out.push({
         key: `signup-${tag}:${r.id}:${r.date}:${r.member_id}`,
         recipients: [who],

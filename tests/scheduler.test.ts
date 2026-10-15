@@ -101,6 +101,39 @@ describe("scheduler", () => {
     expect(due("2026-10-27T09:00")).toEqual([]);
   });
 
+  it("sends an event's second reminder too", () => {
+    const db = useTestDb();
+    db.exec(`
+      INSERT INTO members (id, name, display_name, email, status) VALUES (7, 'Kate', 'Kate Lee', 'kate@x.com', 'active');
+      INSERT INTO wards (id, name, timezone, join_code) VALUES (5, 'Maple Ward', 'America/Boise', 'MAPLE');
+      INSERT INTO ward_members (ward_id, member_id) VALUES (5, 7);
+      INSERT INTO orgs (id, ward_id, name, kind) VALUES (50, 5, 'Elders Quorum', 'group');
+      INSERT INTO org_members (org_id, member_id) VALUES (50, 7);
+      INSERT INTO events (org_id, title, starts_at, ends_at, reminder_minutes, reminder2_minutes) VALUES (50, 'Temple night', '2026-10-31T01:00:00Z', '2026-10-31T03:00:00Z', 1440, 10080);
+    `);
+    const due = (t: string) => collectDue(at(t)).filter((n) => n.key.startsWith("event"));
+    expect(due("2026-10-23T19:30").map((n) => n.key)).toEqual(["event2:1:2026-10-31T01:00:00Z"]);
+    expect(due("2026-10-29T19:30").map((n) => n.key)).toEqual(["event:1:2026-10-31T01:00:00Z"]);
+    expect(due("2026-10-26T19:30")).toEqual([]);
+  });
+
+  it("uses each service opportunity's own reminder choices", () => {
+    const db = useTestDb();
+    db.exec(`
+      INSERT INTO members (id, name, display_name, email, status) VALUES (7, 'Kate', 'Kate Lee', 'kate@x.com', 'active');
+      INSERT INTO wards (id, name, timezone, join_code) VALUES (5, 'Maple Ward', 'America/Boise', 'MAPLE');
+      INSERT INTO ward_members (ward_id, member_id) VALUES (5, 7);
+      INSERT INTO orgs (id, ward_id, name, kind) VALUES (50, 5, 'Elders Quorum', 'group');
+      INSERT INTO signups (id, org_id, title, date, reminder1_days, reminder2_days) VALUES (9, 50, 'Meals', '2026-10-30', 0, NULL);
+      INSERT INTO signup_slots (id, signup_id, label, capacity) VALUES (90, 9, 'Dinner', 1);
+      INSERT INTO signup_entries (slot_id, member_id) VALUES (90, 7);
+    `);
+    const due = (t: string) => collectDue(at(t)).filter((n) => n.key.startsWith("signup"));
+    expect(due("2026-10-23T09:00")).toEqual([]);
+    expect(due("2026-10-29T09:00")).toEqual([]);
+    expect(due("2026-10-30T09:00").map((n) => n.payload.title)).toEqual(["Today: Meals"]);
+  });
+
   it("claims each key once", () => {
     expect(claimOnce("x")).toBe(true);
     expect(claimOnce("x")).toBe(false);
