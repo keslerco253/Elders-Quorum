@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -20,6 +21,9 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
     <>
       <PageHeader title={g.name} back={{ href: "/admin/groups", label: "Groups" }} />
       <Flash msg={sp.msg} />
+      <Link href={`/admin/messages?to=group:${g.id}`} className="btn-primary btn-sm mb-4">
+        Send a message to this group
+      </Link>
       <form action={saveGroup} className="card space-y-4">
         <input type="hidden" name="item_id" value={g.id} />
         <div>

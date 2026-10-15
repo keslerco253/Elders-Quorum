@@ -3,13 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireAdmin, requirePresidency } from "@/lib/auth";
+import { requireAdmin, requirePresidency, requireUser } from "@/lib/auth";
 import { isPresidency } from "@/lib/permissions";
 import { normalizeEmailAddress, normalizePhone, parseContact } from "@/lib/contact";
 import { findMemberByContact } from "@/lib/auth-core";
 import { sendInviteEmail } from "@/lib/invite";
 import { isLastPresidency, onlyLeaderOf, removeFromOrg, removeFromWard } from "@/lib/accounts";
-import { addToOrg, orgMemberView, wardMember } from "@/lib/orgs";
+import { addToOrg, managedOrgs, orgMemberView, wardMember } from "@/lib/orgs";
 import { appUrl } from "@/lib/config";
 import { sendAccountNotice } from "@/lib/login-code";
 import { CALLINGS, isCalling, roleLabel, type Role } from "@/lib/types";
@@ -150,4 +150,31 @@ export async function emailInvite(fd: FormData) {
   if (!m?.email) redirect("/admin/members");
   const ok = await sendInviteEmail(m, user.ward.name, user.display_name);
   go(`/admin/members/${id}`, ok ? `Invite emailed to ${m.email}.` : "The invite email didn't send. Check email in Settings.");
+}
+
+/**
+ * Which organizations a member officially belongs to. The bishopric can set
+ * any organization in the ward; a presidency only its own. Leaders of an
+ * organization keep their place there. Unticking takes them out (they can
+ * still choose it again themselves).
+ */
+export async function setMemberOrgs(fd: FormData) {
+  const user = await requireUser();
+  const id = Number(fd.get("item_id"));
+  const back = `/admin/members/${id}`;
+  if (!wardMember(id, user.org_id)) redirect("/admin/members");
+  const d = db();
+  const changeable = managedOrgs(user);
+  d.transaction(() => {
+    for (const o of changeable) {
+      const want = fd.get(`org_${o.id}`) === "on";
+      const row = d.prepare("SELECT role, official FROM org_members WHERE org_id = ? AND member_id = ?").get(o.id, id) as { role: Role; official: number } | undefined;
+      if (row && row.role !== "member") continue;
+      if (want && !row) addToOrg(id, o.id);
+      else if (want && row && !row.official) d.prepare("UPDATE org_members SET official = 1, notify = 1 WHERE org_id = ? AND member_id = ?").run(o.id, id);
+      else if (!want && row?.official) removeFromOrg(id, o.id);
+    }
+  })();
+  revalidatePath("/", "layout");
+  go(back, "Organizations saved.");
 }

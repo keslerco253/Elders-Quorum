@@ -49,7 +49,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           <label className="label" htmlFor="audience">
             Send to
           </label>
-          <select id="audience" name="audience" className="input" required>
+          <select id="audience" name="audience" className="input" required defaultValue={options.some(([v]) => v === sp.to) ? sp.to : "everyone"}>
             {options.map(([v, label]) => (
               <option key={v} value={v}>
                 {label} ({audienceMembers(w, v, { tz }).length})

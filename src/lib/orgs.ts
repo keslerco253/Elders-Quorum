@@ -306,3 +306,11 @@ export function deleteOrg(orgId: number): boolean {
   })();
   return true;
 }
+
+/** Organizations (not the ward itself) whose membership this person can set for others. */
+export function managedOrgs(user: CurrentUser): Org[] {
+  const groups = orgsInWard(user.ward_id).filter((o) => o.kind === "group");
+  if (user.wardLeader) return groups;
+  const mine = new Set(user.orgs.filter((o) => o.role === "presidency").map((o) => o.id));
+  return groups.filter((o) => mine.has(o.id));
+}

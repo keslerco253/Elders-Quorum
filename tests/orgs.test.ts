@@ -244,3 +244,19 @@ describe("the organization you're looking at", () => {
     expect(userForSession(phone, { orgId: orgs.wardOrg(maple.id).id, at: 3000 })!.org_id).toBe(1);
   });
 });
+
+describe("leaders setting someone's organizations", () => {
+  it("lets the bishopric set any organization and a presidency only its own", () => {
+    const rs = orgs.createOrg(1, "Relief Society");
+    const ward = orgs.wardOrg(1);
+    // Pres (1) leads Elders Quorum and, as site owner, the ward.
+    expect(orgs.managedOrgs(orgs.currentUserFor(member(1), ward.id)!).map((o) => o.name)).toEqual(["Elders Quorum", "Relief Society"]);
+    // An Elders Quorum president who isn't in the bishopric.
+    d.prepare("DELETE FROM org_members WHERE org_id = ? AND member_id = 1").run(ward.id);
+    d.prepare("UPDATE wards SET created_by = 2").run();
+    expect(orgs.managedOrgs(orgs.currentUserFor(member(1), 1)!).map((o) => o.id)).toEqual([1]);
+    // Admins and members can't.
+    expect(orgs.managedOrgs(orgs.currentUserFor(member(3), 1)!)).toEqual([]);
+    expect(rs.kind).toBe("group");
+  });
+});

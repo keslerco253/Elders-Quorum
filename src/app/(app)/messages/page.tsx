@@ -6,6 +6,7 @@ import { formatDateTime } from "@/lib/time";
 import { Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { replyToPresidency } from "./actions";
+import { isAdmin } from "@/lib/permissions";
 
 export const metadata = { title: "Messages" };
 
@@ -64,6 +65,15 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                 </li>
               ))}
             </ul>
+          )}
+          {isAdmin(user) && (
+            <p className="mb-3 rounded-lg bg-surface-2 px-3 py-2 text-sm">
+              This is for writing to the {leaders} as a member. To send to everyone, or to one of your message groups, use{" "}
+              <Link href="/admin/messages" className="link">
+                Admin → Send a message
+              </Link>
+              .
+            </p>
           )}
           <form action={replyToPresidency} className="card space-y-3">
             {replyingTo && (

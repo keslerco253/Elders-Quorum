@@ -8,9 +8,9 @@ import { formatDate, formatDateTime } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { callingLabel, CALLINGS, roleLabel } from "@/lib/types";
-import { orgMemberView } from "@/lib/orgs";
+import { managedOrgs, orgMemberView, orgsInWard } from "@/lib/orgs";
 import { formatPhone } from "@/lib/contact";
-import { emailInvite, removeMember, updateMember } from "../actions";
+import { emailInvite, removeMember, setMemberOrgs, updateMember } from "../actions";
 import { inviteLink, inviteText } from "@/lib/invite";
 import { phoneEnabled, phoneOptInVisible } from "@/lib/sms";
 import { CopyButton } from "@/components/copy-button";
@@ -30,6 +30,18 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
       .prepare("SELECT o.id, o.name, o.kind, om.official FROM org_members om JOIN orgs o ON o.id = om.org_id WHERE om.member_id = ? AND o.ward_id = ? AND o.kind = 'group' AND o.id <> ? ORDER BY o.name")
       .all(m.id, user.ward_id, user.org_id) as { id: number; name: string; official: number }[]
   ).filter((o) => o.official);
+  // Organizations they belong to, which this leader can change.
+  const canSet = new Set(managedOrgs(user).map((o) => o.id));
+  const rows = new Map(
+    (db().prepare("SELECT org_id, role, official FROM org_members WHERE member_id = ?").all(m.id) as { org_id: number; role: string; official: number }[]).map((r) => [r.org_id, r]),
+  );
+  const orgChoices = orgsInWard(user.ward_id)
+    .filter((o) => o.kind === "group")
+    .map((o) => {
+      const r = rows.get(o.id);
+      const leads = !!r && r.role !== "member";
+      return { id: o.id, name: o.name, checked: !!r && (r.official === 1 || leads), locked: leads || !canSet.has(o.id), leads };
+    });
 
   return (
     <>
@@ -162,6 +174,26 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
         </form>
         {presidency && (
           <div className="space-y-3">
+        {canSet.size > 0 && orgChoices.length > 0 && (
+          <form action={setMemberOrgs} className="card space-y-3 text-sm">
+            <input type="hidden" name="item_id" value={m.id} />
+            <div className="font-semibold">Organizations</div>
+            <p className="text-muted">
+              Which organizations {firstName(m.display_name)} belongs to. They get its notifications and show on its member list. They can also change this themselves under More → My organizations.
+            </p>
+            <div className="space-y-1">
+              {orgChoices.map((o) => (
+                <label key={o.id} className={`flex items-center gap-2 rounded px-2 py-1 ${o.locked ? "text-muted" : "hover:bg-surface-2"}`}>
+                  <input type="checkbox" name={`org_${o.id}`} defaultChecked={o.checked} disabled={o.locked} />
+                  {o.name}
+                  {o.leads && <span className="text-xs">(leader)</span>}
+                </label>
+              ))}
+            </div>
+            {!user.wardLeader && <p className="hint">The bishopric can set any organization; you can set {orgChoices.filter((o) => canSet.has(o.id)).map((o) => o.name).join(" and ")}.</p>}
+            <SubmitButton className="btn-primary btn-sm">Save organizations</SubmitButton>
+          </form>
+        )}
             <div className="card text-sm">
               <div className="font-semibold">Personal message</div>
               <p className="mt-1 text-muted">Write to {firstName(m.display_name)} directly. They get just your words, signed with your name.</p>
