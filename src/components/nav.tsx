@@ -50,8 +50,11 @@ function useStickToBottom(ref: React.RefObject<HTMLElement | null>) {
         el.style.opacity = keyboardOpen ? "0" : "";
         el.style.pointerEvents = keyboardOpen ? "none" : "";
         // Distance between the bottom of the page's box and the bottom of what's visible.
+        // The bug leaves the page's box too short (gap below zero), so the bar is only ever
+        // moved down. Anything else (the keyboard still closing, Safari's floating toolbar)
+        // keeps it on the bottom instead of lifting it into the middle of the screen.
         const gap = window.innerHeight - (vv.offsetTop + vv.height);
-        el.style.transform = !keyboardOpen && Math.abs(gap) > 1 ? `translateY(${-gap}px)` : "";
+        el.style.transform = !keyboardOpen && gap < -1 ? `translateY(${-gap}px)` : "";
       });
     };
     // After the keyboard closes, nudge iPhone into recalculating the page size.
