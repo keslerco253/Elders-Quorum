@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { orgMemberList } from "@/lib/member-list";
 import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { isPresidency } from "@/lib/permissions";
 import { addMember } from "./actions";
-import { callingLabel, isCalling, leadersWord, roleLabel, type Member, type Role } from "@/lib/types";
+import { callingLabel, isCalling, leadersWord, roleLabel } from "@/lib/types";
 
 export const metadata = { title: "Members" };
 
@@ -15,15 +15,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const show = sp.show === "inactive" ? "inactive" : "active";
   const q = (sp.q ?? "").trim();
-  // Everyone who officially belongs to (or leads) this organization.
-  const members = db()
-    .prepare(
-      `SELECT m.*, om.role, om.calling FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?
-       WHERE m.status = ? AND (om.official = 1 OR om.role <> 'member')
-       AND (? = '' OR m.display_name LIKE '%' || ? || '%')
-       ORDER BY om.role = 'member', m.display_name COLLATE NOCASE`,
-    )
-    .all(user.org_id, show, q, q) as (Member & { role: Role; calling: string | null })[];
+  const members = orgMemberList(user.org_id, { show, q });
 
   return (
     <>
@@ -31,6 +23,18 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         title="Members"
         back={{ href: "/admin", label: "Admin" }}
         subtitle={show === "active" ? `${members.length} ${members.length === 1 ? "person belongs" : "people belong"} to ${user.orgLabel}.` : `${members.length} accounts turned off`}
+        actions={
+          members.length > 0 && (
+            <div className="flex gap-2">
+              <Link href={`/admin/members/print?${new URLSearchParams({ show, q }).toString()}`} className="btn-secondary btn-sm">
+                🖨 Print
+              </Link>
+              <a href={`/admin/members/export?${new URLSearchParams({ show, q }).toString()}`} className="btn-secondary btn-sm" download>
+                ⬇ Export (Excel)
+              </a>
+            </div>
+          )
+        }
       />
       <Flash msg={sp.msg} />
       <p className="mb-4 rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent">

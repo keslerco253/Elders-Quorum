@@ -246,3 +246,23 @@ body {
     .plan-edit-controls { @apply -top-4; }
   }
 }
+
+/* Printing: just the page's content, black on white. */
+@media print {
+  header,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  @page {
+    margin: 0.5in;
+  }
+}

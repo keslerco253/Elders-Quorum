@@ -27,6 +27,10 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
   under Admin → Members. Private messages, visits, replies and to-dos stay
   inside their organization: other organizations' leaders, and the bishopric,
   don't see them.
+- **Member list:** Admin → Members has **Print** (names, callings, phone and
+  email, one clean page) and **Export (Excel)** (a spreadsheet file for Excel,
+  Numbers or Google Sheets). Both follow the search and Active/Turned off
+  choice. They contain contact info: keep them within leadership.
 - **Joining:** everyone joins a ward with its **join code** (Admin → Settings
   while looking at the ward). Then each person chooses, under **More → My
   organizations**, which organizations they belong to and which they get
