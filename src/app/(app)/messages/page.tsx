@@ -11,8 +11,8 @@ import { Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { replyToPresidency, sendToGroup } from "./actions";
 import { sendableGroups } from "@/lib/groups";
-import { isAdmin, isPresidency } from "@/lib/permissions";
-import { orgRoster } from "@/lib/orgs";
+import { isAdmin } from "@/lib/permissions";
+import { sentAnnouncements } from "@/lib/compose";
 
 export const metadata = { title: "Messages" };
 
@@ -25,46 +25,69 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   // Leaders get an inbox of everyone writing to them, plus their own conversation as a member.
   const leads = ledOrgIds(user.id).length > 0;
   // Replying to a message, or a link to their own conversation, opens My messages.
-  const showInbox = leads && sp.tab !== "mine" && !sp.re && !sp.to;
+  const tab = !leads || sp.tab === "mine" || sp.re || sp.to ? "mine" : sp.tab === "sent" ? "sent" : "inbox";
+  const newButton = leads && (
+    <Link href="/messages/new" className="btn-primary">
+      ✎ New message
+    </Link>
+  );
   const tabs = leads && (
     <div className="mb-5 flex gap-1 rounded-xl bg-surface-2 p-1">
       {[
-        [true, "/messages", `Inbox${leaderUnread(user.id) ? ` (${leaderUnread(user.id)})` : ""}`],
-        [false, "/messages?tab=mine", `My messages${unreadAnswers(user.id) ? ` (${unreadAnswers(user.id)})` : ""}`],
-      ].map(([inboxTab, href, label]) => (
-        <Link key={String(href)} href={String(href)} className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-medium ${showInbox === inboxTab ? "bg-surface text-text shadow-sm" : "text-muted hover:text-text"}`}>
+        ["inbox", "/messages", `Inbox${leaderUnread(user.id) ? ` (${leaderUnread(user.id)})` : ""}`],
+        ["sent", "/messages?tab=sent", "Sent"],
+        ["mine", "/messages?tab=mine", `My messages${unreadAnswers(user.id) ? ` (${unreadAnswers(user.id)})` : ""}`],
+      ].map(([key, href, label]) => (
+        <Link key={key} href={href} className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-medium ${tab === key ? "bg-surface text-text shadow-sm" : "text-muted hover:text-text"}`}>
           {label}
         </Link>
       ))}
     </div>
   );
-  if (showInbox) {
+  if (tab === "inbox") {
     return (
       <>
-        <PageHeader title="Messages" subtitle="Everyone writing to you, in every organization you lead. Tap a conversation to open it." />
+        <PageHeader title="Messages" subtitle="Everyone writing to you, in every organization you lead. Tap a conversation to open it." actions={newButton} />
         {tabs}
+        <Flash msg={sp.msg} tone="success" />
         <LeaderInbox viewerId={user.id} tz={tz} unreadOnly={sp.show === "unread"} q={sp.q ?? ""} />
-        {isPresidency(user) && (
-          <Section title="New message">
-            <form action="/admin/replies" className="card flex flex-wrap items-end gap-2">
-              <div className="min-w-48 flex-1">
-                <label className="label" htmlFor="to">
-                  To someone in {user.orgLabel}
-                </label>
-                <select id="to" name="to" required className="input" defaultValue="">
-                  <option value="">Choose a member…</option>
-                  {orgRoster(user.org_id)
-                    .filter((m) => m.id !== user.id)
-                    .map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.display_name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <button className="btn-secondary">Open conversation</button>
-            </form>
-          </Section>
+      </>
+    );
+  }
+  if (tab === "sent") {
+    const sent = sentAnnouncements(user.id);
+    const manyOrgs = new Set(ledOrgIds(user.id)).size > 1;
+    return (
+      <>
+        <PageHeader title="Messages" subtitle="Announcements sent to groups in the organizations you lead." actions={newButton} />
+        {tabs}
+        <Flash msg={sp.msg} tone="success" />
+        {sent.length === 0 ? (
+          <Empty>Nothing sent yet. Use New message to write to everyone, the {leadersWord(user.org)}, or a group.</Empty>
+        ) : (
+          <ul className="space-y-2">
+            {sent.map((m) => (
+              <li key={m.id} className="card space-y-1">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-semibold">{m.title}</span>
+                  <span className="text-xs text-muted">{formatDateTime(m.created_at, tz, "LLL d, h:mm a")}</span>
+                </div>
+                <div className="text-xs text-muted">
+                  To {m.audience_label}
+                  {manyOrgs && ` · ${m.org_label}`}
+                  {m.sender && ` · from ${m.sender}`}
+                </div>
+                {m.body !== m.title && (
+                  <p className="text-sm whitespace-pre-wrap break-words">
+                    <Linkify text={m.body} />
+                  </p>
+                )}
+                <div className="text-xs text-muted">
+                  {m.push_count} app · {m.email_count} email · {m.text_count} text
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </>
     );
@@ -86,7 +109,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader title="Messages" subtitle={`Messages from ${user.orgLabel}, and your private conversation with its ${leaders}.`} />
+      <PageHeader title="Messages" subtitle={`Messages from ${user.orgLabel}, and your private conversation with its ${leaders}.`} actions={newButton} />
       {tabs}
       {elsewhere.length > 0 && (
         <p className="mb-4 rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent">
@@ -132,9 +155,9 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           <LiveRefresh seconds={15} />
           {isAdmin(user) && (
             <p className="mb-3 rounded-lg bg-surface-2 px-3 py-2 text-sm">
-              This is for writing to the {leaders} as a member. To send to everyone, or to one of your message groups, use{" "}
-              <Link href="/admin/messages" className="link">
-                Admin → Send a message
+              This is for writing to the {leaders} as a member. To send to everyone, a group, or one person, use{" "}
+              <Link href="/messages/new" className="link">
+                New message
               </Link>
               .
             </p>

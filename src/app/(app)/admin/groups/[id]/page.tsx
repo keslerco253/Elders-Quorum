@@ -24,7 +24,7 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
       <PageHeader title={g.name} back={{ href: "/admin/groups", label: "Groups" }} subtitle={`In ${user.orgLabel}`} />
       <Flash msg={sp.msg} />
       {canSendTo(g, user.id, user.role) && (
-        <Link href={`/admin/messages?to=group:${g.id}`} className="btn-primary btn-sm mb-4">
+        <Link href={`/messages/new?to=${encodeURIComponent(`aud:${user.org_id}:group:${g.id}`)}`} className="btn-primary btn-sm mb-4">
           Send a message to this group
         </Link>
       )}

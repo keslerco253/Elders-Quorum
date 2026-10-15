@@ -16,7 +16,7 @@ export default async function GroupsPage({ searchParams }: { searchParams: Promi
   const orgChoices = user.orgs.filter((o) => o.role === "presidency");
   return (
     <>
-      <PageHeader title="Message groups" back={{ href: "/admin/messages", label: "Send a message" }} subtitle="Custom groups for messages, such as a service committee or the activities team." />
+      <PageHeader title="Message groups" back={{ href: "/admin", label: "Admin" }} subtitle="Custom groups for messages, such as a service committee or the activities team." />
       <Flash msg={sp.msg} />
       {groups.length === 0 ? (
         <Empty>No custom groups in {user.orgLabel} yet.</Empty>

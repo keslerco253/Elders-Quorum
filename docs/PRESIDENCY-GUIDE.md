@@ -145,7 +145,7 @@ subscribing; Google Calendar ignores them (set reminders in Google instead).
 
 ## Messages
 
-**Message groups** (Admin → Send a message → Manage groups): when you create
+**Message groups** (Admin → Message groups): when you create
 one, choose its organization (if you lead more than one) and **who can see it
 and send to it**: the presidency and/or the people in the group. When
 people in the group can send, they get a **Message a group** box on their
@@ -153,12 +153,16 @@ Messages tab; their message goes to the rest of the group, signed with their
 name, and replies come to the presidency. The presidency can always change a
 group.
 
-**Admin → Send a message**: choose Everyone, Presidency, Upcoming
-teachers, or a custom group (**Manage groups**; each group's page has
-**Send a message to this group**). Members get a push
-notification; anyone without notifications turned on gets an email.
-Check "Also email members who haven't signed in yet" to reach everyone on the
-list.
+**Sending anything: Messages → New message.** One button, one **To** field,
+like email. Choose **One person…** to write to one member (tick **Private** to keep it
+out of the rest of the presidency's view; it opens your conversation with
+them), or choose Everyone,
+the Presidency, Upcoming teachers, or any message group. If you lead more than
+one organization, the choices are grouped by organization. The number next to
+each choice is how many people get it. Each group's page also has **Send a
+message to this group**, and Admin → Send a message opens the same screen.
+Members get a notification, or a text or email as they chose. Everything you
+send to a group shows under Messages → **Sent**.
 
 ## Members joining
 
@@ -266,13 +270,14 @@ assignments stay in LCR.
 ## Replies (presidency only)
 
 **Messages (your inbox):** tap **Messages** at the top (the speech bubble on a
-phone). Leaders see two tabs:
+phone). Leaders see three tabs, and a **New message** button at the top:
 - **Inbox**: one row per person who has written to you (and a separate row for
   each private conversation), from every organization you lead, newest first.
   A blue dot and red count mean unread; **Needs reply** means their message is
   the last one. Use **Unread** to see only what's new, and the search box to
-  find someone by name. **New message** starts a conversation with anyone in
-  the organization you're looking at.
+  find someone by name.
+- **Sent**: announcements sent to everyone, the presidency, teachers or a
+  group, with who sent them and how many were reached.
 - **My messages**: your own conversation with your presidency, and messages
   sent to you, like any member.
 
@@ -323,7 +328,7 @@ presidency, a teaching reply, an unknown number).
 in their conversation (Admin → Replies) and the presidency (or the one person
 they were writing with privately) is texted or notified with it.
 
-Every message you send under **Admin → Send a message** also shows in each
+Every announcement you send from **New message** also shows in each
 member's **More → Messages**, with a **Reply** button. Members can reply there,
 or simply text back if they got it by text. Replies go to **Admin → Replies**
 (and count in **Waiting on you**), and every presidency member is notified.

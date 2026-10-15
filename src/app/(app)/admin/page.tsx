@@ -135,7 +135,7 @@ export default async function AdminPage() {
               desc: "QR code and join link for the ward",
             },
             {
-              href: "/admin/messages",
+              href: "/messages/new",
               label: "Send a message",
               desc: "Push notification or email to a group",
             },

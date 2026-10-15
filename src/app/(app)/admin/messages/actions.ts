@@ -4,40 +4,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { type Audience } from "@/lib/notify";
-import { canManage, canSendTo, getGroup, sendToAudience } from "@/lib/groups";
-import type { CurrentUser } from "@/lib/types";
+import { canManage, getGroup } from "@/lib/groups";
 import { orgRoster } from "@/lib/orgs";
 
 function go(path: string, text: string): never {
   redirect(`${path}?msg=${encodeURIComponent(text)}`);
 }
-const LINKS = ["/", "/lessons", "/calendar", "/plans", "/signups"];
-
-function parseAudience(v: string, user: CurrentUser): Audience | null {
-  if (["everyone", "admins", "presidency", "teachers"].includes(v)) return v as Audience;
-  const m = v.match(/^group:(\d+)$/);
-  const g = m ? getGroup(Number(m[1]), user.org_id) : undefined;
-  if (g && canSendTo(g, user.id, user.role)) return v as Audience;
-  return null;
-}
-
-export async function sendMessage(fd: FormData) {
-  const user = await requireAdmin();
-  const audience = parseAudience(String(fd.get("audience") || ""), user);
-  const title = String(fd.get("title") || "").trim().slice(0, 120);
-  const body = String(fd.get("body") || "").trim().slice(0, 2000);
-  const link = LINKS.includes(String(fd.get("link"))) ? String(fd.get("link")) : "/";
-  if (!audience || !title || !body) go("/admin/messages", "Please choose who to send to and fill in the title and message.");
-  const { count, push, email, text, reached } = await sendToAudience({ orgId: user.org_id, senderId: user.id, audience, title, body, link, tz: user.ward.timezone });
-  revalidatePath("/admin/messages");
-  const missed = count - reached;
-  go(
-    "/admin/messages",
-    `Sent to ${count}: ${push} by notification, ${email} by email, ${text} by text${missed > 0 ? `. ${missed} couldn't be reached (notifications off and no texts or emails chosen)` : ""}.`,
-  );
-}
-
 /** Who can send to a group, from the form's checkboxes. */
 function senders(fd: FormData) {
   return {
