@@ -269,3 +269,37 @@ body {
     margin: 0.5in;
   }
 }
+
+/* Drop-downs you can type in (components/searchable-selects.tsx). */
+@layer components {
+  .ss-wrap { @apply relative; }
+  .ss-wrap.ss-inline { @apply inline-block min-w-48 align-middle; }
+  /* The real drop-down, kept for the form but out of sight. */
+  .ss-native {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    overflow: hidden;
+    clip-path: inset(50%);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .ss-input {
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23888'%3E%3Cpath d='M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    background-size: 1.1rem;
+  }
+  .ss-list {
+    @apply absolute inset-x-0 top-full z-40 mt-1 max-h-72 overflow-auto rounded-xl border border-border bg-surface py-1 text-sm shadow-lg;
+    min-width: 14rem;
+  }
+  .ss-option { @apply cursor-pointer px-3 py-2; }
+  .ss-option[aria-selected="true"] { @apply font-semibold; }
+  .ss-option.ss-active { @apply bg-accent-soft text-accent; }
+  .ss-option[aria-disabled="true"] { @apply cursor-default text-muted; }
+  .ss-group { @apply px-3 pt-2 pb-1 text-xs font-semibold tracking-wide text-muted uppercase; }
+  .ss-empty { @apply px-3 py-2 text-muted; }
+}

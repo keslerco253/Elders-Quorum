@@ -3,6 +3,7 @@ import "./globals.css";
 import { getUser } from "@/lib/auth";
 import { publicAppName } from "@/lib/wards";
 import { ServiceWorker } from "@/components/service-worker";
+import { SearchableSelects } from "@/components/searchable-selects";
 
 export async function generateMetadata(): Promise<Metadata> {
   const user = await getUser();
@@ -34,6 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-dvh font-sans antialiased">
         {children}
         <ServiceWorker />
+        <SearchableSelects />
       </body>
     </html>
   );
