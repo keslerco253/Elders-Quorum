@@ -159,15 +159,18 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
       const choice = (JSON.parse(pending.options) as Writer[])[Number(pick[1]) - 1];
       if (choice && (await answer(choice, pending.body))) return "answer_sent";
     }
-    // "Hyrum: see you at 7" goes to that person, whoever wrote last.
-    const named = body.match(/^\s*([^:\n]{2,40}):\s*([\s\S]+)$/);
+    // "Hyrum, see you at 7" (or "Hyrum: ...") goes to that person, whoever wrote last. Only the
+    // name of someone who wrote to them counts, so "Sure, ..." is just a reply.
+    const named = body.match(/^\s*([^:,\n]{2,40})([:,])\s*([\s\S]+)$/);
     if (named) {
       const wanted = named[1].trim().toLowerCase();
+      // With a comma the name reads as part of the message ("Hyrum, see you at 7"), so it's kept.
+      const text = named[2] === "," ? body.trim() : named[3].trim();
       const matches = recentWriters(row.id, orgId, "-14 days").filter((w) => {
         const name = nameOf(w.memberId).toLowerCase();
         return name === wanted || name.split(/\s+/)[0] === wanted;
       });
-      if (matches.length === 1 && (await answer(matches[0], named[2].trim()))) return "answer_sent";
+      if (matches.length === 1 && (await answer(matches[0], text))) return "answer_sent";
     }
     // A leader answering the member's message the app just texted them.
     if (row.text_reply_member_id) {

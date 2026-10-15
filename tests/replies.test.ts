@@ -298,8 +298,13 @@ describe("a leader's texted reply when two people write at once", () => {
   });
 
   it("sends a reply that starts with a name straight to that person", async () => {
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Jane: Yes, 7pm at the church" })).toBe("answer_sent");
-    expect(last(4)).toMatchObject({ direction: "out", body: "Yes, 7pm at the church" });
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Jane, yes it's at 7pm at the church" })).toBe("answer_sent");
+    expect(last(4)).toMatchObject({ direction: "out", body: "Jane, yes it's at 7pm at the church" });
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Hyrum Johnson: bring a ladder" })).toBe("answer_sent");
+    expect(last(2)).toMatchObject({ direction: "out", body: "bring a ladder" });
+    // A comma after a word that isn't someone's name is an ordinary reply (here two people
+    // just wrote, so the app asks who it's for rather than treating "Sure" as a name).
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Sure, no problem" })).toBe("asked_who");
   });
 
   it("doesn't ask when only one person is writing", async () => {
