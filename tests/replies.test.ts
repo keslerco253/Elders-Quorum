@@ -322,6 +322,19 @@ describe("a leader's texted reply when two people write at once", () => {
     expect(last(4)).toMatchObject({ direction: "out", body: "Bring fruit" });
   });
 
+  it("asks whenever two or more people are still waiting, however long ago they wrote (within 3 days)", async () => {
+    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
+    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Ride Sunday?", "app", null, { private: true, withId: 1 });
+    await conv.receiveReply({ id: 4, org_id: 1, display_name: "Jane Smith" }, "Snacks?", "app", null, { private: true, withId: 1 });
+    d.exec("UPDATE member_messages SET created_at = datetime('now', '-16 minutes')");
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes" })).toBe("asked_who");
+    d.exec("UPDATE member_messages SET created_at = datetime('now', '-2 days')");
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes" })).toBe("asked_who");
+    // Older than 3 days isn't a conversation anymore: the reply is the leader's own message.
+    d.exec("UPDATE member_messages SET created_at = datetime('now', '-4 days'); DELETE FROM sms_pending; UPDATE members SET text_reply_member_id = NULL");
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Hello" })).toBe("saved");
+  });
+
   it("lists everyone who just wrote", async () => {
     d.exec(`INSERT INTO members (id, name, display_name, email, contact_pref, status) VALUES
       (5, 'A', 'Amy Allen', 'amy@test.local', 'email', 'active'), (6, 'B', 'Ben Brown', 'ben@test.local', 'email', 'active')`);
@@ -338,7 +351,7 @@ describe("a leader's texted reply when two people write at once", () => {
   });
 
   it("doesn't ask when only one person is writing", async () => {
-    d.exec("UPDATE member_messages SET created_at = datetime('now', '-2 hours')");
+    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
     await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Thanks!", "app", null, { private: true, withId: 1 });
     expect(await lib.handleInboundText({ From: leaderPhone, Body: "You bet" })).toBe("answer_sent");
     expect(last(2)).toMatchObject({ direction: "out", body: "You bet" });
