@@ -5,12 +5,11 @@ import { emailConfigured } from "@/lib/mail";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addOrganization, deleteOrganization, saveOrgSettings, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode, startAnotherWard } from "./actions";
+import { addOrganization, deleteOrganization, setOrganizationActive, saveOrgSettings, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode, startAnotherWard } from "./actions";
 import { db } from "@/lib/db";
 import { hasFeature, orgRoster } from "@/lib/orgs";
-import { FEATURES, type Feature } from "@/lib/types";
+import { FEATURES, STANDARD_ORGS, type Feature } from "@/lib/types";
 
-const SUGGESTED_ORGS = ["Elders Quorum", "Relief Society", "Young Men", "Young Women", "Primary", "Sunday School", "Ward Mission", "Activities Committee"];
 import { monthlyLimit, phoneEnabled, textsThisMonth, twilioConfigured } from "@/lib/sms";
 import { inboundUrl } from "@/lib/sms-inbound";
 
@@ -25,12 +24,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const groups = ward
     ? (db()
         .prepare(
-          `SELECT o.id, o.name,
+          `SELECT o.id, o.name, o.active,
              (SELECT COUNT(*) FROM org_members om WHERE om.org_id = o.id AND (om.official = 1 OR om.role <> 'member')) AS people,
              (SELECT COUNT(*) FROM org_members om WHERE om.org_id = o.id AND om.role = 'presidency') AS leaders
-           FROM orgs o WHERE o.ward_id = ? AND o.kind = 'group' ORDER BY o.name COLLATE NOCASE`,
+           FROM orgs o WHERE o.ward_id = ? AND o.kind = 'group' ORDER BY o.active DESC, o.name COLLATE NOCASE`,
         )
-        .all(user.ward_id) as { id: number; name: string; people: number; leaders: number }[])
+        .all(user.ward_id) as { id: number; name: string; active: number; people: number; leaders: number }[])
     : [];
   const roster = ward ? orgRoster(user.org_id) : [];
   return (
@@ -112,21 +111,48 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <ul className="divide-y divide-border">
                 {groups.map((o) => (
                   <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <span>
+                    <span className={o.active ? "" : "text-muted"}>
                       <span className="font-medium">{o.name}</span>
-                      <span className="text-muted">
-                        {" "}
-                        · {o.people} {o.people === 1 ? "member" : "members"}
-                        {o.leaders ? "" : " · no presidency yet"}
-                      </span>
+                      {o.active ? (
+                        <span className="text-muted">
+                          {" "}
+                          · {o.people} {o.people === 1 ? "member" : "members"}
+                          {o.leaders ? "" : " · no presidency yet"}
+                        </span>
+                      ) : (
+                        <span className="ml-2">
+                          <Badge>Off</Badge>
+                        </span>
+                      )}
                     </span>
-                    <a href={`/?org=${o.id}`} className="link">
-                      Open
-                    </a>
+                    <span className="flex items-center gap-2">
+                      {!!o.active && (
+                        <a href={`/?org=${o.id}`} className="link">
+                          Open
+                        </a>
+                      )}
+                      <form action={setOrganizationActive}>
+                        <input type="hidden" name="org_id" value={o.id} />
+                        <input type="hidden" name="active" value={o.active ? "0" : "1"} />
+                        <SubmitButton className="btn-secondary btn-sm" pendingText="…">
+                          {o.active ? "Turn off" : "Turn on"}
+                        </SubmitButton>
+                      </form>
+                      <form action={deleteOrganization}>
+                        <input type="hidden" name="org_id" value={o.id} />
+                        <SubmitButton className="btn-danger btn-sm" pendingText="Deleting…" confirm={`Delete ${o.name} and its lessons, events, sign-ups, messages and visit records?`}>
+                          Delete
+                        </SubmitButton>
+                      </form>
+                    </span>
                   </li>
                 ))}
                 {groups.length === 0 && <li className="py-2 text-muted">None yet. Add the organizations your ward uses below.</li>}
               </ul>
+              <p className="hint">
+                Turned-off organizations are hidden from members and send nothing; their members and everything in them are kept. Deleting removes an organization and
+                everything in it for good.
+              </p>
               <details>
                 <summary className="cursor-pointer font-semibold">Add an organization</summary>
                 <form action={addOrganization} className="mt-3 space-y-3">
@@ -136,7 +162,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                     </label>
                     <input id="new-org" name="name" required maxLength={60} className="input" list="org-names" placeholder="e.g. Relief Society" />
                     <datalist id="org-names">
-                      {SUGGESTED_ORGS.filter((n) => !groups.some((g) => g.name === n)).map((n) => (
+                      {STANDARD_ORGS.filter((n) => !groups.some((g) => g.name === n)).map((n) => (
                         <option key={n} value={n} />
                       ))}
                     </datalist>
@@ -166,23 +192,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                   <SubmitButton pendingText="Adding…">Add organization</SubmitButton>
                 </form>
               </details>
-              {groups.length > 0 && (
-                <details>
-                  <summary className="cursor-pointer text-danger">Delete an organization</summary>
-                  <form action={deleteOrganization} className="mt-3 space-y-3">
-                    <select name="org_id" className="input" required>
-                      {groups.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.name}
-                        </option>
-                      ))}
-                    </select>
-                    <input name="confirm" className="input" placeholder="Type its name to confirm" required />
-                    <p className="hint">Deletes its lessons, events, sign-ups, messages and visit records. Members stay in the ward.</p>
-                    <SubmitButton className="btn-danger btn-sm">Delete</SubmitButton>
-                  </form>
-                </details>
-              )}
             </div>
           </Section>
           <Section title="Another ward">

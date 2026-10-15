@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePresidency, requireUser, requireWardLeader } from "@/lib/auth";
-import { addToOrg, createOrg, createWard, deleteOrg, inOrgWard, newJoinCode, wardOrg } from "@/lib/orgs";
+import { addToOrg, createOrg, createWard, deleteOrg, getOrg, inOrgWard, newJoinCode, wardOrg } from "@/lib/orgs";
 import { emailHtml, sendMail } from "@/lib/mail";
 import { sendSms } from "@/lib/sms";
 import { validZone } from "@/lib/time";
@@ -44,7 +44,8 @@ export async function addOrganization(fd: FormData) {
   const user = await requireWardLeader();
   const name = String(fd.get("name") || "").trim().slice(0, 60);
   if (!name) go("Enter the organization's name, e.g. Relief Society.");
-  if (user.orgs.some((o) => o.kind === "group" && o.name.toLowerCase() === name.toLowerCase())) go(`${user.ward.name} already has ${name}.`);
+  if (db().prepare("SELECT 1 FROM orgs WHERE ward_id = ? AND kind = 'group' AND lower(name) = lower(?)").get(user.ward_id, name))
+    go(`${user.ward.name} already has ${name}. Turn it on in the list above if it's off.`);
   const hidden = (Object.keys(FEATURES) as Feature[]).filter((f) => fd.get(`feature_${f}`) !== "on");
   const org = createOrg(user.ward_id, name, hidden);
   const leader = Number(fd.get("leader_id"));
@@ -53,11 +54,27 @@ export async function addOrganization(fd: FormData) {
   go(`${name} was added. Members can now choose it under More → My organizations.`);
 }
 
+/** An organization of this ward (not the ward itself), on or off. */
+function wardGroup(wardId: number, id: number) {
+  const org = getOrg(id);
+  return org && org.ward_id === wardId && org.kind === "group" ? org : undefined;
+}
+
+/** Turns an organization on or off. Off hides it everywhere but here; nothing in it is deleted. */
+export async function setOrganizationActive(fd: FormData) {
+  const user = await requireWardLeader();
+  const org = wardGroup(user.ward_id, Number(fd.get("org_id")));
+  if (!org) go("That organization wasn't found.");
+  const on = fd.get("active") === "1";
+  db().prepare("UPDATE orgs SET active = ? WHERE id = ?").run(on ? 1 : 0, org.id);
+  revalidatePath("/", "layout");
+  go(on ? `${org.name} is on. Members can choose it under More → My organizations.` : `${org.name} is off. Its members and everything in it are kept if you turn it back on.`);
+}
+
 export async function deleteOrganization(fd: FormData) {
   const user = await requireWardLeader();
-  const org = user.orgs.find((o) => o.id === Number(fd.get("org_id")));
-  if (!org || org.kind !== "group") go("That organization can't be deleted.");
-  if (String(fd.get("confirm") || "").trim().toLowerCase() !== org.name.toLowerCase()) go(`Type ${org.name} to confirm deleting it.`);
+  const org = wardGroup(user.ward_id, Number(fd.get("org_id")));
+  if (!org) go("That organization can't be deleted.");
   deleteOrg(org.id);
   revalidatePath("/", "layout");
   go(`${org.name} and everything in it were deleted.`);
@@ -120,5 +137,5 @@ export async function startAnotherWard(fd: FormData) {
   if (recent.n >= 3 && !user.is_site_owner) back("You've started several wards today. Please try again tomorrow.");
   const ward = createWard({ name, timezone: tz, creatorId: user.id, texting: !!user.is_site_owner });
   revalidatePath("/", "layout");
-  redirect(`/admin/settings?org=${wardOrg(ward.id).id}&msg=${encodeURIComponent(`${name} is ready. Share its join code, then add its organizations below.`)}`);
+  redirect(`/admin/settings?org=${wardOrg(ward.id).id}&msg=${encodeURIComponent(`${name} is ready. Share its join code, then turn off any organizations it doesn't use below.`)}`);
 }

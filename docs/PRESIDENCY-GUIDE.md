@@ -26,11 +26,13 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
   can't be unticked there; change their access level in that organization.
 - **Starting another ward (bishopric):** switch to the ward, then Admin →
   Settings → Another ward → Start a new ward.
-- **Adding an organization (bishopric):** switch to the ward, then Admin →
-  Settings → Organizations → Add an organization. Pick its president if you
-  like; they add their counselors and secretary from Members. Each
-  organization can turn off features it doesn't use (lessons, plans,
-  sign-ups, visits, to-dos) in its own Settings.
+- **Organizations (bishopric):** every ward comes with Elders Quorum, Relief
+  Society, Young Men, Young Women, Primary and Sunday School. Switch to the
+  ward, then Admin → Settings → Organizations: **Turn off** the ones you don't
+  use (hidden from members, nothing deleted), **Turn on** to bring one back,
+  **Delete** to remove one and everything in it for good, or **Add an
+  organization** for anything else. Each organization can also turn off
+  features it doesn't use.
 - **Calendar:** one ward calendar with every organization's events. The chips
   at the top show one organization at a time. "Leaders only" events show only
   to that organization's leaders.

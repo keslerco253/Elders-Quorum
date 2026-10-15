@@ -260,3 +260,21 @@ describe("leaders setting someone's organizations", () => {
     expect(rs.kind).toBe("group");
   });
 });
+
+describe("standard organizations", () => {
+  it("come with every new ward, and existing wards get the missing ones turned off", () => {
+    const maple = orgs.createWard({ name: "Maple Ward", timezone: "America/Boise", creatorId: 2 });
+    expect(orgs.orgsInWard(maple.id).filter((o) => o.kind === "group").map((o) => o.name)).toEqual(["Elders Quorum", "Primary", "Relief Society", "Sunday School", "Young Men", "Young Women"]);
+    // Villas Ward had only Elders Quorum: the rest are there but off.
+    expect(orgs.orgsInWard(1).map((o) => o.name)).toEqual(["Ward", "Elders Quorum"]);
+    expect(orgs.orgsInWard(1, { includeInactive: true }).filter((o) => !o.active).map((o) => o.name)).toEqual(["Primary", "Relief Society", "Sunday School", "Young Men", "Young Women"]);
+  });
+
+  it("hides a turned-off organization, and opens another one instead", () => {
+    d.prepare("UPDATE orgs SET active = 0 WHERE id = 1").run();
+    expect(orgs.currentUserFor(member(3), 1)!.org.kind).toBe("ward");
+    expect(orgs.currentUserFor(member(1))!.orgs.map((o) => o.id)).not.toContain(1);
+    d.prepare("UPDATE orgs SET active = 1 WHERE id = 1").run();
+    expect(orgs.currentUserFor(member(3), 1)!.org_id).toBe(1);
+  });
+});

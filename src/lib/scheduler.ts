@@ -159,7 +159,7 @@ function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 
 export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   const orgs = db()
-    .prepare("SELECT o.id, w.timezone, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS label, o.hidden_features FROM orgs o JOIN wards w ON w.id = o.ward_id")
+    .prepare("SELECT o.id, w.timezone, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS label, o.hidden_features FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.active = 1")
     .all() as OrgCtx[];
   return orgs.flatMap((o) => [
     ...(hasFeature(o, "lessons") ? lessonReminders(o, now) : []),

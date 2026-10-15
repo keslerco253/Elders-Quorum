@@ -30,7 +30,7 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
     .prepare(
       `SELECT w.id, w.name, w.created_at, w.texting_enabled, m.display_name AS creator, COALESCE(m.email, m.phone) AS creator_contact,
          (SELECT COUNT(*) FROM ward_members wm WHERE wm.ward_id = w.id) AS people,
-         (SELECT COUNT(*) FROM orgs o WHERE o.ward_id = w.id AND o.kind = 'group') AS orgs
+         (SELECT COUNT(*) FROM orgs o WHERE o.ward_id = w.id AND o.kind = 'group' AND o.active = 1) AS orgs
        FROM wards w LEFT JOIN members m ON m.id = w.created_by ORDER BY w.created_at DESC`,
     )
     .all() as WardRow[];

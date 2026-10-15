@@ -765,4 +765,17 @@ ALTER TABLE groups ADD COLUMN send_admins INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE groups ADD COLUMN send_members INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    // Organizations can be turned off. Every ward gets the standard ones;
+    // existing wards get the ones they're missing, turned off.
+    id: 26,
+    sql: `
+ALTER TABLE orgs ADD COLUMN active INTEGER NOT NULL DEFAULT 1;
+INSERT INTO orgs (ward_id, name, kind, active)
+  SELECT w.id, s.name, 'group', 0 FROM wards w
+  CROSS JOIN (SELECT 'Elders Quorum' AS name UNION ALL SELECT 'Relief Society' UNION ALL SELECT 'Young Men'
+              UNION ALL SELECT 'Young Women' UNION ALL SELECT 'Primary' UNION ALL SELECT 'Sunday School') s
+  WHERE NOT EXISTS (SELECT 1 FROM orgs o WHERE o.ward_id = w.id AND o.kind = 'group' AND lower(o.name) = lower(s.name));
+`,
+  },
 ];

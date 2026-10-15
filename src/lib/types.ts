@@ -62,7 +62,12 @@ export interface Org {
   name: string;
   kind: "ward" | "group";
   hidden_features: string;
+  /** Turned off organizations stay in Admin → Settings but are hidden everywhere else. */
+  active: number;
 }
+
+/** Created with every ward; the bishopric turns off the ones the ward doesn't use. */
+export const STANDARD_ORGS = ["Elders Quorum", "Relief Society", "Young Men", "Young Women", "Primary", "Sunday School"];
 
 /** An organization in the current ward, with the user's place in it. */
 export interface OrgEntry extends Org {

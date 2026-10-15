@@ -3,10 +3,10 @@ import crypto from "crypto";
 import { db } from "./db";
 import { deleteAccount } from "./accounts";
 export { ORG_COOKIE } from "./org-cookie";
-import { isCalling, type Calling, type CurrentUser, type Feature, type Member, type Org, type OrgEntry, type Role, type Ward } from "./types";
+import { isCalling, STANDARD_ORGS, type Calling, type CurrentUser, type Feature, type Member, type Org, type OrgEntry, type Role, type Ward } from "./types";
 
 const WARD_COLUMNS = "id, name, timezone, join_code, sms_monthly_limit, created_by, texting_enabled";
-const ORG_COLUMNS = "id, ward_id, name, kind, hidden_features";
+const ORG_COLUMNS = "id, ward_id, name, kind, hidden_features, active";
 
 export function getWard(id: number): Ward | undefined {
   return db().prepare(`SELECT ${WARD_COLUMNS} FROM wards WHERE id = ?`).get(id) as Ward | undefined;
@@ -21,8 +21,11 @@ export function getOrg(id: number): Org | undefined {
 }
 
 /** The ward-wide organization first, then the others by name. */
-export function orgsInWard(wardId: number): Org[] {
-  return db().prepare(`SELECT ${ORG_COLUMNS} FROM orgs WHERE ward_id = ? ORDER BY kind = 'group', name COLLATE NOCASE`).all(wardId) as Org[];
+/** The ward's organizations in use (or all of them, including turned off ones). */
+export function orgsInWard(wardId: number, opts: { includeInactive?: boolean } = {}): Org[] {
+  return db()
+    .prepare(`SELECT ${ORG_COLUMNS} FROM orgs WHERE ward_id = ? AND (active = 1 OR ?) ORDER BY kind = 'group', name COLLATE NOCASE`)
+    .all(wardId, opts.includeInactive ? 1 : 0) as Org[];
 }
 
 export function wardOrg(wardId: number): Org {
@@ -98,13 +101,13 @@ export function pickOrg(memberId: number, wanted?: number): Org | undefined {
   const d = db();
   if (wanted) {
     const org = getOrg(wanted);
-    if (org && inWard(memberId, org.ward_id)) return org;
+    if (org && org.active && inWard(memberId, org.ward_id)) return org;
   }
   const row = d
     .prepare(
       `SELECT o.id FROM org_members om JOIN orgs o ON o.id = om.org_id
        JOIN ward_members wm ON wm.ward_id = o.ward_id AND wm.member_id = om.member_id
-       WHERE om.member_id = ?
+       WHERE om.member_id = ? AND o.active = 1
        ORDER BY om.role = 'presidency' DESC, om.role = 'admin' DESC, (om.official = 1 AND o.kind = 'group') DESC, o.kind = 'ward' DESC, o.id
        LIMIT 1`,
     )
@@ -189,6 +192,8 @@ export function createWard(opts: { name: string; timezone: string; creatorId: nu
     // The ward level starts without lessons (organizations have those), and
     // with the two plans every ward keeps.
     d.prepare("INSERT INTO orgs (ward_id, name, kind, hidden_features) VALUES (?, 'Ward', 'ward', 'lessons')").run(wardId);
+    const addOrg = d.prepare("INSERT INTO orgs (ward_id, name, kind) VALUES (?, ?, 'group')");
+    for (const name of STANDARD_ORGS) addOrg.run(wardId, name);
     d.prepare("INSERT INTO ward_plans (ward_id, name, legacy_kind) VALUES (?, 'Temple & Family History Plan', 'temple'), (?, 'Ward Mission Plan', 'mission')").run(wardId, wardId);
     addToWard(opts.creatorId, wardId);
     d.prepare("UPDATE org_members SET role = 'presidency', calling = ? WHERE org_id = ? AND member_id = ?").run(opts.calling ?? null, wardOrg(wardId).id, opts.creatorId);
@@ -283,7 +288,7 @@ export function deleteWard(wardId: number): { accounts: number } {
   const d = db();
   return d.transaction(() => {
     const people = (d.prepare("SELECT member_id FROM ward_members WHERE ward_id = ?").all(wardId) as { member_id: number }[]).map((r) => r.member_id);
-    for (const o of orgsInWard(wardId)) {
+    for (const o of orgsInWard(wardId, { includeInactive: true })) {
       for (const t of ORG_TABLES) d.prepare(`DELETE FROM ${t} WHERE org_id = ?`).run(o.id);
       d.prepare("DELETE FROM orgs WHERE id = ?").run(o.id);
     }

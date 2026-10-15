@@ -45,7 +45,7 @@ const FEATURES = [
 
 const STEPS = [
   { title: "Start your ward", text: "A member of the bishopric (or someone they ask) starts the ward in a minute and gets a join code." },
-  { title: "Add organizations", text: "Add the organizations your ward uses and choose who leads each. Turn off what you don't need." },
+  { title: "Set up organizations", text: "Your ward comes with Elders Quorum, Relief Society, Young Men, Young Women, Primary and Sunday School. Turn off any you don't use and choose who leads each." },
   { title: "Share the join code", text: "Members join with their phone or email, choose their organizations, and add the app to their home screen." },
 ];
 
