@@ -233,7 +233,7 @@ describe("replies to the presidency", () => {
       .find((f) => !before.has(f) && f.includes("sms-"))!;
     const text = fs.readFileSync(path.join(dir, "outbox", sms), "utf8");
     // Short: who it's from, their words, and a short link to the conversation.
-    expect(text).toContain(`Member Person (private): ${long}\n\nReply in app: `);
+    expect(text).toContain(`${long}\n\nMember Person (private)\n\nReply in app: `);
     const link = text.match(/Reply in app: (\S+)/)![1];
     expect(link).toMatch(/\/n\/\d+$/);
     const { GET } = await import("@/app/n/[id]/route");
