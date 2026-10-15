@@ -6,7 +6,7 @@ import { askToTeach, cancelRequest } from "@/lib/teaching-requests";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin, requirePresidency } from "@/lib/auth";
-import { getLesson } from "@/lib/lessons";
+import { getLesson, openLessonSundays } from "@/lib/lessons";
 import { fetchTalkInfo } from "@/lib/talk-info";
 import { notify } from "@/lib/notify";
 import { formatDate, sundays, todayIn } from "@/lib/time";
@@ -39,15 +39,13 @@ export async function addSundays(fd: FormData) {
 
 export async function fillTalks(fd: FormData) {
   const user = await requireAdmin();
-  const from = String(fd.get("from") || "");
   const urls = String(fd.get("urls") || "")
     .split(/\s+/)
     .map((u) => u.trim())
     .filter((u) => /^https?:\/\//.test(u));
   if (!urls.length) go("/admin/lessons", "Paste at least one talk link.");
-  const open = db()
-    .prepare("SELECT id, date FROM lessons WHERE org_id = ? AND date >= ? AND kind = 'talk' AND url = '' ORDER BY date LIMIT ?")
-    .all(user.org_id, from || "0000-00-00", urls.length) as { id: number; date: string }[];
+  // The next open Sundays from today, skipping any that already have a talk.
+  const open = openLessonSundays(user.org_id, todayIn(user.ward.timezone)).slice(0, urls.length);
   const infos = await Promise.all(urls.slice(0, open.length).map((u) => fetchTalkInfo(u)));
   const upd = db().prepare("UPDATE lessons SET url = ?, title = CASE WHEN title = '' THEN ? ELSE title END, speaker = CASE WHEN speaker = '' THEN ? ELSE speaker END WHERE id = ?");
   db().transaction(() => open.forEach((l, i) => upd.run(urls[i], infos[i].title, infos[i].speaker, l.id)))();

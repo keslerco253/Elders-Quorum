@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { upcomingLessons } from "@/lib/lessons";
+import { openLessonSundays, upcomingLessons } from "@/lib/lessons";
 import { formatDate, sundayOnOrAfter, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -18,6 +18,8 @@ export default async function AdminLessonsPage({
   const sp = await searchParams;
   const today = todayIn(user.ward.timezone);
   const lessons = upcomingLessons(user.org_id, today, 80);
+  // Where pasted links go: Sundays from today with no talk yet, in order.
+  const open = openLessonSundays(user.org_id, today);
   const last = lessons.at(-1)?.date;
   const nextStart = last
     ? sundayOnOrAfter(
@@ -77,8 +79,8 @@ export default async function AdminLessonsPage({
           <h2 className="h2">2. Paste talk links</h2>
           <p className="text-sm text-muted">
             Paste Gospel Library talk links in order, one per line. They fill
-            the open Sundays in date order, and titles and speakers are looked
-            up automatically. Tip: first mark General and Stake Conference
+            the open Sundays in date order, skipping any that are already
+            filled, and titles and speakers are looked up automatically. Tip: first mark General and Stake Conference
             Sundays (tap a Sunday below) so they&apos;re skipped.
           </p>
           <textarea
@@ -87,18 +89,16 @@ export default async function AdminLessonsPage({
             className="input font-mono text-xs"
             placeholder="https://www.churchofjesuschrist.org/study/general-conference/…"
           />
-          <div>
-            <label className="label" htmlFor="from">
-              Fill starting from
-            </label>
-            <input
-              id="from"
-              name="from"
-              type="date"
-              defaultValue={sundayOnOrAfter(today)}
-              className="input"
-            />
-          </div>
+          <p className="rounded-lg bg-surface-2 px-3 py-2 text-sm">
+            {open.length ? (
+              <>
+                Starts at the next open Sunday, <strong>{formatDate(open[0].date, "short")}</strong>, and skips Sundays that already have a talk or a conference
+                {open.length > 1 ? ` (${open.length} open Sundays ahead).` : " (the only open Sunday)."}
+              </>
+            ) : (
+              "Every Sunday ahead already has a talk. Add Sundays first."
+            )}
+          </p>
           <SubmitButton pendingText="Looking up talks…">
             Fill lessons
           </SubmitButton>

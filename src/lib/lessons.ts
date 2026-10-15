@@ -22,6 +22,16 @@ export function upcomingLessons(orgId: number, fromDate: string, limit = 60): Le
   return db().prepare(LIST_SQL + " AND l.date >= ? ORDER BY l.date LIMIT ?").all(orgId, fromDate, limit) as LessonListItem[];
 }
 
+/**
+ * Sundays (from a date) still waiting for a talk, in order: a lesson with no link and
+ * no title typed in. Conference Sundays and ones already filled are skipped.
+ */
+export function openLessonSundays(orgId: number, fromDate: string): { id: number; date: string }[] {
+  return db()
+    .prepare("SELECT id, date FROM lessons WHERE org_id = ? AND date >= ? AND kind = 'talk' AND url = '' AND title = '' ORDER BY date")
+    .all(orgId, fromDate) as { id: number; date: string }[];
+}
+
 export function pastLessons(orgId: number, beforeDate: string, limit = 60): LessonListItem[] {
   return db().prepare(LIST_SQL + " AND l.date < ? ORDER BY l.date DESC LIMIT ?").all(orgId, beforeDate, limit) as LessonListItem[];
 }
