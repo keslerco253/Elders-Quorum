@@ -9,7 +9,7 @@ const LINKS: Record<"library" | "tools", { name: string; desc: string; icon: Rea
   library: {
     name: "Gospel Library",
     desc: "Scriptures, conference talks and manuals",
-    icon: "📖",
+    icon: <OpenBook />,
     href: {
       ios: "https://www.churchofjesuschrist.org/study?lang=eng",
       android: "intent://#Intent;package=org.lds.ldssa;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dorg.lds.ldssa;end",
@@ -27,6 +27,18 @@ const LINKS: Record<"library" | "tools", { name: string; desc: string; icon: Rea
     },
   },
 };
+
+/** An open book (drawn, so it looks the same on every phone and computer). */
+function OpenBook() {
+  return (
+    <svg viewBox="0 0 32 32" className="inline-block h-[1em] w-[1em]" aria-hidden>
+      <path d="M2 8.5C6 7 11 7 16 9.5 21 7 26 7 30 8.5V26c-4-1.5-9-1.5-14 1-5-2.5-10-2.5-14-1z" fill="#1e3a8a" />
+      <path d="M4 9.5c3.5-1 7.5-.8 11 1.2V25c-3.5-1.8-7.5-2-11-1.2z" fill="#dbeafe" />
+      <path d="M28 9.5c-3.5-1-7.5-.8-11 1.2V25c3.5-1.8 7.5-2 11-1.2z" fill="#bfdbfe" />
+      <path d="M6.5 13c2.4-.4 4.8-.1 6.5.8M6.5 16.5c2.4-.4 4.8-.1 6.5.8M19 13.8c1.7-.9 4.1-1.2 6.5-.8M19 17.3c1.7-.9 4.1-1.2 6.5-.8" stroke="#2563eb" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 /** A blue toolbox (drawn, so it's the same color on every phone and computer). */
 function BlueToolbox() {
