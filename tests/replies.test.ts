@@ -236,9 +236,13 @@ describe("replies to the presidency", () => {
     expect(text).toContain(`${long}\n\nMember Person (private)\n\nReply in app: `);
     const link = text.match(/Reply in app: (\S+)/)![1];
     expect(link).toMatch(/\/n\/\d+$/);
-    const { GET } = await import("@/app/n/[id]/route");
-    const res = await GET(new Request(link), { params: Promise.resolve({ id: link.split("/").pop()! }) });
-    expect(res.headers.get("location")).toMatch(/\/admin\/replies\/2\?private=1&n=\d+&org=1#end$/);
+    const { shortLinkTarget } = await import("@/lib/notification-log");
+    const nid = Number(link.split("/").pop());
+    const to = (await import("@/lib/db")).db().prepare("SELECT member_id FROM notification_log WHERE id = ?").get(nid) as { member_id: number };
+    expect(shortLinkTarget(nid, to.member_id)).toMatch(/\/admin\/replies\/2\?private=1&n=\d+&org=1#end$/);
+    // Anyone else (or no one signed in) just goes home: the link doesn't reveal where it points.
+    expect(shortLinkTarget(nid, null)).toBe("/");
+    expect(shortLinkTarget(nid, 2)).toBe("/");
 
     // The leader replies to that text: it goes to the member, privately, like answering in the app.
     const beforeAnswer = new Set(fs.readdirSync(path.join(dir, "outbox")));

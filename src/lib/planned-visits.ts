@@ -83,7 +83,9 @@ export function savePlan(p: PlanInput): number {
   return d.transaction(() => {
     let id = p.id ?? null;
     if (id) {
-      d.prepare("UPDATE planned_visits SET member_id = ?, date = ?, time = ?, type = ?, note = ? WHERE id = ? AND org_id = ?").run(p.memberId, p.date, p.time, p.type, p.note, id, p.orgId);
+      const r = d.prepare("UPDATE planned_visits SET member_id = ?, date = ?, time = ?, type = ?, note = ? WHERE id = ? AND org_id = ?").run(p.memberId, p.date, p.time, p.type, p.note, id, p.orgId);
+      // Not this organization's plan: change nothing.
+      if (r.changes === 0) throw new Error("Planned visit not found");
       d.prepare("DELETE FROM planned_visit_visitors WHERE planned_id = ?").run(id);
     } else {
       id = Number(

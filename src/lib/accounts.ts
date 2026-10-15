@@ -60,3 +60,29 @@ export function removeFromWard(memberId: number, wardId: number): boolean {
   deleteAccount(memberId);
   return true;
 }
+
+/**
+ * Whether a ward's leaders may change this person's name, phone or email (which
+ * they sign in with): only for someone who has never signed in and belongs to no
+ * other ward. Anyone else changes their own, with a code, under More → Contact.
+ * Otherwise a leader of any ward could add someone, change their email to their
+ * own, and sign in as them.
+ */
+export function leaderCanEditContact(memberId: number, wardId: number): boolean {
+  const m = db().prepare("SELECT last_login_at, is_site_owner FROM members WHERE id = ?").get(memberId) as { last_login_at: string | null; is_site_owner: number } | undefined;
+  // Never a leader anywhere either: taking over their account would take over what they lead.
+  const leads = db().prepare("SELECT 1 FROM org_members WHERE member_id = ? AND role = 'presidency'").get(memberId);
+  return !!m && !m.last_login_at && !m.is_site_owner && !leads && onlyInWard(memberId, wardId);
+}
+
+/** Belongs to this ward and no other (so turning their account off affects only this ward). */
+export function onlyInWard(memberId: number, wardId: number): boolean {
+  const wards = db().prepare("SELECT ward_id FROM ward_members WHERE member_id = ?").all(memberId) as { ward_id: number }[];
+  return wards.length > 0 && wards.every((w) => w.ward_id === wardId);
+}
+
+/** The site owner's email (OWNER_EMAIL), which only the site owner may give an account. */
+export function isOwnerEmail(email: string | null | undefined): boolean {
+  const owner = process.env.OWNER_EMAIL?.trim().toLowerCase();
+  return !!owner && !!email && email.toLowerCase() === owner;
+}

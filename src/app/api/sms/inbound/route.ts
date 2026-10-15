@@ -37,7 +37,8 @@ export async function POST(req: Request) {
       logRejected(params.From || "", signature ? `Twilio's signature didn't match. Set Twilio's webhook to ${inboundUrl()} (check the Auth Token too)` : "No Twilio signature");
       return new Response("Forbidden", { status: 403 });
     }
-  } else if (process.env.SMS_DEV_OUTBOX !== "1") {
+  } else if (process.env.SMS_DEV_OUTBOX !== "1" || process.env.NODE_ENV === "production") {
+    // Unsigned texts are only accepted in local testing (SMS_DEV_OUTBOX), never on the live site.
     return new Response("Texting isn't set up", { status: 404 });
   }
 

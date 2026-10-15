@@ -8,7 +8,7 @@ import { isPresidency } from "@/lib/permissions";
 import { normalizeEmailAddress, normalizePhone, parseContact } from "@/lib/contact";
 import { findMemberByContact } from "@/lib/auth-core";
 import { sendInviteEmail } from "@/lib/invite";
-import { isLastPresidency, onlyLeaderOf, removeFromOrg, removeFromWard } from "@/lib/accounts";
+import { isLastPresidency, isOwnerEmail, leaderCanEditContact, onlyInWard, onlyLeaderOf, removeFromOrg, removeFromWard } from "@/lib/accounts";
 import { addToOrg, managedOrgs, orgMemberView, wardMember } from "@/lib/orgs";
 import { appUrl } from "@/lib/config";
 import { sendAccountNotice } from "@/lib/login-code";
@@ -25,14 +25,17 @@ export async function updateMember(fd: FormData) {
   const id = Number(fd.get("item_id"));
   const m = orgMemberView(user.org_id, id);
   if (!m) redirect("/admin/members");
-  const name = String(fd.get("name") || "").trim().slice(0, 100);
-  const rawEmail = String(fd.get("email") || "").trim();
-  const rawPhone = String(fd.get("phone") || "").trim();
+  // Someone who signs in, or belongs to another ward, keeps their own name and contact.
+  const canEditContact = leaderCanEditContact(id, user.ward_id);
+  const name = canEditContact ? String(fd.get("name") || "").trim().slice(0, 100) : m.display_name;
+  const rawEmail = canEditContact ? String(fd.get("email") || "").trim() : (m.email ?? "");
+  const rawPhone = canEditContact ? String(fd.get("phone") || "").trim() : (m.phone ?? "");
   const email = rawEmail ? normalizeEmailAddress(rawEmail) : null;
   const phone = rawPhone ? normalizePhone(rawPhone) : null;
   if (!name) go(`/admin/members/${id}`, "Name is required.");
   if ((rawEmail && !email) || (rawPhone && !phone)) go(`/admin/members/${id}`, "That phone number or email doesn't look right.");
   if (!email && !phone) go(`/admin/members/${id}`, "Each member needs a phone number or an email to sign in.");
+  if (email !== m.email && isOwnerEmail(email) && !user.is_site_owner) go(`/admin/members/${id}`, "That email can't be used here.");
   if (phone && db().prepare("SELECT 1 FROM members WHERE phone = ? AND id != ?").get(phone, id)) {
     go(`/admin/members/${id}`, "Another account already uses that phone number.");
   }
@@ -46,7 +49,7 @@ export async function updateMember(fd: FormData) {
 
   // Turning an account off applies everywhere, so only ward leaders can.
   let status = m.status;
-  if (user.wardLeader) {
+  if (user.wardLeader && onlyInWard(id, user.ward_id)) {
     const s = String(fd.get("status") || m.status);
     if (s === "active" || s === "inactive") status = s;
     if (status !== "active" && onlyLeaderOf(id, user.ward_id).length) go(`/admin/members/${id}`, "They're the only presidency member of an organization. Give it another leader first.");
@@ -121,6 +124,7 @@ export async function addMember(fd: FormData) {
   const back = (msg: string): never => redirect(`/admin/members?add=1&name=${encodeURIComponent(name)}&contact=${encodeURIComponent(raw)}&msg=${encodeURIComponent(msg)}#add`);
   if (!name) back("Enter their name.");
   if (!c) return back("Enter a mobile number like (208) 555-0142 or an email address.");
+  if (c.kind === "email" && isOwnerEmail(c.value) && !user.is_site_owner && !findMemberByContact(c.value)) back("That email can't be used here.");
   const role = ROLES.includes(fd.get("role") as Role) ? (fd.get("role") as Role) : "member";
   const existing = findMemberByContact(c.value);
   if (existing) {

@@ -67,7 +67,9 @@ export async function saveLesson(fd: FormData) {
   const lesson = getLesson(user.org_id, Number(fd.get("item_id")));
   if (!lesson) redirect("/admin/lessons");
   const kind = KINDS.includes(fd.get("kind") as LessonKind) ? (fd.get("kind") as LessonKind) : "talk";
-  const url = String(fd.get("url") || "").trim();
+  const rawUrl = String(fd.get("url") || "").trim();
+  // Only web links (never javascript: or data:).
+  const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : rawUrl && !/^[a-z][a-z0-9+.-]*:/i.test(rawUrl) ? `https://${rawUrl}` : "";
   let title = String(fd.get("title") || "").trim();
   let speaker = String(fd.get("speaker") || "").trim();
   if (url && url !== lesson.url && (!title || !speaker)) {

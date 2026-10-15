@@ -1,13 +1,12 @@
-import { db } from "@/lib/db";
 import { appUrl } from "@/lib/config";
-import { withSeen } from "@/lib/notify";
-import { withOrg } from "@/lib/org-cookie";
+import { shortLinkTarget } from "@/lib/notification-log";
+import { getUser } from "@/lib/auth";
 
 // The short link in texts (mywardlink.net/n/123): opens that notification's page in its
-// organization and marks it read. It only redirects; the page itself checks who's signed in.
+// organization and marks it read. Only the person it was sent to is told where it goes
+// (the numbers are in order, so anyone could try them); others go to the home page,
+// which asks them to sign in.
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const id = Number((await params).id);
-  const row = Number.isInteger(id) ? (db().prepare("SELECT url, org_id FROM notification_log WHERE id = ?").get(id) as { url: string; org_id: number | null } | undefined) : undefined;
-  const path = row && row.url.startsWith("/") ? withOrg(withSeen(row.url, id), row.org_id) : "/";
-  return Response.redirect(new URL(path, appUrl()), 302);
+  const user = await getUser();
+  return Response.redirect(new URL(shortLinkTarget(Number((await params).id), user?.id ?? null), appUrl()), 302);
 }

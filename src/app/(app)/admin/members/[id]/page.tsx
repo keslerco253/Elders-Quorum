@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/client";
 import { callingLabel, CALLINGS, leadersWord, roleLabel } from "@/lib/types";
 import { managedOrgs, orgMemberView, orgsInWard } from "@/lib/orgs";
 import { formatPhone } from "@/lib/contact";
+import { leaderCanEditContact, onlyInWard } from "@/lib/accounts";
 import { emailInvite, removeMember, setMemberOrgs, updateMember } from "../actions";
 import { inviteLink, inviteText } from "@/lib/invite";
 import { phoneEnabled, phoneOptInVisible } from "@/lib/sms";
@@ -24,6 +25,8 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   const m = orgMemberView(user.org_id, Number(id));
   if (!m || (m.status !== "active" && m.status !== "inactive")) notFound();
   const presidency = isPresidency(user);
+  // Name and contact are theirs once they sign in (or if they lead, or are in another ward).
+  const locked = !leaderCanEditContact(m.id, user.ward_id);
   const lastVisit = presidency ? (db().prepare("SELECT date FROM visits WHERE member_id = ? AND org_id = ? ORDER BY date DESC LIMIT 1").get(m.id, user.org_id) as { date: string } | undefined) : undefined;
   const otherOrgs = (
     db()
@@ -96,7 +99,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
               <label className="label" htmlFor="name">
                 Name
               </label>
-              <input id="name" name="name" required className="input" defaultValue={m.display_name} />
+              <input id="name" name="name" required className="input" defaultValue={m.display_name} disabled={locked} />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -104,13 +107,13 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
               <label className="label" htmlFor="phone">
                 Mobile number
               </label>
-              <input id="phone" name="phone" type="tel" className="input" defaultValue={formatPhone(m.phone)} />
+              <input id="phone" name="phone" type="tel" className="input" defaultValue={formatPhone(m.phone)} disabled={locked} />
             </div>
             <div>
               <label className="label" htmlFor="email">
                 Email
               </label>
-              <input id="email" name="email" type="email" className="input" defaultValue={m.email ?? ""} />
+              <input id="email" name="email" type="email" className="input" defaultValue={m.email ?? ""} disabled={locked} />
             </div>
           </div>
           {m.phone && (
@@ -123,7 +126,10 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             </p>
           )}
           <p className="hint -mt-2">
-            Either one can be used to sign in. Change these only to help a member (for example, a new phone number). They get notifications by push
+            {locked
+              ? `Either one can be used to sign in, so only ${firstName(m.display_name)} can change them (More → Contact & notifications, with a code sent to the new number or email). `
+              : "Either one can be used to sign in. Change these only to help a member who hasn't signed in yet (for example, a typo). "}
+            They get notifications by push
             {m.always_email || (m.always_text && m.sms_consent_at)
               ? `, plus ${[m.always_email ? "email" : "", m.always_text && m.sms_consent_at ? "text" : ""].filter(Boolean).join(" and ")} every time`
               : `, or ${{ text: "text", email: "email", both: "text and email", none: "nothing else" }[m.contact_pref]} if push doesn't reach them`}
@@ -140,7 +146,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   <option value="presidency">Leadership ({leadersWord(user.org)}, secretaries{user.org.kind === "ward" ? ", clerks" : ""})</option>
                 </select>
               </div>
-              {user.wardLeader && (
+              {user.wardLeader && onlyInWard(m.id, user.ward_id) && (
                 <div>
                   <label className="label" htmlFor="status">
                     Status
