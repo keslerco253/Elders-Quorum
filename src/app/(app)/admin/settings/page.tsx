@@ -5,7 +5,7 @@ import { emailConfigured } from "@/lib/mail";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addOrganization, deleteOrganization, setOrganizationActive, saveOrgSettings, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode, startAnotherWard } from "./actions";
+import { addOrganization, deleteOrganization, setOrganizationActive, setOrganizationPresident, saveOrgSettings, saveTextLimit, saveWardSettings, sendTestEmail, sendTestText, setJoinCode, startAnotherWard } from "./actions";
 import { db } from "@/lib/db";
 import { hasFeature, orgRoster } from "@/lib/orgs";
 import { FEATURES, STANDARD_ORGS, type Feature } from "@/lib/types";
@@ -145,6 +145,22 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                         </SubmitButton>
                       </form>
                     </span>
+                    {!!o.active && !o.leaders && roster.length > 0 && (
+                      <form action={setOrganizationPresident} className="flex w-full flex-wrap items-center gap-2">
+                        <input type="hidden" name="org_id" value={o.id} />
+                        <select name="leader_id" className="input max-w-64 py-1 text-sm" defaultValue="" required aria-label={`President of ${o.name}`}>
+                          <option value="" disabled>
+                            Choose its president…
+                          </option>
+                          {roster.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.display_name}
+                            </option>
+                          ))}
+                        </select>
+                        <SubmitButton className="btn-secondary btn-sm">Set president</SubmitButton>
+                      </form>
+                    )}
                   </li>
                 ))}
                 {groups.length === 0 && <li className="py-2 text-muted">None yet. Add the organizations your ward uses below.</li>}

@@ -7,6 +7,7 @@ import { createSession, deleteSession, userForSession, type Remember } from "./a
 import { isAdmin, isPresidency } from "./permissions";
 import type { CurrentUser } from "./types";
 import { ORG_COOKIE, parseOrgCookie } from "./org-cookie";
+import { ledOrgsAnywhere } from "./orgs";
 
 const COOKIE = "eq_session";
 
@@ -23,22 +24,27 @@ export async function requireUser(): Promise<CurrentUser> {
   return user;
 }
 
+/** Someone who leads another organization is shown where to switch, instead of the home page. */
+function notALeaderHere(user: CurrentUser): never {
+  redirect(ledOrgsAnywhere(user.id).length ? "/leader" : "/");
+}
+
 export async function requireAdmin(): Promise<CurrentUser> {
   const user = await requireUser();
-  if (!isAdmin(user)) redirect("/");
+  if (!isAdmin(user)) notALeaderHere(user);
   return user;
 }
 
 /** The bishopric (or whoever created the ward): ward settings, join code, organizations. */
 export async function requireWardLeader(): Promise<CurrentUser> {
   const user = await requireUser();
-  if (!user.wardLeader) redirect("/");
+  if (!user.wardLeader) notALeaderHere(user);
   return user;
 }
 
 export async function requirePresidency(): Promise<CurrentUser> {
   const user = await requireUser();
-  if (!isPresidency(user)) redirect("/");
+  if (!isPresidency(user)) notALeaderHere(user);
   return user;
 }
 

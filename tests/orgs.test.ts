@@ -278,3 +278,13 @@ describe("standard organizations", () => {
     expect(orgs.currentUserFor(member(3), 1)!.org_id).toBe(1);
   });
 });
+
+describe("leaders looking at another organization", () => {
+  it("knows where they lead, so Admin can send them there", () => {
+    orgs.createOrg(1, "Relief Society");
+    expect(orgs.ledOrgsAnywhere(1).map((o) => o.label)).toContain("Elders Quorum");
+    expect(orgs.ledOrgsAnywhere(3)).toEqual([]);
+    d.prepare("UPDATE orgs SET active = 0 WHERE id = 1").run();
+    expect(orgs.ledOrgsAnywhere(2)).toEqual([]);
+  });
+});

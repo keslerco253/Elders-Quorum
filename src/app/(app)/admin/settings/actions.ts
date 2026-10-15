@@ -71,6 +71,17 @@ export async function setOrganizationActive(fd: FormData) {
   go(on ? `${org.name} is on. Members can choose it under More → My organizations.` : `${org.name} is off. Its members and everything in it are kept if you turn it back on.`);
 }
 
+/** The bishopric picks an organization's president (e.g. one of the standard ones, which start without). */
+export async function setOrganizationPresident(fd: FormData) {
+  const user = await requireWardLeader();
+  const org = wardGroup(user.ward_id, Number(fd.get("org_id")));
+  const leader = Number(fd.get("leader_id"));
+  if (!org || !leader || !inOrgWard(leader, org.id)) go("Choose who will lead it.");
+  addToOrg(leader, org.id, { role: "presidency", calling: "president" });
+  revalidatePath("/", "layout");
+  go(`${org.name} has a president. They can add their counselors and secretary from Admin → Members while looking at ${org.name}.`);
+}
+
 export async function deleteOrganization(fd: FormData) {
   const user = await requireWardLeader();
   const org = wardGroup(user.ward_id, Number(fd.get("org_id")));

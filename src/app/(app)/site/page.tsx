@@ -7,7 +7,7 @@ import { phoneEnabled, textsThisMonth } from "@/lib/sms";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addWard, removeWard, setWardTexting } from "./actions";
+import { addWard, leadWard, removeWard, setWardTexting } from "./actions";
 
 export const metadata = { title: "Site owner" };
 
@@ -58,6 +58,12 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
                   <input type="hidden" name="ward_id" value={w.id} />
                   <input type="hidden" name="on" value={w.texting_enabled ? "0" : "1"} />
                   <SubmitButton className="btn-secondary btn-sm">{w.texting_enabled ? "Turn texting off" : "Turn texting on"}</SubmitButton>
+                </form>
+                <form action={leadWard}>
+                  <input type="hidden" name="ward_id" value={w.id} />
+                  <SubmitButton className="btn-secondary btn-sm" confirm={`Join the ${w.name} bishopric in the app, so you can manage it?`}>
+                    Manage this ward
+                  </SubmitButton>
                 </form>
                 <details>
                   <summary className="btn-secondary btn-sm cursor-pointer text-danger">Delete…</summary>

@@ -319,3 +319,18 @@ export function managedOrgs(user: CurrentUser): Org[] {
   const mine = new Set(user.orgs.filter((o) => o.role === "presidency").map((o) => o.id));
   return groups.filter((o) => mine.has(o.id));
 }
+
+/** Organizations (in any of their wards, turned on) where someone is an admin or in the presidency. */
+export function ledOrgsAnywhere(memberId: number): { id: number; label: string; ward: string }[] {
+  return (
+    db()
+      .prepare(
+        `SELECT o.id, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS label, w.name AS ward
+         FROM org_members om JOIN orgs o ON o.id = om.org_id JOIN wards w ON w.id = o.ward_id
+         JOIN ward_members wm ON wm.ward_id = w.id AND wm.member_id = om.member_id
+         WHERE om.member_id = ? AND om.role IN ('admin', 'presidency') AND o.active = 1
+         ORDER BY w.name COLLATE NOCASE, o.kind = 'group', o.name COLLATE NOCASE`,
+      )
+      .all(memberId) as { id: number; label: string; ward: string }[]
+  );
+}

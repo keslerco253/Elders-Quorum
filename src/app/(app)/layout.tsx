@@ -2,7 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { adminCounts } from "@/lib/admin-counts";
 import { Nav } from "@/components/nav";
-import { hasFeature, orgLabel, orgsInWard } from "@/lib/orgs";
+import { hasFeature, ledOrgsAnywhere, orgLabel, orgsInWard } from "@/lib/orgs";
 import { unreadAnswers } from "@/lib/conversations";
 import { unreadNotifications } from "@/lib/notification-log";
 import { NotificationSeen } from "@/components/notification-seen";
@@ -20,7 +20,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ward={user.ward.name}
         targets={targets}
         features={{ lessons: hasFeature(user.org, "lessons"), signups: hasFeature(user.org, "signups") }}
-        isAdmin={isAdmin(user)}
+        // Leaders keep the Admin tab while looking at another organization; it shows where to switch.
+        isAdmin={isAdmin(user) || ledOrgsAnywhere(user.id).length > 0}
         adminCount={counts.total}
         moreCount={unreadAnswers(user.id) + unreadNotifications(user.id)}
       />

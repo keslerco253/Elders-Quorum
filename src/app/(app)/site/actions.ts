@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createLoginToken, findMemberByContact, normalizeEmail } from "@/lib/auth-core";
 import { sendLoginCode } from "@/lib/login-code";
-import { createWard, deleteWard, getWard } from "@/lib/orgs";
+import { addToWard, createWard, deleteWard, getWard, wardOrg } from "@/lib/orgs";
 import { validZone } from "@/lib/time";
 import type { Member } from "@/lib/types";
 
@@ -29,6 +29,18 @@ export async function setWardTexting(fd: FormData) {
   db().prepare("UPDATE wards SET texting_enabled = ? WHERE id = ?").run(on ? 1 : 0, ward.id);
   revalidatePath("/site");
   go(`Texting is ${on ? "on" : "off"} for ${ward.name}.`);
+}
+
+/** A way back in: the site owner joins a ward's bishopric (as an admin there), e.g. after losing access. */
+export async function leadWard(fd: FormData) {
+  const user = await requireSiteOwner();
+  const ward = getWard(Number(fd.get("ward_id")));
+  if (!ward) go("That ward is gone.", true);
+  const org = wardOrg(ward.id);
+  addToWard(user.id, ward.id);
+  db().prepare("UPDATE org_members SET role = 'presidency' WHERE org_id = ? AND member_id = ? AND role <> 'presidency'").run(org.id, user.id);
+  revalidatePath("/", "layout");
+  redirect(`/admin?org=${org.id}`);
 }
 
 export async function removeWard(fd: FormData) {
