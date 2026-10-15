@@ -14,10 +14,12 @@ import { runRetention } from "./retention";
 import { extendAllSeries } from "./event-series";
 import { upcomingVisits, visitorIds, whenText } from "./planned-visits";
 import { VISIT_TYPES } from "./visits";
+import { firstName } from "./names";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
 interface OrgCtx {
   id: number;
+  kind?: "ward" | "group";
   timezone: string;
   label: string;
   hidden_features: string;
@@ -179,14 +181,24 @@ function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
     });
     if (p.member_told) {
       const member = recipientById(p.member_id, org.id);
+      const leaders = org.kind === "ward" ? "bishopric" : `${org.label} presidency`;
+      const names = p.visitors?.split(", ") ?? [];
+      const who = names.length ? `${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0]} from the ${leaders}` : `the ${leaders}`;
+      const plural = !p.visitors || p.visitors.includes(",");
+      const what =
+        p.type === "phone" ? `${plural ? "are" : "is"} planning to call you` : p.type === "church" ? `${plural ? "are" : "is"} looking forward to meeting with you at church` : `${plural ? "are" : "is"} planning to visit you in your home`;
+      const at = `${today ? "today" : "tomorrow"}${p.time ? ` at ${DateTime.fromISO(p.time).toFormat("h:mm a")}` : ""}`;
       if (member)
         out.push({
           key: `visit-rem-m:${p.id}:${p.date}:${p.time ?? ""}`,
           recipients: [member],
           payload: {
-            title: `Reminder: visit ${today ? "today" : "tomorrow"}`,
-            body: `${p.visitors ?? `Your ${org.label} leaders`} ${p.type === "phone" ? "will call you" : p.type === "church" ? "will meet with you at church" : (p.visitors ?? "").includes(",") ? "plan to visit you" : "plans to visit you"} ${when}.`,
+            title: "Visit reminder",
+            body: `Hi ${firstName(p.member_name)}! Just a quick reminder that ${who} ${what} ${at}. If something has come up, please just let us know by replying to this message. See you soon!`,
             url: "/",
+            // Just the words, signed, like a personal message; a texted reply goes to the presidency.
+            personal: { from: org.kind === "ward" ? "The bishopric" : `The ${leaders}` },
+            asMember: true,
           },
         });
     }
@@ -238,7 +250,7 @@ function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 
 export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   const orgs = db()
-    .prepare("SELECT o.id, w.timezone, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS label, o.hidden_features FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.active = 1")
+    .prepare("SELECT o.id, o.kind, w.timezone, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS label, o.hidden_features FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.active = 1")
     .all() as OrgCtx[];
   return orgs.flatMap((o) => [
     ...(hasFeature(o, "lessons") ? lessonReminders(o, now) : []),

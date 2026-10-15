@@ -53,7 +53,11 @@ describe("planned visits", () => {
     d.exec("UPDATE planned_visits SET member_told = 1 WHERE date = '2026-10-20'");
     due = rem("2026-10-20T17:00").filter((n) => n.key.includes("2026-10-20:19"));
     expect(due.map((n) => n.recipients.map((r) => r.id))).toEqual([[1, 2], [3]]);
-    expect(due[1].payload.body).toBe("Pres Person, Couns Person plan to visit you Tue, Oct 20 at 7:00 PM.");
+    expect(due[1].payload.body).toBe(
+      "Hi Member! Just a quick reminder that Pres Person and Couns Person from the Elders Quorum presidency are planning to visit you in your home today at 7:00 PM. If something has come up, please just let us know by replying to this message. See you soon!",
+    );
+    // Texted as just those words, signed; a reply goes to the presidency.
+    expect(due[1].payload).toMatchObject({ personal: { from: "The Elders Quorum presidency" }, asMember: true });
   });
 
   it("reminds about an early visit the evening before, and one with no time that morning", () => {
