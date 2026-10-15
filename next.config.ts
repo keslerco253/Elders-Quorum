@@ -32,6 +32,8 @@ const nextConfig: NextConfig = {
     ];
   },
   serverExternalPackages: ["better-sqlite3"],
+  // The Leader guide page shows docs/PRESIDENCY-GUIDE.md, so it ships with the app.
+  outputFileTracingIncludes: { "/admin/guide": ["./docs/PRESIDENCY-GUIDE.md"] },
   experimental: {
     serverActions: {
       bodySizeLimit: "12mb",

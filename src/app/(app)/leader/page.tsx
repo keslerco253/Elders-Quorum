@@ -29,6 +29,12 @@ export default async function LeaderPage() {
           </li>
         ))}
       </ul>
+      <p className="mt-4 text-sm">
+        <a href="/admin/guide" className="link">
+          Leader guide
+        </a>{" "}
+        <span className="text-muted">: how to do everything in the app as a leader.</span>
+      </p>
     </>
   );
 }

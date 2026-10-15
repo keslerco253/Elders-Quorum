@@ -1,0 +1,48 @@
+import fs from "fs";
+import path from "path";
+import { marked } from "marked";
+import sanitizeHtml from "sanitize-html";
+
+const FILE = path.join(process.cwd(), "docs", "PRESIDENCY-GUIDE.md");
+
+const slug = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+/** The presidency guide (docs/PRESIDENCY-GUIDE.md) as a page, with a link to each section. */
+export function leaderGuide(): { html: string; sections: { id: string; title: string }[] } | null {
+  let md: string;
+  try {
+    md = fs.readFileSync(FILE, "utf8");
+  } catch {
+    return null;
+  }
+  // The file's own title is the page title.
+  md = md.replace(/^# .*\n/, "");
+  const sections: { id: string; title: string }[] = [];
+  const renderer = new marked.Renderer();
+  renderer.heading = ({ tokens, depth }) => {
+    const text = renderer.parser.parseInline(tokens);
+    if (depth !== 2) return `<h${depth}>${text}</h${depth}>`;
+    const title = text
+      .replace(/<[^>]+>/g, "")
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, "&");
+    const id = slug(title);
+    sections.push({ id, title });
+    return `<h2 id="${id}">${text}</h2>`;
+  };
+  const html = marked.parse(md, { async: false, gfm: true, renderer }) as string;
+  return {
+    html: sanitizeHtml(html, {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(["h1", "h2"]),
+      allowedAttributes: { a: ["href", "title"], h2: ["id"] },
+      allowedSchemes: ["http", "https", "mailto", "tel"],
+      transformTags: { a: sanitizeHtml.simpleTransform("a", { target: "_blank", rel: "noreferrer" }) },
+    }),
+    sections,
+  };
+}

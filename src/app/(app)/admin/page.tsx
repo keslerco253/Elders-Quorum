@@ -130,6 +130,11 @@ export default async function AdminPage() {
         <Tiles
           tiles={[
             {
+              href: "/admin/guide",
+              label: "Leader guide",
+              desc: "How to do everything in the app as a leader",
+            },
+            {
               href: "/admin/invite",
               label: "Invite members",
               desc: "QR code and join link for the ward",

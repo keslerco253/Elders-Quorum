@@ -169,6 +169,9 @@ body {
   .prose-eq table { @apply my-3 w-full border-collapse text-sm; }
   .prose-eq th, .prose-eq td { @apply border border-border px-2 py-1 text-left; }
   .prose-eq hr { @apply my-5 border-border; }
+  .prose-eq code { @apply rounded bg-surface-2 px-1 text-[0.9em]; }
+  .prose-eq pre { @apply my-3 overflow-x-auto rounded-lg bg-surface-2 p-3 text-sm; }
+  .guide h2 { @apply scroll-mt-20 border-t border-border pt-5; }
 }
 
 /* Plan pages: blocks with pictures and PDFs placed left, right or centered. */
