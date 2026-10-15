@@ -933,4 +933,14 @@ CREATE TABLE ward_requests (
 );
 `,
   },
+  {
+    // When the account's email was last proven theirs (a code or link sent to it was used).
+    // The site owner's email (OWNER_EMAIL) only counts once it's proven. Accounts that
+    // have signed in before are trusted as they are.
+    id: 40,
+    sql: `
+ALTER TABLE members ADD COLUMN email_verified_at TEXT;
+UPDATE members SET email_verified_at = datetime('now') WHERE email IS NOT NULL AND last_login_at IS NOT NULL;
+`,
+  },
 ];

@@ -97,7 +97,8 @@ export async function setJoinCode(fd: FormData) {
   let code = newJoinCode();
   if (mode === "custom") {
     code = String(fd.get("code") || "").trim().toUpperCase().replace(/\s+/g, "");
-    if (!/^[A-Z0-9-]{4,20}$/.test(code)) go("Use 4–20 letters or numbers for the join code.");
+    // Long enough that it can't be guessed.
+    if (!/^[A-Z0-9-]{6,20}$/.test(code)) go("Use 6–20 letters or numbers for the join code.");
   }
   try {
     db().prepare("UPDATE wards SET join_code = ? WHERE id = ?").run(code, user.ward_id);

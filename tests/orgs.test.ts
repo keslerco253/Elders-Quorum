@@ -203,10 +203,13 @@ describe("starting wards", () => {
     expect(orgs.createWard({ name: "Oak Ward", timezone: "America/Boise", creatorId: 1, texting: true }).texting_enabled).toBe(1);
   });
 
-  it("knows the site owner by the database or by OWNER_EMAIL", () => {
+  it("knows the site owner by the database or by a proven OWNER_EMAIL", () => {
     expect(orgs.isSiteOwner(member(1))).toBe(true);
     expect(orgs.isSiteOwner(member(3))).toBe(false);
     process.env.OWNER_EMAIL = " M@Test.Local ";
+    // Not until a code or link sent to that email has been used (so it can't be planted).
+    expect(orgs.isSiteOwner(member(3))).toBe(false);
+    d.prepare("UPDATE members SET email_verified_at = datetime('now') WHERE id = 3").run();
     expect(orgs.isSiteOwner(member(3))).toBe(true);
     expect(orgs.currentUserFor(member(3))!.is_site_owner).toBe(1);
     delete process.env.OWNER_EMAIL;

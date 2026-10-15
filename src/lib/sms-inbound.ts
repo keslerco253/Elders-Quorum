@@ -170,7 +170,7 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
    * before the reply while someone else wrote in the last 15 minutes (the leader may
    * have been answering someone else).
    */
-  const answerOrAsk = async (target: { memberId: number; private: boolean; orgId: number }): Promise<InboundResult | null> => {
+  const answerOrAsk = async (target: { memberId: number; private: boolean; orgId: number }, named = false): Promise<InboundResult | null> => {
     const writers = recentWriters(row.id, ledOrgs);
     const recent = writers.filter((w) => ago(w.at) < ACTIVE_MINUTES * 60);
     const waiting = writers.filter((w) => w.waiting);
@@ -180,8 +180,11 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
       // 15 minutes. Newest first.
       return askWho(writers.filter((w) => w.waiting || (justArrived && recent.includes(w))), body);
     }
+    // The text they're answering named someone, but a different person is the one waiting: ask.
+    const other = waiting.length === 1 && (waiting[0].memberId !== target.memberId || waiting[0].orgId !== target.orgId) ? waiting[0] : undefined;
+    if (named && other) return askWho([{ ...target, at: "", waiting: false }, other], body);
     // One person still waiting: that's who it's for.
-    return (await answer(waiting.length === 1 ? waiting[0] : target)) ? "answer_sent" : null;
+    return (await answer(other ?? target)) ? "answer_sent" : null;
   };
 
   if (leader) {
@@ -213,7 +216,7 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     // A leader answering the member's message the app just texted them.
     if (row.text_reply_member_id) {
       // That message came from the organization that last texted them.
-      const r = await answerOrAsk({ memberId: row.text_reply_member_id, private: !!row.text_reply_private, orgId });
+      const r = await answerOrAsk({ memberId: row.text_reply_member_id, private: !!row.text_reply_private, orgId }, true);
       if (r) return r;
     }
   }

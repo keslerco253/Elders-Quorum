@@ -59,6 +59,7 @@ export default async function ConversationPage({ params, searchParams }: { param
       {thread.some((c) => c.direction === "in") && (
         <form action={markUnread} className="-mt-2 mb-3 text-right">
           <input type="hidden" name="member_id" value={member.id} />
+          <input type="hidden" name="org_id" value={user.org_id} />
           {privately && <input type="hidden" name="private" value="1" />}
           <button className="text-xs text-accent hover:underline">Mark as unread</button>
         </form>
@@ -97,6 +98,7 @@ export default async function ConversationPage({ params, searchParams }: { param
       <Flash msg={sp.msg} tone={sp.err ? "warn" : "success"} />
       <form action={answerMember} className="card space-y-3">
         <input type="hidden" name="member_id" value={member.id} />
+          <input type="hidden" name="org_id" value={user.org_id} />
         {privately && <input type="hidden" name="private" value="1" />}
         <label className="label" htmlFor="body">
           {privately ? `Private reply to ${first}` : thread.length ? `Reply to ${first}` : `Personal message to ${first}`}

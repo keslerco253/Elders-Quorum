@@ -40,7 +40,14 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
   organization; a presidency can tick its own. Leaders of an organization
   can't be unticked there; change their access level in that organization.
 - **Starting another ward (bishopric):** switch to the ward, then Admin →
-  Settings → Another ward → Start a new ward.
+  Settings → Another ward → Start a new ward. Every new ward (from there or
+  the website's Start a ward page) is a request: the site owner checks it's
+  real, then approves it under Site owner → Ward requests, and the requester
+  gets a sign-in link.
+- **Members' contact info:** leaders can fix the name, phone or email only for
+  someone who hasn't signed in yet. After that, only the member changes it
+  (More → Contact & notifications, with a code). Someone already using the app
+  in another ward joins yours themselves with your join code.
 - **Organizations (bishopric):** every ward comes with Elders Quorum, Relief
   Society, Young Men, Young Women, Primary and Sunday School. Switch to the
   ward, then Admin → Settings → Organizations: **Turn off** the ones you don't

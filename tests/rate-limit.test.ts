@@ -35,7 +35,9 @@ describe("attempt limits", () => {
 
   it("reads the visitor's address from the hosting's headers", async () => {
     const { clientIp } = await import("@/lib/rate-limit");
-    expect(clientIp(new Headers({ "x-forwarded-for": "9.9.9.9, 10.0.0.1" }))).toBe("9.9.9.9");
+    expect(clientIp(new Headers({ "x-forwarded-for": "6.6.6.6, 9.9.9.9" }))).toBe("9.9.9.9");
+    process.env.CLIENT_IP_HEADER = "cf-connecting-ip";
     expect(clientIp(new Headers({ "cf-connecting-ip": "8.8.8.8", "x-forwarded-for": "1.1.1.1" }))).toBe("8.8.8.8");
+    delete process.env.CLIENT_IP_HEADER;
   });
 });

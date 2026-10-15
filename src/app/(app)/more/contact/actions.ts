@@ -39,6 +39,9 @@ export async function confirmContact(fd: FormData) {
   const pref: ContactPref = hadOther ? "email" : confirmed.kind === "phone" ? "text" : "email";
   try {
     db().prepare(`UPDATE members SET ${confirmed.kind} = ?, contact_pref = ?, updated_at = datetime('now') WHERE id = ?`).run(confirmed.value, pref, user.id);
+    if (confirmed.kind === "email") db().prepare("UPDATE members SET email_verified_at = datetime('now') WHERE id = ?").run(user.id);
+    // Sign-in codes or links sent to the old contact stop working.
+    db().prepare("UPDATE login_tokens SET used_at = datetime('now') WHERE member_id = ? AND used_at IS NULL").run(user.id);
     // Adding and confirming their own number (with the disclosure in the code text) is their consent to texts.
     if (confirmed.kind === "phone") db().prepare("UPDATE members SET sms_consent_at = datetime('now') WHERE id = ?").run(user.id);
   } catch {
@@ -54,6 +57,7 @@ export async function removeContact(fd: FormData) {
   const other = kind === "phone" ? user.email : user.phone;
   if (!other) go("You need at least one way to sign in, so this one can't be removed.");
   const pref: ContactPref = user.contact_pref === "none" ? "none" : kind === "phone" ? "email" : "text";
+  if (kind === "email") db().prepare("UPDATE members SET email_verified_at = NULL WHERE id = ?").run(user.id);
   db().prepare(`UPDATE members SET ${kind} = NULL, contact_pref = ?, ${kind === "phone" ? "sms_consent_at = NULL, always_text = 0, " : "always_email = 0, "}updated_at = datetime('now') WHERE id = ?`).run(pref, user.id);
   revalidatePath("/more");
   go(kind === "phone" ? "Phone number removed." : "Email removed.", "&ok=1");

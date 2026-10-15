@@ -57,6 +57,7 @@ export async function updateMember(fd: FormData) {
   db()
     .prepare("UPDATE members SET name = ?, display_name = ?, email = ?, phone = ?, contact_pref = ?, status = ?, updated_at = datetime('now') WHERE id = ?")
     .run(name, name, email, phone, pref, status, id);
+  if (email !== m.email) db().prepare("UPDATE members SET email_verified_at = NULL WHERE id = ?").run(id);
   // A new number hasn't agreed to texts; the member can agree under More → Contact & notifications.
   if (phone !== m.phone) db().prepare("UPDATE members SET sms_consent_at = NULL WHERE id = ?").run(id);
   if (status !== "active") db().prepare("DELETE FROM sessions WHERE member_id = ?").run(id);
@@ -129,6 +130,10 @@ export async function addMember(fd: FormData) {
   const existing = findMemberByContact(c.value);
   if (existing) {
     if (existing.status !== "active") redirect(`/admin/members?msg=${encodeURIComponent(`${existing.display_name}'s account is turned off or waiting for approval.`)}`);
+    // Someone from another ward joins yours themselves (with your join code); leaders can't add them.
+    if (!db().prepare("SELECT 1 FROM ward_members WHERE ward_id = ? AND member_id = ?").get(user.ward_id, existing.id)) {
+      back(`That person already uses the app in another ward. Ask them to join ${user.ward.name} themselves: More → My organizations → Join another ward, with your join code (Admin → Invite).`);
+    }
     addToOrg(existing.id, user.org_id, { role });
     revalidatePath("/admin/members");
     redirect(`/admin/members/${existing.id}?msg=${encodeURIComponent(`${existing.display_name} already had an account, and is now in ${user.orgLabel}.`)}`);

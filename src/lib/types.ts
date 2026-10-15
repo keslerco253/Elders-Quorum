@@ -13,6 +13,8 @@ export interface Member {
   source: string;
   request_note: string | null;
   is_site_owner: number;
+  /** When a code or link sent to their email was last used (proves the email is theirs). */
+  email_verified_at?: string | null;
   theme: "system" | "light" | "dark";
   last_login_at: string | null;
   /** When the member agreed to quorum texts (null: sign-in codes only). */

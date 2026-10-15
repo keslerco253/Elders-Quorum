@@ -7,7 +7,7 @@ import { removeAppToken } from "@/lib/push";
 import { APP_TOKEN_COOKIE } from "@/lib/native-app";
 import { db } from "@/lib/db";
 import { createLoginToken, findLoginMember, findMemberByContact, isRemember, redeemCode, redeemToken } from "@/lib/auth-core";
-import { endSession, startSession } from "@/lib/auth";
+import { endSession, getUser, startSession } from "@/lib/auth";
 import { sendLoginCode } from "@/lib/login-code";
 import { parseContact } from "@/lib/contact";
 import { phoneEnabled, phoneOptInVisible } from "@/lib/sms";
@@ -57,7 +57,7 @@ export async function requestLogin(formData: FormData) {
 
   // Sign-in codes cost a text or email each: limit them per device and across the site.
   const where = await ip();
-  if (!allowHit(`login:${where}`, 15, 60) || !allowHit("login:all", 300, 60)) redirect("/login?" + q({ contact: raw, error: BUSY }));
+  if (!allowHit(`login:${where}`, 20, 60)) redirect("/login?" + q({ contact: raw, error: BUSY }));
   const member = findLoginMember(c.value);
   if (!member) {
     const other = findMemberByContact(c.value);
@@ -67,6 +67,8 @@ export async function requestLogin(formData: FormData) {
   }
   // The app stores' reviewers sign in with a fixed code (REVIEW_LOGIN); nothing is sent.
   if (reviewLogin()?.email === c.value) redirect("/login/check?" + q({ to: c.value }));
+  // Across the site, only codes actually sent count (so made-up addresses can't block everyone).
+  if (!allowHit("login:all", 1000, 60)) redirect("/login?" + q({ contact: raw, error: "Sign-in is very busy right now. Please try again in a few minutes." }));
   const res = createLoginToken(member.id, remember);
   if (!res.ok) redirect("/login?" + q({ error: "Too many sign-in codes. Please wait an hour or use the most recent code." }));
   const sent = await sendLoginCode(member, c.kind, res.token, res.code);
@@ -80,7 +82,9 @@ export async function verifyCode(formData: FormData) {
   const review = reviewLogin();
   if (review && review.email === parseContact(to)?.value && review.code === code.replace(/\D/g, "")) {
     const member = findLoginMember(review.email);
-    if (member) {
+    // Only ever a plain test account: never a leader or the site owner.
+    const leads = member && db().prepare("SELECT 1 FROM org_members WHERE member_id = ? AND role = 'presidency'").get(member.id);
+    if (member && !leads && !member.is_site_owner) {
       await startSession(member.id, "month");
       redirect("/");
     }
@@ -88,6 +92,8 @@ export async function verifyCode(formData: FormData) {
   const where = await ip();
   if (overLimit(`badcode:${where}`, 30, 60)) redirect("/login/check?" + q({ to, error: BUSY }));
   const result = redeemCode(to, code);
+  // A code that went to their email proves the email is theirs.
+  if (result && parseContact(to)?.kind === "email") db().prepare("UPDATE members SET email_verified_at = datetime('now') WHERE id = ?").run(result.memberId);
   if (!result) {
     allowHit(`badcode:${where}`, 30, 60);
     redirect("/login/check?" + q({ to, error: "That code didn't work. Check the newest code and try again." }));
@@ -99,11 +105,17 @@ export async function verifyCode(formData: FormData) {
 export async function verifyToken(formData: FormData) {
   const result = redeemToken(String(formData.get("token") || ""));
   if (!result) redirect("/login?" + q({ error: "That sign-in link has expired or was already used. Please request a new one." }));
+  // Sign-in links only go by email.
+  db().prepare("UPDATE members SET email_verified_at = datetime('now') WHERE id = ?").run(result.memberId);
   await startSession(result.memberId, result.remember);
   redirect("/");
 }
 
-export async function signOut() {
+export async function signOut(formData?: FormData) {
+  // This browser's notifications stop too (shared computers).
+  const endpoint = String(formData?.get("push_endpoint") || "");
+  const me = endpoint ? await getUser() : null;
+  if (me) db().prepare("DELETE FROM push_subscriptions WHERE endpoint = ? AND member_id = ?").run(endpoint, me.id);
   // In the phone app: stop sending this phone the member's notifications.
   const jar = await cookies();
   const appToken = jar.get(APP_TOKEN_COOKIE)?.value;
@@ -133,16 +145,18 @@ export async function joinApp(formData: FormData) {
   if (recent.n >= 20) back("Too many people are joining right now. Please try again later.");
 
   const where = await ip();
-  if (overLimit(`badjoin:${where}`, 10, 60) || overLimit("badjoin:all", 100, 60)) back(BUSY);
+  if (overLimit(`badjoin:${where}`, 10, 60) || overLimit("badjoin:all", 500, 24 * 60)) back(BUSY);
   const ward = wardByJoinCode(code);
   if (!ward) {
     allowHit(`badjoin:${where}`, 10, 60);
-    allowHit("badjoin:all", 100, 60);
+    allowHit("badjoin:all", 500, 24 * 60);
   }
   if (!ward) back(code ? "That join code didn't match. Check it with your bishopric or an organization presidency." : "Please enter your ward's join code.");
 
   const existing = findMemberByContact(c.value);
   if (existing?.status === "inactive") back("This account's access was turned off. Please contact your ward leaders.");
+  // A waiting (pending) account is approved by its own ward, not by joining another.
+  if (existing?.status === "pending") back("Your request to join is waiting for approval. We'll let you know when it's approved.");
   const pref = c.kind === "phone" ? "text" : "email";
   let memberId: number;
   // The join form's checkbox covers what the app keeps and, for a phone number, consent to texts.

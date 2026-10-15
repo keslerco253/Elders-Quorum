@@ -13,6 +13,7 @@ import { SubmitButton } from "@/components/client";
 import { QuickLinks } from "@/components/quick-links";
 import { PushToggle } from "@/components/push-toggle";
 import { signOut } from "../../(public)/actions";
+import { SignOutForm } from "@/components/sign-out-form";
 import { deleteMyAccount, setTheme } from "./actions";
 
 export const metadata = { title: "More" };
@@ -82,11 +83,11 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
               Privacy details
             </Link>
           </p>
-          <form action={signOut} className="pt-3">
+          <SignOutForm action={signOut} className="pt-3">
             <SubmitButton className="btn-secondary" pendingText="Signing out…">
               Sign out
             </SubmitButton>
-          </form>
+          </SignOutForm>
         </div>
       </Section>
       <Section title="Delete my account">

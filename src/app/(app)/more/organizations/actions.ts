@@ -1,5 +1,7 @@
 "use server";
 
+import { allowHit, overLimit } from "@/lib/rate-limit";
+
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -40,8 +42,13 @@ export async function saveMyOrganizations(fd: FormData) {
 /** Joins another ward with its join code (e.g. a stake calling, or helping a second ward). */
 export async function joinAnotherWard(fd: FormData) {
   const user = await requireUser();
+  // Wrong codes are limited per person, so codes can't be guessed.
+  if (overLimit(`badjoin:m${user.id}`, 10, 24 * 60)) go("Too many join codes tried. Please try again tomorrow.", false);
   const ward = wardByJoinCode(String(fd.get("join_code") || ""));
-  if (!ward) go("That join code didn't match. Check it with that ward's bishopric.", false);
+  if (!ward) {
+    allowHit(`badjoin:m${user.id}`, 10, 24 * 60);
+    go("That join code didn't match. Check it with that ward's bishopric.", false);
+  }
   if (user.wards.some((w) => w.id === ward.id)) go(`You're already in ${ward.name}.`, false);
   addToWard(user.id, ward.id);
   const wardOrg = db().prepare("SELECT id FROM orgs WHERE ward_id = ? AND kind = 'ward'").get(ward.id) as { id: number };

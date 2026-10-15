@@ -123,9 +123,10 @@ export function homeOf(memberId: number): { orgId: number | null; name: string }
 
 /** Builds the signed-in user as seen from an organization. Null if they belong to no ward. */
 /** The site owner: marked in the database, or the email in the OWNER_EMAIL setting. */
-export function isSiteOwner(member: Pick<Member, "is_site_owner" | "email">): boolean {
+export function isSiteOwner(member: Pick<Member, "is_site_owner" | "email" | "email_verified_at">): boolean {
   const owner = process.env.OWNER_EMAIL?.trim().toLowerCase();
-  return !!member.is_site_owner || (!!owner && member.email?.toLowerCase() === owner);
+  // OWNER_EMAIL only counts once a code or link sent to it was used (so it can't be planted on another account).
+  return !!member.is_site_owner || (!!owner && member.email?.toLowerCase() === owner && !!member.email_verified_at);
 }
 
 export function currentUserFor(member: Member, wantedOrg?: number): CurrentUser | null {

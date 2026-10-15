@@ -69,7 +69,8 @@ export function removeFromWard(memberId: number, wardId: number): boolean {
  * own, and sign in as them.
  */
 export function leaderCanEditContact(memberId: number, wardId: number): boolean {
-  const m = db().prepare("SELECT last_login_at, is_site_owner FROM members WHERE id = ?").get(memberId) as { last_login_at: string | null; is_site_owner: number } | undefined;
+  const m = db().prepare("SELECT last_login_at, is_site_owner, email FROM members WHERE id = ?").get(memberId) as { last_login_at: string | null; is_site_owner: number; email: string | null } | undefined;
+  if (m && isOwnerEmail(m.email)) return false;
   // Never a leader anywhere either: taking over their account would take over what they lead.
   const leads = db().prepare("SELECT 1 FROM org_members WHERE member_id = ? AND role = 'presidency'").get(memberId);
   return !!m && !m.last_login_at && !m.is_site_owner && !leads && onlyInWard(memberId, wardId);

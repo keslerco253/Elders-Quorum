@@ -18,7 +18,13 @@ export function overLimit(key: string, limit: number, minutes: number): boolean 
   return (db().prepare("SELECT COUNT(*) AS n FROM rate_hits WHERE key = ? AND created_at > datetime('now', ?)").get(key, `-${minutes} minutes`) as { n: number }).n >= limit;
 }
 
-/** The visitor's address, as the hosting's proxy reports it (Cloudflare's header first). */
+/**
+ * The visitor's address. The hosting's proxy adds it to the end of X-Forwarded-For
+ * (anything earlier could be typed by the visitor). Behind Cloudflare, set
+ * CLIENT_IP_HEADER=cf-connecting-ip.
+ */
 export function clientIp(headers: Headers): string {
-  return headers.get("cf-connecting-ip")?.trim() || headers.get("x-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip")?.trim() || "unknown";
+  const named = process.env.CLIENT_IP_HEADER?.trim();
+  if (named) return headers.get(named)?.trim() || "unknown";
+  return headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() || headers.get("x-real-ip")?.trim() || "unknown";
 }

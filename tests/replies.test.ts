@@ -449,6 +449,22 @@ describe("a leader's texted reply about a visit answer", () => {
     expect(conv.conversation(1, 4, { private: false }).at(-1)).toMatchObject({ direction: "out", body: "We will plan on Wednesday at 6 PM" });
     expect(conv.conversation(1, 2, { private: true, withId: 1 }).at(-1)?.body).toBe("Got it");
   });
+
+  it("asks, rather than guessing, when the text named one person but someone else is waiting", async () => {
+    const d = (await import("@/lib/db")).db();
+    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending;");
+    // Hyrum wrote a while ago and is still waiting.
+    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Any update?", "app", null);
+    d.exec("UPDATE member_messages SET created_at = datetime('now', '-1 hour')");
+    // Jane writes; the leader is texted about Jane; another leader answers her in the app.
+    await conv.receiveReply({ id: 4, org_id: 1, display_name: "Jane Smith" }, "Is the activity on?", "app", null);
+    d.exec("UPDATE member_messages SET created_at = datetime('now', '-1 hour') WHERE member_id = 4");
+    d.prepare("INSERT INTO member_messages (org_id, member_id, direction, author_id, body) VALUES (1, 4, 'out', 1, 'Yes!')").run();
+    const out: { reply?: string } = {};
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "See you there" }, out)).toBe("asked_who");
+    expect(out.reply).toContain("Jane Smith");
+    expect(out.reply).toContain("Hyrum Johnson");
+  });
 });
 
 describe("a leader's inbox", () => {
