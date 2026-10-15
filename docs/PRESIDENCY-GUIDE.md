@@ -281,6 +281,13 @@ Admin → Replies. Or answer in the app with the link. A reply goes to the membe
 message came to you most recently (in the last 3 days). Replies to teaching
 requests (TEACH / CAN'T) are still handled as teaching answers.
 
+- **Two people at once:** if someone else's message arrives within 2 minutes
+  before your reply, the app holds your reply and texts "Who is this for?
+  Reply 1 for … or 2 for …". Answer with the number and it goes to that person.
+- **Pick the person yourself:** start your reply with their name and a colon,
+  e.g. "Hyrum: see you at 7" (first name is enough if it's unique among people
+  who wrote to you recently).
+
 **Site owner:** More → Site owner → **Incoming texts** lists the last month's
 incoming texts and where each one went (an answer to whom, a message to the
 presidency, a teaching reply, an unknown number).

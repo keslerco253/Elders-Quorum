@@ -41,9 +41,10 @@ export async function POST(req: Request) {
     return new Response("Texting isn't set up", { status: 404 });
   }
 
-  const result = await handleInboundText(params);
+  const out: { reply?: string } = {};
+  const result = await handleInboundText(params, out);
   if (result !== "saved") console.log("[sms] inbound text", result);
-  const reply = AUTO_REPLIES[result];
+  const reply = out.reply ?? AUTO_REPLIES[result];
   if (!reply) return EMPTY.clone();
   // The confirmation text back counts toward the monthly limit like any other.
   const m = db().prepare("SELECT id, last_text_org_id FROM members WHERE phone = ? AND status = 'active' LIMIT 1").get(normalizePhone(params.From || "") ?? "") as

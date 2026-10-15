@@ -264,3 +264,48 @@ describe("replies to the presidency", () => {
     );
   });
 });
+
+describe("a leader's texted reply when two people write at once", () => {
+  let lib: typeof import("@/lib/sms-inbound");
+  let conv: typeof import("@/lib/conversations");
+  let d: import("better-sqlite3").Database;
+  const leaderPhone = "+12085550177";
+
+  beforeAll(async () => {
+    d = (await import("@/lib/db")).useTestDb(`
+      INSERT INTO wards (id, name) VALUES (1, 'Test Ward EQ');
+      INSERT INTO members (id, ward_id, name, display_name, email, phone, contact_pref, role, sms_consent_at) VALUES
+        (1, 1, 'Pres', 'Pres Person', 'pres@test.local', '${leaderPhone}', 'text', 'presidency', datetime('now')),
+        (2, 1, 'Hyrum', 'Hyrum Johnson', 'hyrum@test.local', NULL, 'email', 'member', NULL),
+        (4, 1, 'Jane', 'Jane Smith', 'jane@test.local', NULL, 'email', 'member', NULL);
+    `);
+    lib = await import("@/lib/sms-inbound");
+    conv = await import("@/lib/conversations");
+  });
+  const last = (memberId: number) => conv.conversation(1, memberId, { private: true, withId: 1 }).at(-1);
+
+  it("asks who it's for, then sends the held reply to the person picked", async () => {
+    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Can you help Saturday?", "app", null, { private: true, withId: 1 });
+    // Jane's message arrives while the leader is typing their answer to Hyrum.
+    await conv.receiveReply({ id: 4, org_id: 1, display_name: "Jane Smith" }, "Is the activity still on?", "app", null, { private: true, withId: 1 });
+    const out: { reply?: string } = {};
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes, see you at 9" }, out)).toBe("asked_who");
+    expect(out.reply).toBe("Who is this for? Reply 1 for Jane Smith or 2 for Hyrum Johnson.");
+    expect(last(2)?.direction).toBe("in");
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "2" })).toBe("answer_sent");
+    expect(last(2)).toMatchObject({ direction: "out", body: "Yes, see you at 9" });
+    expect(last(4)?.direction).toBe("in");
+  });
+
+  it("sends a reply that starts with a name straight to that person", async () => {
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Jane: Yes, 7pm at the church" })).toBe("answer_sent");
+    expect(last(4)).toMatchObject({ direction: "out", body: "Yes, 7pm at the church" });
+  });
+
+  it("doesn't ask when only one person is writing", async () => {
+    d.exec("UPDATE member_messages SET created_at = datetime('now', '-2 hours')");
+    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Thanks!", "app", null, { private: true, withId: 1 });
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "You bet" })).toBe("answer_sent");
+    expect(last(2)).toMatchObject({ direction: "out", body: "You bet" });
+  });
+});

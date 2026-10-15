@@ -831,4 +831,17 @@ CREATE TABLE sms_inbound_log (
     id: 31,
     sql: `ALTER TABLE notification_log ADD COLUMN org_id INTEGER REFERENCES orgs(id) ON DELETE SET NULL;`,
   },
+  {
+    // A leader's texted reply held while the app asks who it's for (two people wrote at once).
+    id: 32,
+    sql: `
+CREATE TABLE sms_pending (
+  leader_id INTEGER PRIMARY KEY REFERENCES members(id) ON DELETE CASCADE,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  options TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`,
+  },
 ];

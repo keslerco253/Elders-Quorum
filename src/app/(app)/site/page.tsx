@@ -30,6 +30,7 @@ const TEXT_RESULTS: Record<string, string> = {
   saved: "Saved as a message",
   rejected: "Refused",
   answer_sent: "Sent as a leader's answer",
+  asked_who: "Asked the leader who it's for",
   opted_out: "Opted out (STOP)",
   ignored: "Ignored (HELP/START, or too many)",
   unknown_sender: "Number not in the app",
