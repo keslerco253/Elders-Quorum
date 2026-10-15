@@ -145,7 +145,7 @@ export async function sendAnswer(author: { id: number; org_id: number; display_n
   await notify(
     [member],
     // A personal note (private or not): the notification shows who it's from; texts and emails are just the words, signed.
-    { title: author.display_name, body: text, url: `/messages/thread/${privately ? author.id : "all"}?org=${author.org_id}#end`, personal: { from: author.display_name }, tag: `answers-${author.org_id}` },
+    { title: author.display_name, body: text, url: `/messages/thread/${privately ? author.id : "all"}?org=${author.org_id}#end`, personal: { from: author.display_name }, tag: `answers-${author.org_id}`, asMember: true },
   );
   return true;
 }

@@ -112,9 +112,9 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   if (!from || !body) return "ignored";
   const row = db()
     .prepare(
-      "SELECT id, last_text_org_id, display_name, text_reply_member_id, text_reply_private FROM members WHERE phone = ? AND status = 'active' ORDER BY last_login_at DESC LIMIT 1",
+      "SELECT id, last_text_org_id, display_name, text_reply_member_id, text_reply_private, text_as_member FROM members WHERE phone = ? AND status = 'active' ORDER BY last_login_at DESC LIMIT 1",
     )
-    .get(from) as { id: number; last_text_org_id: number | null; display_name: string; text_reply_member_id: number | null; text_reply_private: number } | undefined;
+    .get(from) as { id: number; last_text_org_id: number | null; display_name: string; text_reply_member_id: number | null; text_reply_private: number; text_as_member: number } | undefined;
   // Texts from numbers that aren't in the app aren't stored.
   if (!row) return "unknown_sender";
   seen.memberId = row.id;
@@ -143,7 +143,9 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
       .all(row.id) as { org_id: number }[]
   ).map((r) => r.org_id);
   // A leader replying as a leader: the last text was from an organization they lead, or a member's message to them.
-  const leader = ledOrgs.includes(orgId) || (ledOrgs.length > 0 && !!row.text_reply_member_id);
+  // Not when the last text was to them as a member (a visit invitation, a personal message):
+  // then it's their own reply to the presidency.
+  const leader = !row.text_as_member && (ledOrgs.includes(orgId) || (ledOrgs.length > 0 && !!row.text_reply_member_id));
   const answer = async (to: { memberId: number; private: boolean; orgId: number }, text = body) => {
     // Answered from the organization the member wrote to.
     if (!ledOrgs.includes(to.orgId) || !(await sendAnswer({ ...member, org_id: to.orgId }, to.memberId, text, to.private))) return false;

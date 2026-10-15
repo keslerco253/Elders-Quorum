@@ -397,6 +397,20 @@ describe("a leader's texted reply when two people write at once", () => {
     expect(await lib.handleInboundText({ From: leaderPhone, Body: "You bet" })).toBe("answer_sent");
     expect(last(2)).toMatchObject({ direction: "out", body: "You bet" });
   });
+
+  it("treats a leader's text back to their own visit invitation as their reply to the presidency", async () => {
+    const { notify, recipientById } = await import("@/lib/notify");
+    // The leader is invited to a visit (e.g. a counselor, or testing on themselves) while others are waiting on them.
+    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Still need help?", "app", null, { private: true, withId: 1 });
+    await notify([recipientById(1, 1)!], { title: "An invitation", body: "Hi Pres! We would love to visit Friday at 7.", url: "/visit-invite/1", textLink: "Reply here", asMember: true });
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Friday works for us" })).toBe("saved");
+    expect(conv.memberConversation(1, 1).at(-1)).toMatchObject({ direction: "in", body: "Friday works for us", recipient_id: null });
+    expect(last(2)?.direction).toBe("in");
+    // A leader's notice afterwards: replies are answers again.
+    await notify([recipientById(1, 1)!], { title: "Reminder", body: "Lesson Sunday", url: "/lessons" });
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes, I'll call you" })).toBe("answer_sent");
+    expect(last(2)).toMatchObject({ direction: "out", body: "Yes, I'll call you" });
+  });
 });
 
 describe("a leader's inbox", () => {

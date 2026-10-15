@@ -893,4 +893,10 @@ ALTER TABLE message_recipients ADD COLUMN read_at TEXT;
 UPDATE message_recipients SET read_at = datetime('now');
 `,
   },
+  {
+    // The last text was to them as a member (a visit invitation, a leader's personal
+    // message): a texted reply goes to the presidency even if they're a leader too.
+    id: 37,
+    sql: `ALTER TABLE members ADD COLUMN text_as_member INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];

@@ -142,6 +142,7 @@ export async function sendInvitation(plan: PlannedVisit, message: string, author
       url: invitePath(plan),
       linkLabel: "Reply to the invitation",
       textLink: "Reply here",
+      asMember: true,
     });
   }
 }
