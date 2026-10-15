@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { adminCounts } from "@/lib/admin-counts";
 import { isPresidency } from "@/lib/permissions";
-import { PageHeader, Section } from "@/components/ui";
+import { CountDot, PageHeader, Section } from "@/components/ui";
 import { openInvitations, upcomingVisits } from "@/lib/planned-visits";
 import { leadersWord, roleLabel, type Feature } from "@/lib/types";
 import { hasFeature } from "@/lib/orgs";
@@ -32,11 +32,7 @@ function Tiles({ tiles }: { tiles: Tile[] }) {
               <span className="block font-semibold">{t.label}</span>
               <span className="text-sm text-muted">{t.desc}</span>
             </span>
-            {!!t.count && (
-              <span className="rounded-full bg-danger px-2 py-0.5 text-xs font-bold text-white">
-                {t.count}
-              </span>
-            )}
+            <CountDot n={t.count} label="waiting" />
           </Link>
         ))}
     </div>
@@ -149,6 +145,7 @@ export default async function AdminPage() {
                     href: "/admin/lessons",
                     label: "Lessons",
                     desc: "Six-month schedule and teachers",
+                    count: c.volunteers + c.teacherNeeded,
                   },
                 ]
               : []),
@@ -187,6 +184,7 @@ export default async function AdminPage() {
                 href: "/admin/replies",
                 label: "Replies",
                 desc: "Conversations with members",
+                count: c.replies,
               },
               ...(has("visits")
                 ? [
@@ -194,10 +192,12 @@ export default async function AdminPage() {
                       href: "/admin/visit-requests",
                       label: "Visit requests",
                       desc: "Members asking for a visit",
+                      count: c.visitRequests,
                     },
                     {
                       href: "/admin/visits",
                       label: "Home visits",
+                      count: c.newTimes,
                       desc:
                         [
                           planned && `${planned} upcoming`,
@@ -240,11 +240,13 @@ export default async function AdminPage() {
                     href: "/admin/notes",
                     label: "Teacher notes",
                     desc: "Approve notes before they're shared",
+                    count: c.notes,
                   },
                   {
                     href: "/admin/comments",
                     label: "Comment queue",
                     desc: "Approve study comments",
+                    count: c.comments,
                   },
                 ]
               : []),
@@ -252,6 +254,7 @@ export default async function AdminPage() {
               href: "/admin/event-requests",
               label: "Event requests",
               desc: "Approve or decline",
+              count: c.eventRequests,
             },
             {
               href: "/admin/groups",
@@ -264,6 +267,7 @@ export default async function AdminPage() {
                     href: "/admin/access",
                     label: "Access requests",
                     desc: "Approve new people",
+                    count: c.access,
                   },
                 ]
               : []),

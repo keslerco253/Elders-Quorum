@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 type Item = { href: string; label: string; icon: string; badge?: number };
@@ -160,8 +160,19 @@ export function Nav({
   moreCount?: number;
 }) {
   const path = usePathname();
+  const router = useRouter();
   const tabBar = useRef<HTMLElement>(null);
   useStickToBottom(tabBar);
+  // The bar isn't reloaded when moving between pages, so a count can go stale
+  // once something is read or handled. While a count shows, check it again
+  // on each page change.
+  const lastPath = useRef(path);
+  const showingCounts = !!(adminCount || moreCount);
+  useEffect(() => {
+    if (lastPath.current === path) return;
+    lastPath.current = path;
+    if (showingCounts) router.refresh();
+  }, [path, showingCounts, router]);
   // The page being read clears these, so don't show the dot there.
   if (path.startsWith("/messages") || path.startsWith("/notifications")) moreCount = 0;
   // Lessons only where the organization uses them; Sign-ups takes a free spot.

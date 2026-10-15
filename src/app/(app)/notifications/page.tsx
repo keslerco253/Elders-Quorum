@@ -22,7 +22,7 @@ export default async function NotificationsPage() {
             <li key={n.id} className={`card space-y-1 ${n.read_at ? "" : "border-accent"}`}>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-semibold">
-                  {!n.read_at && <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-accent align-middle" aria-label="New" />}
+                  {!n.read_at && <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-danger align-middle" aria-label="New" />}
                   {n.title}
                 </span>
                 <span className="text-xs text-muted">{formatDateTime(n.created_at, user.ward.timezone, "LLL d, h:mm a")}</span>

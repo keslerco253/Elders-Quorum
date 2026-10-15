@@ -6,7 +6,8 @@ import { unreadNotifications } from "@/lib/notification-log";
 import { callingLabel, leadersWord, roleLabel } from "@/lib/types";
 import { hasFeature } from "@/lib/orgs";
 import { formatPhone } from "@/lib/contact";
-import { Flash, PageHeader, Section } from "@/components/ui";
+import { CountDot, Flash, PageHeader, Section } from "@/components/ui";
+import { adminCounts } from "@/lib/admin-counts";
 import { SubmitButton } from "@/components/client";
 import { QuickLinks } from "@/components/quick-links";
 import { PushToggle } from "@/components/push-toggle";
@@ -20,14 +21,14 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const unread = unreadAnswers(user.id);
   const newNotes = unreadNotifications(user.id);
-  const links = [
-    { href: "/notifications", label: newNotes ? `Notifications (${newNotes} new)` : "Notifications", desc: "Read the full text of everything the app sent you" },
+  const links: { href: string; label: string; desc: string; count?: number }[] = [
+    { href: "/notifications", label: "Notifications", count: newNotes, desc: "Read the full text of everything the app sent you" },
     { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },
-    { href: "/messages", label: unread ? `Messages (${unread} new)` : "Messages", desc: `Messages from ${user.orgLabel} and replies from its ${leadersWord(user.org)}` },
+    { href: "/messages", label: "Messages", count: unread, desc: `Messages from ${user.orgLabel} and replies from its ${leadersWord(user.org)}` },
     ...(hasFeature(user.org, "signups") ? [{ href: "/signups", label: "Sign-ups", desc: "Service projects, meals and more" }] : []),
     ...(hasFeature(user.org, "visits") ? [{ href: "/more/visit", label: "Request a visit", desc: `Ask the ${user.orgLabel} ${leadersWord(user.org)} to come by, talk, or help` }] : []),
     { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },
-    ...(isAdmin(user) ? [{ href: "/admin", label: "Admin tools", desc: "Members, lessons, messages and approvals" }] : []),
+    ...(isAdmin(user) ? [{ href: "/admin", label: "Admin tools", count: adminCounts(user).total, desc: "Members, lessons, messages and approvals" }] : []),
     ...(user.is_site_owner ? [{ href: "/site", label: "Site owner", desc: "Every ward, texting, backups" }] : []),
   ];
   return (
@@ -43,7 +44,10 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
                   <span className="block font-medium">{l.label}</span>
                   <span className="text-sm text-muted">{l.desc}</span>
                 </span>
-                <span className="text-muted">›</span>
+                <span className="flex items-center gap-2">
+                  <CountDot n={l.count} />
+                  <span className="text-muted">›</span>
+                </span>
               </Link>
             </li>
           ))}

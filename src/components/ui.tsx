@@ -32,6 +32,16 @@ const tones = {
   danger: "bg-danger-soft text-danger",
 };
 
+/** The red count on an item that needs looking at (matches the one in the top bar). */
+export function CountDot({ n, label = "new" }: { n?: number; label?: string }) {
+  if (!n) return null;
+  return (
+    <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-xs font-bold text-white" aria-label={`${n} ${label}`}>
+      {n}
+    </span>
+  );
+}
+
 export function Badge({ tone = "neutral", children }: { tone?: keyof typeof tones; children: ReactNode }) {
   return <span className={`badge ${tones[tone]}`}>{children}</span>;
 }
