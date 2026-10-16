@@ -27,7 +27,7 @@ describe("calendar", () => {
   });
 });
 
-import { parseSlotLines } from "@/lib/signups";
+import { parseSlotFields, parseSlotLines } from "@/lib/signups";
 
 describe("sign-up slots", () => {
   it("parses label | count lines", () => {
@@ -35,6 +35,12 @@ describe("sign-up slots", () => {
       { label: "Helpers", capacity: 6 },
       { label: "Monday dinner", capacity: 1 },
       { label: "Truck", capacity: 2 },
+    ]);
+  });
+  it("reads the form's slot rows, keeping ids and skipping blank names", () => {
+    expect(parseSlotFields(["Shift 2: 9 AM", "  ", "Volunteer"], ["3", "1", "0"], ["7", "", ""])).toEqual([
+      { id: 7, label: "Shift 2: 9 AM", capacity: 3 },
+      { id: undefined, label: "Volunteer", capacity: 1 },
     ]);
   });
 });

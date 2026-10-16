@@ -86,5 +86,16 @@ export function parseSlotLines(text: string) {
     .filter((s) => s.label);
 }
 
+/** Slots from the form's rows: a name and how many people, plus the slot's id for rows that already existed. */
+export function parseSlotFields(labels: string[], capacities: string[], ids: string[]) {
+  return labels
+    .map((l, i) => ({
+      id: Number(ids[i]) || undefined,
+      label: l.replace(/\s+/g, " ").trim().slice(0, 120),
+      capacity: Math.min(Math.max(Math.floor(Number(capacities[i])) || 1, 1), 500),
+    }))
+    .filter((s) => s.label);
+}
+
 /** "1 person still needed", "3 people still needed". */
 export const stillNeeded = (n: number) => `${n} ${n === 1 ? "person" : "people"} still needed`;

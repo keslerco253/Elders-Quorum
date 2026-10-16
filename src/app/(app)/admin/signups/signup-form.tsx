@@ -2,6 +2,7 @@ import { SubmitButton } from "@/components/client";
 import { SIGNUP_REMINDER_OPTIONS, type Signup, type Slot } from "@/lib/signups";
 import { saveSignup } from "./actions";
 import { FlyerField } from "@/components/flyer-field";
+import { SlotsEditor } from "./slots-editor";
 
 export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
   return (
@@ -27,21 +28,7 @@ export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
         <textarea id="description" name="description" rows={3} className="input" defaultValue={s?.description} />
       </div>
       <FlyerField file={s?.flyer_file} name={s?.flyer_name} hint="A PDF or a picture (PNG, JPEG or a phone photo), up to 15 MB. It shows on the opportunity's page." />
-      <div>
-        <label className="label" htmlFor="slots">
-          Slots: one per line, with how many people are needed
-        </label>
-        <textarea
-          id="slots"
-          name="slots"
-          rows={6}
-          required
-          className="input font-mono text-sm"
-          defaultValue={s?.slots.map((sl) => `${sl.label} | ${sl.capacity}`).join("\n")}
-          placeholder={"Helpers | 6\nBring a trailer | 1\n\nor for meals:\nMonday dinner | 1\nTuesday dinner | 1"}
-        />
-        <p className="hint">If you remove or rename a slot, the people signed up for it are removed.</p>
-      </div>
+      <SlotsEditor slots={s?.slots.map((sl) => ({ id: sl.id, label: sl.label, capacity: sl.capacity, taken: sl.entries.length })) ?? []} />
       <div className="grid gap-4 sm:grid-cols-2">
         {(["reminder1_days", "reminder2_days"] as const).map((field, i) => (
           <div key={field}>

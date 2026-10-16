@@ -427,12 +427,11 @@ and **the day before** unless you change them on the opportunity's edit screen
 (**Reminder** and **Second reminder**: the morning of, 1, 2 or 3 days, 1 or 2
 weeks before, or no reminder). Opportunities without a date don't send reminders.
 
-```
-Helpers | 6
-Bring a trailer | 1
-```
-
-For meals, put one line per day with `| 1`.
+**Slots:** each slot is a row with its name (Volunteer, Bring a trailer,
+Monday dinner...) and how many people it needs (type it or tap − and +). Tap
+**+ Add a slot** for another row, or ✕ to remove one. For meals, add one slot
+per day with 1 person. Renaming a slot keeps the people signed up for it;
+removing it removes their sign-ups (you're asked first).
 
 ## Plans
 

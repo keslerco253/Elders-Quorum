@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { parseSlotLines } from "@/lib/signups";
+import { parseSlotFields, parseSlotLines } from "@/lib/signups";
 import { saveUpload } from "@/lib/uploads";
 import { audienceMembers, notify } from "@/lib/notify";
 
@@ -27,7 +27,11 @@ export async function saveSignup(fd: FormData) {
   };
   const r1 = days("reminder1_days");
   const r2 = days("reminder2_days");
-  const slots = parseSlotLines(String(fd.get("slots") || ""));
+  const all = (name: string) => fd.getAll(name).map(String);
+  // The form sends a row per slot; older pages sent lines of text ("Helpers | 6").
+  const slots: { id?: number; label: string; capacity: number }[] = fd.has("slot_label")
+    ? parseSlotFields(all("slot_label"), all("slot_capacity"), all("slot_id"))
+    : parseSlotLines(String(fd.get("slots") || ""));
   const back = id ? `/admin/signups/${id}` : "/admin/signups/new";
   if (!title || !slots.length) go(back, "Add a title and at least one slot.");
   // The flyer: a new upload, the one it had, or none.
@@ -63,14 +67,14 @@ export async function saveSignup(fd: FormData) {
           .run(user.org_id, title, description, date, user.id, flyerFile, flyerName, r1, r2).lastInsertRowid,
       );
     }
-    // Keep slots (and who signed up) when the label is unchanged.
+    // Keep slots (and who signed up) that are still there, even if renamed.
     const existing = d.prepare("SELECT id, label FROM signup_slots WHERE signup_id = ?").all(sid) as { id: number; label: string }[];
     const keep = new Set<number>();
     slots.forEach((s, i) => {
-      const match = existing.find((e) => e.label === s.label && !keep.has(e.id));
+      const match = existing.find((e) => e.id === s.id && !keep.has(e.id)) ?? existing.find((e) => e.label === s.label && !keep.has(e.id));
       if (match) {
         keep.add(match.id);
-        d.prepare("UPDATE signup_slots SET capacity = ?, position = ? WHERE id = ?").run(s.capacity, i, match.id);
+        d.prepare("UPDATE signup_slots SET label = ?, capacity = ?, position = ? WHERE id = ?").run(s.label, s.capacity, i, match.id);
       } else {
         d.prepare("INSERT INTO signup_slots (signup_id, label, capacity, position) VALUES (?, ?, ?, ?)").run(sid, s.label, s.capacity, i);
       }
