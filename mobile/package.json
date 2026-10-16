@@ -21,7 +21,7 @@
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-webview": "^13.16.1"
+    "react-native-webview": "13.16.1"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
@@ -34,5 +34,10 @@
     "web": "expo start --web",
     "lint": "expo lint"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "@bacons/apple-targets": {
+      "@expo/prebuild-config": "~57.0.19"
+    }
+  }
 }
