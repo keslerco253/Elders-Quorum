@@ -3,7 +3,9 @@ node_modules
 data
 .env
 .git
-docs
+# Docs stay out, except the guide the app shows (Admin -> Leader guide).
+docs/*
+!docs/PRESIDENCY-GUIDE.md
 tests
 backups
 mobile
