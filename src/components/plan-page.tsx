@@ -31,8 +31,18 @@ export function PlanPage({ blocks, fileSrc }: { blocks: Block[]; fileSrc?: (file
 
 export function Media({ block: b, src = `/files/${b.file}` }: { block: MediaBlock; src?: string }) {
   if (b.type === "image" && isPicture(b.file)) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={b.caption || b.name} loading="lazy" />;
+    // Tap the picture (or the link under it) to open it full size, like a PDF.
+    return (
+      <>
+        <a href={src} target="_blank" rel="noreferrer" title="Open the picture">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt={b.caption || b.name} loading="lazy" />
+        </a>
+        <a href={src} target="_blank" rel="noreferrer" className="plan-open link">
+          Open the picture
+        </a>
+      </>
+    );
   }
   if (b.type === "pdf" && b.pages && b.file.endsWith(".pdf")) return <PdfPages src={src} name={b.name} />;
   return (
