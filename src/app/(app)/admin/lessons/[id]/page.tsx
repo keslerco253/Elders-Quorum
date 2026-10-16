@@ -8,7 +8,8 @@ import { isPresidency } from "@/lib/permissions";
 import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { askTeacher, assignTeacher, cancelTeachingRequest, deleteLesson, saveLesson } from "../actions";
+import { askTeacher, assignTeacher, cancelTeachingRequest, deleteLesson, refillFromCfm, saveLesson } from "../actions";
+import { cfmWeekOn, usesCfm } from "@/lib/cfm";
 import { orgRoster } from "@/lib/orgs";
 
 export const metadata = { title: "Edit lesson" };
@@ -20,6 +21,9 @@ export default async function EditLessonPage({ params, searchParams }: { params:
   const lesson = getLesson(user.org_id, Number(id));
   if (!lesson) notFound();
   const presidency = isPresidency(user);
+  // Sunday School: that week's Come, Follow Me lesson.
+  const cfm = usesCfm(user.org);
+  const week = cfm ? cfmWeekOn(lesson.date) : undefined;
   const volunteers = db()
     .prepare("SELECT m.id, m.display_name FROM lesson_volunteers v JOIN members m ON m.id = v.member_id WHERE v.lesson_id = ? ORDER BY v.created_at")
     .all(lesson.id) as { id: number; display_name: string }[];
@@ -35,8 +39,27 @@ export default async function EditLessonPage({ params, searchParams }: { params:
     <>
       <PageHeader title={formatDate(lesson.date)} back={{ href: "/admin/lessons", label: "Manage lessons" }} actions={<Link href={`/lessons/${lesson.id}`} className="btn-secondary">View as member</Link>} />
       <Flash msg={sp.msg} />
+      {week && (
+        <div className="card mb-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div>
+            <div className="font-medium">Come, Follow Me this week: {week.reading}</div>
+            <div className="text-muted">
+              {lesson.cfm_auto ? "This lesson was filled from it. Change anything below and it stays as you set it." : "This lesson has been changed by hand."}
+            </div>
+          </div>
+          {!lesson.cfm_auto && (
+            <form action={refillFromCfm}>
+              <input type="hidden" name="item_id" value={lesson.id} />
+              <SubmitButton className="btn-secondary btn-sm" confirm="Put this Sunday back to the Come, Follow Me lesson?">
+                Refill from Come, Follow Me
+              </SubmitButton>
+            </form>
+          )}
+        </div>
+      )}
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <form action={saveLesson} className="card space-y-4">
+        {/* Keyed on the lesson, so it shows the new values after a refill. */}
+        <form key={`${lesson.kind}|${lesson.date}|${lesson.title}|${lesson.speaker}|${lesson.url}`} action={saveLesson} className="card space-y-4">
           <input type="hidden" name="item_id" value={lesson.id} />
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -44,7 +67,7 @@ export default async function EditLessonPage({ params, searchParams }: { params:
                 This Sunday is
               </label>
               <select id="kind" name="kind" defaultValue={lesson.kind} className="input">
-                <option value="talk">A lesson on a talk</option>
+                <option value="talk">{cfm ? "A lesson" : "A lesson on a talk"}</option>
                 <option value="general_conference">General Conference (no lesson)</option>
                 <option value="stake_conference">Stake Conference (no lesson)</option>
               </select>
@@ -58,21 +81,21 @@ export default async function EditLessonPage({ params, searchParams }: { params:
           </div>
           <div>
             <label className="label" htmlFor="url">
-              Talk link (Gospel Library)
+              {cfm ? "Lesson link (Gospel Library)" : "Talk link (Gospel Library)"}
             </label>
             <input id="url" name="url" type="url" defaultValue={lesson.url} className="input" placeholder="https://www.churchofjesuschrist.org/study/general-conference/…" />
-            <p className="hint">Leave the title and speaker blank to look them up from the link.</p>
+            {!cfm && <p className="hint">Leave the title and speaker blank to look them up from the link.</p>}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="label" htmlFor="title">
-                Talk title
+                {cfm ? "Reading" : "Talk title"}
               </label>
               <input id="title" name="title" defaultValue={lesson.title} className="input" />
             </div>
             <div>
               <label className="label" htmlFor="speaker">
-                Speaker
+                {cfm ? "Lesson title" : "Speaker"}
               </label>
               <input id="speaker" name="speaker" defaultValue={lesson.speaker} className="input" />
             </div>

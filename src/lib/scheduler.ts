@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 import { db, DATA_DIR } from "./db";
 import { audienceMembers, claimOnce, notify, recipientById, type Recipient } from "./notify";
 import { lessonOn } from "./lessons";
+import { ensureCfmLessons, usesCfm } from "./cfm";
 import { getNotes } from "./lesson-notes";
 import { respondPath } from "./teaching";
 import { formatDate, formatDateTime } from "./time";
@@ -60,8 +61,14 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
     const lesson = lessonOn(org.id, date);
     if (!lesson) continue;
     const when = w.tag === "sat" ? "Tomorrow" : "This Sunday";
+    // Sunday School follows Come, Follow Me: Sunday evening, the coming week's reading; on
+    // Saturday, a reminder about class only when a teacher is set for it.
+    const cfm = usesCfm(org) && lesson.kind === "talk" && !!lesson.cfm_auto;
     let payload: PushPayload;
-    if (lesson.kind !== "talk") {
+    if (cfm && w.tag === "sat" && !lesson.teacher_id) continue;
+    if (cfm && w.tag === "sun") {
+      payload = { ...renderTemplate(org.id, "cfm_week", { reading: lesson.title, lesson_title: lesson.speaker }), url: `/lessons/${lesson.id}` };
+    } else if (lesson.kind !== "talk") {
       const conf = lesson.kind === "general_conference" ? "General Conference" : "Stake Conference";
       payload = { ...renderTemplate(org.id, "lesson_conference", { day: when, conference: conf, org: org.label, this_week: w.tag === "sat" ? "tomorrow" : "this week" }), url: `/lessons/${lesson.id}` };
     } else {
@@ -254,6 +261,8 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   const orgs = db()
     .prepare("SELECT o.id, o.kind, w.timezone, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS label, o.hidden_features FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.active = 1")
     .all() as OrgCtx[];
+  // Sunday School's lessons fill from Come, Follow Me as new weeks come up.
+  for (const o of orgs) if (usesCfm(o) && hasFeature(o, "lessons")) ensureCfmLessons(o.id, now.setZone(o.timezone).toISODate()!);
   return orgs.flatMap((o) => [
     ...(hasFeature(o, "lessons") ? lessonReminders(o, now) : []),
     ...eventReminders(o, now),

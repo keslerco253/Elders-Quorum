@@ -12,6 +12,7 @@ import { notify } from "@/lib/notify";
 import { formatDate, sundays, todayIn } from "@/lib/time";
 import type { LessonKind, Member } from "@/lib/types";
 import { wardMember } from "@/lib/orgs";
+import { refillCfmLesson } from "@/lib/cfm";
 
 const KINDS: LessonKind[] = ["talk", "general_conference", "stake_conference"];
 function go(path: string, text: string): never {
@@ -87,8 +88,10 @@ export async function saveLesson(fd: FormData) {
   const other = date !== lesson.date ? (d.prepare("SELECT id, title FROM lessons WHERE org_id = ? AND date = ? AND id <> ?").get(user.org_id, date, lesson.id) as { id: number; title: string } | undefined) : undefined;
   d.transaction(() => {
     if (other) d.prepare("UPDATE lessons SET date = ? WHERE id = ?").run(`swap-${other.id}`, other.id);
-    d.prepare("UPDATE lessons SET kind = ?, title = ?, speaker = ?, url = ?, date = ? WHERE id = ?").run(kind, title, speaker, url, date, lesson.id);
-    if (other) d.prepare("UPDATE lessons SET date = ? WHERE id = ?").run(lesson.date, other.id);
+    // Changed by hand: a Come, Follow Me lesson is no longer updated from the schedule.
+    const handEdited = kind !== lesson.kind || title !== lesson.title || speaker !== lesson.speaker || url !== lesson.url || date !== lesson.date;
+    d.prepare("UPDATE lessons SET kind = ?, title = ?, speaker = ?, url = ?, date = ?, cfm_auto = cfm_auto * ? WHERE id = ?").run(kind, title, speaker, url, date, handEdited ? 0 : 1, lesson.id);
+    if (other) d.prepare("UPDATE lessons SET date = ?, cfm_auto = 0 WHERE id = ?").run(lesson.date, other.id);
   })();
   refresh();
   go(
@@ -99,6 +102,14 @@ export async function saveLesson(fd: FormData) {
         ? `Lesson moved to ${formatDate(date, "short")}.`
         : "Lesson saved.",
   );
+}
+
+export async function refillFromCfm(fd: FormData) {
+  const user = await requireAdmin();
+  const id = Number(fd.get("item_id"));
+  const ok = refillCfmLesson(user.org_id, id);
+  refresh();
+  go(`/admin/lessons/${id}`, ok ? "Back to this week's Come, Follow Me lesson." : "There's no Come, Follow Me lesson for this Sunday.");
 }
 
 export async function assignTeacher(fd: FormData) {

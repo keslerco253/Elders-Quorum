@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
+import { usesCfm } from "@/lib/cfm";
 import { pastLessons, upcomingLessons } from "@/lib/lessons";
 import { currentLessonDate, todayIn } from "@/lib/time";
 import { isAdmin } from "@/lib/permissions";
@@ -10,6 +11,7 @@ export const metadata = { title: "Lessons" };
 
 export default async function LessonsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
+  const cfm = usesCfm(user.org);
   const sp = await searchParams;
   const today = todayIn(user.ward.timezone);
   const past = sp.show === "past";
@@ -55,13 +57,13 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
                       <div className="font-semibold">{conf}</div>
                     ) : (
                       <>
-                        <div className="truncate font-semibold">{l.title || "Talk to be announced"}</div>
+                        <div className="truncate font-semibold">{l.title || (cfm ? "Lesson to be announced" : "Talk to be announced")}</div>
                         <div className="truncate text-sm text-muted">{l.speaker}</div>
                       </>
                     )}
                     {!conf && (
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-                        {l.teacher_name ? <span>Teacher: {l.teacher_name}</span> : <Badge tone="warn">Teacher needed</Badge>}
+                        {l.teacher_name ? <span>Teacher: {l.teacher_name}</span> : cfm ? null : <Badge tone="warn">Teacher needed</Badge>}
                         {l.comment_count > 0 && <span>· {l.comment_count} comment{l.comment_count === 1 ? "" : "s"}</span>}
                       </div>
                     )}

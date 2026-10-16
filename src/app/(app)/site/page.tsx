@@ -10,9 +10,11 @@ import { appUrl } from "@/lib/config";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addWard, approveNewWard, declineNewWard, leadWard, removeWard, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
+import { addWard, approveNewWard, declineNewWard, leadWard, loadCfmSchedule, removeCfmYear, removeWard, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
 import { pendingWards } from "@/lib/ward-review";
 import { formatPhone } from "@/lib/contact";
+import { cfmYears, manualUrl } from "@/lib/cfm";
+import type { CfmWeek } from "@/lib/cfm";
 
 export const metadata = { title: "Site owner" };
 
@@ -61,6 +63,11 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
     )
     .all() as { id: number; result: string; note: string; created_at: string; name: string | null }[];
   const pending = pendingWards();
+  const cfm = cfmYears();
+  const thisYear = new Date().getFullYear();
+  // Next year's manual is usually out by late fall.
+  const loadYear = cfm.some((y) => Number(y.year) === thisYear) ? thisYear + 1 : thisYear;
+  const cfmWeeks = db().prepare("SELECT * FROM cfm_weeks ORDER BY sunday").all() as CfmWeek[];
   return (
     <>
       <PageHeader title="Site owner" back={{ href: "/more", label: "More" }} subtitle="Every ward on this app, email and texting, and backups. Only you see this page." />
@@ -240,6 +247,80 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
           </div>
         </Section>
       )}
+
+      <div id="cfm" className="scroll-mt-20">
+        <Section title="Come, Follow Me schedule">
+          <p className="mb-3 text-sm text-muted">
+            Sunday School lessons in every ward are filled from this, a lesson for every week, and members get a weekly reminder of what to study. Load each
+            year once the Church posts the new manual (usually in the fall).
+          </p>
+          {cfm.length > 0 && (
+            <ul className="mb-3 space-y-2">
+              {cfm.map((y) => (
+                <li key={y.year} className="card flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span>
+                    <strong>{y.year}</strong>: {y.weeks} weeks, {formatDate(y.first, "short")} to {formatDate(y.last, "short")}
+                  </span>
+                  <form action={removeCfmYear}>
+                    <input type="hidden" name="year" value={y.year} />
+                    <SubmitButton className="btn-secondary btn-sm" confirm={`Remove the ${y.year} schedule? Lessons already filled stay as they are.`}>
+                      Remove
+                    </SubmitButton>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+          {cfmWeeks.length > 0 && (
+            <details className="mb-3 text-sm">
+              <summary className="link cursor-pointer">See every week</summary>
+              <ul className="mt-2 divide-y divide-border rounded-xl border border-border bg-surface">
+                {cfmWeeks.map((w) => (
+                  <li key={w.sunday} className="flex gap-3 px-3 py-2">
+                    <span className="w-24 shrink-0 text-muted">{formatDate(w.sunday, "short")}</span>
+                    <span className="min-w-0">
+                      <a className="link" href={w.url} target="_blank" rel="noreferrer">
+                        {w.reading}
+                      </a>
+                      {w.theme && <span className="block text-muted">{w.theme}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          <form action={loadCfmSchedule} className="card space-y-3">
+            <div className="grid gap-3 sm:grid-cols-[8rem_1fr]">
+              <div>
+                <label className="label" htmlFor="cfm-year">
+                  Year
+                </label>
+                <input id="cfm-year" name="year" type="number" min={2025} max={2100} defaultValue={loadYear} className="input" required />
+              </div>
+              <div>
+                <label className="label" htmlFor="cfm-manual">
+                  The manual on churchofjesuschrist.org
+                </label>
+                <input id="cfm-manual" name="manual" type="url" className="input" defaultValue={manualUrl(loadYear)} />
+              </div>
+            </div>
+            <div>
+              <label className="label" htmlFor="cfm-contents">
+                Or paste the manual&apos;s contents (optional)
+              </label>
+              <textarea
+                id="cfm-contents"
+                name="contents"
+                rows={5}
+                className="input text-sm"
+                placeholder={"If loading from the website doesn't work: open the manual in Gospel Library, copy its list of lessons and paste it here.\n\nJanuary 5–11: Moses 1; Abraham 3\n“This Is My Work and My Glory”\nJanuary 12–18: Genesis 1–2; Moses 2–3\n…"}
+              />
+            </div>
+            <p className="hint">Loading a year again updates its lessons, except ones someone has changed by hand.</p>
+            <SubmitButton pendingText="Loading…">Load the schedule</SubmitButton>
+          </form>
+        </Section>
+      </div>
 
       <Section title="Start a ward for someone">
         <form action={addWard} className="card max-w-xl space-y-3">

@@ -99,6 +99,17 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     ],
   },
   {
+    key: "cfm_week",
+    label: "Come, Follow Me this week (Sunday School)",
+    about: "To Sunday School on Sunday evening: the coming week's Come, Follow Me reading.",
+    title: "This week's Come, Follow Me: {reading}",
+    body: "[{lesson_title}] Tap to read this week's lesson.",
+    vars: [
+      v("reading", "The week's reading", "Genesis 1–2; Moses 2–3"),
+      v("lesson_title", "The lesson's title", "“In the Beginning God Created the Heaven and the Earth”"),
+    ],
+  },
+  {
     key: "lesson_conference",
     label: "No lesson (conference weekend)",
     about: "Instead of the lesson reminder on a General or Stake Conference weekend.",

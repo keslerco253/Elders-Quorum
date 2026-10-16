@@ -1047,4 +1047,19 @@ ALTER TABLE ward_plans ADD COLUMN icon TEXT;
 ALTER TABLE ward_plans ADD COLUMN icon_file TEXT;
 `,
   },
+  {
+    // Come, Follow Me: the weekly schedule (for the whole site, loaded by the site owner),
+    // and which Sunday School lessons were filled from it (and not changed by hand since).
+    id: 47,
+    sql: `
+CREATE TABLE cfm_weeks (
+  sunday TEXT PRIMARY KEY,
+  start TEXT NOT NULL,
+  reading TEXT NOT NULL,
+  theme TEXT NOT NULL DEFAULT '',
+  url TEXT NOT NULL DEFAULT ''
+);
+ALTER TABLE lessons ADD COLUMN cfm_auto INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];

@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { markGeneralConferences, openLessonSundays, upcomingLessons } from "@/lib/lessons";
+import {
+  markGeneralConferences,
+  openLessonSundays,
+  upcomingLessons,
+} from "@/lib/lessons";
 import { formatDate, sundayOnOrAfter, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { conferenceLabel } from "@/components/lesson-bits";
 import { addSundays, fillTalks } from "./actions";
+import { ensureCfmLessons, lastCfmSunday, usesCfm } from "@/lib/cfm";
 
 export const metadata = { title: "Manage lessons" };
 
@@ -17,6 +22,10 @@ export default async function AdminLessonsPage({
   const user = await requireAdmin();
   const sp = await searchParams;
   const today = todayIn(user.ward.timezone);
+  // Sunday School: every week is filled from Come, Follow Me.
+  const cfm = usesCfm(user.org);
+  const cfmThrough = cfm ? lastCfmSunday() : undefined;
+  if (cfm) ensureCfmLessons(user.org_id, today);
   // General Conference Sundays (first Sunday of April and October) are marked on their own.
   markGeneralConferences(user.org_id, today);
   const lessons = upcomingLessons(user.org_id, today, 80);
@@ -34,83 +43,124 @@ export default async function AdminLessonsPage({
       <PageHeader
         title="Manage lessons"
         back={{ href: "/admin", label: "Admin" }}
-        subtitle="Set up six months of lessons after each General Conference."
+        subtitle={
+          cfm
+            ? "Every week's Come, Follow Me lesson, filled in for you."
+            : "Set up six months of lessons after each General Conference."
+        }
       />
       <Flash msg={sp.msg} />
 
-      <div className="mb-6 grid gap-4 md:grid-cols-2">
-        <form action={addSundays} className="card space-y-3">
-          <h2 className="h2">1. Add Sundays</h2>
-          <p className="text-sm text-muted">
-            Creates a blank lesson for every Sunday. Sundays that already have a
-            lesson are skipped.
+      {cfm ? (
+        <div className="card mb-6 space-y-2 text-sm">
+          <h2 className="h2">Come, Follow Me</h2>
+          {cfmThrough && cfmThrough >= today ? (
+            <p>
+              Every week through{" "}
+              <strong>{formatDate(cfmThrough, "short")}</strong> is filled from
+              Come, Follow Me: the reading, the lesson&apos;s title and a link
+              to it in Gospel Library. Members get a reminder each Sunday
+              evening of the coming week&apos;s reading. General Conference
+              Sundays are marked for you.
+            </p>
+          ) : (
+            <p>
+              The Come, Follow Me schedule for this year hasn&apos;t been loaded
+              yet. The site owner loads it once a year; lessons fill in as soon
+              as it is.
+            </p>
+          )}
+          <p className="text-muted">
+            Tap a Sunday to assign a teacher, mark Stake Conference, or change
+            the lesson. What you change stays as you set it, and you can put it
+            back to the Come, Follow Me lesson anytime.
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label" htmlFor="start">
-                Starting
-              </label>
-              <input
-                id="start"
-                name="start"
-                type="date"
-                required
-                defaultValue={nextStart}
-                className="input"
-              />
+          {user.is_site_owner && (
+            <Link href="/site#cfm" className="link">
+              Load or update the schedule (site owner)
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="mb-6 grid gap-4 md:grid-cols-2">
+          <form action={addSundays} className="card space-y-3">
+            <h2 className="h2">1. Add Sundays</h2>
+            <p className="text-sm text-muted">
+              Creates a blank lesson for every Sunday. Sundays that already have
+              a lesson are skipped.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label" htmlFor="start">
+                  Starting
+                </label>
+                <input
+                  id="start"
+                  name="start"
+                  type="date"
+                  required
+                  defaultValue={nextStart}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="label" htmlFor="weeks">
+                  Weeks
+                </label>
+                <input
+                  id="weeks"
+                  name="weeks"
+                  type="number"
+                  min={1}
+                  max={60}
+                  defaultValue={26}
+                  className="input"
+                />
+              </div>
             </div>
-            <div>
-              <label className="label" htmlFor="weeks">
-                Weeks
-              </label>
-              <input
-                id="weeks"
-                name="weeks"
-                type="number"
-                min={1}
-                max={60}
-                defaultValue={26}
-                className="input"
-              />
-            </div>
-          </div>
-          <SubmitButton>Add Sundays</SubmitButton>
-        </form>
+            <SubmitButton>Add Sundays</SubmitButton>
+          </form>
 
-        <form action={fillTalks} className="card space-y-3">
-          <h2 className="h2">2. Paste talk links</h2>
-          <p className="text-sm text-muted">
-            Paste Gospel Library talk links in order, one per line. They fill
-            the open Sundays in date order, skipping any that are already
-            filled, and titles and speakers are looked up automatically. General Conference Sundays are
-            marked for you; mark any Stake Conference Sunday first (tap it
-            below) so it&apos;s skipped.
-          </p>
-          <textarea
-            name="urls"
-            rows={4}
-            className="input font-mono text-xs"
-            placeholder="https://www.churchofjesuschrist.org/study/general-conference/…"
-          />
-          <p className="rounded-lg bg-surface-2 px-3 py-2 text-sm">
-            {open.length ? (
-              <>
-                Starts at the next open Sunday, <strong>{formatDate(open[0].date, "short")}</strong>, and skips Sundays that already have a talk or a conference
-                {open.length > 1 ? ` (${open.length} open Sundays ahead).` : " (the only open Sunday)."}
-              </>
-            ) : (
-              "Every Sunday ahead already has a talk. Add Sundays first."
-            )}
-          </p>
-          <SubmitButton pendingText="Looking up talks…">
-            Fill lessons
-          </SubmitButton>
-        </form>
-      </div>
+          <form action={fillTalks} className="card space-y-3">
+            <h2 className="h2">2. Paste talk links</h2>
+            <p className="text-sm text-muted">
+              Paste Gospel Library talk links in order, one per line. They fill
+              the open Sundays in date order, skipping any that are already
+              filled, and titles and speakers are looked up automatically.
+              General Conference Sundays are marked for you; mark any Stake
+              Conference Sunday first (tap it below) so it&apos;s skipped.
+            </p>
+            <textarea
+              name="urls"
+              rows={4}
+              className="input font-mono text-xs"
+              placeholder="https://www.churchofjesuschrist.org/study/general-conference/…"
+            />
+            <p className="rounded-lg bg-surface-2 px-3 py-2 text-sm">
+              {open.length ? (
+                <>
+                  Starts at the next open Sunday,{" "}
+                  <strong>{formatDate(open[0].date, "short")}</strong>, and
+                  skips Sundays that already have a talk or a conference
+                  {open.length > 1
+                    ? ` (${open.length} open Sundays ahead).`
+                    : " (the only open Sunday)."}
+                </>
+              ) : (
+                "Every Sunday ahead already has a talk. Add Sundays first."
+              )}
+            </p>
+            <SubmitButton pendingText="Looking up talks…">
+              Fill lessons
+            </SubmitButton>
+          </form>
+        </div>
+      )}
 
       <h2 className="h2 mb-2">Each Sunday</h2>
       <p className="mb-2 text-sm text-muted">
-        Tap a Sunday to change the talk, mark a conference, or assign a teacher.
+        Tap a Sunday to {cfm ? "change the lesson" : "change the talk"}, mark a
+        conference, or assign a teacher.
       </p>
       {lessons.length === 0 ? (
         <Empty>No upcoming lessons yet. Start with step 1.</Empty>
@@ -131,7 +181,9 @@ export default async function AdminLessonsPage({
                     <div className="truncate">
                       {conf ??
                         (l.title || (
-                          <span className="text-muted">No talk yet</span>
+                          <span className="text-muted">
+                            {cfm ? "No lesson yet" : "No talk yet"}
+                          </span>
                         ))}
                     </div>
                     {!conf && (
@@ -145,6 +197,8 @@ export default async function AdminLessonsPage({
                               </span>
                             )}
                           </span>
+                        ) : cfm && !l.decline_count ? (
+                          <span>No teacher</span>
                         ) : (
                           <Badge tone="warn">
                             {l.decline_count > 0
@@ -157,7 +211,9 @@ export default async function AdminLessonsPage({
                             {l.volunteer_count} volunteered
                           </Badge>
                         )}
-                        {l.asked_names && !l.teacher_name && <Badge tone="info">Asked {l.asked_names}</Badge>}
+                        {l.asked_names && !l.teacher_name && (
+                          <Badge tone="info">Asked {l.asked_names}</Badge>
+                        )}
                       </div>
                     )}
                   </div>

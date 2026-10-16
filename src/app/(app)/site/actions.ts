@@ -13,6 +13,7 @@ import { emailHtml, sendMail } from "@/lib/mail";
 import { sendSms } from "@/lib/sms";
 import { formatPhone } from "@/lib/contact";
 import { approveWard, declineWard } from "@/lib/ward-review";
+import { type CfmWeek, deleteCfmYear, fetchCfmSchedule, manualUrl, parseCfmContents, saveCfmSchedule } from "@/lib/cfm";
 
 function go(text: string, error = false): never {
   redirect(`/site?${error ? "error" : "msg"}=${encodeURIComponent(text)}`);
@@ -119,4 +120,37 @@ export async function declineNewWard(fd: FormData) {
   if (!w) go("That ward was already handled.", true);
   revalidatePath("/", "layout");
   go(`${w.name} was declined and deleted.`);
+}
+
+/**
+ * Loads a year's Come, Follow Me schedule: from the Church's website, or from the
+ * manual's contents pasted in. Sunday School lessons in every ward fill from it.
+ */
+export async function loadCfmSchedule(fd: FormData) {
+  await requireSiteOwner();
+  const year = Number(fd.get("year"));
+  if (!Number.isInteger(year) || year < 2025 || year > 2100) go("Choose a year.", true);
+  const raw = String(fd.get("manual") || "").trim();
+  const manual = /^https:\/\/(www\.)?churchofjesuschrist\.org\/study\/manual\/[\w-]+$/.test(raw.replace(/[?#].*$/, "").replace(/\/$/, "")) ? raw.replace(/[?#].*$/, "").replace(/\/$/, "") : manualUrl(year);
+  const pasted = String(fd.get("contents") || "");
+  let weeks: CfmWeek[] = [];
+  if (pasted.trim()) weeks = parseCfmContents(pasted, year, manual);
+  else {
+    try {
+      weeks = await fetchCfmSchedule(year, manual);
+    } catch (e) {
+      go(`Couldn't load it from the Church website (${e instanceof Error ? e.message : "no answer"}). Copy the manual's contents and paste them below instead.`, true);
+    }
+  }
+  if (weeks.length < 10) go(`Only ${weeks.length} weeks were found${pasted.trim() ? " in what you pasted" : " on that page"}. Check the manual's address, or paste its contents (each week's dates and reading, like "January 5–11: Moses 1; Abraham 3").`, true);
+  saveCfmSchedule(weeks);
+  revalidatePath("/", "layout");
+  redirect(`/site?msg=${encodeURIComponent(`Come, Follow Me ${year}: ${weeks.length} weeks loaded, ${weeks[0].start} to ${weeks.at(-1)!.sunday}. Check a few below.`)}#cfm`);
+}
+
+export async function removeCfmYear(fd: FormData) {
+  await requireSiteOwner();
+  deleteCfmYear(String(fd.get("year")));
+  revalidatePath("/site");
+  go("Schedule removed.");
 }

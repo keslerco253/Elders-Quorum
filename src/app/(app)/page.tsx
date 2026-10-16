@@ -23,6 +23,7 @@ import { askPath, pendingRequestsFor } from "@/lib/teaching-requests";
 import { invitePath, pendingInvitesFor, whenText } from "@/lib/planned-visits";
 import { hasFeature, leadersPhrase, myOrgs } from "@/lib/orgs";
 import { withOrg } from "@/lib/org-cookie";
+import { usesCfm } from "@/lib/cfm";
 
 export default async function HomePage() {
   const user = await requireUser();
@@ -127,10 +128,12 @@ export default async function HomePage() {
       {lessonNexts.map(({ org, lesson: [next, ...later] }) => {
         const nextHasNotes = !!(next && getNotes(next.id)?.published_body);
         const many = lessonNexts.length > 1;
+        // Sunday School: the week's Come, Follow Me (a teacher only on the Sundays class meets).
+        const cfm = usesCfm(org);
         return (
           <Section
             key={org.id}
-            title={`${many ? `${org.label}: ` : ""}${next && next.date === today ? "Today" : "This Sunday"}`}
+            title={`${many ? `${org.label}: ` : ""}${cfm ? "Come, Follow Me this week" : next && next.date === today ? "Today" : "This Sunday"}`}
             actions={
               <OrgLink href={inOrg("/lessons", org.id)} className="link text-sm">
                 All lessons
@@ -147,12 +150,12 @@ export default async function HomePage() {
                     </div>
                   ) : (
                     <>
-                      <div className="font-semibold">{next.title || "Talk to be announced"}</div>
+                      <div className="font-semibold">{next.title || (cfm ? "Lesson to be announced" : "Talk to be announced")}</div>
                       {next.speaker && <div className="text-sm text-muted">{next.speaker}</div>}
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                         {next.teacher_name ? (
                           <span className="text-muted">Teacher: {next.teacher_name}</span>
-                        ) : (
+                        ) : cfm ? null : (
                           <Badge tone="warn">Teacher needed</Badge>
                         )}
                         {nextHasNotes && <Badge tone="info">Teacher&apos;s notes posted</Badge>}
@@ -175,7 +178,7 @@ export default async function HomePage() {
                     className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-sm hover:bg-surface-2"
                   >
                     <DateChip date={l.date} />
-                    <span className="min-w-0 flex-1 truncate">{conferenceLabel(l.kind) ?? (l.title || "Talk to be announced")}</span>
+                    <span className="min-w-0 flex-1 truncate">{conferenceLabel(l.kind) ?? (l.title || (cfm ? "Lesson to be announced" : "Talk to be announced"))}</span>
                   </OrgLink>
                 ))}
               </div>

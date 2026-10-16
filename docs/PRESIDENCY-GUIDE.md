@@ -88,6 +88,28 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
 Members get reminders automatically: **Sunday 7 PM** about the next Sunday's
 lesson and **Saturday 8 AM** about tomorrow's.
 
+## Sunday School: Come, Follow Me
+
+Sunday School's lessons fill themselves from Come, Follow Me: **every week**
+gets that week's reading, the lesson's title and a link to it in Gospel
+Library, so members always know what to study. There's nothing to add or
+paste.
+
+- **Weekly reminder:** each Sunday evening, Sunday School members get "This
+  week's Come, Follow Me" with the coming week's reading. The Saturday "class
+  tomorrow" reminder goes out only for Sundays with a teacher assigned.
+- **Teachers:** assign them on the Sundays class meets (Admin → Lessons → tap
+  the Sunday). Weeks without a teacher just show the reading.
+- **Changing a lesson:** tap the Sunday and change anything; it stays as you
+  set it. **Refill from Come, Follow Me** puts it back.
+- General Conference Sundays are marked for you; mark Stake Conference as
+  usual.
+- **Site owner, once a year:** More → Site owner → **Come, Follow Me
+  schedule** → **Load the schedule** (it reads the manual from
+  churchofjesuschrist.org). If that doesn't work, open the manual in Gospel
+  Library, copy its list of lessons, paste it in the box and load again. Check
+  **See every week** afterwards.
+
 ## Teachers
 
 - Members tap **I'd like to teach this** on a lesson. You get a notification.

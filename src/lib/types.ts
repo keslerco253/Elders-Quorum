@@ -119,6 +119,8 @@ export interface Lesson {
   url: string;
   teacher_id: number | null;
   teacher_confirmed_at: string | null;
+  /** Filled from Come, Follow Me (Sunday School) and not changed by hand since. */
+  cfm_auto: number;
 }
 
 export interface Comment {
