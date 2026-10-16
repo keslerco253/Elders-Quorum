@@ -12,6 +12,7 @@ import { adminCounts } from "@/lib/admin-counts";
 import { SubmitButton } from "@/components/client";
 import { QuickLinks } from "@/components/quick-links";
 import { PushToggle } from "@/components/push-toggle";
+import { AppLockToggle } from "@/components/app-lock-toggle";
 import { signOut } from "../../(public)/actions";
 import { SignOutForm } from "@/components/sign-out-form";
 import { deleteMyAccount, setTheme } from "./actions";
@@ -61,6 +62,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
       <Section title="Notifications">
         <PushToggle />
       </Section>
+      <AppLockToggle />
       <Section title="Appearance">
         <form action={setTheme} className="flex gap-2">
           {(["system", "light", "dark"] as const).map((t) => (

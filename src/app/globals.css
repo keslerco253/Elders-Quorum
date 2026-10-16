@@ -334,3 +334,7 @@ body {
   .slot-count-label { @apply block; }
   .slot-count { @apply flex-1; width: auto; }
 }
+
+/* Inside the phone app, the app draws the tab bar natively below the page. */
+html.in-app .web-tabbar { display: none; }
+html.in-app main.app-main { padding-bottom: 2rem; }

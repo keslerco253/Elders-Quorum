@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       />
       <NotificationSeen />
       <StayFresh />
-      <main className="mx-auto max-w-5xl px-4 pt-5 pb-28 md:pb-12">
+      <main className="app-main mx-auto max-w-5xl px-4 pt-5 pb-28 md:pb-12">
         {children}
         <Disclaimer className="mt-12" />
       </main>

@@ -10,12 +10,71 @@ export interface AppPushStatus {
   platform: string;
 }
 
-type AppWindow = Window & { MyWardLinkApp?: { platform: string }; ReactNativeWebView?: { postMessage(msg: string): void } };
+type AppWindow = Window & { MyWardLinkApp?: { platform: string; tabs?: boolean }; ReactNativeWebView?: { postMessage(msg: string): void } };
 
 export const inApp = () => typeof window !== "undefined" && !!(window as AppWindow).MyWardLinkApp;
+/** Newer versions of the app draw the tab bar themselves. */
+export const appHasTabs = () => typeof window !== "undefined" && !!(window as AppWindow).MyWardLinkApp?.tabs;
 
-export function postToApp(msg: { type: "ready" | "enablePush" | "openSettings" } | { type: "open"; url: string }) {
+export interface AppTab {
+  href: string;
+  label: string;
+  icon: string;
+  badge?: number;
+}
+
+export function postToApp(
+  msg:
+    | { type: "ready" | "enablePush" | "openSettings" | "lockStatus" }
+    | { type: "open"; url: string }
+    | { type: "tabs"; items: AppTab[]; active: string | null }
+    | { type: "badge"; count: number }
+    | { type: "share"; url?: string; text?: string; title?: string }
+    | { type: "setLock"; on: boolean },
+) {
   (window as AppWindow).ReactNativeWebView?.postMessage(JSON.stringify(msg));
+}
+
+export interface AppLockStatus {
+  type: "lock";
+  available: boolean;
+  /** "Face ID", "Touch ID", "fingerprint"... */
+  kind: string;
+  on: boolean;
+}
+
+export function onAppLock(cb: (s: AppLockStatus) => void) {
+  const listener = (e: Event) => {
+    const d = (e as CustomEvent).detail;
+    if (d?.type === "lock") cb(d as AppLockStatus);
+  };
+  window.addEventListener("mwl-native", listener);
+  return () => window.removeEventListener("mwl-native", listener);
+}
+
+/**
+ * Shares a link: the phone's share sheet in the app (or a browser that has one),
+ * else copies it. Returns "copied" when it was copied instead.
+ */
+export async function shareLink(s: { url: string; text?: string; title?: string }): Promise<"shared" | "copied" | "failed"> {
+  if (inApp()) {
+    postToApp({ type: "share", ...s });
+    return "shared";
+  }
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: s.title, text: s.text, url: s.url });
+      return "shared";
+    } catch {
+      // Cancelled, or not allowed: copy instead.
+    }
+  }
+  try {
+    await navigator.clipboard.writeText([s.text, s.url].filter(Boolean).join(" "));
+    return "copied";
+  } catch {
+    return "failed";
+  }
 }
 
 export function onAppPush(cb: (s: AppPushStatus) => void) {

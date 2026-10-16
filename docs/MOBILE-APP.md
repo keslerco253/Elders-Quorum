@@ -163,19 +163,59 @@ account in the app (More → Delete my account).
 
 ## App review
 
-Both stores sign in to test the app. Since sign-in is by emailed code:
+Apple turns down apps that look like "just a website in a wrapper"
+(Guideline 4.2). The app is built to show reviewers what a website can't do,
+and the review notes below point it out.
 
-1. In the app (or on the website), create a reviewer account in a small demo
-   ward. Start a ward (e.g. "Demo Ward") with an email like
-   `appreview@yourdomain`, then add a sample lesson, event and sign-up.
-2. On Northflank, set `REVIEW_LOGIN` to `appreview@yourdomain:123456`. That
-   email then signs in with code **123456**, and no email is sent.
-3. In the review notes, give Apple and Google: "Sign in with
-   appreview@yourdomain, tap Send me a code, and enter 123456." Mention that
-   the app is for members of a ward who join with a join code, and that it
-   isn't affiliated with the Church.
-4. After approval, remove `REVIEW_LOGIN`. Put it back when the next app
-   version goes to review.
+**What's native in the app:**
+
+- A native tab bar (Home, Lessons, Calendar, Plans or Service, More) with
+  badges; tapping the tab you're on scrolls to the top, with haptic feedback.
+- Push notifications through Apple and Google, the unread count on the app
+  icon, and tapping a notification opens the right page.
+- Lock with Face ID / Touch ID / fingerprint (More → Privacy).
+- The phone's share sheet for invitations, flyers and sign-up links.
+- Sign-in codes offered above the keyboard; links to the site open in the app;
+  calendar links go to the phone's calendar; pull to refresh; an offline screen.
+
+**Before submitting:**
+
+1. Site owner page → **App Store review** → enter an email you can receive
+   (e.g. `appreview@mywardlink.net`) → **Set up the demo ward**. This builds
+   "Maple Grove Ward (Demo)" with made-up people, lessons, events, a service
+   sign-up and a plan, and a plain member account for the reviewer. Nobody
+   real is in it.
+2. On Northflank, set `REVIEW_LOGIN` to that email, a colon, and six digits you
+   pick: `appreview@mywardlink.net:482913`. That email then signs in with that
+   code and no email is sent. It only works for an account that is in the demo
+   ward and nowhere else, and wrong guesses are limited like any code.
+3. Paste the review notes below into App Store Connect (App Review
+   Information → Notes) and Play Console (App access), with the email and code
+   under "Sign-in required".
+4. After approval, remove `REVIEW_LOGIN`. Put it back for the next review.
+
+**Review notes (paste this):**
+
+> My Ward Link is for members of a local congregation ("ward") of The Church
+> of Jesus Christ of Latter-day Saints: weekly lessons, the ward calendar,
+> service sign-ups, and messages with their leaders. It is run by volunteers
+> and is not affiliated with the Church.
+>
+> Demo account: on the sign-in screen enter EMAIL and tap the button under it
+> ("Send me a code" or "Email me a sign-in link"; nothing is actually sent to
+> this account), then enter the code CODE. It opens a demo ward of made-up
+> people.
+>
+> Native features to try: the tab bar at the bottom; More → Notifications →
+> turn on notifications (reminders and messages arrive as push notifications,
+> update the app icon badge, and open the right screen when tapped); More →
+> Privacy → Lock with Face ID; Service → a sign-up, and sharing it with the
+> share sheet; Calendar → an event → Add to Apple / Outlook calendar.
+>
+> Content from members (lesson comments, messages) only goes to their own
+> ward's leaders: comments wait for a leader's approval before anyone else sees
+> them, and leaders can hide any comment. Accounts can be deleted in the app
+> (More → Delete my account).
 
 ---
 

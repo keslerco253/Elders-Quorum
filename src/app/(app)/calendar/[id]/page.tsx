@@ -9,6 +9,8 @@ import { formatDateTime, formatTime, parseUtc } from "@/lib/time";
 import { getSeries, recurrenceOf } from "@/lib/event-series";
 import { describeRecurrence } from "@/lib/recurrence";
 import { Badge, Flash, PageHeader } from "@/components/ui";
+import { ShareButton } from "@/components/share-button";
+import { appUrl } from "@/lib/config";
 import { SubmitButton } from "@/components/client";
 import { FlyerView } from "@/components/flyer-view";
 import { rsvp } from "../actions";
@@ -41,11 +43,14 @@ export default async function EventPage({ params, searchParams }: { params: Prom
         title={e.title}
         back={{ href: "/calendar", label: "Calendar" }}
         actions={
-          admin && (
-            <a href={`/admin/events/${e.id}?org=${e.org_id}`} className="btn-secondary">
-              Edit
-            </a>
-          )
+          <>
+            <ShareButton className="btn-secondary" url={`${appUrl()}/calendar/${e.id}?org=${e.org_id}`} title={e.title} text={e.title} />
+            {admin && (
+              <a href={`/admin/events/${e.id}?org=${e.org_id}`} className="btn-secondary">
+                Edit
+              </a>
+            )}
+          </>
         }
       />
       <Flash msg={sp.msg} />

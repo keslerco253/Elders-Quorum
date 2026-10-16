@@ -6,6 +6,7 @@ import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { CopyButton } from "@/components/copy-button";
+import { ShareButton } from "@/components/share-button";
 import { stopPublicShare } from "./actions";
 
 export const metadata = { title: "Shared publicly" };
@@ -50,6 +51,7 @@ export default async function SharedPage({ searchParams }: { searchParams: Promi
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <CopyButton text={shareUrl(s.token)} label="Copy link" />
+                  <ShareButton url={shareUrl(s.token)} title={s.title || undefined} />
                   <a href={`/admin/shared/${s.token}/qr`} className="btn-secondary btn-sm">
                     Download QR code
                   </a>

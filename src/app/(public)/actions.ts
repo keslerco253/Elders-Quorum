@@ -1,5 +1,6 @@
 "use server";
 
+import { onlyInDemoWards } from "@/lib/review-demo";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { allowHit, clientIp, overLimit } from "@/lib/rate-limit";
@@ -79,18 +80,20 @@ export async function requestLogin(formData: FormData) {
 export async function verifyCode(formData: FormData) {
   const to = String(formData.get("to") || "");
   const code = String(formData.get("code") || "");
+  // Wrong codes are limited first, so the review code can't be guessed either.
+  const where = await ip();
+  if (overLimit(`badcode:${where}`, 30, 60)) redirect("/login/check?" + q({ to, error: BUSY }));
   const review = reviewLogin();
   if (review && review.email === parseContact(to)?.value && review.code === code.replace(/\D/g, "")) {
     const member = findLoginMember(review.email);
-    // Only ever a plain test account: never a leader or the site owner.
+    // Only ever a plain test account in the demo ward: never a leader, the site owner,
+    // or anyone in a real ward.
     const leads = member && db().prepare("SELECT 1 FROM org_members WHERE member_id = ? AND role = 'presidency'").get(member.id);
-    if (member && !leads && !member.is_site_owner) {
+    if (member && !leads && !member.is_site_owner && onlyInDemoWards(member.id)) {
       await startSession(member.id, "month");
       redirect("/");
     }
   }
-  const where = await ip();
-  if (overLimit(`badcode:${where}`, 30, 60)) redirect("/login/check?" + q({ to, error: BUSY }));
   const result = redeemCode(to, code);
   // A code that went to their email proves the email is theirs.
   if (result && parseContact(to)?.kind === "email") db().prepare("UPDATE members SET email_verified_at = datetime('now') WHERE id = ?").run(result.memberId);

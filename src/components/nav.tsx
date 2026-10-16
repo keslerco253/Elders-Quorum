@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { appHasTabs, postToApp } from "@/lib/native-app";
 
 type Item = { href: string; label: string; icon: string; badge?: number };
 
@@ -199,6 +200,24 @@ export function Nav({
     { href: "/more", label: "More", icon: "more", badge: moreCount },
   ];
 
+  const tabs: Item[] = [...main, { href: "/more", label: "More", icon: "more", badge: moreCount }];
+  const activeTab = tabs.find((i) => isActive(path, i.href))?.href ?? null;
+  // In the phone app, the app draws the tab bar natively (and badges its icon); its
+  // taps come back through window.__mwlNavigate.
+  const tabsKey = JSON.stringify([tabs, activeTab]);
+  useEffect(() => {
+    if (!appHasTabs()) return;
+    (window as Window & { __mwlNavigate?: (href: string) => void }).__mwlNavigate = (href) => router.push(href);
+    const [items, active] = JSON.parse(tabsKey) as [Item[], string | null];
+    postToApp({ type: "tabs", items, active });
+  }, [tabsKey, router]);
+  useEffect(() => {
+    if (appHasTabs()) postToApp({ type: "badge", count: messagesCount + moreCount });
+  }, [messagesCount, moreCount]);
+  useEffect(() => () => {
+    if (appHasTabs()) postToApp({ type: "tabs", items: [], active: null });
+  }, []);
+
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-border bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur">
@@ -232,9 +251,9 @@ export function Nav({
         </div>
       </header>
 
-      <nav ref={tabBar} className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur transition-opacity md:hidden">
+      <nav ref={tabBar} className="web-tabbar fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur transition-opacity md:hidden">
         <div className="mx-auto grid max-w-md" style={{ gridTemplateColumns: `repeat(${main.length + 1}, minmax(0, 1fr))` }}>
-          {[...main, { href: "/more", label: "More", icon: "more", badge: moreCount }].map((i) => (
+          {tabs.map((i) => (
             <Link key={i.href} href={i.href} className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${isActive(path, i.href) ? "text-accent" : "text-muted"}`}>
               {!!i.badge && <span className="absolute top-1 left-1/2 ml-2 h-2.5 w-2.5 rounded-full bg-danger" aria-label={`${i.badge} new`} />}
               <Icon name={i.icon} />

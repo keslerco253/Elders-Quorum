@@ -13,6 +13,7 @@ import { emailHtml, sendMail } from "@/lib/mail";
 import { sendSms } from "@/lib/sms";
 import { formatPhone } from "@/lib/contact";
 import { approveWard, declineWard } from "@/lib/ward-review";
+import { setUpReviewDemo } from "@/lib/review-demo";
 import { type CfmWeek, deleteCfmYear, fetchCfmSchedule, manualUrl, parseCfmContents, saveCfmSchedule } from "@/lib/cfm";
 
 function go(text: string, error = false): never {
@@ -153,4 +154,18 @@ export async function removeCfmYear(fd: FormData) {
   deleteCfmYear(String(fd.get("year")));
   revalidatePath("/site");
   go("Schedule removed.");
+}
+
+/** The demo ward and account the App Store and Google Play reviewers sign in to. */
+export async function setUpReview(fd: FormData) {
+  const user = await requireSiteOwner();
+  const email = normalizeEmail(String(fd.get("email") || ""));
+  if (!email) go("Enter an email for the reviewer's account.", true);
+  try {
+    setUpReviewDemo(email, user.ward.timezone);
+  } catch (e) {
+    go(e instanceof Error ? e.message : "Couldn't set up the demo.", true);
+  }
+  revalidatePath("/site");
+  redirect(`/site?msg=${encodeURIComponent("The demo ward is ready. Set REVIEW_LOGIN on Northflank as shown below.")}#review`);
 }

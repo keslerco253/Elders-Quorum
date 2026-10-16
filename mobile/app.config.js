@@ -1,6 +1,7 @@
-// The My Ward Link phone app. It shows the web app (APP_URL) and adds what a
-// website can't do well on phones: push notifications, opening links in the
-// app, and the Android back button. Built in the cloud with EAS (no Mac).
+// The My Ward Link phone app. It shows the web app's pages (APP_URL) inside a
+// native app: a native tab bar, push notifications and the icon badge, the share
+// sheet, Face ID lock, links that open in the right place, and the Android back
+// button. Built in the cloud with EAS (no Mac).
 const fs = require("fs");
 
 const APP_URL = (process.env.EXPO_PUBLIC_APP_URL || "https://mywardlink.net").replace(/\/+$/, "");
@@ -61,6 +62,11 @@ module.exports = {
           dark: { image: "./assets/splash-icon.png", backgroundColor: "#0e151d" },
         },
       ],
+      [
+        "expo-local-authentication",
+        { faceIDPermission: "Lets you lock My Ward Link with Face ID, so only you can see your ward's messages." },
+      ],
+      "expo-secure-store",
       [
         "expo-notifications",
         {

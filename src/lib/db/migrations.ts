@@ -1062,4 +1062,9 @@ CREATE TABLE cfm_weeks (
 ALTER TABLE lessons ADD COLUMN cfm_auto INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    // A demo ward with made-up people, for the app stores' reviewers.
+    id: 48,
+    sql: `ALTER TABLE wards ADD COLUMN demo INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];

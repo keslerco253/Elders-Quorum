@@ -10,10 +10,11 @@ import { appUrl } from "@/lib/config";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addWard, approveNewWard, declineNewWard, leadWard, loadCfmSchedule, removeCfmYear, removeWard, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
+import { addWard, approveNewWard, declineNewWard, leadWard, loadCfmSchedule, setUpReview, removeCfmYear, removeWard, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
 import { pendingWards } from "@/lib/ward-review";
 import { formatPhone } from "@/lib/contact";
 import { cfmYears, manualUrl } from "@/lib/cfm";
+import { DEMO_WARD_NAME, demoWard } from "@/lib/review-demo";
 import type { CfmWeek } from "@/lib/cfm";
 
 export const metadata = { title: "Site owner" };
@@ -67,6 +68,11 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
   const thisYear = new Date().getFullYear();
   // Next year's manual is usually out by late fall.
   const loadYear = cfm.some((y) => Number(y.year) === thisYear) ? thisYear + 1 : thisYear;
+  const demo = demoWard();
+  const reviewer = demo
+    ? (db().prepare("SELECT m.email FROM members m JOIN ward_members wm ON wm.member_id = m.id WHERE wm.ward_id = ? AND m.email IS NOT NULL LIMIT 1").get(demo.id) as { email: string } | undefined)
+    : undefined;
+  const reviewSet = (process.env.REVIEW_LOGIN || "").split(":")[0]?.trim().toLowerCase();
   const cfmWeeks = db().prepare("SELECT * FROM cfm_weeks ORDER BY sunday").all() as CfmWeek[];
   return (
     <>
@@ -319,6 +325,43 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
             <p className="hint">Loading a year again updates its lessons, except ones someone has changed by hand.</p>
             <SubmitButton pendingText="Loading…">Load the schedule</SubmitButton>
           </form>
+        </Section>
+      </div>
+
+      <div id="review" className="scroll-mt-20">
+        <Section title="App Store review">
+          <div className="card space-y-3 text-sm">
+            <p>
+              Apple and Google sign in to check the app. They get their own <strong>{DEMO_WARD_NAME}</strong> with made-up people, lessons, events, a
+              service sign-up and a plan, so they never see anyone real. Their account is a plain member, and the made-up people have no email or phone, so
+              nothing is sent to anyone.
+            </p>
+            {demo ? (
+              <p className="rounded-lg bg-surface-2 px-3 py-2">
+                Ready: the reviewer signs in with <strong>{reviewer?.email}</strong>.{" "}
+                {reviewSet === reviewer?.email ? (
+                  <span className="text-success">REVIEW_LOGIN is set for it.</span>
+                ) : (
+                  <span className="text-warn">
+                    Now set REVIEW_LOGIN on Northflank to <code>{reviewer?.email}:</code> and six digits of your choosing (for example{" "}
+                    <code>{reviewer?.email}:482913</code>), and give Apple that code.
+                  </span>
+                )}
+              </p>
+            ) : null}
+            <form action={setUpReview} className="flex flex-wrap items-end gap-2">
+              <div className="min-w-0 flex-1">
+                <label className="label" htmlFor="review-email">
+                  Reviewer&apos;s email
+                </label>
+                <input id="review-email" name="email" type="email" required className="input" defaultValue={reviewer?.email ?? (reviewSet || "")} placeholder="appreview@mywardlink.net" />
+              </div>
+              <SubmitButton pendingText="Setting up…" confirm={demo ? "Start the demo ward over with fresh sample data?" : undefined}>
+                {demo ? "Start it over" : "Set up the demo ward"}
+              </SubmitButton>
+            </form>
+            <p className="hint">The full checklist and the notes to give Apple are in docs/MOBILE-APP.md, under App review.</p>
+          </div>
         </Section>
       </div>
 

@@ -31,8 +31,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = await getUser();
   const theme = user?.theme && user.theme !== "system" ? user.theme : undefined;
   return (
-    <html lang="en" data-theme={theme}>
+    // The phone app marks the page as being in the app (it draws its own tab bar).
+    <html lang="en" data-theme={theme} suppressHydrationWarning>
       <body className="min-h-dvh font-sans antialiased">
+        <script dangerouslySetInnerHTML={{ __html: `if (window.MyWardLinkApp && window.MyWardLinkApp.tabs) document.documentElement.classList.add("in-app");` }} />
         {children}
         <ServiceWorker />
         <SearchableSelects />
