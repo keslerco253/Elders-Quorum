@@ -461,6 +461,33 @@ Quorum or Relief Society.
   plan. An organization's presidency can create and edit plans for
   the organizations they lead.
 
+## Sharing publicly (links and QR codes)
+
+Share one thing with people who don't have an account: a picture or PDF, or a
+service opportunity they can sign up for. Each link (and its QR code) shows
+**only that one thing**; nothing else in the app can be reached from it.
+
+- **What you can share:** a service opportunity (open it under Service →
+  **Share publicly**), an event's flyer (open the event → **Share flyer
+  publicly**), or a picture or PDF in a plan (open the plan → **Share a picture
+  or PDF from this plan publicly**). Give it a title and an optional caption.
+- **Admin → Shared publicly** lists everything shared, with its QR code
+  (**Download QR code** for posters, bulletins or slides), **Copy link**,
+  **See what they see**, and **Stop sharing**, which turns the link and QR code
+  off right away. Don't share pictures with members' faces, names or contact
+  information without permission.
+- **Signing up without an account:** on a shared service opportunity, people
+  pick a spot and give their name and a mobile number or email, then confirm
+  with a 6-digit code. They show in the list as **Guest** (leaders see their
+  phone or email; members see "Guest: John S.") and count toward "people still
+  needed". They get a confirmation with a link to cancel, and the opportunity's
+  reminders.
+- **Texts only with permission:** a guest is texted only if they tick the box
+  agreeing to texts for that sign-up (the time and wording are kept); otherwise
+  everything goes by email. Replying STOP ends texts. Their details are deleted
+  30 days after the date. (Before texting guests on the live site, the Twilio
+  campaign's opt-in description should mention this sign-up form.)
+
 ## Message wording
 
 **Admin → Message wording** lists the reminders and messages the app sends on

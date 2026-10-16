@@ -17,6 +17,10 @@ export default function PrivacyPage() {
         <li>Your name, and the mobile number and/or email you choose to give when you join. You can add, change or remove them anytime under More → Contact &amp; notifications.</li>
         <li>Things you choose to post: lesson comments, teacher notes, offers to teach, sign-ups, RSVPs, event requests, visit requests, and messages you send the presidency (in the app or by texting back). Visit requests and messages to the presidency are seen only by the elders quorum presidency.</li>
         <li>If you turn on notifications, a technical address for your device so it can receive them.</li>
+        <li>
+          If you sign up for a service project from a shared link without an account: your name, the mobile number or email you give, and an optional note. Only the organizers see them. We
+          text you only if you tick the box agreeing to texts (we keep when you agreed and the words you agreed to); reply STOP anytime.
+        </li>
       </ul>
       <p>We never collect addresses, birth dates or any information from Church records.</p>
       <h3>How we use it</h3>
@@ -42,7 +46,7 @@ export default function PrivacyPage() {
       </p>
       <h3>How long we keep it</h3>
       <ul>
-        <li>Sign-ups, RSVPs and event requests: deleted 30 days after the event.</li>
+        <li>Sign-ups, RSVPs and event requests: deleted 30 days after the event (including sign-ups from a shared link without an account).</li>
         <li>Offers to teach: deleted 30 days after the lesson.</li>
         <li>Lesson comments and teacher notes: deleted 6 months after the lesson.</li>
         <li>Messages between you and the presidency: deleted after 6 months.</li>

@@ -7,7 +7,9 @@ import { formatDate } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { FlyerView } from "@/components/flyer-view";
-import { leaveSlot, takeSlot } from "../actions";
+import { leaveSlot, removeGuestEntry, takeSlot } from "../actions";
+import { confirmedGuests, guestShortName } from "@/lib/guest-signups";
+import { formatPhone } from "@/lib/contact";
 
 export const metadata = { title: "Service opportunity" };
 
@@ -17,6 +19,8 @@ export default async function SignupPage({ params, searchParams }: { params: Pro
   if (!s) notFound();
   const sp = await searchParams;
   const admin = isAdmin(user);
+  // People without an account who signed up from a public link.
+  const guests = confirmedGuests(s.id);
   return (
     <>
       <PageHeader
@@ -25,9 +29,14 @@ export default async function SignupPage({ params, searchParams }: { params: Pro
         subtitle={s.date ? formatDate(s.date) : undefined}
         actions={
           isAdmin(user) && (
-            <Link href={`/admin/signups/${s.id}`} className="btn-secondary">
-              Edit
-            </Link>
+            <>
+              <Link href={`/admin/shared/new?signup=${s.id}`} className="btn-secondary">
+                Share publicly
+              </Link>
+              <Link href={`/admin/signups/${s.id}`} className="btn-secondary">
+                Edit
+              </Link>
+            </>
           )
         }
       />
@@ -38,16 +47,40 @@ export default async function SignupPage({ params, searchParams }: { params: Pro
       <ul className="space-y-3">
         {s.slots.map((sl) => {
           const mine = sl.entries.some((e) => e.member_id === user.id);
-          const full = sl.entries.length >= sl.capacity;
+          const slotGuests = guests.filter((g) => g.slot_id === sl.id);
+          const taken = sl.entries.length + slotGuests.length;
+          const full = taken >= sl.capacity;
           return (
             <li key={sl.id} className="card">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="font-semibold">{sl.label}</div>
                 <Badge tone={full ? "success" : "info"}>
-                  {sl.entries.length} of {sl.capacity}
+                  {taken} of {sl.capacity}
                   {full ? " · full" : ""}
                 </Badge>
               </div>
+              {slotGuests.length > 0 && (
+                <ul className="mt-2 space-y-1 text-sm">
+                  {slotGuests.map((g) => (
+                    <li key={`g${g.id}`} className="flex flex-wrap items-center justify-between gap-2">
+                      <span>
+                        <Badge>Guest</Badge> {admin ? g.name : guestShortName(g.name)}
+                        {admin && <span className="text-muted"> · {g.contact_kind === "phone" ? formatPhone(g.contact) : g.contact}</span>}
+                        {g.note && <span className="text-muted"> · {g.note}</span>}
+                      </span>
+                      {admin && (
+                        <form action={removeGuestEntry}>
+                          <input type="hidden" name="guest_id" value={g.id} />
+                          <input type="hidden" name="signup_id" value={s.id} />
+                          <SubmitButton className="btn-secondary btn-sm" pendingText="Removing…" confirm={`Remove ${g.name}?`}>
+                            ✕ Remove
+                          </SubmitButton>
+                        </form>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
               {sl.entries.length > 0 && (
                 <ul className="mt-2 space-y-1 text-sm">
                   {sl.entries.map((e) => (

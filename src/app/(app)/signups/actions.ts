@@ -1,5 +1,7 @@
 "use server";
 
+import { removeGuest, slotTaken } from "@/lib/guest-signups";
+
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -22,8 +24,8 @@ export async function takeSlot(fd: FormData) {
   const d = db();
   // Check and insert together so two people can't take the last spot at once.
   const ok = d.transaction(() => {
-    const n = (d.prepare("SELECT COUNT(*) AS n FROM signup_entries WHERE slot_id = ?").get(slot.id) as { n: number }).n;
-    if (n >= slot.capacity) return false;
+    // Guests who signed up from a public link take spots too.
+    if (slotTaken(slot.id) >= slot.capacity) return false;
     d.prepare("INSERT OR IGNORE INTO signup_entries (slot_id, member_id, note) VALUES (?, ?, ?)").run(slot.id, user.id, note);
     return true;
   }).immediate();
@@ -44,4 +46,14 @@ export async function leaveSlot(fd: FormData) {
   revalidatePath("/");
   if (!r.changes) go(row.signup_id, "That name wasn't on this spot anymore.");
   go(row.signup_id, memberId === user.id ? "You've been removed from that spot." : "Removed from that spot.");
+}
+
+/** A leader takes someone who signed up without an account off a spot. */
+export async function removeGuestEntry(fd: FormData) {
+  const user = await requireUser();
+  if (!isAdmin(user)) redirect("/signups");
+  removeGuest(user.org_id, Number(fd.get("guest_id")));
+  const signupId = Number(fd.get("signup_id"));
+  revalidatePath(`/signups/${signupId}`);
+  go(signupId, "Removed.");
 }

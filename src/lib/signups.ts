@@ -38,7 +38,8 @@ export function listSignups(orgId: number, includeClosed: boolean, today: string
     .prepare(
       `SELECT s.*,
         (SELECT COALESCE(SUM(capacity), 0) FROM signup_slots WHERE signup_id = s.id) AS capacity,
-        (SELECT COUNT(*) FROM signup_entries e JOIN signup_slots sl ON sl.id = e.slot_id WHERE sl.signup_id = s.id) AS taken
+        (SELECT COUNT(*) FROM signup_entries e JOIN signup_slots sl ON sl.id = e.slot_id WHERE sl.signup_id = s.id)
+          + (SELECT COUNT(*) FROM signup_guests g JOIN signup_slots sl ON sl.id = g.slot_id WHERE sl.signup_id = s.id AND g.confirmed_at IS NOT NULL) AS taken
        FROM signups s WHERE s.org_id = ? ${includeClosed ? "" : "AND s.closed = 0 AND (s.date IS NULL OR s.date >= ?)"}
        ORDER BY s.closed, s.date IS NULL, s.date, s.id DESC`,
     )
@@ -51,7 +52,8 @@ export function listWardSignups(wardId: number, includeClosed: boolean, today: s
     .prepare(
       `SELECT s.*, CASE WHEN o.kind = 'ward' THEN 'Ward' ELSE o.name END AS org_label,
         (SELECT COALESCE(SUM(capacity), 0) FROM signup_slots WHERE signup_id = s.id) AS capacity,
-        (SELECT COUNT(*) FROM signup_entries e JOIN signup_slots sl ON sl.id = e.slot_id WHERE sl.signup_id = s.id) AS taken
+        (SELECT COUNT(*) FROM signup_entries e JOIN signup_slots sl ON sl.id = e.slot_id WHERE sl.signup_id = s.id)
+          + (SELECT COUNT(*) FROM signup_guests g JOIN signup_slots sl ON sl.id = g.slot_id WHERE sl.signup_id = s.id AND g.confirmed_at IS NOT NULL) AS taken
        FROM signups s JOIN orgs o ON o.id = s.org_id
        WHERE o.ward_id = ? AND o.active = 1 ${includeClosed ? "" : "AND s.closed = 0 AND (s.date IS NULL OR s.date >= ?)"}
        ORDER BY s.closed, s.date IS NULL, s.date, s.id DESC`,

@@ -14,6 +14,13 @@ export function runRetention() {
   d.transaction(() => {
     // Sign-ups: 30 days after their date (180 days after creation if undated).
     run("signups", `DELETE FROM signups WHERE (date IS NOT NULL AND date < date('now', '-30 days')) OR (date IS NULL AND created_at < datetime('now', '-180 days'))`);
+    // People without an account who signed up: 30 days after the date (gone with it, above),
+    // after 90 days for undated ones, and sign-ups never confirmed with the code after a day.
+    run(
+      "guests",
+      `DELETE FROM signup_guests WHERE (confirmed_at IS NULL AND created_at < datetime('now', '-1 day'))
+         OR (confirmed_at < datetime('now', '-90 days') AND slot_id IN (SELECT sl.id FROM signup_slots sl JOIN signups s ON s.id = sl.signup_id WHERE s.date IS NULL))`,
+    );
     // RSVPs and event requests: 30 days after the event.
     run("rsvps", `DELETE FROM event_rsvps WHERE event_id IN (SELECT id FROM events WHERE ends_at < ${ISO_NOW_MINUS("-30 days")})`);
     run("event_requests", `DELETE FROM event_requests WHERE starts_at < ${ISO_NOW_MINUS("-30 days")}`);

@@ -2,8 +2,7 @@ import { isPicture } from "@/lib/upload-names";
 import { PdfPages } from "./pdf-pages";
 
 /** A flyer shown in full on a page: the picture, a PDF's pages, or a link for other files. */
-export function FlyerView({ file, name, className = "card mb-4" }: { file: string; name: string | null; className?: string }) {
-  const src = `/files/${file}`;
+export function FlyerView({ file, name, className = "card mb-4", src = `/files/${file}` }: { file: string; name: string | null; className?: string; src?: string }) {
   return (
     <div className={className}>
       {isPicture(file) ? (

@@ -71,6 +71,11 @@ export default async function EventPage({ params, searchParams }: { params: Prom
         )}
         {e.description && <p className="whitespace-pre-wrap">{e.description}</p>}
         {e.flyer_file && <FlyerView file={e.flyer_file} name={e.flyer_name} className="" />}
+        {e.flyer_file && admin && e.org_id === user.org_id && (
+          <a href={`/admin/shared/new?${new URLSearchParams({ file: e.flyer_file, title: e.title })}`} className="btn-secondary btn-sm">
+            Share flyer publicly (link and QR code)
+          </a>
+        )}
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">
           <a href={googleCalendarUrl(e)} target="_blank" rel="noreferrer" className="btn-primary">
             Add to Google Calendar

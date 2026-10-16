@@ -16,6 +16,7 @@ import { upcomingVisits, visitorIds, whenText } from "./planned-visits";
 import { VISIT_TYPES } from "./visits";
 import { firstName } from "./names";
 import { renderTemplate } from "./templates";
+import { guestRemindersDue, sendGuestReminder } from "./guest-signups";
 import { joinNames } from "./invite-text";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
@@ -296,6 +297,11 @@ export async function tick(now: DateTime = DateTime.utc()) {
       if (!claimOnce(n.key)) continue;
       const res = await notify(n.recipients, n.payload);
       console.log(`[scheduler] ${n.key}: ${res.push} push, ${res.email} email`);
+    }
+    // People without an account who signed up for service from a public link.
+    for (const r of guestRemindersDue(now.toJSDate())) {
+      if (!claimOnce(r.key)) continue;
+      await sendGuestReminder(r);
     }
     await backupIfDue();
     // Keep repeating events filled a year ahead.

@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { canEditPlan, currentVersion, getPlan, planByLegacyKind, planVersion } from "@/lib/plans";
 import { versionBlocks } from "@/lib/plan-blocks";
+import { FlyerThumb } from "@/components/flyer-thumb";
+import { isPresidency } from "@/lib/permissions";
 import { PlanPage as PlanContent } from "@/components/plan-page";
 import { formatDateTime } from "@/lib/time";
 import { Empty, Flash, PageHeader } from "@/components/ui";
@@ -63,6 +65,27 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
           })()}
         </article>
       )}
+      {editor && isPresidency(user) && latest && (() => {
+        const media = versionBlocks(latest).filter((b) => b.type === "image" || b.type === "pdf") as { file: string; name: string; caption: string }[];
+        return (
+          media.length > 0 && (
+            <details className="card mt-4 text-sm">
+              <summary className="cursor-pointer font-semibold">Share a picture or PDF from this plan publicly (link and QR code)</summary>
+              <ul className="mt-3 divide-y divide-border">
+                {media.map((m) => (
+                  <li key={m.file} className="flex items-center gap-3 py-2">
+                    <FlyerThumb file={m.file} name={m.name} />
+                    <span className="min-w-0 flex-1 truncate">{m.caption || m.name}</span>
+                    <a href={`/admin/shared/new?${new URLSearchParams({ file: m.file, title: m.caption || plan.name })}`} className="btn-secondary btn-sm">
+                      Share publicly
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )
+        );
+      })()}
     </>
   );
 }

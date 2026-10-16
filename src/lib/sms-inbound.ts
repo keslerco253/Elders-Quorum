@@ -8,6 +8,7 @@ import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching
 import { getOrg, getWard, homeOf, orgFullName } from "./orgs";
 import { answerRequest, latestPendingRequest } from "./teaching-requests";
 import { DateTime } from "luxon";
+import { guestOptOut } from "./guest-signups";
 
 /** The address set as "A message comes in" in Twilio. */
 export const inboundUrl = () => process.env.TWILIO_WEBHOOK_URL || `${appUrl()}/api/sms/inbound`;
@@ -115,8 +116,13 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
       "SELECT id, last_text_org_id, display_name, text_reply_member_id, text_reply_private, text_as_member FROM members WHERE phone = ? AND status = 'active' ORDER BY last_login_at DESC LIMIT 1",
     )
     .get(from) as { id: number; last_text_org_id: number | null; display_name: string; text_reply_member_id: number | null; text_reply_private: number; text_as_member: number } | undefined;
-  // Texts from numbers that aren't in the app aren't stored.
-  if (!row) return "unknown_sender";
+  // Texts from numbers that aren't in the app aren't stored. STOP from someone who signed
+  // up for service without an account ends texts to them.
+  if (!row) {
+    const word = body.toUpperCase().replace(/[^A-Z]/g, "");
+    if ((params.OptOutType || "").toUpperCase() === "STOP" || STOP_WORDS.includes(word)) return guestOptOut(from) ? "opted_out" : "unknown_sender";
+    return "unknown_sender";
+  }
   seen.memberId = row.id;
   // A reply goes to the organization that last texted them.
   const orgId = row.last_text_org_id ?? homeOf(row.id).orgId;
@@ -129,6 +135,7 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     db().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END WHERE id = ? AND contact_pref IN ('text','both')").run(member.id);
     // Replying STOP withdraws their consent; they can agree again under Contact & notifications.
     db().prepare("UPDATE members SET always_text = 0, sms_consent_at = NULL WHERE id = ?").run(member.id);
+    guestOptOut(from);
     return "opted_out";
   }
   if (optOut === "HELP" || optOut === "START" || SKIP_WORDS.includes(word)) return "ignored";

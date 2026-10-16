@@ -980,4 +980,40 @@ ALTER TABLE messages ADD COLUMN flyer_file TEXT;
 ALTER TABLE messages ADD COLUMN flyer_name TEXT;
 `,
   },
+  {
+    // Public links (and QR codes): one picture/PDF, or one service opportunity that
+    // people without an account can sign up for. Guests who sign up that way.
+    id: 44,
+    sql: `
+CREATE TABLE public_shares (
+  token TEXT PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('file','signup')),
+  file TEXT,
+  signup_id INTEGER REFERENCES signups(id) ON DELETE CASCADE,
+  title TEXT NOT NULL DEFAULT '',
+  caption TEXT NOT NULL DEFAULT '',
+  created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX public_shares_org ON public_shares(org_id);
+CREATE TABLE signup_guests (
+  id INTEGER PRIMARY KEY,
+  slot_id INTEGER NOT NULL REFERENCES signup_slots(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  contact TEXT NOT NULL,
+  contact_kind TEXT NOT NULL CHECK (contact_kind IN ('email','phone')),
+  note TEXT NOT NULL DEFAULT '',
+  -- Texts only with this: when they ticked the box, and the words they agreed to.
+  sms_consent_at TEXT,
+  consent_text TEXT,
+  code_hash TEXT,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  confirmed_at TEXT,
+  cancel_token TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX signup_guests_slot ON signup_guests(slot_id);
+`,
+  },
 ];

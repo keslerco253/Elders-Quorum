@@ -137,6 +137,11 @@ export default async function AdminPage() {
             ...(isPresidency(user)
               ? [
                   {
+                    href: "/admin/shared",
+                    label: "Shared publicly",
+                    desc: "Links and QR codes for flyers and sign-ups, open to anyone",
+                  },
+                  {
                     href: "/admin/templates",
                     label: "Message wording",
                     desc: "Reminders and texts the app sends, in your own words",
