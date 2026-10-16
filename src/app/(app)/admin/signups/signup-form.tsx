@@ -1,7 +1,7 @@
 import { SubmitButton } from "@/components/client";
 import { SIGNUP_REMINDER_OPTIONS, type Signup, type Slot } from "@/lib/signups";
 import { saveSignup } from "./actions";
-import { UPLOAD_ACCEPT } from "@/lib/upload-names";
+import { FlyerField } from "@/components/flyer-field";
 
 export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
   return (
@@ -26,21 +26,7 @@ export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
         </label>
         <textarea id="description" name="description" rows={3} className="input" defaultValue={s?.description} />
       </div>
-      <div>
-        <label className="label" htmlFor="flyer">
-          Flyer (optional)
-        </label>
-        {s?.flyer_file && (
-          <p className="mb-2 text-sm">
-            Current: {s.flyer_name}{" "}
-            <label className="ml-2 text-muted">
-              <input type="checkbox" name="remove_flyer" /> remove
-            </label>
-          </p>
-        )}
-        <input id="flyer" name="flyer" type="file" accept={UPLOAD_ACCEPT} className="input" />
-        <p className="hint">A PDF or a picture (PNG, JPEG or a phone photo), up to 15 MB. It shows on the opportunity&apos;s page.</p>
-      </div>
+      <FlyerField file={s?.flyer_file} name={s?.flyer_name} hint="A PDF or a picture (PNG, JPEG or a phone photo), up to 15 MB. It shows on the opportunity's page." />
       <div>
         <label className="label" htmlFor="slots">
           Slots: one per line, with how many people are needed

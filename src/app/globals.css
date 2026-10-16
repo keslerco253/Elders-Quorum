@@ -306,7 +306,10 @@ body {
 }
 
 /* "Open the picture" under a plan's pictures (PDFs have "Open the PDF"). */
-.plan-page .plan-open { @apply mt-1 block text-center text-sm; }
+.plan-page .plan-pic { @apply relative block; }
+.plan-page .plan-open {
+  @apply absolute right-2 bottom-2 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white no-underline shadow backdrop-blur-sm hover:bg-black/75;
+}
 
 /* Plan text and heading sizes (Small / Normal / Large / Extra large), on the page and in the editor. */
 .plan-page .prose-eq.plan-size-sm, .plan-edit-text.plan-size-sm { font-size: 13px; }

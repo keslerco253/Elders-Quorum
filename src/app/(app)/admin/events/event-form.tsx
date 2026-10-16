@@ -5,7 +5,7 @@ import type { SeriesRow } from "@/lib/event-series";
 import { RepeatFields } from "@/components/repeat-fields";
 import { SubmitButton } from "@/components/client";
 import { saveEvent } from "./actions";
-import { UPLOAD_ACCEPT } from "@/lib/upload-names";
+import { FlyerField } from "@/components/flyer-field";
 
 /** `date` (yyyy-mm-dd) pre-fills a new event for that day, 7–8 PM. */
 export function EventForm({ e, tz, date, series }: { e?: EventRow; tz: string; date?: string; series?: SeriesRow }) {
@@ -64,21 +64,7 @@ export function EventForm({ e, tz, date, series }: { e?: EventRow; tz: string; d
         </label>
         <textarea id="description" name="description" rows={4} className="input" defaultValue={e?.description} />
       </div>
-      <div>
-        <label className="label" htmlFor="flyer">
-          Flyer (optional)
-        </label>
-        {e?.flyer_file && (
-          <p className="mb-2 text-sm">
-            Current: {e.flyer_name}{" "}
-            <label className="ml-2 text-muted">
-              <input type="checkbox" name="remove_flyer" /> remove
-            </label>
-          </p>
-        )}
-        <input id="flyer" name="flyer" type="file" accept={UPLOAD_ACCEPT} className="input" />
-        <p className="hint">A PDF or a picture, up to 15 MB. It shows on the event&apos;s page, with a small preview on members&apos; home pages.</p>
-      </div>
+      <FlyerField file={e?.flyer_file} name={e?.flyer_name} hint="A PDF or a picture, up to 15 MB. It shows on the event's page, with a small preview on members' home pages." />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="label" htmlFor="reminder_minutes">
