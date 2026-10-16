@@ -48,3 +48,14 @@ export function MissionariesIcon({ className = "h-12 w-12" }: { className?: stri
     </svg>
   );
 }
+
+/** A plan's icon wherever plans are listed: its uploaded picture, a drawn icon, or an emoji. */
+export function PlanIconView({ icon, className = "h-12 w-12" }: { icon: { file: string } | { key: string }; className?: string }) {
+  if ("file" in icon) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={`/files/${icon.file}`} alt="" className={`${className} rounded-[11px] object-cover`} />;
+  }
+  if (icon.key === "temple") return <TempleIcon className={className} />;
+  if (icon.key === "missionaries") return <MissionariesIcon className={className} />;
+  return <span className={`${className} inline-flex items-center justify-center rounded-[11px] bg-surface-2 text-3xl`}>{icon.key}</span>;
+}

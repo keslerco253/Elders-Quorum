@@ -452,6 +452,11 @@ Quorum or Relief Society.
     own line. On phones, wide pictures fill the screen.
   - Text has **B**, *I*, • List and Link buttons; add a caption under any
     picture.
+  - **Text size:** each heading and text block has a size picker (Small,
+    Normal, Large, Extra large).
+- **Plan icon:** on the edit page, under **Plan icon**, pick a drawn icon
+  (temple, missionaries), an emoji, or **use your own picture**, then tap
+  **Save icon**. It shows next to the plan in the Plans list.
 - **Update a plan:** open it → **Update plan**. Each save is kept: the
   **Update history** at the bottom of the edit page lists every save with its
   date, time and who made it, and opens the plan as it was then. Members just

@@ -8,9 +8,21 @@ import { isPicture } from "./upload-names";
 
 export type Align = "left" | "center" | "right";
 
+/** Text and heading sizes. */
+export type TextSize = "sm" | "md" | "lg" | "xl";
+export const TEXT_SIZES: [TextSize, string][] = [
+  ["sm", "Small"],
+  ["md", "Normal"],
+  ["lg", "Large"],
+  ["xl", "Extra large"],
+];
+const textSize = (v: unknown): TextSize | undefined => (v === "sm" || v === "lg" || v === "xl" ? v : undefined);
+/** The class for a block's size (none for Normal). */
+export const sizeClass = (size?: TextSize) => (size && size !== "md" ? `plan-size-${size}` : "");
+
 export type Block =
-  | { id: string; type: "heading"; text: string }
-  | { id: string; type: "text"; text: string }
+  | { id: string; type: "heading"; text: string; size?: TextSize }
+  | { id: string; type: "text"; text: string; size?: TextSize }
   | { id: string; type: "image"; file: string; name: string; width: number; align: Align; caption: string }
   | { id: string; type: "pdf"; file: string; name: string; width: number; align: Align; caption: string; pages: boolean }
   | { id: string; type: "divider" };
@@ -44,8 +56,8 @@ export function parseBlocks(json: string, fileOk: (name: string) => boolean): Bl
     if (!b || typeof b !== "object") continue;
     const r = b as Record<string, unknown>;
     const id = str(r.id, 20) || newBlockId();
-    if (r.type === "heading") out.push({ id, type: "heading", text: str(r.text, 200) });
-    else if (r.type === "text") out.push({ id, type: "text", text: str(r.text, 20_000) });
+    if (r.type === "heading") out.push({ id, type: "heading", text: str(r.text, 200), ...(textSize(r.size) ? { size: textSize(r.size) } : {}) });
+    else if (r.type === "text") out.push({ id, type: "text", text: str(r.text, 20_000), ...(textSize(r.size) ? { size: textSize(r.size) } : {}) });
     else if (r.type === "divider") out.push({ id, type: "divider" });
     else if ((r.type === "image" || r.type === "pdf") && typeof r.file === "string" && fileOk(r.file)) {
       const base = { id, file: r.file, name: str(r.name, 200) || "Attachment", width: width(r.width), align: align(r.align), caption: str(r.caption, 300) };

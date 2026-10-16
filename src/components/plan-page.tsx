@@ -1,6 +1,6 @@
 import { renderMarkdown } from "@/lib/markdown";
 import { isPicture } from "@/lib/upload-names";
-import { mediaProps, type Block, type MediaBlock } from "@/lib/plan-blocks";
+import { mediaProps, sizeClass, type Block, type MediaBlock } from "@/lib/plan-blocks";
 import { PdfPages } from "./pdf-pages";
 
 /** A plan page as members see it. `fileSrc` says where its pictures and PDFs load from (a public link uses its own). */
@@ -10,9 +10,13 @@ export function PlanPage({ blocks, fileSrc }: { blocks: Block[]; fileSrc?: (file
       {blocks.map((b) => {
         switch (b.type) {
           case "heading":
-            return b.text ? <h2 key={b.id}>{b.text}</h2> : null;
+            return b.text ? (
+              <h2 key={b.id} className={sizeClass(b.size)}>
+                {b.text}
+              </h2>
+            ) : null;
           case "text":
-            return <div key={b.id} className="prose-eq" dangerouslySetInnerHTML={{ __html: renderMarkdown(b.text) }} />;
+            return <div key={b.id} className={`prose-eq ${sizeClass(b.size)}`} dangerouslySetInnerHTML={{ __html: renderMarkdown(b.text) }} />;
           case "divider":
             return <hr key={b.id} />;
           case "image":

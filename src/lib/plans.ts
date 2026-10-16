@@ -14,6 +14,9 @@ export interface WardPlan {
   /** Organizations it's for; empty means the whole ward. */
   org_ids: number[];
   updated_at: string | null;
+  /** Its icon: a drawn one ("temple", "missionaries") or an emoji, or an uploaded picture. */
+  icon: string | null;
+  icon_file: string | null;
 }
 
 export interface PlanVersion {
@@ -38,7 +41,7 @@ export const PLAN_BLURBS: Record<string, string> = {
 
 type PlanRow = Omit<WardPlan, "org_ids"> & { org_list: string | null };
 
-const PLAN_SQL = `SELECT p.id, p.ward_id, p.name, p.legacy_kind,
+const PLAN_SQL = `SELECT p.id, p.ward_id, p.name, p.legacy_kind, p.icon, p.icon_file,
     (SELECT group_concat(org_id) FROM ward_plan_orgs WHERE plan_id = p.id) AS org_list,
     (SELECT MAX(created_at) FROM plan_versions WHERE plan_id = p.id) AS updated_at
   FROM ward_plans p`;
@@ -49,6 +52,8 @@ const toPlan = (r: PlanRow): WardPlan => ({
   name: r.name,
   legacy_kind: r.legacy_kind,
   updated_at: r.updated_at,
+  icon: r.icon,
+  icon_file: r.icon_file,
   org_ids: r.org_list ? r.org_list.split(",").map(Number) : [],
 });
 
@@ -157,4 +162,20 @@ export function wardFileCheck(wardId: number): (name: string) => boolean {
   const names = new Set((db().prepare("SELECT name FROM plan_files WHERE ward_id = ?").all(wardId) as { name: string }[]).map((r) => r.name));
   const legacy = db().prepare("SELECT 1 FROM plan_versions v JOIN ward_plans p ON p.id = v.plan_id WHERE v.pdf_file = ? AND p.ward_id = ?");
   return (name) => names.has(name) || !!legacy.get(name, wardId);
+}
+
+/** Icons to choose from: the drawn ones, then emoji. */
+export const PLAN_ICON_CHOICES = ["temple", "missionaries", "📋", "📖", "🙏", "❤️", "🌳", "👨‍👩‍👧", "🕊️", "⭐", "📅", "🤝", "🎯", "🌱", "✝️", "🏠"];
+
+/** The icon a plan shows: its own choice, else the standing plans' drawn ones, else a clipboard. */
+export function planIcon(p: Pick<WardPlan, "icon" | "icon_file" | "legacy_kind">): { file: string } | { key: string } {
+  if (p.icon_file) return { file: p.icon_file };
+  if (p.icon && PLAN_ICON_CHOICES.includes(p.icon)) return { key: p.icon };
+  return { key: p.legacy_kind === "temple" ? "temple" : p.legacy_kind === "mission" ? "missionaries" : "📋" };
+}
+
+export function setPlanIcon(planId: number, icon: { key?: string; file?: string }) {
+  db()
+    .prepare("UPDATE ward_plans SET icon = ?, icon_file = ? WHERE id = ?")
+    .run(icon.key && PLAN_ICON_CHOICES.includes(icon.key) ? icon.key : null, icon.file ?? null, planId);
 }

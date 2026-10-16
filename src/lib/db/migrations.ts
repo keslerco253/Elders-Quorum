@@ -1039,4 +1039,12 @@ ALTER TABLE public_shares_new RENAME TO public_shares;
 CREATE INDEX public_shares_org ON public_shares(org_id);
 `,
   },
+  {
+    // A plan's icon: one of the drawn ones or an emoji (icon), or an uploaded picture (icon_file).
+    id: 46,
+    sql: `
+ALTER TABLE ward_plans ADD COLUMN icon TEXT;
+ALTER TABLE ward_plans ADD COLUMN icon_file TEXT;
+`,
+  },
 ];

@@ -215,6 +215,7 @@ body {
   .plan-edit-text { @apply block w-full resize-none overflow-hidden bg-transparent leading-relaxed outline-none placeholder:text-muted/60; }
   .plan-text-tools { @apply mb-1 hidden gap-1 text-xs; }
   .plan-edit-block.is-selected .plan-text-tools { @apply flex; }
+  .plan-size-pick { @apply rounded-md border border-border bg-surface px-1.5 py-0.5 text-sm text-muted; }
   .plan-text-tools button, .plan-media-tools button { @apply rounded-md border border-border bg-surface px-2 py-0.5 text-muted hover:text-text; }
   .plan-media-tools {
     width: max-content;
@@ -306,3 +307,11 @@ body {
 
 /* "Open the picture" under a plan's pictures (PDFs have "Open the PDF"). */
 .plan-page .plan-open { @apply mt-1 block text-center text-sm; }
+
+/* Plan text and heading sizes (Small / Normal / Large / Extra large), on the page and in the editor. */
+.plan-page .prose-eq.plan-size-sm, .plan-edit-text.plan-size-sm { font-size: 13px; }
+.plan-page .prose-eq.plan-size-lg, .plan-edit-text.plan-size-lg { font-size: 18px; }
+.plan-page .prose-eq.plan-size-xl, .plan-edit-text.plan-size-xl { font-size: 22px; }
+.plan-page > h2.plan-size-sm, .plan-edit-heading.plan-size-sm { font-size: 1.05rem; }
+.plan-page > h2.plan-size-lg, .plan-edit-heading.plan-size-lg { font-size: 1.6rem; }
+.plan-page > h2.plan-size-xl, .plan-edit-heading.plan-size-xl { font-size: 2.1rem; line-height: 1.2; }

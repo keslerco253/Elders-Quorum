@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { MissionariesIcon, TempleIcon } from "@/components/plan-icons";
+import { PlanIconView } from "@/components/plan-icons";
 import { requireUser } from "@/lib/auth";
-import { audienceText, canCreatePlans, listPlans, PLAN_BLURBS } from "@/lib/plans";
+import { audienceText, canCreatePlans, listPlans, PLAN_BLURBS, planIcon } from "@/lib/plans";
 import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 
@@ -31,8 +31,8 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
         <div className="grid gap-4 md:grid-cols-2">
           {plans.map((p) => (
             <Link key={p.id} href={`/plans/${p.id}`} className="card block hover:bg-surface-2">
-              <div className="mb-1 text-2xl" aria-hidden>
-                {p.legacy_kind === "temple" ? <TempleIcon /> : p.legacy_kind === "mission" ? <MissionariesIcon /> : "📋"}
+              <div className="mb-1" aria-hidden>
+                <PlanIconView icon={planIcon(p)} />
               </div>
               <h2 className="h2">{p.name}</h2>
               {p.legacy_kind && PLAN_BLURBS[p.legacy_kind] && <p className="mt-1 text-sm text-muted">{PLAN_BLURBS[p.legacy_kind]}</p>}

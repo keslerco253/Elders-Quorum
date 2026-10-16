@@ -10,8 +10,7 @@ import {
   newBlockId,
   type Align,
   type Block,
-  type MediaBlock,
-} from "@/lib/plan-blocks";
+  type MediaBlock, sizeClass, TEXT_SIZES, type TextSize } from "@/lib/plan-blocks";
 
 // Builds a plan like a web page: headings, text, pictures and PDFs. Blocks are
 // dragged by their handle to move them; pictures and PDFs are sized by dragging
@@ -425,19 +424,24 @@ function BlockBody({
       return <div className="plan-pdf-loading">Uploading {b.name}…</div>;
     case "heading":
       return (
-        <input
-          className="plan-edit-heading"
-          value={b.text}
-          maxLength={200}
-          placeholder="Heading"
-          onChange={(e) => onChange({ text: e.target.value })}
-        />
+        <div>
+          <div className="plan-text-tools">
+            <SizePicker size={b.size} onChange={(size) => onChange({ size })} />
+          </div>
+          <input
+            className={`plan-edit-heading ${sizeClass(b.size)}`}
+            value={b.text}
+            maxLength={200}
+            placeholder="Heading"
+            onChange={(e) => onChange({ text: e.target.value })}
+          />
+        </div>
       );
     case "divider":
       return <hr />;
     case "text":
       return (
-        <TextBlock text={b.text} onChange={(text) => onChange({ text })} />
+        <TextBlock text={b.text} size={b.size} onChange={(text) => onChange({ text })} onSize={(size) => onChange({ size })} />
       );
     case "image":
     case "pdf":
@@ -454,12 +458,29 @@ function BlockBody({
 }
 
 /** Text with a few formatting buttons (it's stored as simple Markdown). */
+/** Small / Normal / Large / Extra large, for a text or heading block. */
+function SizePicker({ size, onChange }: { size?: TextSize; onChange: (size: TextSize) => void }) {
+  return (
+    <select aria-label="Text size" title="Text size" className="plan-size-pick" value={size ?? "md"} onChange={(e) => onChange(e.target.value as TextSize)} data-native>
+      {TEXT_SIZES.map(([v, label]) => (
+        <option key={v} value={v}>
+          {label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function TextBlock({
   text,
+  size,
   onChange,
+  onSize,
 }: {
   text: string;
+  size?: TextSize;
   onChange: (text: string) => void;
+  onSize: (size: TextSize) => void;
 }) {
   const area = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -523,10 +544,11 @@ function TextBlock({
         >
           Link
         </button>
+        <SizePicker size={size} onChange={onSize} />
       </div>
       <textarea
         ref={area}
-        className="plan-edit-text"
+        className={`plan-edit-text ${sizeClass(size)}`}
         value={text}
         rows={3}
         placeholder="Write here…"

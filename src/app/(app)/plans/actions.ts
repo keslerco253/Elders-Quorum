@@ -3,7 +3,10 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { allowedAudience, canCreatePlans, canEditPlan, createPlan, deletePlan, getPlan, managesWardPlans, saveVersion, setAudience, wardFileCheck } from "@/lib/plans";
+import { allowedAudience, canCreatePlans, canEditPlan, createPlan, deletePlan, getPlan, managesWardPlans, saveVersion, setAudience, setPlanIcon, wardFileCheck } from "@/lib/plans";
+import { saveUpload } from "@/lib/uploads";
+import { db } from "@/lib/db";
+import { isPicture } from "@/lib/upload-names";
 import { parseBlocks, type Block } from "@/lib/plan-blocks";
 import { audienceMembers, notify, type Recipient } from "@/lib/notify";
 import { wardOrg } from "@/lib/orgs";
@@ -76,4 +79,29 @@ export async function deletePlanAction(fd: FormData) {
   deletePlan(plan.id);
   revalidatePath("/plans", "layout");
   back("/plans", `${plan.name} was deleted.`);
+}
+
+/** A plan's icon: a drawn one or an emoji, or an uploaded picture. */
+export async function setPlanIconAction(fd: FormData) {
+  const user = await requireUser();
+  const plan = getPlan(user.ward_id, Number(fd.get("plan_id")));
+  if (!plan || !canEditPlan(user, plan)) redirect("/plans");
+  const back = (msg: string): never => redirect(`/plans/${plan.id}/edit?msg=${encodeURIComponent(msg)}#icon`);
+  const file = fd.get("icon_file");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > 5_000_000) back("The icon picture must be under 5 MB.");
+    let name = "";
+    try {
+      name = await saveUpload(file);
+    } catch {
+      back("Use a picture (PNG, JPEG, GIF, WebP or an iPhone photo) for the icon.");
+    }
+    if (!isPicture(name)) back("Use a picture (not a PDF) for the icon.");
+    db().prepare("INSERT INTO plan_files (name, ward_id, original_name, uploaded_by) VALUES (?, ?, ?, ?)").run(name, user.ward_id, "Plan icon", user.id);
+    setPlanIcon(plan.id, { file: name });
+  } else {
+    setPlanIcon(plan.id, { key: String(fd.get("icon") || "") });
+  }
+  revalidatePath("/plans");
+  redirect(`/plans/${plan.id}/edit?ok=1&msg=${encodeURIComponent("Icon saved.")}#icon`);
 }
