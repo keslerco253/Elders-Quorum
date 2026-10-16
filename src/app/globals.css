@@ -337,6 +337,10 @@ body {
 
 /* Inside the phone app, the app draws the tab bar natively below the page. */
 html.in-app .web-tabbar { display: none; }
+/* On an iPad the page is wide enough for the computer layout (tabs across the top);
+   in the app the tabs are at the bottom, so keep the phone layout's header. */
+html.in-app .web-topnav { display: none; }
+html.in-app .app-header-item { display: block; }
 html.in-app main.app-main { padding-bottom: 2rem; }
 
 /* Things only for the phone app, or only for a browser. */

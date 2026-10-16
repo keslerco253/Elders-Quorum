@@ -226,7 +226,7 @@ export function Nav({
       <header className="sticky top-0 z-30 border-b border-border bg-surface/95 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4">
           <OrgSwitcher current={current} ward={ward} targets={targets} />
-          <nav className="ml-auto hidden items-center gap-1 md:flex">
+          <nav className="web-topnav ml-auto hidden items-center gap-1 md:flex">
             {[...main, ...desktopExtra].map((i) => (
               <Link
                 key={i.href}
@@ -239,14 +239,14 @@ export function Nav({
             ))}
           </nav>
           {/* Phones: Messages and Admin sit in the header (the tab bar has no room). */}
-          <Link href="/messages" aria-label={`Messages${messagesCount ? `, ${messagesCount} unread` : ""}`} className="relative ml-auto rounded-lg p-1.5 text-accent md:hidden">
+          <Link href="/messages" aria-label={`Messages${messagesCount ? `, ${messagesCount} unread` : ""}`} className="app-header-item relative ml-auto rounded-lg p-1.5 text-accent md:hidden">
             <Icon name="chat" />
             {messagesCount > 0 && (
               <span className="absolute -top-0.5 -right-1 min-w-4 rounded-full bg-danger px-1 text-center text-[10px] leading-4 font-bold text-white">{messagesCount}</span>
             )}
           </Link>
           {isAdmin && (
-            <Link href="/admin" className="relative rounded-lg px-2 py-1 text-sm font-medium text-accent md:hidden">
+            <Link href="/admin" className="app-header-item relative rounded-lg px-2 py-1 text-sm font-medium text-accent md:hidden">
               Admin
               {adminCount > 0 && <span className="ml-1 rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-bold text-white">{adminCount}</span>}
             </Link>
