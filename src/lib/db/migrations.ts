@@ -1016,4 +1016,27 @@ CREATE TABLE signup_guests (
 CREATE INDEX signup_guests_slot ON signup_guests(slot_id);
 `,
   },
+  {
+    // A whole plan page can be shared publicly too.
+    id: 45,
+    sql: `
+CREATE TABLE public_shares_new (
+  token TEXT PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('file','signup','plan')),
+  file TEXT,
+  signup_id INTEGER REFERENCES signups(id) ON DELETE CASCADE,
+  plan_id INTEGER REFERENCES ward_plans(id) ON DELETE CASCADE,
+  title TEXT NOT NULL DEFAULT '',
+  caption TEXT NOT NULL DEFAULT '',
+  created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+INSERT INTO public_shares_new (token, org_id, kind, file, signup_id, title, caption, created_by, created_at)
+  SELECT token, org_id, kind, file, signup_id, title, caption, created_by, created_at FROM public_shares;
+DROP TABLE public_shares;
+ALTER TABLE public_shares_new RENAME TO public_shares;
+CREATE INDEX public_shares_org ON public_shares(org_id);
+`,
+  },
 ];

@@ -1,4 +1,5 @@
-import { getShare } from "@/lib/public-shares";
+import { getShare, planShareContent } from "@/lib/public-shares";
+import { PlanPage } from "@/components/plan-page";
 import { getOrg, getWard, orgLabel } from "@/lib/orgs";
 import { getUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -41,6 +42,30 @@ export default async function PublicSharePage({ params, searchParams }: { params
   // Signed in to the app (and in that ward): offer the full page there too.
   const user = await getUser();
   const member = user && user.wards.some((w) => w.id === org.ward_id);
+
+  if (share.kind === "plan") {
+    const content = share.plan_id ? planShareContent(share.plan_id) : null;
+    if (!content) return <p className="card text-center">This plan isn&apos;t available right now.</p>;
+    return (
+      <div className="space-y-4">
+        <header className="text-center">
+          <div className="text-sm text-muted">{from}</div>
+          <h1 className="h1 mt-1">{share.title || content.title}</h1>
+          {share.caption && <p className="mt-2 whitespace-pre-wrap">{share.caption}</p>}
+        </header>
+        <article className="card p-5 sm:p-8">
+          <PlanPage blocks={content.blocks} fileSrc={(f) => `${fileSrc}?f=${encodeURIComponent(f)}`} />
+        </article>
+        {member && share.plan_id && (
+          <p className="text-center text-sm">
+            <a href={`/plans/${share.plan_id}`} className="link">
+              Open in My Ward Link
+            </a>
+          </p>
+        )}
+      </div>
+    );
+  }
 
   if (share.kind === "file") {
     return (

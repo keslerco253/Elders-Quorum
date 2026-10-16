@@ -463,14 +463,19 @@ Quorum or Relief Society.
 
 ## Sharing publicly (links and QR codes)
 
+(To add more pictures or PDFs to a plan, open it and tap **Add pictures or
+PDFs**, then **Pictures or PDFs**; you can pick several at once, or drop or
+paste them onto the page. Then **Save plan**.)
+
 Share one thing with people who don't have an account: a picture or PDF, or a
 service opportunity they can sign up for. Each link (and its QR code) shows
 **only that one thing**; nothing else in the app can be reached from it.
 
 - **What you can share:** a service opportunity (open it under Service →
   **Share publicly**), an event's flyer (open the event → **Share flyer
-  publicly**), or a picture or PDF in a plan (open the plan → **Share a picture
-  or PDF from this plan publicly**). Give it a title and an optional caption.
+  publicly**), or a plan (open the plan → **Share publicly**: either
+  **the whole page**, with every picture and PDF on it and any updates you post
+  later, or just one picture or PDF from it). Give it a title and an optional caption.
 - **Admin → Shared publicly** lists everything shared, with its QR code
   (**Download QR code** for posters, bulletins or slides), **Copy link**,
   **See what they see**, and **Stop sharing**, which turns the link and QR code

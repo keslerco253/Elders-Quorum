@@ -29,7 +29,7 @@ export default async function SharedPage({ searchParams }: { searchParams: Promi
       />
       <Flash msg={sp.new ? "The link and QR code are ready. Download the QR code for a poster or bulletin." : sp.msg} tone="success" />
       <p className="mb-4 text-sm text-muted">
-        To share something, open it and tap <strong>Share publicly</strong>: a service opportunity (Service), an event&apos;s flyer (Calendar), or a picture or PDF in a plan (Plans).
+        To share something, open it and tap <strong>Share publicly</strong>: a service opportunity (Service), an event&apos;s flyer (Calendar), or a whole plan page or one picture or PDF in it (Plans).
       </p>
       {shares.length === 0 ? (
         <Empty>Nothing is shared publicly.</Empty>
@@ -41,7 +41,7 @@ export default async function SharedPage({ searchParams }: { searchParams: Promi
               <div className="min-w-0 flex-1 space-y-2 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-base font-semibold">{s.title || "Untitled"}</span>
-                  <Badge tone="info">{s.kind === "signup" ? "Service sign-up" : "Picture or PDF"}</Badge>
+                  <Badge tone="info">{s.kind === "signup" ? "Service sign-up" : s.kind === "plan" ? "Whole plan page" : "Picture or PDF"}</Badge>
                 </div>
                 <div className="break-all font-mono text-xs">{shareUrl(s.token)}</div>
                 <div className="text-xs text-muted">

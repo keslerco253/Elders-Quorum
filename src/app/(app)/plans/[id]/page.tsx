@@ -35,9 +35,16 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
         back={{ href: "/plans", label: "Plans" }}
         actions={
           editor && (
-            <Link href={`/plans/${plan.id}/edit`} className="btn-primary">
-              {latest ? "Update plan" : "Post plan"}
-            </Link>
+            <>
+              {latest && (
+                <Link href={`/plans/${plan.id}/edit#add`} className="btn-secondary">
+                  Add pictures or PDFs
+                </Link>
+              )}
+              <Link href={`/plans/${plan.id}/edit`} className="btn-primary">
+                {latest ? "Update plan" : "Post plan"}
+              </Link>
+            </>
           )
         }
       />
@@ -68,10 +75,19 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
       {editor && isPresidency(user) && latest && (() => {
         const media = versionBlocks(latest).filter((b) => b.type === "image" || b.type === "pdf") as { file: string; name: string; caption: string }[];
         return (
-          media.length > 0 && (
             <details className="card mt-4 text-sm">
-              <summary className="cursor-pointer font-semibold">Share a picture or PDF from this plan publicly (link and QR code)</summary>
-              <ul className="mt-3 divide-y divide-border">
+              <summary className="cursor-pointer font-semibold">Share publicly (link and QR code)</summary>
+              <div className="mt-3 flex flex-wrap items-center gap-3 border-b border-border pb-3">
+                <span className="min-w-0 flex-1">
+                  <strong>The whole page</strong>
+                  <span className="block text-muted">Every picture and PDF on it, and any updates you post later.</span>
+                </span>
+                <a href={`/admin/shared/new?plan=${plan.id}`} className="btn-primary btn-sm">
+                  Share this whole page
+                </a>
+              </div>
+              {media.length > 0 && <div className="mt-3 font-semibold">Or just one picture or PDF:</div>}
+              <ul className="mt-1 divide-y divide-border">
                 {media.map((m) => (
                   <li key={m.file} className="flex items-center gap-3 py-2">
                     <FlyerThumb file={m.file} name={m.name} />
@@ -83,7 +99,6 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
                 ))}
               </ul>
             </details>
-          )
         );
       })()}
     </>

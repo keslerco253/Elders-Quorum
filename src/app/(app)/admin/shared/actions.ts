@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSignup } from "@/lib/signups";
+import { getPlan } from "@/lib/plans";
 import { createShare, stopShare } from "@/lib/public-shares";
 
 /** A file this organization's leaders may share: one of the ward's uploads (plans, flyers). */
@@ -16,11 +17,15 @@ export async function createPublicShare(fd: FormData) {
   const user = await requirePresidency();
   const file = String(fd.get("file") || "");
   const signupId = Number(fd.get("signup_id")) || 0;
+  const planId = Number(fd.get("plan_id")) || 0;
   const title = String(fd.get("title") || "").trim();
   const caption = String(fd.get("caption") || "").trim();
-  if (fd.get("agree") !== "on") redirect(`/admin/shared/new?${new URLSearchParams({ file, signup: signupId ? String(signupId) : "", title, caption, msg: "Please tick the box first." })}`);
+  if (fd.get("agree") !== "on") redirect(`/admin/shared/new?${new URLSearchParams({ file, signup: signupId ? String(signupId) : "", plan: planId ? String(planId) : "", title, caption, msg: "Please tick the box first." })}`);
   let token: string;
-  if (signupId) {
+  if (planId) {
+    if (!getPlan(user.ward_id, planId)) redirect("/admin/shared");
+    token = createShare({ orgId: user.org_id, kind: "plan", planId, title, caption, createdBy: user.id });
+  } else if (signupId) {
     if (!getSignup(user.org_id, signupId)) redirect("/admin/shared");
     token = createShare({ orgId: user.org_id, kind: "signup", signupId, title, caption, createdBy: user.id });
   } else {

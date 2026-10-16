@@ -264,7 +264,7 @@ function Toolbar({
   onFiles: () => void;
 }) {
   return (
-    <div className="sticky top-14 z-10 -mx-1 mb-3 flex flex-wrap gap-2 bg-bg/90 px-1 py-2 backdrop-blur">
+    <div id="add" className="sticky top-14 z-10 -mx-1 mb-3 flex scroll-mt-16 flex-wrap gap-2 bg-bg/90 px-1 py-2 backdrop-blur">
       <span className="self-center text-sm font-semibold text-muted">Add:</span>
       <button
         type="button"

@@ -3,8 +3,8 @@ import { isPicture } from "@/lib/upload-names";
 import { mediaProps, type Block, type MediaBlock } from "@/lib/plan-blocks";
 import { PdfPages } from "./pdf-pages";
 
-/** A plan page as members see it. */
-export function PlanPage({ blocks }: { blocks: Block[] }) {
+/** A plan page as members see it. `fileSrc` says where its pictures and PDFs load from (a public link uses its own). */
+export function PlanPage({ blocks, fileSrc }: { blocks: Block[]; fileSrc?: (file: string) => string }) {
   return (
     <div className="plan-page">
       {blocks.map((b) => {
@@ -19,7 +19,7 @@ export function PlanPage({ blocks }: { blocks: Block[] }) {
           case "pdf":
             return (
               <figure key={b.id} {...mediaProps(b)}>
-                <Media block={b} />
+                <Media block={b} src={fileSrc?.(b.file)} />
                 {b.caption && <figcaption>{b.caption}</figcaption>}
               </figure>
             );
@@ -29,8 +29,7 @@ export function PlanPage({ blocks }: { blocks: Block[] }) {
   );
 }
 
-export function Media({ block: b }: { block: MediaBlock }) {
-  const src = `/files/${b.file}`;
+export function Media({ block: b, src = `/files/${b.file}` }: { block: MediaBlock; src?: string }) {
   if (b.type === "image" && isPicture(b.file)) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={src} alt={b.caption || b.name} loading="lazy" />;
