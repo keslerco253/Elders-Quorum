@@ -77,8 +77,8 @@ module.exports = {
     ],
     extra: {
       appUrl: APP_URL,
-      // Filled in by `eas init` (see docs/MOBILE-APP.md).
-      eas: { projectId: process.env.EAS_PROJECT_ID || undefined },
+      // The Expo (EAS) project, from `eas init`.
+      eas: { projectId: process.env.EAS_PROJECT_ID || "b83853d0-fb41-4b2e-a9d6-2317b89ab86f" },
     },
   },
 };
