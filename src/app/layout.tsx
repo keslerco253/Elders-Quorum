@@ -3,6 +3,7 @@ import "./globals.css";
 import { getUser } from "@/lib/auth";
 import { publicAppName } from "@/lib/wards";
 import { ServiceWorker } from "@/components/service-worker";
+import { AppLinks } from "@/components/app-links";
 import { SearchableSelects } from "@/components/searchable-selects";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -37,6 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script dangerouslySetInnerHTML={{ __html: `if (window.MyWardLinkApp && window.MyWardLinkApp.tabs) document.documentElement.classList.add("in-app");` }} />
         {children}
         <ServiceWorker />
+        <AppLinks />
         <SearchableSelects />
       </body>
     </html>

@@ -21,6 +21,7 @@ export default async function CheckPage({ searchParams }: { searchParams: Promis
       <Flash msg={sp.error} tone="danger" />
       <form action={verifyCode} className="space-y-4">
         <input type="hidden" name="to" value={sp.to ?? ""} />
+        {sp.next && <input type="hidden" name="next" value={sp.next} />}
         <div>
           <label className="label" htmlFor="code">
             6-digit code

@@ -430,7 +430,12 @@ function Main() {
         injectedJavaScriptBeforeContentLoaded={`window.MyWardLinkApp = { platform: ${JSON.stringify(Platform.OS)}, tabs: true, widget: ${Platform.OS === "ios"} }; if (document.documentElement) document.documentElement.classList.add("in-app"); true;`}
         onMessage={onMessage}
         onShouldStartLoadWithRequest={onShouldStart}
-        onOpenWindow={(e) => openOutside(e.nativeEvent.targetUrl)}
+        // A "new window" link to our own page (a flyer, a PDF) opens in the app, which is signed in.
+        onOpenWindow={(e) => {
+          const url = e.nativeEvent.targetUrl;
+          if (isOurPage(url) && !isCalendarLink(url)) go(url);
+          else openOutside(url);
+        }}
         onNavigationStateChange={onNav}
         onLoadStart={() => {
           pageLoadAt.current = Date.now();

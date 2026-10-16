@@ -23,6 +23,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <Flash msg={sp.error} tone="danger" />
       <Flash msg={sp.ok} />
       <form action={requestLogin} className="space-y-4">
+        {sp.next && <input type="hidden" name="next" value={sp.next} />}
         <div>
           <label className="label" htmlFor="contact">
             {phone ? "Mobile number or email" : "Email"}

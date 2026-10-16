@@ -18,7 +18,12 @@ import { tellOwnerAboutNewWard } from "@/lib/ward-review";
 import { DEFAULT_TZ, validZone } from "@/lib/time";
 import { CALLINGS, isCalling, type Member } from "@/lib/types";
 
-const q = (params: Record<string, string>) => new URLSearchParams(params).toString();
+const q = (params: Record<string, string>) => new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+/** Where to go after signing in: a page on this site (never another site). */
+const safeNext = (v: FormDataEntryValue | null) => {
+  const s = String(v || "");
+  return /^\/(?!\/)[^\s\\]*$/.test(s) ? s : "";
+};
 
 const ip = async () => clientIp(await headers());
 const BUSY = "Too many tries from this device. Please wait a while and try again.";
@@ -67,22 +72,24 @@ export async function requestLogin(formData: FormData) {
     redirect("/join?" + q({ contact: raw, notfound: "1" }));
   }
   // The app stores' reviewers sign in with a fixed code (REVIEW_LOGIN); nothing is sent.
-  if (reviewLogin()?.email === c.value) redirect("/login/check?" + q({ to: c.value }));
+  const next = safeNext(formData.get("next"));
+  if (reviewLogin()?.email === c.value) redirect("/login/check?" + q({ to: c.value, next }));
   // Across the site, only codes actually sent count (so made-up addresses can't block everyone).
   if (!allowHit("login:all", 1000, 60)) redirect("/login?" + q({ contact: raw, error: "Sign-in is very busy right now. Please try again in a few minutes." }));
   const res = createLoginToken(member.id, remember);
   if (!res.ok) redirect("/login?" + q({ error: "Too many sign-in codes. Please wait an hour or use the most recent code." }));
   const sent = await sendLoginCode(member, c.kind, res.token, res.code);
   if (!sent) redirect("/login?" + q({ contact: raw, error: "We couldn't send your code just now. Please try again in a few minutes." }));
-  redirect("/login/check?" + q({ to: c.value }));
+  redirect("/login/check?" + q({ to: c.value, next }));
 }
 
 export async function verifyCode(formData: FormData) {
   const to = String(formData.get("to") || "");
   const code = String(formData.get("code") || "");
+  const next = safeNext(formData.get("next"));
   // Wrong codes are limited first, so the review code can't be guessed either.
   const where = await ip();
-  if (overLimit(`badcode:${where}`, 30, 60)) redirect("/login/check?" + q({ to, error: BUSY }));
+  if (overLimit(`badcode:${where}`, 30, 60)) redirect("/login/check?" + q({ to, next, error: BUSY }));
   const review = reviewLogin();
   if (review && review.email === parseContact(to)?.value && review.code === code.replace(/\D/g, "")) {
     const member = findLoginMember(review.email);
@@ -91,7 +98,7 @@ export async function verifyCode(formData: FormData) {
     const leads = member && db().prepare("SELECT 1 FROM org_members WHERE member_id = ? AND role = 'presidency'").get(member.id);
     if (member && !leads && !member.is_site_owner && onlyInDemoWards(member.id)) {
       await startSession(member.id, "month");
-      redirect("/");
+      redirect(next || "/");
     }
   }
   const result = redeemCode(to, code);
@@ -99,10 +106,10 @@ export async function verifyCode(formData: FormData) {
   if (result && parseContact(to)?.kind === "email") db().prepare("UPDATE members SET email_verified_at = datetime('now') WHERE id = ?").run(result.memberId);
   if (!result) {
     allowHit(`badcode:${where}`, 30, 60);
-    redirect("/login/check?" + q({ to, error: "That code didn't work. Check the newest code and try again." }));
+    redirect("/login/check?" + q({ to, next, error: "That code didn't work. Check the newest code and try again." }));
   }
   await startSession(result.memberId, result.remember);
-  redirect("/");
+  redirect(next || "/");
 }
 
 export async function verifyToken(formData: FormData) {

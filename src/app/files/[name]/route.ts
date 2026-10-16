@@ -1,12 +1,14 @@
 import { getUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { readUpload } from "@/lib/uploads";
+import { appUrl } from "@/lib/config";
 
 // Plan attachments (PDFs and pictures) are only served to signed-in members of the plan's ward.
 export async function GET(_req: Request, { params }: { params: Promise<{ name: string }> }) {
   const user = await getUser();
-  if (!user) return new Response("Sign in required", { status: 401 });
   const { name } = await params;
+  // Not signed in here (for example a browser other than the one they use): sign in, then come back.
+  if (!user) return Response.redirect(new URL(`/login?next=${encodeURIComponent(`/files/${name}`)}`, appUrl()), 302);
   const wards = "SELECT ward_id FROM ward_members WHERE member_id = ?";
   const found =
     (db().prepare(`SELECT original_name AS label FROM plan_files WHERE name = ? AND ward_id IN (${wards})`).get(name, user.id) as { label: string } | undefined) ??
