@@ -80,7 +80,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
             In {user.orgLabel}: {user.calling ? callingLabel(user.calling, user.org) : roleLabel(user.role, user.org)}
           </div>
           <p className="hint pt-2">
-            This app keeps only your name, email and what you post.{" "}
+            This app keeps only your name, your phone number and email (whichever you gave), and what you post.{" "}
             <Link href="/privacy" className="link">
               Privacy details
             </Link>
