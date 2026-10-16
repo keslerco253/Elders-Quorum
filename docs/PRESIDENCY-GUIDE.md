@@ -172,7 +172,9 @@ dates**. An existing one-time event can be made repeating by editing it.
 
 - **Calendar → Add event.** Check **Presidency only** for meetings members
   shouldn't see. Choose a reminder (default: the day before) and, if you like, a **second reminder** (for example a week before). Attach a **Flyer** (a PDF or picture): it shows on the event's page, with a small preview next to the event on members' home pages. Check **Ask people
-  to RSVP** for a headcount.
+  to RSVP** for a headcount. Check **Send a notification** and choose who
+  (everyone, just the presidency, or one of your groups) to tell them about
+  the new event when you save it.
 - Member suggestions show in **Admin → Event requests**. Approving adds the
   event and notifies the member; you can then adjust it.
 
@@ -503,7 +505,8 @@ service opportunity they can sign up for. Each link (and its QR code) shows
   **the whole page**, with every picture and PDF on it and any updates you post
   later, or just one picture or PDF from it). Give it a title and an optional caption.
 - **Admin → Shared publicly** lists everything shared, with its QR code
-  (**Download QR code** for posters, bulletins or slides), **Copy link**,
+  (tap **QR code** to see it big: download it for posters, bulletins or slides,
+  or in the phone app press and hold it to save it to Photos), **Copy link**,
   **See what they see**, and **Stop sharing**, which turns the link and QR code
   off right away. Don't share pictures with members' faces, names or contact
   information without permission.

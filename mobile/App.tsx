@@ -180,6 +180,21 @@ function TabBar({ tabs, active, onPress, c }: { tabs: Tab[]; active: string | nu
   );
 }
 
+// Pages for signing in or joining: no Back button there.
+const SIGNED_OUT_PAGES = /^\/(login|welcome|join|start|review|setup|request-access|auth)(\/|$)/;
+
+function BackBar({ onPress, c }: { onPress: () => void; c: Colors }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[styles.tabBar, { backgroundColor: c.surface, borderTopColor: c.border, paddingBottom: Math.max(insets.bottom, 6) }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onPress} style={styles.back}>
+        <Ionicons name="chevron-back" size={24} color={c.accent} />
+        <Text style={[styles.backText, { color: c.accent }]}>Back</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function LockScreen({ kind, onUnlock, c }: { kind: string; onUnlock: () => void; c: Colors }) {
   return (
     <View style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: c.bg }]}>
@@ -205,6 +220,7 @@ function Main() {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [keyboard, setKeyboard] = useState(false);
+  const [path, setPath] = useState("/");
   const [locked, setLocked] = useState<{ kind: string } | null>(null);
   const awayAt = useRef<number | null>(null);
   // Pages without tabs (signing in) don't send any: clear them if a new page doesn't.
@@ -352,7 +368,9 @@ function Main() {
     setCanGoBack(nav.canGoBack);
     // Signed out: the widget asks them to sign in again.
     try {
-      if (new URL(nav.url).pathname === "/login") saveWidgetKey(null);
+      const p = new URL(nav.url).pathname;
+      setPath(p);
+      if (p === "/login") saveWidgetKey(null);
     } catch {
       // Not a web address.
     }
@@ -443,6 +461,16 @@ function Main() {
         </View>
       ) : null}
       {tabs.length > 0 && !keyboard && !failed ? <TabBar tabs={tabs} active={activeTab} onPress={onTab} c={c} /> : null}
+      {/* A picture, PDF or download opened on its own has no tab bar or page to go back with: give it a Back button. */}
+      {tabs.length === 0 && canGoBack && !keyboard && !failed && !SIGNED_OUT_PAGES.test(path) ? (
+        <BackBar
+          c={c}
+          onPress={() => {
+            Haptics.selectionAsync().catch(() => {});
+            web.current?.goBack();
+          }}
+        />
+      ) : null}
       {locked ? <LockScreen kind={locked.kind} onUnlock={askToUnlock} c={c} /> : null}
     </SafeAreaView>
   );
@@ -467,6 +495,8 @@ const styles = StyleSheet.create({
   tabBar: { flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 6 },
   tab: { flex: 1, alignItems: "center", gap: 2, minHeight: 44 },
   tabLabel: { fontSize: 10.5, fontWeight: "500" },
+  back: { flexDirection: "row", alignItems: "center", minHeight: 44, paddingHorizontal: 12 },
+  backText: { fontSize: 17 },
   badge: { position: "absolute", top: -4, right: -10, minWidth: 18, height: 18, borderRadius: 9, borderWidth: 1.5, paddingHorizontal: 4, alignItems: "center", justifyContent: "center" },
   badgeText: { color: "#fff", fontSize: 10.5, fontWeight: "700" },
 });

@@ -338,3 +338,6 @@ body {
 /* Inside the phone app, the app draws the tab bar natively below the page. */
 html.in-app .web-tabbar { display: none; }
 html.in-app main.app-main { padding-bottom: 2rem; }
+
+/* Things only for the phone app, or only for a browser. */
+html:not(.in-app) .app-only, html.in-app .web-only { display: none; }

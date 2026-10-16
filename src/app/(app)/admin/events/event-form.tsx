@@ -6,9 +6,11 @@ import { RepeatFields } from "@/components/repeat-fields";
 import { SubmitButton } from "@/components/client";
 import { saveEvent } from "./actions";
 import { FlyerField } from "@/components/flyer-field";
+import { AnnounceField } from "@/components/announce-field";
 
 /** `date` (yyyy-mm-dd) pre-fills a new event for that day, 7–8 PM. */
-export function EventForm({ e, tz, date, series }: { e?: EventRow; tz: string; date?: string; series?: SeriesRow }) {
+/** `announceTo`: who a new event can be announced to (only when adding one). */
+export function EventForm({ e, tz, date, series, announceTo }: { e?: EventRow; tz: string; date?: string; series?: SeriesRow; announceTo?: { value: string; label: string }[] }) {
   const startValue = e ? utcToLocalInput(e.starts_at, tz) : date ? `${date}T19:00` : "";
   return (
     <form action={saveEvent} className="card max-w-2xl space-y-4">
@@ -105,6 +107,7 @@ export function EventForm({ e, tz, date, series }: { e?: EventRow; tz: string; d
           <span className="block text-muted">Shows Going / Maybe / Can&apos;t go buttons.</span>
         </span>
       </label>
+      {!e && announceTo && <AnnounceField choices={announceTo} what="new event" />}
       <SubmitButton>Save event</SubmitButton>
     </form>
   );

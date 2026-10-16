@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { localInputToUtc, formatDateTime } from "@/lib/time";
-import { notify, recipientById } from "@/lib/notify";
+import { audienceMembers, notify, recipientById, type Audience } from "@/lib/notify";
+import { renderTemplate } from "@/lib/templates";
+import { getGroup } from "@/lib/groups";
 import { DateTime } from "luxon";
 import { createSeries, endSeriesBefore, getSeries, type SeriesInput } from "@/lib/event-series";
 import { saveUpload } from "@/lib/uploads";
@@ -173,6 +175,18 @@ export async function saveEvent(fd: FormData) {
     } else {
       update(id);
     }
+  }
+  // "Send a notification": tell the chosen people about the new event.
+  if (!id && eventId && fd.get("announce") === "on") {
+    const raw = String(fd.get("announce_to") || "everyone");
+    const groupId = raw.startsWith("group:") ? Number(raw.slice(6)) : 0;
+    const audience: Audience = e.presidencyOnly ? "admins" : groupId && getGroup(groupId, user.org_id) ? `group:${groupId}` : raw === "presidency" ? "presidency" : "everyone";
+    const people = audienceMembers(user.org_id, audience);
+    await notify(people, {
+      ...renderTemplate(user.org_id, "event_new", { event: e.title, date_time: formatDateTime(e.start!, tz), location: e.location }),
+      url: `/calendar/${eventId}`,
+    });
+    note += ` ${people.length} ${people.length === 1 ? "person was" : "people were"} notified.`;
   }
   revalidatePath("/calendar", "layout");
   go(`/calendar/${eventId}`, note);

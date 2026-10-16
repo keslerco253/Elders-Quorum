@@ -131,6 +131,14 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     vars: [v("event", "The event's name", "Ward Christmas party"), v("date_time", "Date and time", "Sat, Dec 12 · 6:00 PM"), v("location", "Where (blank if none)", "the church gym")],
   },
   {
+    key: "event_new",
+    label: "New event",
+    about: "When a leader adds an event and ticks \"Send a notification\", to the people they chose.",
+    title: "New event: {event}",
+    body: "{date_time}[ at {location}]. Tap for the details.",
+    vars: [v("event", "The event's name", "Ward Christmas party"), v("date_time", "Date and time", "Sat, Dec 12 · 6:00 PM"), v("location", "Where (blank if none)", "the church gym")],
+  },
+  {
     key: "service_reminder",
     label: "Service reminder",
     about: "To each person signed up, at the service opportunity's two reminder times (a week and a day before, unless changed).",

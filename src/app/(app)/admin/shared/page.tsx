@@ -28,7 +28,7 @@ export default async function SharedPage({ searchParams }: { searchParams: Promi
         back={{ href: "/admin", label: "Admin" }}
         subtitle="Links and QR codes anyone can open without an account. Each shows only that one picture, PDF or service opportunity."
       />
-      <Flash msg={sp.new ? "The link and QR code are ready. Download the QR code for a poster or bulletin." : sp.msg} tone="success" />
+      <Flash msg={sp.new ? "The link and QR code are ready. Tap QR code to save it for a poster or bulletin." : sp.msg} tone="success" />
       <p className="mb-4 text-sm text-muted">
         To share something, open it and tap <strong>Share publicly</strong>: a service opportunity (Service), an event&apos;s flyer (Calendar), or a whole plan page or one picture or PDF in it (Plans).
       </p>
@@ -38,7 +38,7 @@ export default async function SharedPage({ searchParams }: { searchParams: Promi
         <ul className="space-y-3">
           {shares.map((s, i) => (
             <li key={s.token} id={s.token} className={`card flex flex-wrap gap-4 scroll-mt-20 ${sp.new === s.token ? "ring-2 ring-accent" : ""}`}>
-              <div className="h-32 w-32 shrink-0 [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qrs[i] }} />
+              <Link href={`/admin/shared/${s.token}/code`} aria-label="Open the QR code" className="h-32 w-32 shrink-0 [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qrs[i] }} />
               <div className="min-w-0 flex-1 space-y-2 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-base font-semibold">{s.title || "Untitled"}</span>
@@ -52,9 +52,9 @@ export default async function SharedPage({ searchParams }: { searchParams: Promi
                 <div className="flex flex-wrap gap-2">
                   <CopyButton text={shareUrl(s.token)} label="Copy link" />
                   <ShareButton url={shareUrl(s.token)} title={s.title || undefined} />
-                  <a href={`/admin/shared/${s.token}/qr`} className="btn-secondary btn-sm">
-                    Download QR code
-                  </a>
+                  <Link href={`/admin/shared/${s.token}/code`} className="btn-secondary btn-sm">
+                    QR code
+                  </Link>
                   <Link href={`/p/${s.token}`} target="_blank" className="btn-secondary btn-sm">
                     See what they see
                   </Link>
