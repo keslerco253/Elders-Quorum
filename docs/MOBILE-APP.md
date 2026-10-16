@@ -219,6 +219,31 @@ and the review notes below point it out.
 
 ---
 
+## The home-screen widget (iPhone)
+
+`mobile/targets/widget` is an iPhone widget (small, medium and lock screen):
+this Sunday's lesson, this week's Come, Follow Me reading, the next event and
+the unread count. Tapping it opens that page in the app. It's added to the app
+during the EAS build by `@bacons/apple-targets`.
+
+- **How it signs in:** each signed-in page in the app hands the app a widget
+  key (`/api/widget/key`), which the app saves in an App Group
+  (`group.com.MyWardLink.app`) the widget can read. The widget asks
+  `/api/widget` for the latest about every half hour, and the app refreshes it
+  when opened or when a notification arrives. Signing out ends the key.
+- **Apple setup:** EAS registers the widget's bundle ID
+  (`com.MyWardLink.app.widget`) and the App Group, and turns on App Groups for
+  both, during the build. If a build says a profile is missing App Groups:
+  developer.apple.com → Identifiers → **App Groups → +** →
+  `group.com.MyWardLink.app`; then open both `com.MyWardLink.app` and
+  `com.MyWardLink.app.widget`, tick **App Groups**, choose that group, save,
+  and build again (answer yes if EAS offers to make new profiles).
+- **Team ID:** `APPLE_TEAM_ID` in `mobile/app.config.js` (signing the widget
+  needs it).
+- Needs iOS 17 or later (the app itself still runs on iOS 16.4).
+
+---
+
 ## Releasing an update to the app itself
 
 Only needed when something in `mobile/` changes (website changes appear in the

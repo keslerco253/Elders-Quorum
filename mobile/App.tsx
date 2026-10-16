@@ -5,6 +5,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
+import { ExtensionStorage } from "@bacons/apple-targets";
 import { StatusBar } from "expo-status-bar";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
@@ -55,6 +56,23 @@ const TAB_ICONS: Record<string, [keyof typeof Ionicons.glyphMap, keyof typeof Io
   shield: ["shield-outline", "shield"],
   more: ["ellipsis-horizontal-circle-outline", "ellipsis-horizontal-circle"],
 };
+
+// The home-screen widget (iPhone) reads its sign-in key and the site's address
+// from storage shared with the app (an App Group); see targets/widget.
+const widgetStorage = Platform.OS === "ios" ? new ExtensionStorage("group.com.MyWardLink.app") : null;
+
+function refreshWidget() {
+  if (widgetStorage) ExtensionStorage.reloadWidget();
+}
+
+function saveWidgetKey(key: string | null) {
+  if (!widgetStorage) return;
+  if ((widgetStorage.get("widgetKey") ?? null) === key && widgetStorage.get("appUrl") === APP_URL) return;
+  if (key) widgetStorage.set("widgetKey", key);
+  else widgetStorage.remove("widgetKey");
+  widgetStorage.set("appUrl", APP_URL);
+  refreshWidget();
+}
 
 // Locking the app: asked for again after it's been in the background this long.
 const LOCK_KEY = "mwl_lock";
@@ -208,6 +226,8 @@ function Main() {
 
   // Tapping a notification, or a link to the site, while the app is running.
   useEffect(() => {
+    // Something new (a message, a reminder): the widget's count may have changed.
+    const arrived = Notifications.addNotificationReceivedListener(() => refreshWidget());
     const tap = Notifications.addNotificationResponseReceivedListener((r) => {
       const url = notificationUrl(r);
       if (url) go(url);
@@ -216,6 +236,7 @@ function Main() {
       if (isOurPage(url)) go(url);
     });
     return () => {
+      arrived.remove();
       tap.remove();
       link.remove();
     };
@@ -254,6 +275,7 @@ function Main() {
     });
     const sub = AppState.addEventListener("change", async (state) => {
       if (state === "background") awayAt.current = Date.now();
+      if (state === "active") refreshWidget();
       if (state === "active" && awayAt.current && Date.now() - awayAt.current > LOCK_AFTER_MS) {
         awayAt.current = null;
         const l = await lockInfo();
@@ -272,7 +294,7 @@ function Main() {
 
   const onMessage = useCallback(
     async (e: WebViewMessageEvent) => {
-      let msg: { type?: string; url?: string; title?: string; text?: string; items?: Tab[]; active?: string | null; count?: number; on?: boolean };
+      let msg: { type?: string; url?: string; title?: string; text?: string; items?: Tab[]; active?: string | null; count?: number; on?: boolean; key?: string };
       try {
         msg = JSON.parse(e.nativeEvent.data);
       } catch {
@@ -299,6 +321,8 @@ function Main() {
             : { message: [msg.text, msg.url].filter(Boolean).join(" "), title: msg.title },
         ).catch(() => {});
       }
+      // The widget's key, from each signed-in page.
+      else if (msg.type === "widgetKey" && typeof msg.key === "string") saveWidgetKey(msg.key);
       // Face ID lock, from the More page.
       else if (msg.type === "lockStatus") tellWeb({ type: "lock", ...(await lockInfo()) });
       else if (msg.type === "setLock") {
@@ -324,7 +348,15 @@ function Main() {
     return false;
   }, []);
 
-  const onNav = useCallback((nav: WebViewNavigation) => setCanGoBack(nav.canGoBack), []);
+  const onNav = useCallback((nav: WebViewNavigation) => {
+    setCanGoBack(nav.canGoBack);
+    // Signed out: the widget asks them to sign in again.
+    try {
+      if (new URL(nav.url).pathname === "/login") saveWidgetKey(null);
+    } catch {
+      // Not a web address.
+    }
+  }, []);
 
   // A tab opens its page (the web app's own navigation, so it's quick); the tab
   // you're on scrolls back to the top.
@@ -377,7 +409,7 @@ function Main() {
         source={{ uri: start }}
         style={[styles.fill, { backgroundColor: c.bg }, failed && styles.hidden]}
         applicationNameForUserAgent="MyWardLinkApp/1.0"
-        injectedJavaScriptBeforeContentLoaded={`window.MyWardLinkApp = { platform: ${JSON.stringify(Platform.OS)}, tabs: true }; if (document.documentElement) document.documentElement.classList.add("in-app"); true;`}
+        injectedJavaScriptBeforeContentLoaded={`window.MyWardLinkApp = { platform: ${JSON.stringify(Platform.OS)}, tabs: true, widget: ${Platform.OS === "ios"} }; if (document.documentElement) document.documentElement.classList.add("in-app"); true;`}
         onMessage={onMessage}
         onShouldStartLoadWithRequest={onShouldStart}
         onOpenWindow={(e) => openOutside(e.nativeEvent.targetUrl)}

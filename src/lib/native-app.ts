@@ -10,7 +10,7 @@ export interface AppPushStatus {
   platform: string;
 }
 
-type AppWindow = Window & { MyWardLinkApp?: { platform: string; tabs?: boolean }; ReactNativeWebView?: { postMessage(msg: string): void } };
+type AppWindow = Window & { MyWardLinkApp?: { platform: string; tabs?: boolean; widget?: boolean }; ReactNativeWebView?: { postMessage(msg: string): void } };
 
 export const inApp = () => typeof window !== "undefined" && !!(window as AppWindow).MyWardLinkApp;
 /** Newer versions of the app draw the tab bar themselves. */
@@ -30,7 +30,8 @@ export function postToApp(
     | { type: "tabs"; items: AppTab[]; active: string | null }
     | { type: "badge"; count: number }
     | { type: "share"; url?: string; text?: string; title?: string }
-    | { type: "setLock"; on: boolean },
+    | { type: "setLock"; on: boolean }
+    | { type: "widgetKey"; key: string },
 ) {
   (window as AppWindow).ReactNativeWebView?.postMessage(JSON.stringify(msg));
 }
@@ -123,4 +124,16 @@ export function setAppPushOff(off: boolean) {
   } catch {
     // Storage unavailable: notifications just stay on.
   }
+}
+
+// The home-screen widget's key goes to the app once per page load (the app
+// ignores it when nothing changed).
+let widgetKeySent = false;
+export async function sendWidgetKey() {
+  if (widgetKeySent || !(window as AppWindow).MyWardLinkApp?.widget) return;
+  widgetKeySent = true;
+  const res = await fetch("/api/widget/key", { method: "POST" }).catch(() => null);
+  const body = res?.ok ? ((await res.json().catch(() => null)) as { key?: string } | null) : null;
+  if (body?.key) postToApp({ type: "widgetKey", key: body.key });
+  else widgetKeySent = false;
 }

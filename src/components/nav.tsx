@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { appHasTabs, postToApp } from "@/lib/native-app";
+import { appHasTabs, postToApp, sendWidgetKey } from "@/lib/native-app";
 
 type Item = { href: string; label: string; icon: string; badge?: number };
 
@@ -214,8 +214,11 @@ export function Nav({
   useEffect(() => {
     if (appHasTabs()) postToApp({ type: "badge", count: messagesCount + moreCount });
   }, [messagesCount, moreCount]);
-  useEffect(() => () => {
-    if (appHasTabs()) postToApp({ type: "tabs", items: [], active: null });
+  useEffect(() => {
+    sendWidgetKey();
+    return () => {
+      if (appHasTabs()) postToApp({ type: "tabs", items: [], active: null });
+    };
   }, []);
 
   return (

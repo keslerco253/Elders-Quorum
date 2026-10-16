@@ -9,6 +9,11 @@ const host = new URL(APP_URL).host;
 // From Firebase, for Android notifications (see docs/MOBILE-APP.md). Builds
 // still work without it; Android just won't get notifications.
 const googleServices = fs.existsSync("./google-services.json") ? "./google-services.json" : undefined;
+// Apple Developer Team ID (developer.apple.com → Membership). Needed to sign the
+// home-screen widget along with the app.
+const APPLE_TEAM_ID = process.env.APPLE_TEAM_ID || "";
+// The app and its widget share the widget's sign-in key through this App Group.
+const APP_GROUP = "group.com.MyWardLink.app";
 
 module.exports = {
   expo: {
@@ -21,6 +26,8 @@ module.exports = {
     userInterfaceStyle: "automatic",
     ios: {
       bundleIdentifier: "com.MyWardLink.app",
+      ...(APPLE_TEAM_ID ? { appleTeamId: APPLE_TEAM_ID } : {}),
+      entitlements: { "com.apple.security.application-groups": [APP_GROUP] },
       supportsTablet: true,
       // Links to the site (e.g. sign-in emails) open in the app, and texted sign-in
       // codes ("@mywardlink.net #123456") are offered above the keyboard.
@@ -52,6 +59,8 @@ module.exports = {
       ],
     },
     plugins: [
+      // The home-screen widget (targets/widget).
+      "@bacons/apple-targets",
       [
         "expo-splash-screen",
         {
