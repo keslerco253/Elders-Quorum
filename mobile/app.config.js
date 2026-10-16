@@ -20,7 +20,7 @@ module.exports = {
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
     ios: {
-      bundleIdentifier: "net.mywardlink.app",
+      bundleIdentifier: "com.MyWardLink.app",
       supportsTablet: true,
       // Links to the site (e.g. sign-in emails) open in the app, and texted sign-in
       // codes ("@mywardlink.net #123456") are offered above the keyboard.

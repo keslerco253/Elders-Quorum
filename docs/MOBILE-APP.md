@@ -45,7 +45,7 @@ account, a free Firebase account (Google), and Node.js on your PC
 
 1. In https://appstoreconnect.apple.com → **Apps → +** → New App:
    - Platform iOS, name **My Ward Link**, language English (U.S.).
-   - Bundle ID: **net.mywardlink.app** (register it first if asked:
+   - Bundle ID: **com.MyWardLink.app** (register it first if asked:
      developer.apple.com → Identifiers → +, App IDs, with **Push Notifications**
      and **Associated Domains** ticked).
    - SKU: `mywardlink`.

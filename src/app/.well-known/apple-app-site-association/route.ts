@@ -7,11 +7,11 @@ export function GET() {
   const team = process.env.APPLE_TEAM_ID?.trim();
   if (!team) return new Response("Not found", { status: 404 });
   return Response.json({
-    webcredentials: { apps: [`${team}.net.mywardlink.app`] },
+    webcredentials: { apps: [`${team}.com.MyWardLink.app`] },
     applinks: {
       details: [
         {
-          appIDs: [`${team}.net.mywardlink.app`],
+          appIDs: [`${team}.com.MyWardLink.app`],
           components: [
             { "/": "/feed/*", exclude: true },
             { "/": "/calendar/*/ics", exclude: true },
