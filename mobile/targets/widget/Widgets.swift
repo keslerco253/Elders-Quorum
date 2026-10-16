@@ -30,13 +30,24 @@ struct WardData: Codable {
   let lesson: Lesson?
   let study: Study?
   let event: Event?
+  /// The next few events (missing from data saved by older versions).
+  let events: [Event]?
   let unread: Int
+
+  var upcoming: [Event] {
+    if let events, !events.isEmpty { return events }
+    return event.map { [$0] } ?? []
+  }
 
   static let sample = WardData(
     ward: "Maple Grove Ward",
     lesson: Lesson(org: "Elders Quorum", when: "This Sunday", title: "Faith in Jesus Christ", subtitle: "", path: "/lessons"),
     study: Study(reading: "Genesis 1–2; Moses 2–3", theme: "“In the Beginning God Created the Heaven and the Earth”", path: "/"),
     event: Event(title: "Ward chili cook-off", when: "Fri · 6:00 PM", path: "/calendar"),
+    events: [
+      Event(title: "Ward chili cook-off", when: "Fri · 6:00 PM", path: "/calendar"),
+      Event(title: "Yard cleanup service project", when: "Sat, Oct 24 · 9:00 AM", path: "/calendar"),
+    ],
     unread: 2
   )
 }
@@ -227,6 +238,73 @@ struct MediumView: View {
   }
 }
 
+struct SectionLabel: View {
+  let text: String
+  var body: some View {
+    Text(text.uppercased()).font(.caption2.weight(.semibold)).foregroundStyle(accent)
+  }
+}
+
+struct LargeView: View {
+  let data: WardData
+  let base: String
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Header(data: data)
+      if let l = data.lesson, let url = link(base, l.path) {
+        Link(destination: url) {
+          VStack(alignment: .leading, spacing: 2) {
+            SectionLabel(text: "\(l.when) · \(l.org)")
+            Text(l.title).font(.headline).foregroundStyle(text).lineLimit(2)
+            if !l.subtitle.isEmpty {
+              Text(l.subtitle).font(.caption).foregroundStyle(muted).lineLimit(1)
+            }
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+      }
+      if let s = data.study, let url = link(base, s.path) {
+        Link(destination: url) {
+          VStack(alignment: .leading, spacing: 2) {
+            SectionLabel(text: "Come, Follow Me this week")
+            Text(s.reading).font(.subheadline.weight(.semibold)).foregroundStyle(text).lineLimit(2)
+            if !s.theme.isEmpty {
+              Text(s.theme).font(.caption).foregroundStyle(muted).lineLimit(2)
+            }
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+      }
+      if !data.upcoming.isEmpty {
+        VStack(alignment: .leading, spacing: 6) {
+          SectionLabel(text: "Coming up")
+          ForEach(Array(data.upcoming.prefix(3).enumerated()), id: \.offset) { _, e in
+            if let url = link(base, e.path) {
+              Link(destination: url) {
+                Row(icon: "calendar", label: e.when, title: e.title, detail: "")
+              }
+            }
+          }
+        }
+      }
+      if data.lesson == nil && data.study == nil && data.upcoming.isEmpty {
+        Text("Nothing coming up").font(.footnote).foregroundStyle(muted)
+      }
+      Spacer(minLength: 0)
+      if data.unread > 0, let url = link(base, "/messages") {
+        Link(destination: url) {
+          HStack(spacing: 6) {
+            Image(systemName: "bubble.left.fill").font(.footnote).foregroundStyle(accent)
+            Text(data.unread == 1 ? "1 new message or notification" : "\(data.unread) new messages and notifications")
+              .font(.caption.weight(.semibold)).foregroundStyle(text)
+          }
+        }
+      }
+    }
+    .widgetURL(link(base, "/"))
+  }
+}
+
 struct LockScreenView: View {
   let data: WardData
   var body: some View {
@@ -258,6 +336,7 @@ struct WardWidgetView: View {
       case .ready(let data):
         switch family {
         case .systemMedium: MediumView(data: data, base: entry.base)
+        case .systemLarge: LargeView(data: data, base: entry.base)
         case .accessoryRectangular: LockScreenView(data: data)
         default: SmallView(data: data, base: entry.base)
         }
@@ -279,7 +358,7 @@ struct WardWidget: Widget {
     }
     .configurationDisplayName("My Ward Link")
     .description("This Sunday's lesson, this week's Come, Follow Me, and what's coming up.")
-    .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
+    .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular])
   }
 }
 

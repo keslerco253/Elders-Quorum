@@ -35,6 +35,7 @@ describe("home-screen widget feed", () => {
     expect(data.lesson).toMatchObject({ org: "Elders Quorum", when: "This Sunday", title: "Abide in My Love", subtitle: "Elder Christofferson" });
     expect(data.lesson?.path).toMatch(/^\/lessons\/\d+\?org=1$/);
     expect(data.event).toMatchObject({ title: "Service project", when: "Tomorrow · 10:00 AM" });
+    expect(data.events).toHaveLength(1);
     expect(data.ward).toBe("Villas Ward");
     expect(data.study).toBeNull();
   });

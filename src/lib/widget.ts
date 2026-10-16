@@ -40,6 +40,8 @@ export interface WidgetData {
   study: { reading: string; theme: string; path: string } | null;
   /** The next event they'd see on their calendar. */
   event: { title: string; when: string; path: string } | null;
+  /** The next few events (for the large widget). */
+  events: { title: string; when: string; path: string }[];
   unread: number;
 }
 
@@ -69,14 +71,14 @@ export function widgetData(user: CurrentUser, now: DateTime = DateTime.utc()): W
   const ss = orgs.find(usesCfm);
   const ssLesson = ss && week ? upcomingLessons(ss.id, week.sunday, 1).find((l) => l.date === week.sunday) : undefined;
   const study = week ? { reading: week.reading, theme: week.theme, path: ssLesson && ss ? `/lessons/${ssLesson.id}?org=${ss.id}` : "/" } : null;
-  const next = eventsBetween(user.id, now.toISO()!, now.plus({ days: 45 }).toISO()!, { joinedOnly: true })[0];
-  const event = next
-    ? (() => {
-        const s = DateTime.fromISO(next.starts_at).setZone(tz);
-        const day = s.toISODate() === today ? "Today" : s.toISODate() === local.plus({ days: 1 }).toISODate() ? "Tomorrow" : formatDate(s.toISODate()!, "short");
-        return { title: next.title, when: `${day} · ${s.toFormat("h:mm a")}`, path: `/calendar/${next.id}?org=${next.org_id}` };
-      })()
-    : null;
+  const events = eventsBetween(user.id, now.toISO()!, now.plus({ days: 45 }).toISO()!, { joinedOnly: true })
+    .slice(0, 3)
+    .map((e) => {
+      const s = DateTime.fromISO(e.starts_at).setZone(tz);
+      const day = s.toISODate() === today ? "Today" : s.toISODate() === local.plus({ days: 1 }).toISODate() ? "Tomorrow" : formatDate(s.toISODate()!, "short");
+      return { title: e.title, when: `${day} · ${s.toFormat("h:mm a")}`, path: `/calendar/${e.id}?org=${e.org_id}` };
+    });
+  const event = events[0] ?? null;
   const unread = unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id) + unreadNotifications(user.id);
-  return { ward: user.ward.name, lesson, study, event, unread };
+  return { ward: user.ward.name, lesson, study, event, events, unread };
 }
