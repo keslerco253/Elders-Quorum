@@ -7,6 +7,8 @@ import { ledOrgIds, sendAnswer } from "@/lib/conversations";
 import { canSendTo, getGroup, sendToAudience } from "@/lib/groups";
 import { getOrg, getWard } from "@/lib/orgs";
 import type { Audience } from "@/lib/notify";
+import { db } from "@/lib/db";
+import { saveUpload } from "@/lib/uploads";
 
 const LINKS = ["/", "/lessons", "/calendar", "/plans", "/signups"];
 
@@ -22,10 +24,13 @@ function back(msg: string, to = ""): never {
 export async function composeMessage(fd: FormData) {
   const user = await requireUser();
   const to = String(fd.get("to") || "");
-  const body = String(fd.get("body") || "").trim();
+  let body = String(fd.get("body") || "").trim();
+  const file = fd.get("flyer");
+  const hasFlyer = file instanceof File && file.size > 0 && !String(to).startsWith("person:");
   const m = to.match(/^(aud|person):(\d+):(.+)$/);
   const orgId = m ? Number(m[2]) : 0;
   if (!m || !ledOrgIds(user.id).includes(orgId)) back("Choose who to send to.");
+  if (!body && hasFlyer) body = "Please see the attached flyer.";
   if (!body) back("Write a message first.", to);
   const author = { id: user.id, org_id: orgId, display_name: user.display_name };
 
@@ -47,8 +52,20 @@ export async function composeMessage(fd: FormData) {
   // The subject is optional: the start of the message stands in for it.
   const title = String(fd.get("title") || "").trim().slice(0, 120) || (body.length > 60 ? `${body.slice(0, 57).trim()}…` : body);
   const link = LINKS.includes(String(fd.get("link"))) ? String(fd.get("link")) : "/";
-  const tz = getWard(getOrg(orgId)?.ward_id ?? 0)?.timezone ?? user.ward.timezone;
-  const { count, push, email, text, reached } = await sendToAudience({ orgId, senderId: user.id, audience, title, body: body.slice(0, 2000), link, tz });
+  const wardId = getOrg(orgId)?.ward_id ?? user.ward_id;
+  const tz = getWard(wardId)?.timezone ?? user.ward.timezone;
+  // A flyer (PDF or picture): kept with the ward, so only its members can open it.
+  let flyer: { file: string; name: string } | undefined;
+  if (hasFlyer) {
+    if (file.size > 15_000_000) back("The flyer must be under 15 MB.", to);
+    try {
+      flyer = { file: await saveUpload(file), name: file.name.slice(0, 200) || "Flyer" };
+    } catch {
+      back("That kind of file can't be attached. Use a PDF or a picture (PNG, JPEG, GIF, WebP or an iPhone photo).", to);
+    }
+    db().prepare("INSERT INTO plan_files (name, ward_id, original_name, uploaded_by) VALUES (?, ?, ?, ?)").run(flyer.file, wardId, flyer.name, user.id);
+  }
+  const { count, push, email, text, reached } = await sendToAudience({ orgId, senderId: user.id, audience, title, body: body.slice(0, 2000), link, tz, flyer });
   revalidatePath("/", "layout");
   const missed = count - reached;
   redirect(

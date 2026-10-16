@@ -2,6 +2,7 @@ import { db } from "./db";
 import { appUrl } from "./config";
 import { emailHtml, sendMail } from "./mail";
 import { pushToMember, type PushPayload } from "./push";
+import { readUpload } from "./uploads";
 import { canSendNotice, sendSms } from "./sms";
 import { fallbackChannels, type ContactPref } from "./contact";
 import { DateTime } from "luxon";
@@ -103,6 +104,9 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
   let reached = 0;
   const orgNames = new Map<number, string>();
 
+  // A flyer goes with each email (read once).
+  const upload = payload.attachment ? readUpload(payload.attachment.file) : null;
+  const attachments = upload && payload.attachment ? [{ filename: attachmentName(payload.attachment.name, payload.attachment.file), content: upload.data, contentType: upload.type }] : undefined;
   const sendEmail = async (r: Recipient, url: string) => {
     if (!r.email) return false;
     if (payload.personal) {
@@ -115,6 +119,7 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
       subject: payload.title,
       text: `${body}\n\n${url}`,
       html: emailHtml(payload.title, body, { url, label: payload.linkLabel ?? "Open the app" }),
+      attachments,
     });
   };
   const sendText = async (r: Recipient, url: string) => {
@@ -181,4 +186,11 @@ export function withSeen(path: string, id: number) {
 export function claimOnce(key: string): boolean {
   const res = db().prepare("INSERT OR IGNORE INTO sent_notifications (key) VALUES (?)").run(key);
   return res.changes > 0;
+}
+
+/** "Flyer.pdf": the uploaded file's own name, with the right extension. */
+function attachmentName(name: string, file: string) {
+  const ext = file.slice(file.lastIndexOf("."));
+  const base = name.replace(/[^\w .()-]/g, "").trim() || "Flyer";
+  return base.toLowerCase().endsWith(ext.toLowerCase()) ? base : `${base}${ext}`;
 }

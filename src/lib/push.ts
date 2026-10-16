@@ -54,6 +54,8 @@ export interface PushPayload {
   textLink?: string;
   /** Sent to them as a member: a texted reply goes to the presidency, even if they're a leader. */
   asMember?: boolean;
+  /** A file (uploaded flyer) emailed along with it. */
+  attachment?: { file: string; name: string };
 }
 
 interface SubRow {

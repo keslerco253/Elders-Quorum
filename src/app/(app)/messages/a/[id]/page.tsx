@@ -7,6 +7,7 @@ import { getOrg, orgLabel } from "@/lib/orgs";
 import { formatDateTime } from "@/lib/time";
 import { leadersWord } from "@/lib/types";
 import { Linkify } from "@/components/linkify";
+import { FlyerView } from "@/components/flyer-view";
 import { ChatBox } from "@/components/chat-box";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -35,6 +36,7 @@ export default async function AnnouncementPage({ params, searchParams }: { param
         <p className="whitespace-pre-wrap break-words">
           <Linkify text={a.body} />
         </p>
+        {a.flyer_file && <FlyerView file={a.flyer_file} name={a.flyer_name} className="pt-1" />}
         {LINK_LABELS[a.link] && (
           <Link href={a.link} className="btn-secondary btn-sm">
             Open {LINK_LABELS[a.link]}

@@ -66,8 +66,17 @@ export function ComposeForm({ orgs, people, initial }: { orgs: OrgChoices[]; peo
         <label className="label" htmlFor="compose-body">
           Message
         </label>
-        <ChatBox id="compose-body" name="body" rows={5} maxLength={2000} required className="input" draftKey="compose" placeholder="Write your message… (Ctrl+Enter to send)" />
+        <ChatBox id="compose-body" name="body" rows={5} maxLength={2000} required={isPerson} className="input" draftKey="compose" placeholder="Write your message… (Ctrl+Enter to send)" />
       </div>
+      {!isPerson && (
+        <div>
+          <label className="label" htmlFor="compose-flyer">
+            Attach a flyer <span className="font-normal text-muted">(optional)</span>
+          </label>
+          <input id="compose-flyer" name="flyer" type="file" accept="application/pdf,image/*" className="input py-1.5" />
+          <p className="hint">A PDF or picture. It shows with the message in the app and comes with the email; texts get a link to see it.</p>
+        </div>
+      )}
       {!isPerson && (
         <div>
           <label className="label" htmlFor="compose-link">

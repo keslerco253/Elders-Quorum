@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Linkify } from "@/components/linkify";
+import { FlyerThumb } from "@/components/flyer-thumb";
 import { requireUser } from "@/lib/auth";
 import { ledOrgIds, leaderUnread, unreadAnswers } from "@/lib/conversations";
 import { unreadAnnouncements } from "@/lib/member-inbox";
@@ -65,6 +66,11 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           <ul className="space-y-2">
             {sent.map((m) => (
               <li key={m.id} className="card space-y-1">
+                {m.flyer_file && (
+                  <div className="float-right ml-3">
+                    <FlyerThumb file={m.flyer_file} name={m.flyer_name} />
+                  </div>
+                )}
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-semibold">{m.title}</span>
                   <span className="text-xs text-muted">{formatDateTime(m.created_at, tz, "LLL d, h:mm a")}</span>

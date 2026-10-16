@@ -70,6 +70,8 @@ export interface SentAnnouncement {
   created_at: string;
   sender: string | null;
   org_label: string;
+  flyer_file: string | null;
+  flyer_name: string | null;
 }
 
 /** Messages sent to groups of people in the organizations this leader leads (groups only if they may see them), newest first. */
@@ -78,7 +80,7 @@ export function sentAnnouncements(viewerId: number, limit = 40): SentAnnouncemen
   if (!ids.length) return [];
   const rows = db()
     .prepare(
-      `SELECT msg.id, msg.org_id, msg.audience, msg.audience_label, msg.title, msg.body, msg.push_count, msg.email_count, msg.text_count, msg.created_at,
+      `SELECT msg.id, msg.org_id, msg.audience, msg.audience_label, msg.title, msg.body, msg.push_count, msg.email_count, msg.text_count, msg.created_at, msg.flyer_file, msg.flyer_name,
          m.display_name AS sender, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS org_label
        FROM messages msg JOIN orgs o ON o.id = msg.org_id JOIN wards w ON w.id = o.ward_id LEFT JOIN members m ON m.id = msg.sender_id
        WHERE msg.org_id IN (${ids.map(() => "?").join(",")})

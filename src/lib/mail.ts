@@ -8,6 +8,8 @@ export interface MailMessage {
   subject: string;
   text: string;
   html?: string;
+  /** Files sent with it (e.g. a flyer). */
+  attachments?: { filename: string; content: Buffer; contentType: string }[];
 }
 
 let transporter: Transporter | null | undefined;
@@ -41,7 +43,8 @@ export async function sendMail(msg: MailMessage): Promise<boolean> {
     const dir = path.join(DATA_DIR, "outbox");
     fs.mkdirSync(dir, { recursive: true });
     const file = path.join(dir, `${Date.now()}-${msg.to.replace(/[^a-z0-9@.]/gi, "_")}.txt`);
-    fs.writeFileSync(file, `To: ${msg.to}\nSubject: ${msg.subject}\n\n${msg.text}\n`);
+    const attached = msg.attachments?.length ? `Attachments: ${msg.attachments.map((a) => a.filename).join(", ")}\n` : "";
+    fs.writeFileSync(file, `To: ${msg.to}\nSubject: ${msg.subject}\n${attached}\n${msg.text}\n`);
     console.log(`[mail] (not configured) wrote ${file}`);
     return true;
   }

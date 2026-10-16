@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { OrgLink } from "@/components/org-link";
+import { FlyerThumb } from "@/components/flyer-thumb";
 import { memberInbox, memberSent } from "@/lib/member-inbox";
 import { friendlyTime } from "@/lib/time";
 import { firstName } from "@/lib/names";
@@ -50,6 +51,7 @@ export function MemberInboxList({ memberId, tz, newHref }: { memberId: number; t
                   </div>
                   <div className={`truncate text-sm ${unread ? "text-text" : "text-muted"}`}>{preview}</div>
                 </div>
+                {r.kind === "announcement" && r.flyer_file && <FlyerThumb file={r.flyer_file} name={r.flyer_name} />}
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   <span className="text-xs text-muted">{friendlyTime(r.last_at, tz)}</span>
                   {r.kind === "thread" && unread && <span className="rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-bold text-white">{r.unread}</span>}

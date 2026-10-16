@@ -972,4 +972,12 @@ CREATE TABLE message_templates (
 );
 `,
   },
+  {
+    // A flyer (PDF or picture) on a message sent to a group.
+    id: 43,
+    sql: `
+ALTER TABLE messages ADD COLUMN flyer_file TEXT;
+ALTER TABLE messages ADD COLUMN flyer_name TEXT;
+`,
+  },
 ];

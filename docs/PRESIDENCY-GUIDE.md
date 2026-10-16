@@ -181,7 +181,7 @@ the Presidency, Upcoming teachers, or any message group. If you lead more than
 one organization, the choices are grouped by organization. The number next to
 each choice is how many people get it. Each group's page also has **Send a
 message to this group**, and Admin → Send a message opens the same screen.
-Members get a notification, or a text or email as they chose. Everything you
+To send a flyer with an announcement, use **Attach a flyer** (a PDF or picture): it shows full size when members open the message, with a small preview in their inbox, comes attached to the email, and texts get a link to see it. Members get a notification, or a text or email as they chose. Everything you
 send to a group shows under Messages → **Sent**.
 
 ## Members joining

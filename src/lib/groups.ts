@@ -70,14 +70,16 @@ export async function sendToAudience(opts: {
   link?: string;
   tz: string;
   personal?: { from: string };
+  /** An uploaded flyer (PDF or picture) shown with the message and emailed with it. */
+  flyer?: { file: string; name: string };
 }) {
   const d = db();
   const recipients = audienceMembers(opts.orgId, opts.audience, { tz: opts.tz }).filter((r) => !opts.personal || r.id !== opts.senderId);
   const messageId = d.transaction(() => {
     const id = Number(
       d
-        .prepare("INSERT INTO messages (org_id, sender_id, audience, audience_label, title, body, link) VALUES (?, ?, ?, ?, ?, ?, ?)")
-        .run(opts.orgId, opts.senderId, opts.audience, audienceLabel(opts.orgId, opts.audience), opts.title, opts.body, opts.link ?? "/").lastInsertRowid,
+        .prepare("INSERT INTO messages (org_id, sender_id, audience, audience_label, title, body, link, flyer_file, flyer_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .run(opts.orgId, opts.senderId, opts.audience, audienceLabel(opts.orgId, opts.audience), opts.title, opts.body, opts.link ?? "/", opts.flyer?.file ?? null, opts.flyer?.name ?? null).lastInsertRowid,
     );
     const ins = d.prepare("INSERT OR IGNORE INTO message_recipients (message_id, member_id) VALUES (?, ?)");
     for (const r of recipients) ins.run(id, r.id);
@@ -87,6 +89,7 @@ export async function sendToAudience(opts: {
     title: opts.title,
     body: opts.body,
     url: `/messages/a/${messageId}`,
+    ...(opts.flyer ? { attachment: opts.flyer, textBody: `${opts.body} (Flyer attached; open the link to see it.)` } : {}),
     // Replying to the email itself wouldn't reach the leaders (it goes to the app's mailbox).
     linkLabel: "Reply in the app",
     emailNote: "To reply, use the button below or text back. Replies to this email aren't seen by your leaders.",

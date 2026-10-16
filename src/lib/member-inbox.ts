@@ -27,6 +27,8 @@ export interface AnnouncementRow {
   sender_name: string | null;
   last_at: string;
   unread: number;
+  flyer_file: string | null;
+  flyer_name: string | null;
 }
 
 export type MemberInboxRow = (MemberThreadRow | AnnouncementRow) & { org_label: string; org_kind: Org["kind"] };
@@ -59,7 +61,7 @@ export function memberInbox(memberId: number, opts: { unreadOnly?: boolean } = {
     .all(memberId) as MemberThreadRow[];
   const announcements = db()
     .prepare(
-      `SELECT 'announcement' AS kind, m.id, m.org_id, m.title, m.body, m.link, s.display_name AS sender_name, m.created_at AS last_at, (mr.read_at IS NULL) AS unread
+      `SELECT 'announcement' AS kind, m.id, m.org_id, m.title, m.body, m.link, m.flyer_file, m.flyer_name, s.display_name AS sender_name, m.created_at AS last_at, (mr.read_at IS NULL) AS unread
        FROM messages m JOIN message_recipients mr ON mr.message_id = m.id LEFT JOIN members s ON s.id = m.sender_id
        WHERE mr.member_id = ? AND (m.sender_id IS NULL OR m.sender_id <> ?) ORDER BY m.created_at DESC, m.id DESC LIMIT 60`,
     )
@@ -89,13 +91,15 @@ export interface Announcement {
   sender_id: number | null;
   sender_name: string | null;
   created_at: string;
+  flyer_file: string | null;
+  flyer_name: string | null;
 }
 
 /** One announcement, if this member received (or sent) it. Opening it marks it read. */
 export function openAnnouncement(memberId: number, id: number): Announcement | undefined {
   const m = db()
     .prepare(
-      `SELECT m.id, m.org_id, m.title, m.body, m.link, m.audience_label, m.sender_id, s.display_name AS sender_name, m.created_at
+      `SELECT m.id, m.org_id, m.title, m.body, m.link, m.audience_label, m.flyer_file, m.flyer_name, m.sender_id, s.display_name AS sender_name, m.created_at
        FROM messages m LEFT JOIN message_recipients mr ON mr.message_id = m.id AND mr.member_id = ? LEFT JOIN members s ON s.id = m.sender_id
        WHERE m.id = ? AND (mr.member_id IS NOT NULL OR m.sender_id = ?)`,
     )
