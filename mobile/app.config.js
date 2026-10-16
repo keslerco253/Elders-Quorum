@@ -11,7 +11,7 @@ const host = new URL(APP_URL).host;
 const googleServices = fs.existsSync("./google-services.json") ? "./google-services.json" : undefined;
 // Apple Developer Team ID (developer.apple.com → Membership). Needed to sign the
 // home-screen widget along with the app.
-const APPLE_TEAM_ID = process.env.APPLE_TEAM_ID || "";
+const APPLE_TEAM_ID = process.env.APPLE_TEAM_ID || "L24383TG34";
 // The app and its widget share the widget's sign-in key through this App Group.
 const APP_GROUP = "group.com.MyWardLink.app";
 
