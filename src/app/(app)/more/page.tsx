@@ -83,6 +83,10 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
             This app keeps only your name, your phone number and email (whichever you gave), and what you post.{" "}
             <Link href="/privacy" className="link">
               Privacy details
+            </Link>{" "}
+            ·{" "}
+            <Link href="/terms" className="link">
+              Terms and conditions
             </Link>
           </p>
           <SignOutForm action={signOut} className="pt-3">
