@@ -34,7 +34,9 @@ export default async function PlanVisitPage({ searchParams }: { searchParams: Pr
   const going = plan ? visitorIds(plan) : [user.id];
   const defaultType = plan?.type ?? (request?.kind === "talk" ? "phone" : "home");
   const inviting = sp.invite === "1";
-  const defaultMode = (inviting || (request && !plan) || plan?.invite_status ? "invite" : "none") as "invite" | "datetime" | "none";
+  // A new visit sends a personal invitation unless they choose otherwise; changing one
+  // already planned only sends again if they were invited before.
+  const defaultMode = (inviting || !plan || plan.invite_status ? "invite" : "none") as "invite" | "datetime" | "none";
   // Members list includes the request's member so the invitation can greet them by name.
   if (request && !members.some((m) => m.id === request.member_id)) members.push({ id: request.member_id, display_name: request.display_name });
 
