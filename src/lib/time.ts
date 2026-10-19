@@ -76,8 +76,8 @@ export function sundays(startIso: string, count: number) {
  * The Sunday whose lesson is "current": today until 1 PM on a Sunday, then
  * the following Sunday (matching the Sunday-evening reminder).
  */
-export function currentLessonDate(tz: string) {
-  const now = nowIn(tz);
+export function currentLessonDate(tz: string, at: DateTime = DateTime.now()) {
+  const now = at.setZone(tz);
   if (now.weekday === 7 && now.hour < 13) return now.toISODate()!;
   return sundayOnOrAfter(now.plus({ days: 1 }).toISODate()!);
 }

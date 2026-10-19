@@ -52,7 +52,7 @@ export function widgetData(user: CurrentUser, now: DateTime = DateTime.utc()): W
   const orgs = myOrgs(user.id).filter((o) => o.ward_id === user.ward_id && hasFeature(o, "lessons"));
   // Their current organization's lesson first, else the first one with a lesson coming up.
   const ordered = [...orgs.filter((o) => o.id === user.org_id && !usesCfm(o)), ...orgs.filter((o) => o.id !== user.org_id && !usesCfm(o)), ...orgs.filter(usesCfm)];
-  const sunday = currentLessonDate(tz);
+  const sunday = currentLessonDate(tz, now);
   let lesson: WidgetData["lesson"] = null;
   for (const o of ordered) {
     const l = upcomingLessons(o.id, sunday, 1)[0];
