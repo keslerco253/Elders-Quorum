@@ -413,3 +413,30 @@ export function clearWardMessages(wardId: number): { messages: number; conversat
     return { messages, conversations, alerts };
   })();
 }
+
+/**
+ * Clears a ward's calendar: every event (with its RSVPs and repeating series) and
+ * every event request in its organizations. Presidency meetings stay, without their
+ * calendar entry.
+ */
+export function clearWardCalendar(wardId: number): { events: number } {
+  const d = db();
+  const orgs = (d.prepare("SELECT id FROM orgs WHERE ward_id = ?").all(wardId) as { id: number }[]).map((o) => o.id);
+  if (!orgs.length) return { events: 0 };
+  const inOrgs = `(${orgs.map(() => "?").join(",")})`;
+  return d.transaction(() => {
+    const events = d.prepare(`DELETE FROM events WHERE org_id IN ${inOrgs}`).run(...orgs).changes;
+    d.prepare(`DELETE FROM event_series WHERE org_id IN ${inOrgs}`).run(...orgs);
+    d.prepare(`DELETE FROM event_requests WHERE org_id IN ${inOrgs}`).run(...orgs);
+    return { events };
+  })();
+}
+
+/** Clears a ward's service opportunities, with their slots, sign-ups and public sign-up links. */
+export function clearWardService(wardId: number): { signups: number } {
+  const d = db();
+  const orgs = (d.prepare("SELECT id FROM orgs WHERE ward_id = ?").all(wardId) as { id: number }[]).map((o) => o.id);
+  if (!orgs.length) return { signups: 0 };
+  const inOrgs = `(${orgs.map(() => "?").join(",")})`;
+  return { signups: d.prepare(`DELETE FROM signups WHERE org_id IN ${inOrgs}`).run(...orgs).changes };
+}

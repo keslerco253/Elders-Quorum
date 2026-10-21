@@ -11,7 +11,7 @@ import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
 import { addWard, approveNewWard, declineNewWard, leadWard, loadCfmSchedule, setUpReview, removeCfmYear, removeWard,
-  clearMessages, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
+  clearWardData, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
 import { pendingWards } from "@/lib/ward-review";
 import { formatPhone } from "@/lib/contact";
 import { cfmYears, manualUrl } from "@/lib/cfm";
@@ -175,15 +175,29 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
                   </SubmitButton>
                 </form>
                 <details>
-                  <summary className="btn-secondary btn-sm cursor-pointer">Clear messages…</summary>
-                  <form action={clearMessages} className="mt-2 flex flex-wrap gap-2">
+                  <summary className="btn-secondary btn-sm cursor-pointer">Clear…</summary>
+                  <form action={clearWardData} className="mt-2 space-y-2">
                     <input type="hidden" name="ward_id" value={w.id} />
-                    <input name="confirm" required className="input max-w-56" placeholder={`Type ${w.name}`} />
-                    <SubmitButton className="btn-danger btn-sm">Clear messages and alerts</SubmitButton>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" name="what" value="messages" /> Messages and alerts
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" name="what" value="calendar" /> Calendar
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" name="what" value="service" /> Service
+                      </label>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <input name="confirm" required className="input max-w-56" placeholder={`Type ${w.name}`} />
+                      <SubmitButton className="btn-danger btn-sm">Clear</SubmitButton>
+                    </div>
                   </form>
                   <p className="hint">
-                    For going live after testing: deletes every message and conversation in its organizations (Messages) and everyone&apos;s Reminders &amp; alerts.
-                    Calendar, plans, service, lessons, assignments and people stay. Can&apos;t be undone (the nightly backup has them).
+                    For going live after testing. <strong>Messages and alerts</strong>: every message and conversation (Messages) and everyone&apos;s Reminders &amp; alerts.{" "}
+                    <strong>Calendar</strong>: every event, its RSVPs and event requests (presidency meetings stay, off the calendar). <strong>Service</strong>: every
+                    opportunity with its sign-ups and public links. Plans, lessons, assignments and people always stay. Can&apos;t be undone (the nightly backup has them).
                   </p>
                 </details>
                 <details>

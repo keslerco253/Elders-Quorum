@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createLoginToken, findMemberByContact, normalizeEmail } from "@/lib/auth-core";
 import { sendLoginCode } from "@/lib/login-code";
-import { addToWard, clearWardMessages, createWard, deleteWard, getWard, wardOrg } from "@/lib/orgs";
+import { addToWard, clearWardCalendar, clearWardMessages, clearWardService, createWard, deleteWard, getWard, wardOrg } from "@/lib/orgs";
 import { validZone } from "@/lib/time";
 import type { Member } from "@/lib/types";
 import { emailHtml, sendMail } from "@/lib/mail";
@@ -60,15 +60,30 @@ export async function removeWard(fd: FormData) {
   go(`${ward.name} was deleted${accounts ? `, with ${accounts} ${accounts === 1 ? "account" : "accounts"} that weren't in another ward` : ""}.`);
 }
 
-/** Clears a ward's messages and Reminders & alerts (e.g. before going live); everything else stays. */
-export async function clearMessages(fd: FormData) {
+/**
+ * Clears what's ticked for a ward (e.g. test data before going live): messages and
+ * Reminders & alerts, the calendar, and/or service. Everything else stays.
+ */
+export async function clearWardData(fd: FormData) {
   await requireSiteOwner();
   const ward = getWard(Number(fd.get("ward_id")));
   if (!ward) go("That ward is gone.", true);
-  if (String(fd.get("confirm") || "").trim().toLowerCase() !== ward.name.toLowerCase()) go(`Type ${ward.name} to confirm clearing its messages.`, true);
-  const n = clearWardMessages(ward.id);
+  const what = fd.getAll("what").map(String);
+  if (!what.length) go("Tick what to clear.", true);
+  if (String(fd.get("confirm") || "").trim().toLowerCase() !== ward.name.toLowerCase()) go(`Type ${ward.name} to confirm.`, true);
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  const done: string[] = [];
+  if (what.includes("messages")) {
+    const n = clearWardMessages(ward.id);
+    done.push(`${plural(n.messages, "announcement")}, ${plural(n.conversations, "conversation message")}, ${plural(n.alerts, "reminder/alert")}`);
+  }
+  if (what.includes("calendar")) done.push(plural(clearWardCalendar(ward.id).events, "calendar event"));
+  if (what.includes("service")) {
+    const n = clearWardService(ward.id).signups;
+    done.push(`${n} service ${n === 1 ? "opportunity" : "opportunities"}`);
+  }
   revalidatePath("/", "layout");
-  go(`${ward.name}: cleared ${n.messages} announcement${n.messages === 1 ? "" : "s"}, ${n.conversations} conversation message${n.conversations === 1 ? "" : "s"} and ${n.alerts} reminder${n.alerts === 1 ? "" : "s"} and alert${n.alerts === 1 ? "" : "s"}.`);
+  go(`${ward.name}: cleared ${done.join("; ")}.`);
 }
 
 /** Starts a ward for someone else (its texting is on, since the site owner made it). */

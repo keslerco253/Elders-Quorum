@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { db, useTestDb } from "@/lib/db";
-import { clearWardMessages } from "@/lib/orgs";
+import { clearWardCalendar, clearWardMessages, clearWardService } from "@/lib/orgs";
 
 describe("clearing a ward's messages before going live", () => {
   it("deletes messages, conversations and alerts in that ward only; calendar and service stay", () => {
@@ -25,5 +25,21 @@ describe("clearing a ward's messages before going live", () => {
     const count = (t: string) => (d.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as { n: number }).n;
     expect([count("messages"), count("message_recipients"), count("member_messages"), count("notification_log")]).toEqual([1, 1, 1, 1]);
     expect([count("events"), count("signups")]).toEqual([1, 1]);
+  });
+
+  it("clears the calendar and service separately, in that ward only", () => {
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'Villas', 'America/Boise'), (2, 'Other', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'Pres', 'p@x.com', 'presidency');
+      INSERT INTO events (ward_id, title, starts_at, ends_at) VALUES (1, 'Temple night', '2026-11-01T02:00:00Z', '2026-11-01T04:00:00Z'), (2, 'Theirs', '2026-11-01T02:00:00Z', '2026-11-01T04:00:00Z');
+      INSERT INTO signups (id, ward_id, title) VALUES (1, 1, 'Meals'), (2, 2, 'Theirs');
+      INSERT INTO signup_slots (signup_id, label, capacity) VALUES (1, 'Dinner', 2);
+      INSERT INTO plans (ward_id, kind, title) VALUES (1, 'temple', 'Temple plan');
+    `);
+    const count = (t: string) => (db().prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as { n: number }).n;
+    expect(clearWardCalendar(1)).toEqual({ events: 1 });
+    expect([count("events"), count("signups")]).toEqual([1, 2]);
+    expect(clearWardService(1)).toEqual({ signups: 1 });
+    expect([count("signups"), count("signup_slots"), count("plans")]).toEqual([1, 0, 1]);
   });
 });
