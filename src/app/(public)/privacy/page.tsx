@@ -16,6 +16,10 @@ export default function PrivacyPage() {
       <ul>
         <li>Your name, and the mobile number and/or email you choose to give when you join. You can add, change or remove them anytime under More → Contact &amp; notifications.</li>
         <li>Things you choose to post: lesson comments, teacher notes, offers to teach, sign-ups, RSVPs, event requests, visit requests, and messages you send the presidency (in the app or by texting back). Visit requests and messages to the presidency are seen only by the elders quorum presidency.</li>
+        <li>
+          Presidency planning: the presidency&apos;s meeting notes and agenda, and assignments they give (with progress notes from them and the person assigned). Meeting
+          notes and the agenda are seen only by the presidency; you see assignments given to you and their notes, except notes the presidency keeps to itself.
+        </li>
         <li>If you turn on notifications, a technical address for your device so it can receive them.</li>
         <li>
           If you sign up for a service project from a shared link without an account: your name, the mobile number or email you give, and an optional note. Only the organizers see them. We
@@ -51,6 +55,10 @@ export default function PrivacyPage() {
         <li>Lesson comments and teacher notes: deleted 6 months after the lesson.</li>
         <li>Messages between you and the presidency: deleted after 6 months.</li>
         <li>Visit requests: deleted 30 days after they&apos;re finished or cancelled, and never kept more than 6 months.</li>
+        <li>
+          Presidency meeting notes, agenda items and finished assignments: reviewed 3 months after the meeting (or after the assignment is done), and every 3 months after
+          that, and deleted once they&apos;re no longer needed.
+        </li>
         <li>Your account: deleted if you don&apos;t sign in for 12 months, or any time you choose.</li>
       </ul>
       <h3>Your choices</h3>
