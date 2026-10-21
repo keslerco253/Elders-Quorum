@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { isAdmin } from "@/lib/permissions";
 import { leaderUnread, unreadAnswers } from "@/lib/conversations";
 import { unreadAnnouncements } from "@/lib/member-inbox";
 import { unreadNotifications } from "@/lib/notification-log";
 import { callingLabel, leadersWord, roleLabel } from "@/lib/types";
-import { hasFeature, ledOrgsAnywhere, myOrgs } from "@/lib/orgs";
+import { hasFeature, myOrgs } from "@/lib/orgs";
 import { formatPhone } from "@/lib/contact";
 import { CountDot, Flash, PageHeader, Section } from "@/components/ui";
-import { adminCounts } from "@/lib/admin-counts";
 import { SubmitButton } from "@/components/client";
 import { QuickLinks } from "@/components/quick-links";
 import { PushToggle } from "@/components/push-toggle";
@@ -37,7 +35,6 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
       : []),
     { href: "/more/reminders", label: "My reminders", desc: "When and how you're reminded about lessons, events and service" },
     { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },
-    ...(isAdmin(user) || ledOrgsAnywhere(user.id).length ? [{ href: "/admin", label: "Admin tools", count: adminCounts(user).total, desc: "Members, lessons, messages and approvals" }] : []),
     ...(user.is_site_owner ? [{ href: "/site", label: "Site owner", desc: "Every ward, texting, backups" }] : []),
   ];
   return (

@@ -203,7 +203,7 @@ export default async function AdminPage() {
             {
               href: "/admin/settings",
               label: "Settings",
-              desc: user.wardLeader && user.org.kind === "ward" ? "Ward, join code, organizations" : "Name and features",
+              desc: user.wardLeader || user.is_site_owner ? "Features, organizations in the ward, join code" : "Name and features",
             },
             {
               href: "/admin/guide",

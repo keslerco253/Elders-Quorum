@@ -16,8 +16,10 @@ export const metadata = { title: "Settings" };
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePresidency();
   const sp = await searchParams;
-  // Ward settings are for the bishopric, when looking at the ward itself.
-  const ward = user.org.kind === "ward" && user.wardLeader;
+  // Ward settings (organizations, join code…) are for the bishopric, whoever started
+  // the ward, or the site owner, whichever organization they're looking at.
+  const ward = user.wardLeader || !!user.is_site_owner;
+  const wardOrgId = ward ? ((db().prepare("SELECT id FROM orgs WHERE ward_id = ? AND kind = 'ward'").get(user.ward_id) as { id: number } | undefined)?.id ?? user.org_id) : 0;
   const groups = ward
     ? (db()
         .prepare(
@@ -28,7 +30,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         )
         .all(user.ward_id) as { id: number; name: string; active: number; people: number; leaders: number }[])
     : [];
-  const roster = ward ? orgRoster(user.org_id) : [];
+  const roster = ward ? orgRoster(wardOrgId) : [];
   return (
     <>
       <PageHeader title="Settings" back={{ href: "/admin", label: "Admin" }} />
@@ -56,7 +58,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </fieldset>
           <SubmitButton>Save</SubmitButton>
         </form>
-        {user.org.kind === "group" && (
+        {user.org.kind === "group" && !ward && (
           <p className="mt-3 max-w-xl text-sm text-muted">
             The join code, time zone and the list of organizations are managed by the bishopric, under {user.ward.name} in the menu at the top.
           </p>
@@ -64,6 +66,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       </Section>
       {ward && (
         <>
+          {user.org.kind === "group" && <h2 className="h2 mt-8 mb-3 border-t border-border pt-6">The whole ward: {user.ward.name}</h2>}
           <Section title="Ward">
             <form action={saveWardSettings} className="card max-w-xl space-y-4">
               <div>

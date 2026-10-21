@@ -37,10 +37,10 @@ export async function requireAdmin(): Promise<CurrentUser> {
   return user;
 }
 
-/** The bishopric (or whoever created the ward): ward settings, join code, organizations. */
+/** The bishopric (or whoever created the ward, or the site owner): ward settings, join code, organizations. */
 export async function requireWardLeader(): Promise<CurrentUser> {
   const user = await requireUser();
-  if (!user.wardLeader) notALeaderHere(user);
+  if (!user.wardLeader && !user.is_site_owner) notALeaderHere(user);
   return user;
 }
 
