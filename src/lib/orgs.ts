@@ -390,3 +390,26 @@ export function setWardAdmins(wardId: number, ids: number[]) {
   })();
   return keep;
 }
+
+/**
+ * Clears a ward's messages and alerts, e.g. before going live after testing: every
+ * announcement and conversation in its organizations (Messages), and everyone's
+ * Reminders & alerts from them. Calendar, plans, service, lessons and people stay.
+ */
+export function clearWardMessages(wardId: number): { messages: number; conversations: number; alerts: number } {
+  const d = db();
+  const orgs = (d.prepare("SELECT id FROM orgs WHERE ward_id = ?").all(wardId) as { id: number }[]).map((o) => o.id);
+  if (!orgs.length) return { messages: 0, conversations: 0, alerts: 0 };
+  const inOrgs = `(${orgs.map(() => "?").join(",")})`;
+  return d.transaction(() => {
+    // Recipients, read marks and reply links go with them (ON DELETE CASCADE / SET NULL).
+    const conversations = d.prepare(`DELETE FROM member_messages WHERE org_id IN ${inOrgs}`).run(...orgs).changes;
+    const messages = d.prepare(`DELETE FROM messages WHERE org_id IN ${inOrgs}`).run(...orgs).changes;
+    const alerts = d
+      .prepare(`DELETE FROM notification_log WHERE org_id IN ${inOrgs} OR (org_id IS NULL AND member_id IN (SELECT member_id FROM ward_members WHERE ward_id = ?))`)
+      .run(...orgs, wardId).changes;
+    d.prepare(`DELETE FROM member_text_orgs WHERE org_id IN ${inOrgs}`).run(...orgs);
+    d.prepare("DELETE FROM sms_member_pending WHERE member_id IN (SELECT member_id FROM ward_members WHERE ward_id = ?)").run(wardId);
+    return { messages, conversations, alerts };
+  })();
+}

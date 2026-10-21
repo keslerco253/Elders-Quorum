@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { createLoginToken, findMemberByContact, normalizeEmail } from "@/lib/auth-core";
 import { sendLoginCode } from "@/lib/login-code";
-import { addToWard, createWard, deleteWard, getWard, wardOrg } from "@/lib/orgs";
+import { addToWard, clearWardMessages, createWard, deleteWard, getWard, wardOrg } from "@/lib/orgs";
 import { validZone } from "@/lib/time";
 import type { Member } from "@/lib/types";
 import { emailHtml, sendMail } from "@/lib/mail";
@@ -58,6 +58,17 @@ export async function removeWard(fd: FormData) {
   const { accounts } = deleteWard(ward.id);
   revalidatePath("/", "layout");
   go(`${ward.name} was deleted${accounts ? `, with ${accounts} ${accounts === 1 ? "account" : "accounts"} that weren't in another ward` : ""}.`);
+}
+
+/** Clears a ward's messages and Reminders & alerts (e.g. before going live); everything else stays. */
+export async function clearMessages(fd: FormData) {
+  await requireSiteOwner();
+  const ward = getWard(Number(fd.get("ward_id")));
+  if (!ward) go("That ward is gone.", true);
+  if (String(fd.get("confirm") || "").trim().toLowerCase() !== ward.name.toLowerCase()) go(`Type ${ward.name} to confirm clearing its messages.`, true);
+  const n = clearWardMessages(ward.id);
+  revalidatePath("/", "layout");
+  go(`${ward.name}: cleared ${n.messages} announcement${n.messages === 1 ? "" : "s"}, ${n.conversations} conversation message${n.conversations === 1 ? "" : "s"} and ${n.alerts} reminder${n.alerts === 1 ? "" : "s"} and alert${n.alerts === 1 ? "" : "s"}.`);
 }
 
 /** Starts a ward for someone else (its texting is on, since the site owner made it). */

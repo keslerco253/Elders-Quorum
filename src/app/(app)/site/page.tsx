@@ -10,7 +10,8 @@ import { appUrl } from "@/lib/config";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addWard, approveNewWard, declineNewWard, leadWard, loadCfmSchedule, setUpReview, removeCfmYear, removeWard, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
+import { addWard, approveNewWard, declineNewWard, leadWard, loadCfmSchedule, setUpReview, removeCfmYear, removeWard,
+  clearMessages, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
 import { pendingWards } from "@/lib/ward-review";
 import { formatPhone } from "@/lib/contact";
 import { cfmYears, manualUrl } from "@/lib/cfm";
@@ -173,6 +174,18 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
                     Manage this ward
                   </SubmitButton>
                 </form>
+                <details>
+                  <summary className="btn-secondary btn-sm cursor-pointer">Clear messages…</summary>
+                  <form action={clearMessages} className="mt-2 flex flex-wrap gap-2">
+                    <input type="hidden" name="ward_id" value={w.id} />
+                    <input name="confirm" required className="input max-w-56" placeholder={`Type ${w.name}`} />
+                    <SubmitButton className="btn-danger btn-sm">Clear messages and alerts</SubmitButton>
+                  </form>
+                  <p className="hint">
+                    For going live after testing: deletes every message and conversation in its organizations (Messages) and everyone&apos;s Reminders &amp; alerts.
+                    Calendar, plans, service, lessons, assignments and people stay. Can&apos;t be undone (the nightly backup has them).
+                  </p>
+                </details>
                 <details>
                   <summary className="btn-secondary btn-sm cursor-pointer text-danger">Delete…</summary>
                   <form action={removeWard} className="mt-2 flex flex-wrap gap-2">
