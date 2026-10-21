@@ -5,6 +5,7 @@ import { getSeries } from "@/lib/event-series";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { EventForm } from "../event-form";
+import { announceChoices } from "@/lib/announce";
 import { deleteEvent } from "../actions";
 
 export const metadata = { title: "Edit event" };
@@ -19,7 +20,12 @@ export default async function EditEventPage({ params, searchParams }: { params: 
     <>
       <PageHeader title="Edit event" back={{ href: `/calendar/${e.id}`, label: "Event" }} />
       <Flash msg={sp.msg} />
-      <EventForm e={e} tz={user.ward.timezone} series={series} />
+      <EventForm
+        e={e}
+        tz={user.ward.timezone}
+        series={series}
+        announceTo={announceChoices(user, e.rsvp_enabled ? [{ value: "rsvp", label: "Everyone who said Going or Maybe" }] : [])}
+      />
       <form action={deleteEvent} className="mt-4">
         <input type="hidden" name="item_id" value={e.id} />
         {series ? (

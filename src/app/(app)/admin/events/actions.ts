@@ -5,9 +5,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { localInputToUtc, formatDateTime } from "@/lib/time";
-import { audienceMembers, notify, recipientById, type Audience } from "@/lib/notify";
+import { notify, recipientById } from "@/lib/notify";
+import { announceRecipients, notifiedNote } from "@/lib/announce";
 import { renderTemplate } from "@/lib/templates";
-import { getGroup } from "@/lib/groups";
 import { DateTime } from "luxon";
 import { createSeries, endSeriesBefore, getSeries, type SeriesInput } from "@/lib/event-series";
 import { saveUpload } from "@/lib/uploads";
@@ -176,17 +176,14 @@ export async function saveEvent(fd: FormData) {
       update(id);
     }
   }
-  // "Send a notification": tell the chosen people about the new event.
-  if (!id && eventId && fd.get("announce") === "on") {
-    const raw = String(fd.get("announce_to") || "everyone");
-    const groupId = raw.startsWith("group:") ? Number(raw.slice(6)) : 0;
-    const audience: Audience = e.presidencyOnly ? "admins" : groupId && getGroup(groupId, user.org_id) ? `group:${groupId}` : raw === "presidency" ? "presidency" : "everyone";
-    const people = audienceMembers(user.org_id, audience);
+  // "Send a notification" (new) or "Send an update" (changed): tell the chosen people.
+  if (eventId && fd.get("announce") === "on") {
+    const people = announceRecipients(user, String(fd.get("announce_to") || "everyone"), { leadersOnly: !!e.presidencyOnly, eventId });
     await notify(people, {
-      ...renderTemplate(user.org_id, "event_new", { event: e.title, date_time: formatDateTime(e.start!, tz), location: e.location }),
+      ...renderTemplate(user.org_id, id ? "event_updated" : "event_new", { event: e.title, date_time: formatDateTime(e.start!, tz), location: e.location }),
       url: `/calendar/${eventId}`,
     });
-    note += ` ${people.length} ${people.length === 1 ? "person was" : "people were"} notified.`;
+    note += notifiedNote(people.length);
   }
   revalidatePath("/calendar", "layout");
   go(`/calendar/${eventId}`, note);

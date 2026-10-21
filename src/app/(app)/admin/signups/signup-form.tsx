@@ -3,8 +3,9 @@ import { SIGNUP_REMINDER_OPTIONS, type Signup, type Slot } from "@/lib/signups";
 import { saveSignup } from "./actions";
 import { FlyerField } from "@/components/flyer-field";
 import { SlotsEditor } from "./slots-editor";
+import { AnnounceField } from "@/components/announce-field";
 
-export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
+export function SignupForm({ s, announceTo }: { s?: Signup & { slots: Slot[] }; announceTo?: { value: string; label: string }[] }) {
   return (
     <form action={saveSignup} className="card max-w-2xl space-y-4">
       {s && <input type="hidden" name="item_id" value={s.id} />}
@@ -46,14 +47,17 @@ export function SignupForm({ s }: { s?: Signup & { slots: Slot[] } }) {
         ))}
         <p className="hint sm:col-span-2">Sent to everyone signed up (from 8 AM), when the opportunity has a date.</p>
       </div>
-      {s ? (
+      {s && (
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="closed" defaultChecked={!!s.closed} /> Closed: no more sign-ups
         </label>
-      ) : (
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="announce" /> Send a notification to everyone in the organization
-        </label>
+      )}
+      {announceTo && (
+        <AnnounceField
+          choices={announceTo}
+          label={s ? "Send an update" : "Send a notification"}
+          about={s ? "Lets people know about the change when you save." : "Lets people know about it as soon as you save it."}
+        />
       )}
       <SubmitButton>Save</SubmitButton>
     </form>

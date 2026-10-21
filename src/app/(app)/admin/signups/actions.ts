@@ -5,8 +5,11 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { parseSlotFields, parseSlotLines } from "@/lib/signups";
+import { announceRecipients, notifiedNote } from "@/lib/announce";
+import { renderTemplate } from "@/lib/templates";
+import { formatDate } from "@/lib/time";
 import { saveUpload } from "@/lib/uploads";
-import { audienceMembers, notify } from "@/lib/notify";
+import { notify } from "@/lib/notify";
 
 function go(path: string, text: string): never {
   redirect(`${path}?msg=${encodeURIComponent(text)}`);
@@ -83,11 +86,21 @@ export async function saveSignup(fd: FormData) {
     return sid;
   })();
   if (!signupId) redirect("/signups");
-  if (!id && fd.get("announce") === "on") {
-    await notify(audienceMembers(user.org_id, "everyone"), { title: `Service: ${title}`, body: description.slice(0, 200) || "A new service opportunity. Tap to help.", url: `/signups/${signupId}` });
+  // "Send a notification" (new) or "Send an update" (changed): tell the chosen people.
+  let note = "Saved.";
+  if (fd.get("announce") === "on") {
+    const people = announceRecipients(user, String(fd.get("announce_to") || "everyone"), { signupId });
+    const when = date ? formatDate(date, "short") : "";
+    await notify(people, {
+      ...(id
+        ? renderTemplate(user.org_id, "service_updated", { title, date: when })
+        : renderTemplate(user.org_id, "service_new", { title, date: when, details: description.slice(0, 200) || "Tap to help." })),
+      url: `/signups/${signupId}`,
+    });
+    note += notifiedNote(people.length);
   }
   revalidatePath("/signups", "layout");
-  go(`/signups/${signupId}`, "Saved.");
+  go(`/signups/${signupId}`, note);
 }
 
 export async function deleteSignup(fd: FormData) {

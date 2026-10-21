@@ -174,7 +174,9 @@ dates**. An existing one-time event can be made repeating by editing it.
   shouldn't see. Choose a reminder (default: the day before) and, if you like, a **second reminder** (for example a week before). Attach a **Flyer** (a PDF or picture): it shows on the event's page, with a small preview next to the event on members' home pages. Check **Ask people
   to RSVP** for a headcount. Check **Send a notification** and choose who
   (everyone, just the presidency, or one of your groups) to tell them about
-  the new event when you save it.
+  the new event when you save it. When you **change** an event or a service
+  opportunity, check **Send an update** to tell people (everyone, the
+  presidency, a group, or just the people who RSVP'd or signed up).
 - Member suggestions show in **Admin → Event requests**. Approving adds the
   event and notifies the member; you can then adjust it.
 

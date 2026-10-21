@@ -9,7 +9,7 @@ import { FlyerField } from "@/components/flyer-field";
 import { AnnounceField } from "@/components/announce-field";
 
 /** `date` (yyyy-mm-dd) pre-fills a new event for that day, 7–8 PM. */
-/** `announceTo`: who a new event can be announced to (only when adding one). */
+/** `announceTo`: who can be told about the new event, or sent an update about a change. */
 export function EventForm({ e, tz, date, series, announceTo }: { e?: EventRow; tz: string; date?: string; series?: SeriesRow; announceTo?: { value: string; label: string }[] }) {
   const startValue = e ? utcToLocalInput(e.starts_at, tz) : date ? `${date}T19:00` : "";
   return (
@@ -107,7 +107,14 @@ export function EventForm({ e, tz, date, series, announceTo }: { e?: EventRow; t
           <span className="block text-muted">Shows Going / Maybe / Can&apos;t go buttons.</span>
         </span>
       </label>
-      {!e && announceTo && <AnnounceField choices={announceTo} what="new event" />}
+      {announceTo && (
+        <AnnounceField
+          choices={announceTo}
+          label={e ? "Send an update" : "Send a notification"}
+          about={e ? "Lets people know about the change (the new date, time and place) when you save." : "Lets people know about the new event as soon as you save it."}
+          hint="For a leaders-only event, only the leaders are notified."
+        />
+      )}
       <SubmitButton>Save event</SubmitButton>
     </form>
   );
