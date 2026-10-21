@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { parseSlotFields, parseSlotLines } from "@/lib/signups";
-import { announceRecipients, notifiedNote, resolveSame } from "@/lib/announce";
+import { announceRecipients, notifiedNote, readTargets } from "@/lib/announce";
 import { renderTemplate } from "@/lib/templates";
 import { formatDate } from "@/lib/time";
 import { saveUpload } from "@/lib/uploads";
@@ -90,8 +90,8 @@ export async function saveSignup(fd: FormData) {
   let note = "Saved.";
   if (fd.get("announce") === "on") {
     const before = id ? (db().prepare("SELECT announced_to FROM signups WHERE id = ?").get(id) as { announced_to: string | null } | undefined)?.announced_to : null;
-    const choice = resolveSame(String(fd.get("announce_to") || "everyone"), before);
-    const people = announceRecipients(user, choice, { signupId });
+    const targets = readTargets(fd, before);
+    const people = announceRecipients(user, targets, { signupId });
     const when = date ? formatDate(date, "short") : "";
     await notify(people, {
       ...(id
@@ -99,7 +99,7 @@ export async function saveSignup(fd: FormData) {
         : renderTemplate(user.org_id, "service_new", { title, date: when, details: description.slice(0, 200) || "Tap to help." })),
       url: `/signups/${signupId}`,
     });
-    db().prepare("UPDATE signups SET announced_to = ? WHERE id = ?").run(choice, signupId);
+    if (targets.length) db().prepare("UPDATE signups SET announced_to = ? WHERE id = ?").run(targets.join(","), signupId);
     note += notifiedNote(people.length);
   }
   revalidatePath("/signups", "layout");

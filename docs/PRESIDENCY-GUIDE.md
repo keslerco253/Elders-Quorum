@@ -175,8 +175,10 @@ dates**. An existing one-time event can be made repeating by editing it.
   to RSVP** for a headcount. Check **Send a notification** and choose who
   (everyone, just the presidency, or one of your groups) to tell them about
   the new event when you save it. When you **change** an event or a service
-  opportunity, check **Send an update** to tell people (everyone, the
-  presidency, a group, or just the people who RSVP'd or signed up).
+  opportunity, check **Send an update** to tell people. Under **Send it to**,
+  tick as many as you like (everyone, the presidency, any groups, the people
+  who RSVP'd or signed up, or **the same people as before**) and add anyone
+  else by name under **Add people**; each person gets it once.
 - **Invite other organizations:** on an organization's event, tick **The
   whole ward** or any other organizations under **Invite other
   organizations**. They see it on their calendars, get its reminders and can

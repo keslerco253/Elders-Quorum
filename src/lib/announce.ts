@@ -24,20 +24,25 @@ export function announceChoices(user: CurrentUser, extra: AnnounceChoice[] = [],
 
 const byIds = (ids: number[], orgId: number) => ids.map((id) => recipientById(id, orgId)).filter((r): r is Recipient => !!r);
 
-/** The people a choice means. `leadersOnly` (a leaders-only event) always means just the leaders. */
-export function announceRecipients(
+/** The people one choice means. */
+function recipientsFor(
   user: CurrentUser,
   raw: string,
-  opts: { leadersOnly?: boolean; eventId?: number; signupId?: number; event?: Parameters<typeof eventAudience>[0] } = {},
+  opts: { eventId?: number; signupId?: number; event?: Parameters<typeof eventAudience>[0] },
 ): Recipient[] {
   const org = user.org_id;
-  if (opts.leadersOnly) return audienceMembers(org, "admins");
   // An event's "everyone" includes the organizations it invited.
-  if (raw === "everyone" && opts.event) return eventAudience(opts.event);
+  if (raw === "everyone") return opts.event ? eventAudience(opts.event) : audienceMembers(org, "everyone");
   if (raw === "presidency") return audienceMembers(org, "presidency");
   if (raw.startsWith("group:")) {
     const g = getGroup(Number(raw.slice(6)), org);
     return g ? audienceMembers(org, `group:${g.id}`) : [];
+  }
+  // One person, added by name: anyone in this ward.
+  if (raw.startsWith("m:")) {
+    const id = Number(raw.slice(2));
+    const inWard = db().prepare("SELECT 1 FROM ward_members wm JOIN members m ON m.id = wm.member_id WHERE wm.ward_id = ? AND wm.member_id = ? AND m.status = 'active'").get(user.ward_id, id);
+    return inWard ? byIds([id], org) : [];
   }
   if (raw === "rsvp" && opts.eventId) {
     const ids = db().prepare("SELECT member_id FROM event_rsvps WHERE event_id = ? AND response IN ('yes','maybe')").all(opts.eventId) as { member_id: number }[];
@@ -49,7 +54,35 @@ export function announceRecipients(
       .all(opts.signupId) as { member_id: number }[];
     return byIds(ids.map((r) => r.member_id), org);
   }
-  return audienceMembers(org, "everyone");
+  return [];
+}
+
+/**
+ * Everyone the ticked choices mean, together (groups, people added by name...),
+ * each person once. `leadersOnly` (a leaders-only event) always means just the leaders.
+ */
+export function announceRecipients(
+  user: CurrentUser,
+  values: string[],
+  opts: { leadersOnly?: boolean; eventId?: number; signupId?: number; event?: Parameters<typeof eventAudience>[0] } = {},
+): Recipient[] {
+  if (opts.leadersOnly) return audienceMembers(user.org_id, "admins");
+  const all = values.flatMap((v) => recipientsFor(user, v, opts));
+  return all.filter((r, i) => all.findIndex((x) => x.id === r.id) === i);
+}
+
+/** The form's ticked choices ("same" means whoever it went to last time), cleaned up. */
+export function readTargets(fd: FormData, before: string | null | undefined): string[] {
+  const picked = fd.getAll("announce_to").map(String);
+  const out = picked.flatMap((v) => (v === "same" ? (before ?? "").split(",") : [v]));
+  return [...new Set(out.filter((v) => /^(everyone|presidency|rsvp|signed|group:\d+|m:\d+)$/.test(v)))];
+}
+
+/** People in the ward, for adding someone by name. */
+export function wardPeople(wardId: number): { id: number; name: string }[] {
+  return db()
+    .prepare("SELECT m.id, m.display_name AS name FROM members m JOIN ward_members wm ON wm.member_id = m.id WHERE wm.ward_id = ? AND m.status = 'active' ORDER BY m.display_name COLLATE NOCASE")
+    .all(wardId) as { id: number; name: string }[];
 }
 
 export const notifiedNote = (n: number) => ` ${n} ${n === 1 ? "person was" : "people were"} notified.`;
@@ -64,12 +97,13 @@ export function inviteChoicesFor(user: CurrentUser) {
 
 /**
  * On an edit page: "The same people as before" first, when it was announced to
- * someone, then the usual choices.
+ * someone, describing who that was.
  */
-export function withSameAsBefore(choices: AnnounceChoice[], announcedTo: string | null | undefined): AnnounceChoice[] {
-  const before = announcedTo && choices.find((c) => c.value === announcedTo);
-  return before ? [{ value: "same", label: `The same people as before (${before.label})` }, ...choices] : choices;
+export function withSameAsBefore(choices: AnnounceChoice[], announcedTo: string | null | undefined, people: { id: number; name: string }[]): AnnounceChoice[] {
+  const names = (announcedTo ?? "")
+    .split(",")
+    .filter(Boolean)
+    .map((v) => (v.startsWith("m:") ? people.find((p) => p.id === Number(v.slice(2)))?.name : choices.find((c) => c.value === v)?.label))
+    .filter(Boolean);
+  return names.length ? [{ value: "same", label: `The same people as before: ${names.join(", ")}` }, ...choices] : choices;
 }
-
-/** "same" means whoever it was announced to last time. */
-export const resolveSame = (raw: string, announcedTo: string | null | undefined) => (raw === "same" ? announcedTo || "everyone" : raw);

@@ -1,7 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { Flash, PageHeader } from "@/components/ui";
 import { SignupForm } from "../signup-form";
-import { announceChoices } from "@/lib/announce";
+import { announceChoices, wardPeople } from "@/lib/announce";
 
 export const metadata = { title: "New service opportunity" };
 
@@ -12,7 +12,7 @@ export default async function NewSignupPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title="New service opportunity" back={{ href: "/signups", label: "Service" }} />
       <Flash msg={sp.msg} tone="danger" />
-      <SignupForm announceTo={announceChoices(user)} />
+      <SignupForm announceTo={announceChoices(user)} people={wardPeople(user.ward_id)} />
     </>
   );
 }

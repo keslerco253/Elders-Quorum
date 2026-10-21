@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { localInputToUtc, formatDateTime } from "@/lib/time";
 import { notify, recipientById } from "@/lib/notify";
-import { announceRecipients, notifiedNote, resolveSame } from "@/lib/announce";
+import { announceRecipients, notifiedNote, readTargets } from "@/lib/announce";
 import { renderTemplate } from "@/lib/templates";
 import { DateTime } from "luxon";
 import { orgsInWard } from "@/lib/orgs";
@@ -192,8 +192,8 @@ export async function saveEvent(fd: FormData) {
   // "Send a notification" (new) or "Send an update" (changed): tell the chosen people.
   if (eventId && fd.get("announce") === "on") {
     const before = id ? (db().prepare("SELECT announced_to FROM events WHERE id = ?").get(id) as { announced_to: string | null } | undefined)?.announced_to : null;
-    const choice = resolveSame(String(fd.get("announce_to") || "everyone"), before);
-    const people = announceRecipients(user, choice, {
+    const targets = readTargets(fd, before);
+    const people = announceRecipients(user, targets, {
       leadersOnly: !!e.presidencyOnly,
       eventId,
       event: { org_id: user.org_id, invited: e.invited, presidency_only: e.presidencyOnly },
@@ -202,7 +202,7 @@ export async function saveEvent(fd: FormData) {
       ...renderTemplate(user.org_id, id ? "event_updated" : "event_new", { event: e.title, date_time: formatDateTime(e.start!, tz), location: e.location }),
       url: `/calendar/${eventId}`,
     });
-    db().prepare("UPDATE events SET announced_to = ? WHERE id = ?").run(choice, eventId);
+    if (targets.length) db().prepare("UPDATE events SET announced_to = ? WHERE id = ?").run(targets.join(","), eventId);
     note += notifiedNote(people.length);
   }
   revalidatePath("/calendar", "layout");
