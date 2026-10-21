@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RemindersLink } from "@/components/reminders-link";
 import { requireUser } from "@/lib/auth";
 import { usesCfm } from "@/lib/cfm";
 import { pastLessons, upcomingLessons } from "@/lib/lessons";
@@ -25,11 +26,14 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
         title="Lessons"
         subtitle="Study ahead and share what you learn. Tap a lesson to read the talk and join the discussion."
         actions={
-          isAdmin(user) && (
-            <Link href="/admin/lessons" className="btn-secondary">
-              Manage lessons
-            </Link>
-          )
+          <>
+            <RemindersLink kind="lessons" />
+            {isAdmin(user) && (
+              <Link href="/admin/lessons" className="btn-secondary">
+                Manage lessons
+              </Link>
+            )}
+          </>
         }
       />
       <div className="mb-4 flex gap-2 text-sm">

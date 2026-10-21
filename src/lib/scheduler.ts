@@ -11,6 +11,7 @@ import { formatDate, formatDateTime } from "./time";
 import type { PushPayload } from "./push";
 import type { EventRow } from "./types";
 import { eventAudience } from "./events";
+import { daysBetween, dueForDate, dueForStart, ownSettings } from "./reminder-prefs";
 import { hasFeature } from "./orgs";
 import { runRetention } from "./retention";
 import { extendAllSeries } from "./event-series";
@@ -34,6 +35,8 @@ export interface DueNotification {
   key: string;
   recipients: Recipient[];
   payload: PushPayload;
+  /** A member's own reminder: sent as a text or as an app notification. */
+  only?: "push" | "text";
 }
 
 // Lesson reminders: Sunday 7 PM for the next Sunday's lesson, and Saturday 8 AM
@@ -80,7 +83,9 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
     }
     // The teacher gets their own reminder instead of the general one.
     const teacher = lesson.kind === "talk" ? recipientById(lesson.teacher_id, org.id) : undefined;
-    const everyone = audienceMembers(org.id, "everyone").filter((r) => r.id !== teacher?.id);
+    // Members who set their own lesson reminders (or none) get those instead.
+    const own = ownSettings("lessons");
+    const everyone = audienceMembers(org.id, "everyone").filter((r) => r.id !== teacher?.id && !own.has(r.id));
     out.push({ key: `lesson-${w.tag}:${org.id}:${date}`, recipients: everyone, payload });
     if (teacher) {
       const confirmed = !!lesson.teacher_confirmed_at;
@@ -113,13 +118,70 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   return out;
 }
 
+/** "Today", "Tomorrow", "This Sunday" or "Next Sunday", for a lesson some days away. */
+const sundayWord = (days: number) => (days === 0 ? "Today" : days === 1 ? "Tomorrow" : days <= 6 ? "This Sunday" : "Next Sunday");
+
+/** Members' own lesson reminders (Lessons → My reminders). */
+function myLessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
+  const own = ownSettings("lessons");
+  if (!own.size) return [];
+  const local = now.setZone(org.timezone);
+  const today = local.toISODate()!;
+  const members = audienceMembers(org.id, "everyone").filter((r) => own.get(r.id)?.mode === "custom");
+  if (!members.length) return [];
+  // The Sundays a reminder could be about: today's (if it's Sunday) and the next two.
+  const first = local.weekday === 7 ? local : local.plus({ days: 7 - local.weekday });
+  const lessons = [0, 7, 14].map((n) => lessonOn(org.id, first.plus({ days: n }).toISODate()!)).filter((l): l is NonNullable<typeof l> => !!l);
+  const out: DueNotification[] = [];
+  for (const lesson of lessons) {
+    const days = daysBetween(today, lesson.date);
+    const cfm = usesCfm(org) && lesson.kind === "talk" && !!lesson.cfm_auto;
+    const day = sundayWord(days);
+    const payload: PushPayload =
+      lesson.kind !== "talk"
+        ? {
+            ...renderTemplate(org.id, "lesson_conference", {
+              day,
+              conference: lesson.kind === "general_conference" ? "General Conference" : "Stake Conference",
+              org: org.label,
+              this_week: days === 1 ? "tomorrow" : days === 0 ? "today" : "this week",
+            }),
+            url: `/lessons/${lesson.id}`,
+          }
+        : cfm && days >= 2
+          ? { ...renderTemplate(org.id, "cfm_week", { reading: lesson.title, lesson_title: lesson.speaker }), url: `/lessons/${lesson.id}` }
+          : { ...renderTemplate(org.id, "lesson_reminder", { day, lesson_title: lesson.title, speaker: lesson.speaker, teacher: lesson.teacher_name }), url: `/lessons/${lesson.id}` };
+    for (const m of members) {
+      // The teacher gets the teacher's reminders instead.
+      if (lesson.kind === "talk" && m.id === lesson.teacher_id) continue;
+      for (const r of own.get(m.id)!.reminders) {
+        if (!dueForDate(r.when, lesson.date, local)) continue;
+        out.push({ key: `lesson-mine:${org.id}:${lesson.date}:${m.id}:${r.when}:${r.channel}`, recipients: [m], payload, only: r.channel });
+      }
+    }
+  }
+  return out;
+}
+
 function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const nowIso = now.toUTC().toISO()!;
-  const events = db()
-    .prepare("SELECT * FROM events WHERE org_id = ? AND (reminder_minutes IS NOT NULL OR reminder2_minutes IS NOT NULL) AND starts_at > ? AND starts_at < ?")
-    .all(org.id, nowIso, now.plus({ days: 15 }).toUTC().toISO()) as EventRow[];
+  // Every event coming up: its scheduled reminders, and members' own (Calendar → My reminders).
+  const events = db().prepare("SELECT * FROM events WHERE org_id = ? AND starts_at > ? AND starts_at < ?").all(org.id, nowIso, now.plus({ days: 15 }).toUTC().toISO()) as EventRow[];
+  const own = ownSettings("events");
   const out: DueNotification[] = [];
   for (const e of events) {
+    const audience = eventAudience(e);
+    const payload: PushPayload = {
+      ...renderTemplate(org.id, "event_reminder", { event: e.title, date_time: formatDateTime(e.starts_at, org.timezone), location: e.location }),
+      url: `/calendar/${e.id}`,
+    };
+    for (const m of audience) {
+      const mine = own.get(m.id);
+      if (mine?.mode !== "custom") continue;
+      for (const r of mine.reminders) {
+        if (dueForStart(r.when, e.starts_at, now)) out.push({ key: `event-mine:${e.id}:${e.starts_at}:${m.id}:${r.when}:${r.channel}`, recipients: [m], payload, only: r.channel });
+      }
+    }
     // An event can have two reminders (e.g. a week before and a day before).
     for (const [minutes, keyPrefix] of [
       [e.reminder_minutes, "event"],
@@ -131,8 +193,8 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       if (remindAt > now || now.diff(remindAt, "hours").hours > 6) continue;
       out.push({
         key: `${keyPrefix}:${e.id}:${e.starts_at}`,
-        recipients: eventAudience(e),
-        payload: { ...renderTemplate(org.id, "event_reminder", { event: e.title, date_time: formatDateTime(e.starts_at, org.timezone), location: e.location }), url: `/calendar/${e.id}` },
+        recipients: audience.filter((m) => !own.has(m.id)),
+        payload,
       });
     }
   }
@@ -224,7 +286,10 @@ function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
  */
 function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
-  if (local.hour < 8 || local.hour >= 20) return [];
+  // The scheduled ones go out from 8 AM; members' own (Service → My reminders) at the time they chose.
+  const scheduledHours = local.hour >= 8 && local.hour < 20;
+  const own = ownSettings("service");
+  if (!scheduledHours && !own.size) return [];
   const today = local.toISODate()!;
   const rows = db()
     .prepare(
@@ -235,8 +300,24 @@ function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
     )
     .all(org.id, today, today) as { id: number; title: string; date: string; reminder1_days: number | null; reminder2_days: number | null; member_id: number; slots: string }[];
   const out: DueNotification[] = [];
+  const whenWord = (days: number) => (days === 0 ? "Today" : days === 1 ? "Tomorrow" : days === 7 ? "Next week" : days === 14 ? "In two weeks" : `In ${days} days`);
   for (const r of rows) {
     const daysAway = Math.round(DateTime.fromISO(r.date).diff(DateTime.fromISO(today), "days").days);
+    const mine = own.get(r.member_id);
+    if (mine) {
+      const who = mine.mode === "custom" ? recipientById(r.member_id, org.id) : undefined;
+      for (const rem of who ? mine.reminders : []) {
+        if (!dueForDate(rem.when, r.date, local)) continue;
+        out.push({
+          key: `signup-mine:${r.id}:${r.date}:${r.member_id}:${rem.when}:${rem.channel}`,
+          recipients: [who!],
+          payload: { ...renderTemplate(org.id, "service_reminder", { when: whenWord(daysAway), title: r.title, slots: r.slots, date: formatDate(r.date, "short") }), url: `/signups/${r.id}` },
+          only: rem.channel,
+        });
+      }
+      continue;
+    }
+    if (!scheduledHours) continue;
     for (const [days, tag] of [
       [r.reminder1_days, "r1"],
       [r.reminder2_days, "r2"],
@@ -244,7 +325,7 @@ function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       if (days === null || days !== daysAway) continue;
       const who = recipientById(r.member_id, org.id);
       if (!who) continue;
-      const when = days === 0 ? "Today" : days === 1 ? "Tomorrow" : days === 7 ? "Next week" : days === 14 ? "In two weeks" : `In ${days} days`;
+      const when = whenWord(days);
       out.push({
         key: `signup-${tag}:${r.id}:${r.date}:${r.member_id}`,
         recipients: [who],
@@ -266,6 +347,7 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   for (const o of orgs) if (usesCfm(o) && hasFeature(o, "lessons")) ensureCfmLessons(o.id, now.setZone(o.timezone).toISODate()!);
   return orgs.flatMap((o) => [
     ...(hasFeature(o, "lessons") ? lessonReminders(o, now) : []),
+    ...(hasFeature(o, "lessons") ? myLessonReminders(o, now) : []),
     ...eventReminders(o, now),
     ...(hasFeature(o, "todos") ? todoReminders(o, now) : []),
     ...(hasFeature(o, "visits") ? visitReminders(o, now) : []),
@@ -305,7 +387,7 @@ export async function tick(now: DateTime = DateTime.utc()) {
   try {
     for (const n of collectDue(now)) {
       if (!claimOnce(n.key)) continue;
-      const res = await notify(n.recipients, n.payload);
+      const res = await notify(n.recipients, n.payload, { only: n.only });
       console.log(`[scheduler] ${n.key}: ${res.push} push, ${res.email} email`);
     }
     // People without an account who signed up for service from a public link.

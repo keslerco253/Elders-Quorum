@@ -1092,4 +1092,27 @@ ALTER TABLE signups ADD COLUMN announced_to TEXT;
     sql: `UPDATE events SET announced_to = announced_to || ',invited'
       WHERE invited <> '' AND instr(',' || announced_to || ',', ',everyone,') > 0 AND instr(',' || announced_to || ',', ',invited,') = 0;`,
   },
+  {
+    // A member's own reminders for lessons, events and service, instead of the ones
+    // their leaders scheduled ('custom'), or none ('off'). No row: as scheduled.
+    // Each reminder: when ("m:60" = an hour before an event; "d:1@08:00" = the day
+    // before at 8 AM) and how (an app notification or a text).
+    id: 52,
+    sql: `
+CREATE TABLE reminder_prefs (
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('lessons','events','service')),
+  mode TEXT NOT NULL CHECK (mode IN ('custom','off')),
+  PRIMARY KEY (member_id, kind)
+);
+CREATE TABLE member_reminders (
+  id INTEGER PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('lessons','events','service')),
+  when_key TEXT NOT NULL,
+  channel TEXT NOT NULL CHECK (channel IN ('push','text'))
+);
+CREATE INDEX member_reminders_member ON member_reminders(member_id, kind);
+`,
+  },
 ];

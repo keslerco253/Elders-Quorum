@@ -88,6 +88,12 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
 Members get reminders automatically: **Sunday 7 PM** about the next Sunday's
 lesson and **Saturday 8 AM** about tomorrow's.
 
+**Each member can change their own reminders** (🔔 **My reminders** on the
+Lessons, Calendar and Service pages, or More → My reminders): for lessons,
+events and service separately, keep them **as scheduled**, set **their own**
+(when, and as an app notification or a text; up to 3 texts each), or turn them
+off. Teachers still get their teaching reminders.
+
 ## Sunday School: Come, Follow Me
 
 Sunday School's lessons fill themselves from Come, Follow Me: **every week**

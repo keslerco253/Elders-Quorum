@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RemindersLink } from "@/components/reminders-link";
 import { FlyerThumb } from "@/components/flyer-thumb";
 import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
@@ -25,16 +26,19 @@ export default async function SignupsPage({ searchParams }: { searchParams: Prom
         title="Service"
         subtitle={wardLevel ? "Service projects, meals and other ways to serve, from every organization in the ward." : "Service projects, meals and other ways to serve."}
         actions={
-          admin && (
-            <>
-              <Link href={all ? "/signups" : "/signups?show=all"} className="btn-secondary">
-                {all ? "Open only" : "Show closed"}
-              </Link>
-              <Link href="/admin/signups/new" className="btn-primary">
-                New service opportunity
-              </Link>
-            </>
-          )
+          <>
+            <RemindersLink kind="service" />
+            {admin && (
+              <>
+                <Link href={all ? "/signups" : "/signups?show=all"} className="btn-secondary">
+                  {all ? "Open only" : "Show closed"}
+                </Link>
+                <Link href="/admin/signups/new" className="btn-primary">
+                  New service opportunity
+                </Link>
+              </>
+            )}
+          </>
         }
       />
       <Flash msg={sp.msg} />

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RemindersLink } from "@/components/reminders-link";
 import { DateTime } from "luxon";
 import { requireUser } from "@/lib/auth";
 import { eventsBetween } from "@/lib/events";
@@ -50,6 +51,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         title="Calendar"
         actions={
           <>
+            <RemindersLink kind="events" />
             <Link href="/calendar/subscribe" className="btn-secondary">
               Subscribe
             </Link>
