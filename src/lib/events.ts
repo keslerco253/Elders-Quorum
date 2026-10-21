@@ -193,10 +193,11 @@ export function invitedOrgIds(e: Pick<EventRow, "invited" | "org_id">, wardOrgId
  * Who an event is for: its organization (or just its leaders, for a leaders-only
  * event), plus everyone in the organizations it invited.
  */
-export function eventAudience(e: Pick<EventRow, "org_id" | "invited" | "presidency_only">): Recipient[] {
-  if (e.presidency_only) return audienceMembers(e.org_id, "admins");
+export function eventAudience(e: Pick<EventRow, "org_id" | "invited" | "presidency_only">, opts: { invitedOnly?: boolean } = {}): Recipient[] {
+  if (e.presidency_only) return opts.invitedOnly ? [] : audienceMembers(e.org_id, "admins");
   const wardOrg = db().prepare("SELECT w.id FROM orgs o JOIN orgs w ON w.ward_id = o.ward_id AND w.kind = 'ward' WHERE o.id = ?").get(e.org_id) as { id: number } | undefined;
-  const all = [e.org_id, ...invitedOrgIds(e, wardOrg?.id ?? 0)].flatMap((id) => audienceMembers(id, "everyone"));
+  const orgs = invitedOrgIds(e, wardOrg?.id ?? 0);
+  const all = (opts.invitedOnly ? orgs : [e.org_id, ...orgs]).flatMap((id) => audienceMembers(id, "everyone"));
   // Someone in two of them hears once.
   return all.filter((r, i) => all.findIndex((x) => x.id === r.id) === i);
 }

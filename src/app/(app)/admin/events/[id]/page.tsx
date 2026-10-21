@@ -10,6 +10,7 @@ import {
   inviteChoicesFor,
   wardPeople,
   withSameAsBefore,
+  invitedNames,
 } from "@/lib/announce";
 import { deleteEvent } from "../actions";
 
@@ -45,7 +46,7 @@ export default async function EditEventPage({
             e.rsvp_enabled
               ? [{ value: "rsvp", label: "Everyone who said Going or Maybe" }]
               : [],
-            { invites: !!inviteChoicesFor(user)?.length },
+            { invites: !!inviteChoicesFor(user)?.length || !!e.invited, invitedNames: invitedNames(e.invited) },
           ),
           e.announced_to,
           people,

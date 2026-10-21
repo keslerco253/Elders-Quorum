@@ -13,9 +13,16 @@ export interface AnnounceChoice {
 }
 
 /** Everyone, the leaders, each group, plus any choices for this item (people who RSVP'd, who signed up). */
-export function announceChoices(user: CurrentUser, extra: AnnounceChoice[] = [], opts: { invites?: boolean } = {}): AnnounceChoice[] {
+/**
+ * `invites`: an event that can invite other organizations: a choice for everyone in
+ * them, naming them when known (an event being edited).
+ */
+export function announceChoices(user: CurrentUser, extra: AnnounceChoice[] = [], opts: { invites?: boolean; invitedNames?: string } = {}): AnnounceChoice[] {
   return [
-    { value: "everyone", label: `Everyone in ${user.orgLabel}${opts.invites ? " and the organizations invited" : ""}` },
+    { value: "everyone", label: `Everyone in ${user.orgLabel}` },
+    ...(opts.invites
+      ? [{ value: "invited", label: opts.invitedNames ? `Everyone in the invited organizations: ${opts.invitedNames}` : "Everyone in the organizations you invite above" }]
+      : []),
     ...extra,
     { value: "presidency", label: `Just the ${leadersWord(user.org)}` },
     ...orgGroups(user.org_id).map((g) => ({ value: `group:${g.id}`, label: `${g.name} (${g.n} ${g.n === 1 ? "person" : "people"})` })),
@@ -31,8 +38,9 @@ function recipientsFor(
   opts: { eventId?: number; signupId?: number; event?: Parameters<typeof eventAudience>[0] },
 ): Recipient[] {
   const org = user.org_id;
-  // An event's "everyone" includes the organizations it invited.
-  if (raw === "everyone") return opts.event ? eventAudience(opts.event) : audienceMembers(org, "everyone");
+  if (raw === "everyone") return audienceMembers(org, "everyone");
+  // Everyone in the organizations an event invited (or the whole ward).
+  if (raw === "invited") return opts.event ? eventAudience(opts.event, { invitedOnly: true }) : [];
   if (raw === "presidency") return audienceMembers(org, "presidency");
   if (raw.startsWith("group:")) {
     const g = getGroup(Number(raw.slice(6)), org);
@@ -75,7 +83,7 @@ export function announceRecipients(
 export function readTargets(fd: FormData, before: string | null | undefined): string[] {
   const picked = fd.getAll("announce_to").map(String);
   const out = picked.flatMap((v) => (v === "same" ? (before ?? "").split(",") : [v]));
-  return [...new Set(out.filter((v) => /^(everyone|presidency|rsvp|signed|group:\d+|m:\d+)$/.test(v)))];
+  return [...new Set(out.filter((v) => /^(everyone|invited|presidency|rsvp|signed|group:\d+|m:\d+)$/.test(v)))];
 }
 
 /** People in the ward, for adding someone by name. */
@@ -106,4 +114,15 @@ export function withSameAsBefore(choices: AnnounceChoice[], announcedTo: string 
     .map((v) => (v.startsWith("m:") ? people.find((p) => p.id === Number(v.slice(2)))?.name : choices.find((c) => c.value === v)?.label))
     .filter(Boolean);
   return names.length ? [{ value: "same", label: `The same people as before: ${names.join(", ")}` }, ...choices] : choices;
+}
+
+/** "Relief Society and Primary", or "the whole ward", for an event's invited organizations. */
+export function invitedNames(invited: string): string {
+  if (invited === "ward") return "the whole ward";
+  const names = invited
+    .split(",")
+    .filter(Boolean)
+    .map((id) => (db().prepare("SELECT name FROM orgs WHERE id = ?").get(Number(id)) as { name: string } | undefined)?.name)
+    .filter(Boolean) as string[];
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : (names[0] ?? "");
 }

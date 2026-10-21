@@ -20,7 +20,12 @@ export function AnnounceField({
   hint?: string;
 }) {
   const [on, setOn] = useState(false);
-  const [picked, setPicked] = useState<Set<string>>(() => new Set(choices[0] ? [choices[0].value] : []));
+  // Ticked to start: the same people as before, or else everyone (and everyone invited).
+  const [picked, setPicked] = useState<Set<string>>(() => {
+    const first = choices[0]?.value;
+    if (!first) return new Set<string>();
+    return new Set(first === "same" ? [first] : [first, ...choices.filter((c) => c.value === "invited").map((c) => c.value)]);
+  });
   const [added, setAdded] = useState<{ id: number; name: string }[]>([]);
   const [q, setQ] = useState("");
   const matches = useMemo(() => {

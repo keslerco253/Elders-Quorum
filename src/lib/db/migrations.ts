@@ -1085,4 +1085,11 @@ ALTER TABLE events ADD COLUMN announced_to TEXT;
 ALTER TABLE signups ADD COLUMN announced_to TEXT;
 `,
   },
+  {
+    // "Everyone" on an event used to include the organizations it invited; that is
+    // its own choice now ("invited"), so earlier sends keep meaning the same people.
+    id: 51,
+    sql: `UPDATE events SET announced_to = announced_to || ',invited'
+      WHERE invited <> '' AND instr(',' || announced_to || ',', ',everyone,') > 0 AND instr(',' || announced_to || ',', ',invited,') = 0;`,
+  },
 ];
