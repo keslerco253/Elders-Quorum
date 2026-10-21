@@ -28,7 +28,7 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
   you're looking at. Everyone in the ward can look at every organization.
 - **Leaders are per organization.** Someone's access level (Member or
   Leadership) and calling are set separately in each organization,
-  under Admin → Members. Private messages, visits, replies and to-dos stay
+  under Admin → Members. Private messages, visits, replies, meetings and assignments stay
   inside their organization: other organizations' leaders, and the bishopric,
   don't see them.
 - **Member list:** Admin → Members has **Print** (names, callings, phone and
@@ -463,11 +463,62 @@ On **Admin → Visit requests**:
 Members see the status and any reply, and can cancel. Bishops and high
 councilors don't see visit requests.
 
-## Assignments (presidency only)
+## Presidency meetings and assignments (presidency only)
 
-**Admin → Assignments**: add a to-do, assign it to a presidency member with a
-due date. Don't put member names or personal details in assignments. They're notified, then reminded at 8 AM the day before and the day
-it's due.
+**Admin → Presidency meetings** keeps the agenda, notes and decisions in one place.
+Only the presidency can see it.
+
+- **The agenda builds itself.** Anything for the next meeting goes on
+  *Agenda for the next meeting*:
+  - type it there;
+  - tick **Add to the next presidency meeting's agenda** when sending a message
+    (it's ticked already when writing to the presidency); or
+  - tap **+ Add to the next presidency meeting** under a member's message in a
+    conversation.
+
+  Each item shows who added it and where it came from, with a link back to the
+  conversation.
+- **Start a meeting** opens a page for notes with the usual headings (Ministering,
+  Members needing help, Calendar, Assignments review, Other), and boxes for who
+  was there.
+  - Tick agenda items as you discuss them.
+  - Tap **+ Assignment** on an item to turn it into an assignment.
+  - **Finish meeting** files the ticked items with the meeting; anything not
+    ticked stays on the agenda for next time.
+- **Keep notes only as long as they're needed** (General Handbook):
+  - A finished meeting comes up for review 3 months after it's held; a finished
+    assignment, 3 months after it's done; an agenda item, after waiting 3 months.
+  - On the 1st of each month the president (or the whole presidency if no one
+    has that calling) gets a notification.
+  - **Records to review** lists each one with **Keep 3 more months** or
+    **Delete**. Nothing is deleted on its own.
+
+**Admin → Assignments**:
+- Give anyone in the organization an assignment (a presidency member or any
+  member), with a due date and details.
+- Filter by person and by Open, Overdue, Done or All.
+- Choosing a person also shows what else they're doing: lessons they're teaching
+  and service they signed up for. This helps spread the load.
+
+Tap an assignment to see its **progress notes**:
+- The person assigned and the presidency can add notes and set it to Not started,
+  In progress or Done.
+- The presidency hears about the person's updates.
+- The person hears about the presidency's notes, except those marked
+  **Presidency only**, which they never see.
+
+Reminders go out at 8 AM the day before and the day it's due.
+
+## My assignments (every member)
+
+**More → My assignments** brings together, for every organization a member is in:
+- 📋 assignments from a presidency, with Overdue and Due today tags;
+- 📖 lessons they're teaching, with *Please confirm* until they confirm;
+- 🛠️ service they signed up for, with their slot.
+
+It's sorted by date, and **Done and past** shows what's finished. The home page
+has a **Your assignments** card with anything overdue, needing an answer, or in
+the next two weeks.
 
 ## Service
 

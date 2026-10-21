@@ -9,12 +9,15 @@ import { composeMessage } from "./compose-actions";
 const PERSON = "person";
 
 /** One place to write any message: to one person, or to a whole organization, its presidency or a group. */
-export function ComposeForm({ orgs, people, initial }: { orgs: OrgChoices[]; people: PersonChoice[]; initial: string }) {
+export function ComposeForm({ orgs, people, initial, agendaOrgs = [] }: { orgs: OrgChoices[]; people: PersonChoice[]; initial: string; agendaOrgs?: number[] }) {
   const startPerson = initial.startsWith("person:");
   const [to, setTo] = useState(startPerson ? PERSON : initial || orgs[0]?.audiences[0]?.value || "");
   const [person, setPerson] = useState(startPerson ? initial : "");
   const isPerson = to === PERSON;
   const manyOrgs = orgs.length > 1;
+  // Presidency members can put what they're writing about on the next meeting's agenda.
+  const chosen = isPerson ? person : to;
+  const canAgenda = agendaOrgs.includes(Number(chosen.split(":")[1]));
   return (
     <form action={composeMessage} className="card max-w-2xl space-y-4">
       <input type="hidden" name="to" value={isPerson ? person : to} />
@@ -90,6 +93,15 @@ export function ComposeForm({ orgs, people, initial }: { orgs: OrgChoices[]; peo
             <option value="/signups">Service</option>
           </select>
         </div>
+      )}
+      {canAgenda && (
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="agenda" className="mt-1" defaultChecked={chosen.endsWith(":presidency")} key={chosen.endsWith(":presidency") ? "p" : "o"} />
+          <span>
+            Add to the next presidency meeting&apos;s agenda
+            <span className="block text-xs text-muted">The message goes on the agenda so it&apos;s discussed at the next meeting.</span>
+          </span>
+        </label>
       )}
       <p className="text-xs text-muted">
         {isPerson

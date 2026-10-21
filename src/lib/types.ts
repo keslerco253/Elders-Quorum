@@ -59,7 +59,7 @@ export const FEATURES = {
   lessons: "Lessons and teachers",
   signups: "Service opportunities",
   visits: "Visits and visit requests",
-  todos: "To-dos",
+  todos: "Assignments and presidency meetings",
 } as const;
 export type Feature = keyof typeof FEATURES;
 

@@ -24,6 +24,7 @@ import { invitePath, pendingInvitesFor, whenText } from "@/lib/planned-visits";
 import { hasFeature, leadersPhrase, myOrgs } from "@/lib/orgs";
 import { withOrg } from "@/lib/org-cookie";
 import { usesCfm } from "@/lib/cfm";
+import { KIND_ICONS, soonAssignments } from "@/lib/assignments";
 
 export default async function HomePage() {
   const user = await requireUser();
@@ -57,6 +58,8 @@ export default async function HomePage() {
   // New to the ward: hasn't chosen any of its organizations yet.
   const groups = user.orgs.filter((o) => o.kind === "group");
   const chooseOrgs = groups.length > 0 && !groups.some((o) => o.joined);
+  // What they've been asked to do, are teaching or signed up for, soon (or overdue).
+  const assignments = soonAssignments(user.id, today);
 
   return (
     <>
@@ -124,6 +127,39 @@ export default async function HomePage() {
       <div className="mb-5">
         <PushToggle compact />
       </div>
+
+      {assignments.length > 0 && (
+        <Section
+          title="Your assignments"
+          actions={
+            <Link href="/assignments" className="link text-sm">
+              See all
+            </Link>
+          }
+        >
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+            {assignments.slice(0, 4).map((i) => (
+              <li key={i.key}>
+                <OrgLink href={i.href} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
+                  <span className="text-lg" aria-hidden>
+                    {KIND_ICONS[i.kind]}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{i.title}</span>
+                    <span className="text-sm text-muted">{i.detail}</span>
+                  </span>
+                  {i.flag && <Badge tone={i.flag.tone}>{i.flag.text}</Badge>}
+                </OrgLink>
+              </li>
+            ))}
+          </ul>
+          {assignments.length > 4 && (
+            <Link href="/assignments" className="mt-2 block text-sm text-accent">
+              {assignments.length - 4} more ›
+            </Link>
+          )}
+        </Section>
+      )}
 
       {lessonNexts.map(({ org, lesson: [next, ...later] }) => {
         const nextHasNotes = !!(next && getNotes(next.id)?.published_body);

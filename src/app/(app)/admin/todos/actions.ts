@@ -5,50 +5,75 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePresidency } from "@/lib/auth";
 import { notify, RECIPIENT_COLUMNS, type Recipient } from "@/lib/notify";
-import { formatDate } from "@/lib/time";
+import { formatDate, todayIn } from "@/lib/time";
+import { setTodoStatus, type TodoStatus } from "@/lib/assignments";
+import { withOrg } from "@/lib/org-cookie";
 
-function go(text: string): never {
-  redirect(`/admin/todos?msg=${encodeURIComponent(text)}`);
+/** Back to the meeting the form was on, or the assignments list. */
+function backTo(fd: FormData): string {
+  const b = String(fd.get("back") || "");
+  return /^\/admin\/(meetings\/\d+|todos)(\?[\w=&]*)?$/.test(b) ? b : "/admin/todos";
+}
+
+function go(path: string, text: string): never {
+  redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);
 }
 
 export async function saveTodo(fd: FormData) {
   const user = await requirePresidency();
+  const back = backTo(fd);
   const id = Number(fd.get("item_id")) || null;
   const title = String(fd.get("title") || "").trim().slice(0, 200);
   const notes = String(fd.get("notes") || "").trim().slice(0, 2000);
   const due = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("due_date"))) ? String(fd.get("due_date")) : null;
   const assigneeId = Number(fd.get("assignee_id")) || null;
-  if (!title) go("Give the assignment a title.");
+  const meetingId = Number(fd.get("meeting_id")) || null;
+  if (!title) go(back, "Give the assignment a title.");
+  // Anyone in the organization (the presidency or any member).
   const assignee = assigneeId
-    ? (db().prepare(`SELECT ${RECIPIENT_COLUMNS} FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ? WHERE m.id = ? AND om.role = 'presidency' AND m.status = 'active'`).get(user.org_id, user.org_id, assigneeId) as Recipient | undefined)
+    ? (db()
+        .prepare(`SELECT ${RECIPIENT_COLUMNS} FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ? WHERE m.id = ? AND m.status = 'active'`)
+        .get(user.org_id, user.org_id, assigneeId) as Recipient | undefined)
     : undefined;
+  const meeting = meetingId ? (db().prepare("SELECT id FROM meetings WHERE id = ? AND org_id = ?").get(meetingId, user.org_id) as { id: number } | undefined) : undefined;
   let previousAssignee: number | null = null;
+  let todoId = id;
   if (id) {
     const prev = db().prepare("SELECT assignee_id FROM todos WHERE id = ? AND org_id = ?").get(id, user.org_id) as { assignee_id: number | null } | undefined;
-    if (!prev) go("That assignment no longer exists.");
+    if (!prev) go(back, "That assignment no longer exists.");
     previousAssignee = prev.assignee_id;
     db().prepare("UPDATE todos SET title = ?, notes = ?, due_date = ?, assignee_id = ? WHERE id = ?").run(title, notes, due, assignee?.id ?? null, id);
   } else {
-    db().prepare("INSERT INTO todos (org_id, title, notes, due_date, assignee_id, created_by) VALUES (?, ?, ?, ?, ?, ?)").run(user.org_id, title, notes, due, assignee?.id ?? null, user.id);
+    todoId = Number(
+      db()
+        .prepare("INSERT INTO todos (org_id, title, notes, due_date, assignee_id, created_by, meeting_id) VALUES (?, ?, ?, ?, ?, ?, ?)")
+        .run(user.org_id, title, notes, due, assignee?.id ?? null, user.id, meeting?.id ?? null).lastInsertRowid,
+    );
   }
   if (assignee && assignee.id !== user.id && assignee.id !== previousAssignee) {
-    await notify([assignee], { title: "New presidency assignment", body: `${title}${due ? ` (due ${formatDate(due, "short")})` : ""}. Assigned by ${user.display_name}.`, url: "/admin/todos" });
+    await notify([assignee], {
+      title: "New assignment",
+      body: `${title}${due ? ` (due ${formatDate(due, "short")})` : ""}. From ${user.display_name}.`,
+      url: withOrg(`/assignments/${todoId}`, user.org_id),
+    });
   }
-  revalidatePath("/admin/todos");
-  go(id ? "Assignment updated." : "Assignment added.");
+  revalidatePath("/", "layout");
+  go(back, id ? "Assignment updated." : assignee && assignee.id !== user.id ? `Assignment added. ${assignee.display_name} was notified.` : "Assignment added.");
 }
 
-export async function toggleTodo(fd: FormData) {
+export async function setStatus(fd: FormData) {
   const user = await requirePresidency();
-  const done = fd.get("done") === "1" ? 1 : 0;
-  db().prepare("UPDATE todos SET done = ?, done_at = CASE WHEN ? = 1 THEN datetime('now') ELSE NULL END WHERE id = ? AND org_id = ?").run(done, done, Number(fd.get("item_id")), user.org_id);
-  revalidatePath("/admin/todos");
-  redirect("/admin/todos");
+  const status = String(fd.get("status")) as TodoStatus;
+  const id = Number(fd.get("item_id"));
+  if (!["open", "progress", "done"].includes(status) || !db().prepare("SELECT 1 FROM todos WHERE id = ? AND org_id = ?").get(id, user.org_id)) go(backTo(fd), "That assignment no longer exists.");
+  setTodoStatus(id, status, todayIn(user.ward.timezone));
+  revalidatePath("/", "layout");
+  redirect(backTo(fd));
 }
 
 export async function deleteTodo(fd: FormData) {
   const user = await requirePresidency();
   db().prepare("DELETE FROM todos WHERE id = ? AND org_id = ?").run(Number(fd.get("item_id")), user.org_id);
-  revalidatePath("/admin/todos");
-  go("Assignment deleted.");
+  revalidatePath("/", "layout");
+  go(backTo(fd), "Assignment deleted.");
 }

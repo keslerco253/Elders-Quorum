@@ -6,6 +6,9 @@ import { CountDot, PageHeader, Section } from "@/components/ui";
 import { openInvitations, upcomingVisits } from "@/lib/planned-visits";
 import { leadersWord, roleLabel, type Feature } from "@/lib/types";
 import { hasFeature } from "@/lib/orgs";
+import { pendingAgenda, recordsToReview } from "@/lib/meetings";
+import { orgTodos } from "@/lib/assignments";
+import { todayIn } from "@/lib/time";
 
 export const metadata = { title: "Admin" };
 
@@ -45,6 +48,12 @@ export default async function AdminPage() {
   const p = isPresidency(user);
   const has = (f: Feature) => hasFeature(user.org, f);
   const planned = p ? upcomingVisits(user.org_id).length : 0;
+  const today = todayIn(user.ward.timezone);
+  const planning = p && hasFeature(user.org, "todos");
+  const agendaCount = planning ? pendingAgenda(user.org_id).length : 0;
+  const toReview = planning ? recordsToReview(user.org_id, today).length : 0;
+  const openTodos = planning ? orgTodos(user.org_id).filter((t) => !t.done) : [];
+  const overdueTodos = openTodos.filter((t) => t.due_date && t.due_date < today).length;
   const inviting = p
     ? openInvitations(user.org_id).filter((v) => v.invite_status !== "declined")
         .length
@@ -232,9 +241,18 @@ export default async function AdminPage() {
               ...(has("todos")
                 ? [
                     {
+                      href: "/admin/meetings",
+                      label: "Presidency meetings",
+                      count: toReview,
+                      desc:
+                        [agendaCount && `${agendaCount} on the next agenda`, toReview && `${toReview} to review`].filter(Boolean).join(" · ") ||
+                        "Agenda, notes and what was decided",
+                    },
+                    {
                       href: "/admin/todos",
                       label: "Assignments",
-                      desc: "To-dos with due dates",
+                      count: overdueTodos,
+                      desc: openTodos.length ? `${openTodos.length} open${overdueTodos ? ` · ${overdueTodos} overdue` : ""}` : "Give anyone an assignment with a due date",
                     },
                   ]
                 : []),

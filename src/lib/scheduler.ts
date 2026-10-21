@@ -22,6 +22,8 @@ import { renderTemplate } from "./templates";
 import { guestRemindersDue, sendGuestReminder } from "./guest-signups";
 import { deliverHeldReplies } from "./sms-inbound";
 import { joinNames } from "./invite-text";
+import { withOrg } from "./org-cookie";
+import { recordsToReview } from "./meetings";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
 interface OrgCtx {
@@ -216,8 +218,37 @@ function todoReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   return rows.map((t) => ({
     key: `todo-${t.due_date === today ? "due" : "pre"}:${t.id}:${t.due_date}`,
     recipients: [recipientById(t.mid, org.id)].filter((r): r is Recipient => !!r),
-    payload: { title: t.due_date === today ? "Assignment due today" : "Assignment due tomorrow", body: `${t.title} (due ${formatDate(t.due_date, "short")})`, url: "/admin/todos" },
+    payload: { title: t.due_date === today ? "Assignment due today" : "Assignment due tomorrow", body: `${t.title} (due ${formatDate(t.due_date, "short")})`, url: withOrg(`/assignments/${t.id}`, org.id) },
   }));
+}
+
+/**
+ * Once a month (the 1st, from 9 AM), the president (or the whole presidency if no one
+ * has that calling) hears about meeting notes and finished assignments due for review:
+ * keep them only as long as they're needed.
+ */
+function reviewReminders(org: OrgCtx, now: DateTime): DueNotification[] {
+  const local = now.setZone(org.timezone);
+  if (local.day !== 1 || local.hour < 9 || local.hour >= 20) return [];
+  const n = recordsToReview(org.id, local.toISODate()!).length;
+  if (!n) return [];
+  const presidents = (
+    db()
+      .prepare("SELECT om.member_id FROM org_members om JOIN members m ON m.id = om.member_id WHERE om.org_id = ? AND om.role = 'presidency' AND om.calling IN ('president','bishop') AND m.status = 'active'")
+      .all(org.id) as { member_id: number }[]
+  ).map((r) => recipientById(r.member_id, org.id));
+  const to = presidents.filter((r): r is Recipient => !!r);
+  return [
+    {
+      key: `records-review:${org.id}:${local.toFormat("yyyy-LL")}`,
+      recipients: to.length ? to : audienceMembers(org.id, "presidency"),
+      payload: {
+        title: "Presidency records to review",
+        body: `${n} record${n === 1 ? " is" : "s are"} due for review (meeting notes, finished assignments). Keep what's still needed and delete the rest.`,
+        url: withOrg("/admin/meetings/review", org.id),
+      },
+    },
+  ];
 }
 
 /** How long before a visit its reminder goes out. */
@@ -351,6 +382,7 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
     ...(hasFeature(o, "lessons") ? myLessonReminders(o, now) : []),
     ...eventReminders(o, now),
     ...(hasFeature(o, "todos") ? todoReminders(o, now) : []),
+    ...(hasFeature(o, "todos") ? reviewReminders(o, now) : []),
     ...(hasFeature(o, "visits") ? visitReminders(o, now) : []),
     ...(hasFeature(o, "signups") ? signupReminders(o, now) : []),
   ]);

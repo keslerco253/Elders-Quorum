@@ -13,6 +13,8 @@ export function deleteAccount(memberId: number) {
       ["messages", "sender_id"],
       ["signups", "created_by"],
       ["todos", "created_by"],
+      ["meetings", "created_by"],
+      ["agenda_items", "added_by"],
       ["visits", "created_by"],
       ["comments", "reviewed_by"],
       ["event_requests", "decided_by"],

@@ -1141,4 +1141,54 @@ CREATE TABLE sms_member_pending (
 );
 `,
   },
+  {
+    // Presidency planning: meetings with notes, an agenda that collects items for the
+    // next meeting (from messages too), and assignments to anyone in the organization
+    // with a status and progress notes. Meetings and finished assignments carry a
+    // review date: the handbook asks to keep notes only as long as they're needed.
+    id: 54,
+    sql: `
+CREATE TABLE meetings (
+  id INTEGER PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  attendees TEXT NOT NULL DEFAULT '',
+  notes TEXT NOT NULL DEFAULT '',
+  held_at TEXT,
+  review_at TEXT,
+  created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX meetings_org ON meetings(org_id, date);
+CREATE TABLE agenda_items (
+  id INTEGER PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  meeting_id INTEGER REFERENCES meetings(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT '',
+  link TEXT,
+  discussed INTEGER NOT NULL DEFAULT 0,
+  review_at TEXT,
+  added_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX agenda_items_org ON agenda_items(org_id, meeting_id);
+ALTER TABLE todos ADD COLUMN status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','progress','done'));
+UPDATE todos SET status = 'done' WHERE done = 1;
+ALTER TABLE todos ADD COLUMN meeting_id INTEGER REFERENCES meetings(id) ON DELETE SET NULL;
+ALTER TABLE todos ADD COLUMN review_at TEXT;
+UPDATE todos SET review_at = date(coalesce(done_at, created_at), '+3 months') WHERE done = 1;
+CREATE TABLE todo_notes (
+  id INTEGER PRIMARY KEY,
+  todo_id INTEGER NOT NULL REFERENCES todos(id) ON DELETE CASCADE,
+  author_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  body TEXT NOT NULL,
+  private INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX todo_notes_todo ON todo_notes(todo_id);
+`,
+  },
 ];

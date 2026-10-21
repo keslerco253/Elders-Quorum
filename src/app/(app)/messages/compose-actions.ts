@@ -9,6 +9,9 @@ import { getOrg, getWard } from "@/lib/orgs";
 import type { Audience } from "@/lib/notify";
 import { db } from "@/lib/db";
 import { saveUpload } from "@/lib/uploads";
+import { addAgendaItem } from "@/lib/meetings";
+import { hasFeature } from "@/lib/orgs";
+import { audienceLabel } from "@/lib/notify";
 
 const LINKS = ["/", "/lessons", "/calendar", "/plans", "/signups"];
 
@@ -33,14 +36,22 @@ export async function composeMessage(fd: FormData) {
   if (!body && hasFlyer) body = "Please see the attached flyer.";
   if (!body) back("Write a message first.", to);
   const author = { id: user.id, org_id: orgId, display_name: user.display_name };
+  // "Add to the next presidency meeting's agenda" (presidency members, where meetings are on).
+  const org = getOrg(orgId);
+  const agenda = fd.get("agenda") === "on" && !!org && hasFeature(org, "todos");
+  const toAgenda = (to: string, link: string | null, subject?: string) => {
+    if (agenda) addAgendaItem(orgId, subject ? `${subject}: ${body}` : body, { source: `Message from ${user.display_name} to ${to}`, link, addedBy: user.id });
+  };
 
   if (m[1] === "person") {
     const memberId = Number(m[3]);
     const privately = fd.get("private") === "on";
     if (!(await sendAnswer(author, memberId, body.slice(0, 1000), privately))) back("That person isn't in this ward.", to);
+    const name = (db().prepare("SELECT display_name FROM members WHERE id = ?").get(memberId) as { display_name: string } | undefined)?.display_name ?? "a member";
+    toAgenda(name, `/admin/replies/${memberId}${privately ? "?private=1" : ""}`);
     revalidatePath("/", "layout");
     // Open the conversation (in that organization), where any answer will show.
-    redirect(`/admin/replies/${memberId}?org=${orgId}${privately ? "&private=1" : ""}&msg=${encodeURIComponent("Sent.")}#end`);
+    redirect(`/admin/replies/${memberId}?org=${orgId}${privately ? "&private=1" : ""}&msg=${encodeURIComponent(agenda ? "Sent, and added to the next presidency meeting's agenda." : "Sent.")}#end`);
   }
 
   let audience: Audience | null = null;
@@ -67,10 +78,12 @@ export async function composeMessage(fd: FormData) {
   }
   const { count, push, email, text, reached } = await sendToAudience({ orgId, senderId: user.id, audience, title, body: body.slice(0, 2000), link, tz, flyer });
   revalidatePath("/", "layout");
+  const label = audienceLabel(orgId, audience);
+  toAgenda(audience === "everyone" ? "everyone" : audience.startsWith("group:") ? label : `the ${label.toLowerCase()}`, null, String(fd.get("title") || "").trim().slice(0, 120));
   const missed = count - reached;
   redirect(
     `/messages?tab=sent&msg=${encodeURIComponent(
-      `Sent to ${count}: ${push} by notification, ${email} by email, ${text} by text${missed > 0 ? `. ${missed} couldn't be reached (notifications off and no texts or emails chosen)` : ""}.`,
+      `Sent to ${count}: ${push} by notification, ${email} by email, ${text} by text${missed > 0 ? `. ${missed} couldn't be reached (notifications off and no texts or emails chosen)` : ""}.${agenda ? " Added to the next presidency meeting's agenda." : ""}`,
     )}`,
   );
 }

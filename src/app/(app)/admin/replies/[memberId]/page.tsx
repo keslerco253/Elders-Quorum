@@ -16,6 +16,8 @@ import { ChatBox } from "@/components/chat-box";
 import { LiveRefresh } from "@/components/live-refresh";
 import { answerMember, markUnread } from "../actions";
 import { leadersWord } from "@/lib/types";
+import { hasFeature } from "@/lib/orgs";
+import { agendaFromMessage } from "../../meetings/actions";
 
 export const metadata = { title: "Conversation" };
 
@@ -93,6 +95,13 @@ export default async function ConversationPage({ params, searchParams }: { param
                 {/* Meant for someone else? Send it on. */}
                 {c.direction === "in" && (
                   <ForwardForm messageId={c.id} targets={forwardTo} action={forwardMemberMessage} back={`/admin/replies/${member.id}${privately ? "?private=1" : ""}`} />
+                )}
+                {c.direction === "in" && hasFeature(user.org, "todos") && (
+                  <form action={agendaFromMessage} className="mt-1">
+                    <input type="hidden" name="message_id" value={c.id} />
+                    <input type="hidden" name="back" value={`/admin/replies/${member.id}${privately ? "?private=1" : ""}`} />
+                    <button className="text-[11px] text-accent hover:underline">+ Add to the next presidency meeting</button>
+                  </form>
                 )}
               </div>
               {/* Like a read receipt: under the newest answer, whether they've seen it. */}
