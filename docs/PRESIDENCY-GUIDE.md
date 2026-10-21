@@ -713,9 +713,10 @@ Email, texting and backups are on the site owner's page.
 
 ## Notifications
 
-Tapping a notification opens the app on the right page. **More → Notifications**
-keeps the full text of everything the app sent you for 30 days (a red dot on
-More means something unread). On Android and computers notifications stay on
+Tapping a notification opens the app on the right page. **More → Reminders &
+alerts** keeps the full text of every reminder and alert the app sent you for 30
+days (a red dot on More means something unread). Messages and replies aren't
+there; they're in **Messages**. On Android and computers notifications stay on
 screen until tapped. On iPhone each person can choose that themselves:
 **Settings → Notifications → (the app) → Banner Style → Persistent**.
 

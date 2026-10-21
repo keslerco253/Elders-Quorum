@@ -142,11 +142,12 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
   const pendingOrgs = new Set((d().prepare("SELECT o.id FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE w.pending = 1").all() as { id: number }[]).map((o) => o.id));
   recipients = recipients.filter((r) => !pendingOrgs.has(r.org_id));
   for (const r of recipients) {
-    // Kept for the member's Notifications list; the link marks it read when they open it.
+    // Kept for the member's Reminders & alerts list (messages are kept but left out of
+    // it: they're in Messages); the link marks it read when they open it.
     const logId = Number(
       d()
-        .prepare("INSERT INTO notification_log (member_id, org_id, title, body, url) VALUES (?, ?, ?, ?, ?)")
-        .run(r.id, r.org_id, payload.title, payload.body, payload.url ?? "/").lastInsertRowid,
+        .prepare("INSERT INTO notification_log (member_id, org_id, title, body, url, message) VALUES (?, ?, ?, ?, ?, ?)")
+        .run(r.id, r.org_id, payload.title, payload.body, payload.url ?? "/", payload.message ? 1 : 0).lastInsertRowid,
     );
     // ?org= opens it in the organization it's about.
     const p = { ...payload, url: withOrg(withSeen(payload.url ?? "/", logId), r.org_id) };

@@ -23,5 +23,9 @@ describe("notifications list", () => {
     expect(log.unreadNotifications(1)).toBe(1);
     log.markNotificationsRead(1, n.id);
     expect(log.unreadNotifications(1)).toBe(0);
+    // Messages are in Messages, not in Reminders & alerts.
+    await notify([recipientById(1, 1)!], { title: "Pres", body: "Thanks for helping", url: "/messages/thread/all", message: true });
+    expect(log.notificationsFor(1).map((x) => x.title)).toEqual(["Move Saturday"]);
+    expect(log.unreadNotifications(1)).toBe(0);
   });
 });

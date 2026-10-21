@@ -5,7 +5,7 @@ import { formatDateTime } from "@/lib/time";
 import { Empty, PageHeader } from "@/components/ui";
 import { markRead } from "./actions";
 
-export const metadata = { title: "Notifications" };
+export const metadata = { title: "Reminders & alerts" };
 
 /** The notification's page, with ?n=<id> so opening it marks this one read. */
 function openUrl(url: string, id: number) {
@@ -20,9 +20,9 @@ export default async function NotificationsPage() {
   return (
     <>
       <PageHeader
-        title="Notifications"
+        title="Reminders & alerts"
         back={{ href: "/more", label: "More" }}
-        subtitle="Everything the app sent you in the last 30 days, in full. A red dot stays until you tap it."
+        subtitle="Every reminder and alert the app sent you in the last 30 days, in full. Messages and replies are in Messages. A red dot stays until you tap it."
         actions={
           unread > 0 && (
             <form action={markRead}>
@@ -32,7 +32,7 @@ export default async function NotificationsPage() {
         }
       />
       {list.length === 0 ? (
-        <Empty>No notifications yet.</Empty>
+        <Empty>No reminders or alerts yet.</Empty>
       ) : (
         <ul className="space-y-2">
           {list.map((n) => {

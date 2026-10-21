@@ -52,6 +52,8 @@ export interface PushPayload {
   textTitle?: string;
   /** The text is just the words in full, then this label and the link (e.g. "Reply here"), with no heading. */
   textLink?: string;
+  /** A message (in Messages): left out of the Reminders & alerts list. */
+  message?: boolean;
   /** Sent to them as a member: a texted reply goes to the presidency, even if they're a leader. */
   asMember?: boolean;
   /** A file (uploaded flyer) emailed along with it. */

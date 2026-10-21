@@ -89,6 +89,7 @@ export async function sendToAudience(opts: {
     title: opts.title,
     body: opts.body,
     url: `/messages/a/${messageId}`,
+    message: true,
     ...(opts.flyer ? { attachment: opts.flyer, textBody: `${opts.body} (Flyer attached; open the link to see it.)` } : {}),
     // Replying to the email itself wouldn't reach the leaders (it goes to the app's mailbox).
     linkLabel: "Reply in the app",

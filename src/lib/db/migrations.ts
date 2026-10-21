@@ -1276,4 +1276,10 @@ CREATE INDEX conducting_swaps_org ON conducting_swaps(org_id, date);
     id: 60,
     sql: `ALTER TABLE lessons ADD COLUMN topic INTEGER NOT NULL DEFAULT 0;`,
   },
+  {
+    // Messages (conversations and announcements) are in Messages; the Reminders &
+    // alerts list leaves them out. They're still logged, for the texted short link.
+    id: 61,
+    sql: `ALTER TABLE notification_log ADD COLUMN message INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];

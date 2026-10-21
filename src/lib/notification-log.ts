@@ -11,13 +11,13 @@ export interface LoggedNotification {
   created_at: string;
 }
 
-/** The member's notifications, newest first (kept 30 days). */
+/** The member's reminders and alerts (not messages, which are in Messages), newest first (kept 30 days). */
 export function notificationsFor(memberId: number, limit = 60): LoggedNotification[] {
-  return db().prepare("SELECT * FROM notification_log WHERE member_id = ? ORDER BY id DESC LIMIT ?").all(memberId, limit) as LoggedNotification[];
+  return db().prepare("SELECT * FROM notification_log WHERE member_id = ? AND message = 0 ORDER BY id DESC LIMIT ?").all(memberId, limit) as LoggedNotification[];
 }
 
 export function unreadNotifications(memberId: number): number {
-  return (db().prepare("SELECT COUNT(*) AS n FROM notification_log WHERE member_id = ? AND read_at IS NULL").get(memberId) as { n: number }).n;
+  return (db().prepare("SELECT COUNT(*) AS n FROM notification_log WHERE member_id = ? AND read_at IS NULL AND message = 0").get(memberId) as { n: number }).n;
 }
 
 /** Marks one notification read (only the member's own), or all of them. */

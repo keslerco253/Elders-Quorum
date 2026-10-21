@@ -134,6 +134,7 @@ export async function receiveReply(member: { id: number; org_id: number; display
       linkLabel: "Answer",
       replyTo: { memberId: member.id, private: true },
       tag: `conv-${member.org_id}-${member.id}-p`,
+      message: true,
     });
   } else if (presidency.length) {
     where = org ? leadersPhrase(org) : "the presidency";
@@ -146,6 +147,7 @@ export async function receiveReply(member: { id: number; org_id: number; display
       linkLabel: "Answer",
       replyTo: { memberId: member.id, private: false },
       tag: `conv-${member.org_id}-${member.id}`,
+      message: true,
     });
   } else {
     // Nobody to receive it there: the ward's backup person passes it on.
@@ -172,7 +174,7 @@ export async function sendAnswer(author: { id: number; org_id: number; display_n
   await notify(
     [member],
     // A personal note (private or not): the notification shows who it's from; texts and emails are just the words, signed.
-    { title: author.display_name, body: text, url: `/messages/thread/${privately ? author.id : "all"}?org=${author.org_id}#end`, personal: { from: author.display_name }, tag: `answers-${author.org_id}`, asMember: true },
+    { title: author.display_name, body: text, url: `/messages/thread/${privately ? author.id : "all"}?org=${author.org_id}#end`, personal: { from: author.display_name }, tag: `answers-${author.org_id}`, asMember: true, message: true },
   );
   return true;
 }

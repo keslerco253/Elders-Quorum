@@ -28,7 +28,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
   const links: { href: string; label: string; desc: string; count?: number }[] = [
     ...(hasFeature(user.org, "signups") ? [{ href: "/signups", label: "Service", desc: "Service projects, meals, rides and more" }] : []),
     { href: "/assignments", label: "My assignments", desc: "What you've been asked to do, lessons you're teaching, service you signed up for" },
-    { href: "/notifications", label: "Notifications", count: newNotes, desc: "Read the full text of everything the app sent you" },
+    { href: "/notifications", label: "Reminders & alerts", count: newNotes, desc: "Every reminder and alert the app sent you (messages are in Messages)" },
     { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },
     { href: "/messages", label: "Messages", count: unread, desc: `Messages from ${user.orgLabel} and replies from its ${leadersWord(user.org)}` },
     ...(myOrgs(user.id).some((o) => hasFeature(o, "visits")) ? [{ href: "/more/visit", label: "Request a visit", desc: "Ask your leaders to come by, talk, or help" }] : []),

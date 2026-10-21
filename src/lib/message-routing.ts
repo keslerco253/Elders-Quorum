@@ -113,6 +113,7 @@ export async function forwardMessage(user: CurrentUser, messageId: number, targe
     linkLabel: "Answer",
     replyTo: { memberId: msg.member_id, private: !!leader },
     tag: `conv-${toOrg.id}-${msg.member_id}${leader ? "-p" : ""}`,
+    message: true,
   });
   return where;
 }
