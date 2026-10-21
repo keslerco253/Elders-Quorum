@@ -21,6 +21,8 @@ export function deleteAccount(memberId: number) {
     ]) {
       d.prepare(`UPDATE ${table} SET ${col} = NULL WHERE ${col} = ?`).run(memberId);
     }
+    // Progress notes they wrote on assignments go with them (what they posted).
+    d.prepare("DELETE FROM todo_notes WHERE author_id = ?").run(memberId);
     // Everything else references members with ON DELETE CASCADE / SET NULL.
     d.prepare("DELETE FROM members WHERE id = ?").run(memberId);
   })();
