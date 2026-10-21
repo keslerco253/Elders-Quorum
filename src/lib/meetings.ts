@@ -3,7 +3,7 @@ import { db } from "./db";
 import { reviewDate } from "./assignments";
 import { localInputToUtc } from "./time";
 import { getOrg } from "./orgs";
-import { callingLabel, isCalling, leadersWord } from "./types";
+import { CALLINGS, callingLabel, isCalling, leadersWord } from "./types";
 
 // Presidency meetings: notes, who came, and the agenda. Agenda items wait (meeting_id
 // NULL) until a meeting where they were discussed is finished; the rest carry over.
@@ -93,7 +93,11 @@ export function meetingForEvent(eventId: number): Meeting | undefined {
   return db().prepare("SELECT * FROM meetings WHERE event_id = ?").get(eventId) as Meeting | undefined;
 }
 
-/** Who can be ticked as there: the presidency and anyone with a calling (secretaries, a high councilor). */
+/**
+ * Who can be ticked as there: the presidency and anyone with a calling (secretaries, a
+ * high councilor), plus a box for each calling no one holds yet (its title), so the
+ * assistant secretary or high councilor can be ticked before they're set up.
+ */
 export function attendeeChoices(orgId: number): { id: number; name: string; calling: string | null }[] {
   const org = getOrg(orgId);
   const rows = db()
@@ -103,11 +107,14 @@ export function attendeeChoices(orgId: number): { id: number; name: string; call
     )
     .all(orgId) as { id: number; name: string; calling: string | null; role: string }[];
   const order = ["bishop", "president", "first_counselor", "second_counselor", "executive_secretary", "ward_clerk", "secretary", "assistant_secretary", "stake_high_council"];
+  // Callings no one holds: a box with the calling's title (negative ids: not a person).
+  const open = org ? CALLINGS[org.kind].filter((c) => !rows.some((r) => r.calling === c)) : [];
+  const all = [...rows, ...open.map((c, i) => ({ id: -(i + 1), name: callingLabel(c, org!), calling: c, role: "open" }))];
   // By calling; presidency members without one come after the counselors.
   const rank = (r: { calling: string | null; role: string }) => (r.calling && order.includes(r.calling) ? order.indexOf(r.calling) : r.role === "presidency" ? 3.5 : order.length);
-  return rows
+  return all
     .sort((a, b) => rank(a) - rank(b))
-    .map((r) => ({ id: r.id, name: r.name, calling: org && isCalling(r.calling) ? callingLabel(r.calling, org) : null }));
+    .map((r) => ({ id: r.id, name: r.name, calling: r.role === "open" ? null : org && isCalling(r.calling) ? callingLabel(r.calling, org) : null }));
 }
 
 /** Notes on one agenda item, taken in the meeting; an item with notes counts as discussed. */

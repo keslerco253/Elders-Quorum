@@ -117,6 +117,15 @@ describe("scheduled presidency meetings", () => {
     saveAgendaNotes(1, a, "Brother P will visit Thursday");
     expect(pendingAgenda(1)[0]).toMatchObject({ notes: "Brother P will visit Thursday", discussed: 1 });
     db().prepare("UPDATE org_members SET calling = 'assistant_secretary' WHERE member_id = 2").run();
-    expect(attendeeChoices(1).map((p) => [p.name, p.calling])).toEqual([["Pres", null], ["Ann", "Assistant Secretary"]]);
+    // People with their callings, and a box for each calling no one holds yet.
+    expect(attendeeChoices(1).map((p) => [p.name, p.calling])).toEqual([
+      ["Elders Quorum President", null],
+      ["First Counselor", null],
+      ["Second Counselor", null],
+      ["Pres", null],
+      ["Secretary", null],
+      ["Ann", "Assistant Secretary"],
+      ["Stake High Council", null],
+    ]);
   });
 });
