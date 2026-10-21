@@ -67,7 +67,12 @@ interface SubRow {
 
 /** Sends to every device the member registered (browsers and the phone app). Returns how many deliveries succeeded. */
 export async function pushToMember(memberId: number, payload: PushPayload): Promise<number> {
-  const subs = db().prepare("SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE member_id = ?").all(memberId) as SubRow[];
+  let subs = db().prepare("SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE member_id = ?").all(memberId) as SubRow[];
+  // Someone with the iPhone app gets notifications there; an old Home Screen
+  // (website) sign-up on an Apple device would only send each one twice.
+  if (subs.length && db().prepare("SELECT 1 FROM native_push_tokens WHERE member_id = ? AND platform = 'ios'").get(memberId)) {
+    subs = subs.filter((s) => !/^https:\/\/web\.push\.apple\.com\//.test(s.endpoint));
+  }
   let ok = await pushToApp(memberId, payload);
   if (!subs.length) return ok;
   ensureVapid();

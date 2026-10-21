@@ -36,4 +36,31 @@ describe("notifications to the phone app", () => {
     ]);
     expect((d.prepare("SELECT token FROM native_push_tokens").all() as { token: string }[]).map((r) => r.token)).toEqual([good]);
   });
+
+  it("doesn't also send to an old Home Screen sign-up on an Apple device when they have the iPhone app", async () => {
+    const d = (await import("@/lib/db")).useTestDb(`
+      INSERT INTO wards (id, name) VALUES (1, 'W');
+      INSERT INTO members (id, ward_id, name, display_name, email) VALUES (1, 1, 'M', 'Mem', 'm@test.local');
+    `);
+    const push = await import("@/lib/push");
+    const webpush = (await import("web-push")).default;
+    const sent: string[] = [];
+    const spy = vi.spyOn(webpush, "sendNotification").mockImplementation(async (sub) => {
+      sent.push(sub.endpoint);
+      return { statusCode: 201, body: "", headers: {} };
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ data: [{ status: "ok", id: "x" }] })));
+    d.exec(`INSERT INTO push_subscriptions (member_id, endpoint, p256dh, auth) VALUES
+      (1, 'https://web.push.apple.com/QAbc', 'k', 'a'),
+      (1, 'https://fcm.googleapis.com/fcm/send/xyz', 'k', 'a')`);
+    // Website only: both get it.
+    await push.pushToMember(1, { title: "T", body: "B", url: "/" });
+    expect(sent.sort()).toEqual(["https://fcm.googleapis.com/fcm/send/xyz", "https://web.push.apple.com/QAbc"]);
+    // With the iPhone app: the app, plus the computer's browser, but not the Apple web sign-up.
+    sent.length = 0;
+    push.saveAppToken(1, "ExponentPushToken[dddddddddddddddddddddd]", "ios");
+    expect(await push.pushToMember(1, { title: "T", body: "B", url: "/" })).toBe(2);
+    expect(sent).toEqual(["https://fcm.googleapis.com/fcm/send/xyz"]);
+    spy.mockRestore();
+  });
 });
