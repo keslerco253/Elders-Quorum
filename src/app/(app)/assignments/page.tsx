@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { KIND_ICONS, myAssignments, type MyItem } from "@/lib/assignments";
-import { myOrgs } from "@/lib/orgs";
+import { givenBy, KIND_ICONS, myAssignments, STATUS_LABELS, type MyItem } from "@/lib/assignments";
+import { formatDate } from "@/lib/time";
+import { getOrg, hasFeature, myOrgs } from "@/lib/orgs";
+import { ledOrgIds } from "@/lib/conversations";
+import { withOrg } from "@/lib/org-cookie";
 import { todayIn } from "@/lib/time";
-import { Badge, Empty, PageHeader, Section } from "@/components/ui";
+import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 
 export const metadata = { title: "My assignments" };
 
@@ -17,6 +20,15 @@ export default async function MyAssignmentsPage({ searchParams }: { searchParams
   const pastView = sp.view === "past";
   const items = myAssignments(user.id, today, { past: pastView });
   const manyOrgs = myOrgs(user.id).length > 2;
+  // Presidency members can give assignments from here too: in the organization they're
+  // looking at if they lead it, otherwise the first one they lead.
+  const led = ledOrgIds(user.id).filter((id) => {
+    const o = getOrg(id);
+    return !!o && hasFeature(o, "todos");
+  });
+  const assignOrg = led.includes(user.org_id) ? user.org_id : led[0];
+  // What they've asked others to do (still open), so it doesn't vanish once given.
+  const given = assignOrg && !pastView ? givenBy(user.id).filter((t) => led.includes(t.org_id)) : [];
 
   const list = (rows: MyItem[]) => (
     <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
@@ -43,7 +55,19 @@ export default async function MyAssignmentsPage({ searchParams }: { searchParams
 
   return (
     <>
-      <PageHeader title="My assignments" back={{ href: "/more", label: "More" }} subtitle="What you've been asked to do, the lessons you're teaching, and the service you signed up for." />
+      <PageHeader
+        title="My assignments"
+        back={{ href: "/more", label: "More" }}
+        subtitle="What you've been asked to do, the lessons you're teaching, and the service you signed up for."
+        actions={
+          assignOrg && (
+            <Link href={withOrg("/assignments/new", assignOrg)} className="btn-primary">
+              + New assignment
+            </Link>
+          )
+        }
+      />
+      <Flash msg={sp.msg} />
       <div className="mb-5 flex gap-1 rounded-xl bg-surface-2 p-1">
         {[
           [false, "/assignments", "Coming up"],
@@ -86,6 +110,37 @@ export default async function MyAssignmentsPage({ searchParams }: { searchParams
             </Section>
           </div>
         </>
+      )}
+      {given.length > 0 && (
+        <div className="mt-6">
+          <Section
+            title="Assignments you've given"
+            actions={
+              <Link href="/admin/todos" className="link text-sm">
+                All assignments
+              </Link>
+            }
+          >
+            <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+              {given.map((t) => (
+                <li key={t.id}>
+                  <Link href={withOrg(`/assignments/${t.id}`, t.org_id)} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">{t.title}</span>
+                      <span className="text-sm text-muted">
+                        {t.assignee ?? "Unassigned"}
+                        {t.due_date && ` · due ${formatDate(t.due_date, "short")}`}
+                        {t.note_count > 0 && ` · ${t.note_count} note${t.note_count === 1 ? "" : "s"}`}
+                      </span>
+                    </span>
+                    {t.due_date && t.due_date < today ? <Badge tone="danger">Overdue</Badge> : t.status === "progress" && <Badge tone="info">{STATUS_LABELS.progress}</Badge>}
+                    <span className="text-muted">›</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        </div>
       )}
     </>
   );

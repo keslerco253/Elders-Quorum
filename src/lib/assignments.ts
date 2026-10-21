@@ -53,6 +53,13 @@ export function orgTodos(orgId: number, opts: { assigneeId?: number; meetingId?:
     .all(...args) as Todo[];
 }
 
+/** Open assignments this person gave someone else, soonest due first. */
+export function givenBy(memberId: number): Todo[] {
+  return db()
+    .prepare(`${TODO_SELECT} WHERE t.created_by = ? AND t.done = 0 AND (t.assignee_id IS NULL OR t.assignee_id <> ?) ORDER BY t.due_date IS NULL, t.due_date, t.id DESC LIMIT 50`)
+    .all(memberId, memberId) as Todo[];
+}
+
 /** Whether this person is in the organization's presidency. */
 export function isPresidencyOf(memberId: number, orgId: number): boolean {
   return !!db().prepare("SELECT 1 FROM org_members WHERE org_id = ? AND member_id = ? AND role = 'presidency'").get(orgId, memberId);

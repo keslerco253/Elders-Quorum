@@ -614,6 +614,11 @@ Reminders go out at 8 AM the day before and the day it's due.
 
 ## My assignments (every member)
 
+Presidency members can also give an assignment from **More → My assignments →
++ New assignment** (not only in a meeting). Saving brings you back there, and
+**Assignments you've given** lists the open ones you gave others, with who has
+each and when it's due.
+
 **More → My assignments** brings together, for every organization a member is in:
 - 📋 assignments from a presidency, with Overdue and Due today tags;
 - 📖 lessons they're teaching, with *Please confirm* until they confirm;

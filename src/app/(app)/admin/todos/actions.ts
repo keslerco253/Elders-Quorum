@@ -12,7 +12,7 @@ import { withOrg } from "@/lib/org-cookie";
 /** Back to the meeting the form was on, or the assignments list. */
 function backTo(fd: FormData): string {
   const b = String(fd.get("back") || "");
-  return /^\/admin\/(meetings\/\d+|todos)(\?[\w=&]*)?$/.test(b) ? b : "/admin/todos";
+  return /^\/(admin\/(meetings\/\d+|todos)|assignments)(\?[\w=&]*)?$/.test(b) ? b : "/admin/todos";
 }
 
 function go(path: string, text: string): never {
