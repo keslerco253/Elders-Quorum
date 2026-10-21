@@ -4,7 +4,7 @@ import { adminCounts } from "@/lib/admin-counts";
 import { isPresidency } from "@/lib/permissions";
 import { CountDot, PageHeader, Section } from "@/components/ui";
 import { openInvitations, upcomingVisits } from "@/lib/planned-visits";
-import { leadersWord, roleLabel, type Feature } from "@/lib/types";
+import { roleLabel, type Feature } from "@/lib/types";
 import { hasFeature } from "@/lib/orgs";
 import { pendingAgenda, recordsToReview } from "@/lib/meetings";
 import { orgTodos } from "@/lib/assignments";
@@ -59,13 +59,6 @@ export default async function AdminPage() {
         .length
     : 0;
   const waiting: Tile[] = [
-    {
-      href: "/messages?show=unread",
-      label: "Messages",
-      desc: `Members writing to the ${leadersWord(user.org)}`,
-      count: c.replies,
-      show: p,
-    },
     {
       href: "/admin/visit-requests",
       label: "Visit requests",
@@ -135,179 +128,88 @@ export default async function AdminPage() {
           <Tiles tiles={waiting.filter((t) => t.count)} />
         </Section>
       )}
-      <Section title={user.orgLabel}>
+      {/* Sending messages, lessons, events, service and plans each have their own tab
+          (New message, Manage lessons, Add event…), so they aren't repeated here. */}
+      <Section title={roleLabel("presidency", user.org)}>
         <Tiles
           tiles={[
-            {
-              href: "/admin/guide",
-              label: "Leader guide",
-              desc: "How to do everything in the app as a leader",
-            },
-            ...(isPresidency(user)
+            ...(has("todos")
               ? [
                   {
-                    href: "/admin/shared",
-                    label: "Shared publicly",
-                    desc: "Links and QR codes for flyers and sign-ups, open to anyone",
+                    href: "/admin/meetings",
+                    label: "Presidency meetings",
+                    count: toReview,
+                    desc:
+                      [agendaCount && `${agendaCount} on the next agenda`, toReview && `${toReview} to review`].filter(Boolean).join(" · ") ||
+                      "Schedule, agenda, notes and Zoom",
                   },
                   {
-                    href: "/admin/templates",
-                    label: "Message wording",
-                    desc: "Reminders and texts the app sends, in your own words",
+                    href: "/admin/todos",
+                    label: "Assignments",
+                    count: overdueTodos,
+                    desc: openTodos.length ? `${openTodos.length} open${overdueTodos ? ` · ${overdueTodos} overdue` : ""}` : "Give anyone an assignment with a due date",
                   },
                 ]
               : []),
+            ...(has("visits")
+              ? [
+                  {
+                    href: "/admin/visits",
+                    label: "Home visits",
+                    count: c.newTimes,
+                    desc:
+                      [planned && `${planned} upcoming`, inviting && `${inviting} invitation${inviting === 1 ? "" : "s"} open`].filter(Boolean).join(" · ") ||
+                      "Plan visits and record who we've visited",
+                  },
+                  {
+                    href: "/admin/visit-requests",
+                    label: "Visit requests",
+                    desc: "Members asking for a visit",
+                    count: c.visitRequests,
+                  },
+                ]
+              : []),
+            {
+              href: "/admin/members",
+              label: "Members",
+              desc: `People in ${user.orgLabel}, callings and access`,
+            },
             {
               href: "/admin/invite",
               label: "Invite members",
               desc: "QR code and join link for the ward",
             },
-            {
-              href: "/messages/new",
-              label: "Send a message",
-              desc: "Push notification or email to a group",
-            },
-            ...(has("lessons")
-              ? [
-                  {
-                    href: "/admin/lessons",
-                    label: "Lessons",
-                    desc: "Six-month schedule and teachers",
-                    count: c.volunteers + c.teacherNeeded,
-                  },
-                ]
-              : []),
-            {
-              href: "/admin/events/new",
-              label: "Add an event",
-              desc: "Activities and meetings",
-            },
-            ...(has("signups")
-              ? [
-                  {
-                    href: "/signups",
-                    label: "Service",
-                    desc: "Service projects and meals",
-                  },
-                ]
-              : []),
-            {
-              href: "/plans",
-              label: "Plans",
-              desc: "Temple & family history, ward mission, and more",
-            },
-            {
-              href: "/admin/members",
-              label: "Members",
-              desc: `People in ${user.orgLabel}`,
-            },
           ]}
         />
       </Section>
-      {p && (
-        <Section title={`${roleLabel("presidency", user.org)} only`}>
-          <Tiles
-            tiles={[
-              {
-                href: "/messages",
-                label: "Messages",
-                desc: "Your inbox of conversations with members",
-                count: c.replies,
-              },
-              ...(has("visits")
-                ? [
-                    {
-                      href: "/admin/visit-requests",
-                      label: "Visit requests",
-                      desc: "Members asking for a visit",
-                      count: c.visitRequests,
-                    },
-                    {
-                      href: "/admin/visits",
-                      label: "Home visits",
-                      count: c.newTimes,
-                      desc:
-                        [
-                          planned && `${planned} upcoming`,
-                          inviting &&
-                            `${inviting} invitation${inviting === 1 ? "" : "s"} open`,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ") ||
-                        "Plan visits and record who we've visited",
-                    },
-                  ]
-                : []),
-              ...(has("todos")
-                ? [
-                    {
-                      href: "/admin/meetings",
-                      label: "Presidency meetings",
-                      count: toReview,
-                      desc:
-                        [agendaCount && `${agendaCount} on the next agenda`, toReview && `${toReview} to review`].filter(Boolean).join(" · ") ||
-                        "Agenda, notes and what was decided",
-                    },
-                    {
-                      href: "/admin/todos",
-                      label: "Assignments",
-                      count: overdueTodos,
-                      desc: openTodos.length ? `${openTodos.length} open${overdueTodos ? ` · ${overdueTodos} overdue` : ""}` : "Give anyone an assignment with a due date",
-                    },
-                  ]
-                : []),
-              {
-                href: "/admin/settings",
-                label: "Settings",
-                desc:
-                  user.wardLeader && user.org.kind === "ward"
-                    ? "Ward, join code, organizations"
-                    : "Name and features",
-              },
-            ]}
-          />
-        </Section>
-      )}
-      <Section title="Approvals and groups">
+      <Section title="Setup">
         <Tiles
           tiles={[
-            ...(has("lessons")
-              ? [
-                  {
-                    href: "/admin/notes",
-                    label: "Teacher notes",
-                    desc: "Approve notes before they're shared",
-                    count: c.notes,
-                  },
-                  {
-                    href: "/admin/comments",
-                    label: "Comment queue",
-                    desc: "Approve study comments",
-                    count: c.comments,
-                  },
-                ]
-              : []),
-            {
-              href: "/admin/event-requests",
-              label: "Event requests",
-              desc: "Approve or decline",
-              count: c.eventRequests,
-            },
             {
               href: "/admin/groups",
               label: "Message groups",
-              desc: "Custom groups for messages",
+              desc: "Custom groups to send messages to",
             },
-            ...(p && c.access
-              ? [
-                  {
-                    href: "/admin/access",
-                    label: "Access requests",
-                    desc: "Approve new people",
-                    count: c.access,
-                  },
-                ]
-              : []),
+            {
+              href: "/admin/shared",
+              label: "Shared publicly",
+              desc: "Links and QR codes for flyers and sign-ups, open to anyone",
+            },
+            {
+              href: "/admin/templates",
+              label: "Message wording",
+              desc: "Reminders and texts the app sends, in your own words",
+            },
+            {
+              href: "/admin/settings",
+              label: "Settings",
+              desc: user.wardLeader && user.org.kind === "ward" ? "Ward, join code, organizations" : "Name and features",
+            },
+            {
+              href: "/admin/guide",
+              label: "Leader guide",
+              desc: "How to do everything in the app as a leader",
+            },
           ]}
         />
       </Section>

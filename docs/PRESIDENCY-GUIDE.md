@@ -72,7 +72,7 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
 
 ## After each General Conference: set up six months of lessons
 
-1. **Admin → Lessons → 1. Add Sundays**: start date = the Sunday after
+1. **Lessons → Manage lessons → 1. Add Sundays**: start date = the Sunday after
    conference, 26 weeks.
 2. **General Conference** Sundays (the first Sunday of April and October)
    are marked for you. Tap any **Stake Conference** Sunday in the list and set
@@ -138,7 +138,7 @@ paste.
 - **Weekly reminder:** each Sunday evening, Sunday School members get "This
   week's Come, Follow Me" with the coming week's reading. The Saturday "class
   tomorrow" reminder goes out only for Sundays with a teacher assigned.
-- **Teachers:** assign them on the Sundays class meets (Admin → Lessons → tap
+- **Teachers:** assign them on the Sundays class meets (Lessons → Manage lessons → tap
   the Sunday). Weeks without a teacher just show the reading.
 - **Changing a lesson:** tap the Sunday and change anything; it stays as you
   set it. **Refill from Come, Follow Me** puts it back.
@@ -163,7 +163,7 @@ comments. Pasted talk links skip it.
 
 ## Teachers
 
-- **Regular teachers** (Admin → Lessons → *Regular teachers*):
+- **Regular teachers** (Lessons → Manage lessons → *Regular teachers*):
   - Choose who teaches the 1st, 2nd, 3rd and 4th Sunday of each month. They're
     put on those lessons automatically, including Sundays added later.
   - Each Sunday has one teacher, so two people can't share a Sunday. One
@@ -183,10 +183,10 @@ comments. Pasted talk links skip it.
     new one. Lessons you assigned by hand stay as they are.
   - In the list, these lessons show "· regular" next to the teacher.
 - Members tap **I'd like to teach this** on a lesson. You get a notification.
-- **Admin → Lessons**: lessons with volunteers show "2 volunteered". Open the
+- **Lessons → Manage lessons**: lessons with volunteers show "2 volunteered". Open the
   lesson and tap **Assign** next to a name, or choose anyone from the list.
 - The assigned teacher is notified. Only the presidency can assign teachers.
-- **Ask someone to teach:** on a lesson's page in **Admin → Lessons**, choose a
+- **Ask someone to teach:** on a lesson's page in **Lessons → Manage lessons**, choose a
   member, add an optional note and tap **Send request**. They get "Will you
   teach on Sun, Nov 1?" and can answer **Yes, I'll teach** or **I can't** (with
   an optional reason) from the notification, a card on their Home page, the
@@ -205,7 +205,7 @@ comments. Pasted talk links skip it.
   email's **Reply** button (opens a page that works without signing in), or by
   texting back **TEACH** or **CANT** and a reason. The app texts a short
   thank-you back. You'll see **✓ confirmed** next to the teacher in
-  **Admin → Lessons**; after confirming, later reminders just thank them.
+  **Lessons → Manage lessons**; after confirming, later reminders just thank them.
 - If the teacher can't make it, they tap **I can't teach this lesson** on the
   lesson page and can add a reason (only the presidency sees it). They're taken
   off the lesson, it shows **Teacher needed** again so others can volunteer, and
@@ -282,7 +282,7 @@ them), or choose Everyone,
 the Presidency, Upcoming teachers, or any message group. If you lead more than
 one organization, the choices are grouped by organization. The number next to
 each choice is how many people get it. Each group's page also has **Send a
-message to this group**, and Admin → Send a message opens the same screen.
+message to this group**, which opens the same screen as Messages → New message.
 To send a flyer with an announcement, use **Attach a flyer** (a PDF or picture): it shows full size when members open the message, with a small preview in their inbox, comes attached to the email, and texts get a link to see it. Members get a notification, or a text or email as they chose. Everything you
 send to a group shows under Messages → **Sent**.
 
