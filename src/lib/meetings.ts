@@ -1,6 +1,9 @@
 import { DateTime } from "luxon";
 import { db } from "./db";
 import { reviewDate } from "./assignments";
+import { localInputToUtc } from "./time";
+import { getOrg } from "./orgs";
+import { callingLabel, isCalling, leadersWord } from "./types";
 
 // Presidency meetings: notes, who came, and the agenda. Agenda items wait (meeting_id
 // NULL) until a meeting where they were discussed is finished; the rest carry over.
@@ -9,6 +12,10 @@ export interface Meeting {
   id: number;
   org_id: number;
   date: string;
+  /** Start time (HH:MM) when it's scheduled. */
+  time: string | null;
+  /** Its presidency-only event on the calendar. */
+  event_id: number | null;
   title: string;
   attendees: string;
   notes: string;
@@ -18,8 +25,12 @@ export interface Meeting {
   updated_at: string;
 }
 
-/** The headings a new meeting's notes start with. */
-export const NOTES_TEMPLATE = ["Ministering", "Members needing help", "Calendar", "Assignments review", "Other"].map((h) => `## ${h}\n\n`).join("");
+/** "Presidency meeting" ("Bishopric meeting" for the ward). */
+export function meetingName(orgId: number, m?: Pick<Meeting, "title">): string {
+  const org = getOrg(orgId);
+  const word = org ? leadersWord(org) : "presidency";
+  return m?.title || `${word[0].toUpperCase()}${word.slice(1)} meeting`;
+}
 
 export function getMeeting(orgId: number, id: number): Meeting | undefined {
   return db().prepare("SELECT * FROM meetings WHERE id = ? AND org_id = ?").get(id, orgId) as Meeting | undefined;
@@ -34,14 +45,83 @@ export function orgMeetings(orgId: number): (Meeting & { item_count: number; tod
     .all(orgId) as (Meeting & { item_count: number; todo_count: number })[];
 }
 
-export function createMeeting(orgId: number, date: string, title: string, createdBy: number): number {
-  return Number(db().prepare("INSERT INTO meetings (org_id, date, title, notes, created_by) VALUES (?, ?, ?, ?, ?)").run(orgId, date, title, NOTES_TEMPLATE, createdBy).lastInsertRowid);
+export function createMeeting(orgId: number, date: string, title: string, createdBy: number, opts: { time?: string | null; tz?: string } = {}): number {
+  const id = Number(db().prepare("INSERT INTO meetings (org_id, date, time, title, created_by) VALUES (?, ?, ?, ?, ?)").run(orgId, date, opts.time ?? null, title, createdBy).lastInsertRowid);
+  if (opts.time && opts.tz) syncMeetingEvent(orgId, id, opts.tz, createdBy);
+  return id;
+}
+
+/**
+ * Keeps a scheduled meeting's calendar event in step: a presidency-only event (on
+ * the presidency's Coming up list, with a reminder an hour before) at its date and
+ * time, or none when it has no time.
+ */
+export function syncMeetingEvent(orgId: number, meetingId: number, tz: string, by: number | null) {
+  const d = db();
+  const m = getMeeting(orgId, meetingId);
+  if (!m) return;
+  const starts = m.time ? localInputToUtc(`${m.date}T${m.time}`, tz) : null;
+  if (!starts) {
+    if (m.event_id) d.prepare("DELETE FROM events WHERE id = ? AND org_id = ?").run(m.event_id, orgId);
+    d.prepare("UPDATE meetings SET event_id = NULL WHERE id = ?").run(m.id);
+    return;
+  }
+  const ends = DateTime.fromISO(starts).plus({ hours: 1 }).toUTC().toISO({ suppressMilliseconds: true })!;
+  const title = meetingName(orgId, m);
+  const description = "The agenda and notes are under Admin → Presidency meetings.";
+  const exists = m.event_id && d.prepare("SELECT 1 FROM events WHERE id = ? AND org_id = ?").get(m.event_id, orgId);
+  if (exists) d.prepare("UPDATE events SET title = ?, starts_at = ?, ends_at = ? WHERE id = ?").run(title, starts, ends, m.event_id);
+  else {
+    const id = d
+      .prepare("INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, reminder_minutes, created_by) VALUES (?, ?, ?, '', ?, ?, 1, 60, ?)")
+      .run(orgId, title, description, starts, ends, by).lastInsertRowid;
+    d.prepare("UPDATE meetings SET event_id = ? WHERE id = ?").run(Number(id), m.id);
+  }
+}
+
+/** Deletes a meeting (its notes and filed agenda) and its calendar event; assignments stay. */
+export function deleteMeetingRecord(orgId: number, meetingId: number) {
+  const d = db();
+  const m = getMeeting(orgId, meetingId);
+  if (!m) return;
+  if (m.event_id) d.prepare("DELETE FROM events WHERE id = ? AND org_id = ?").run(m.event_id, orgId);
+  d.prepare("DELETE FROM meetings WHERE id = ?").run(m.id);
+}
+
+/** The meeting a calendar event is for, if any. */
+export function meetingForEvent(eventId: number): Meeting | undefined {
+  return db().prepare("SELECT * FROM meetings WHERE event_id = ?").get(eventId) as Meeting | undefined;
+}
+
+/** Who can be ticked as there: the presidency and anyone with a calling (secretaries, a high councilor). */
+export function attendeeChoices(orgId: number): { id: number; name: string; calling: string | null }[] {
+  const org = getOrg(orgId);
+  const rows = db()
+    .prepare(
+      `SELECT m.id, m.display_name AS name, om.calling, om.role FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?
+       WHERE m.status = 'active' AND (om.role = 'presidency' OR om.calling IS NOT NULL) ORDER BY m.display_name COLLATE NOCASE`,
+    )
+    .all(orgId) as { id: number; name: string; calling: string | null; role: string }[];
+  const order = ["bishop", "president", "first_counselor", "second_counselor", "executive_secretary", "ward_clerk", "secretary", "assistant_secretary", "stake_high_council"];
+  // By calling; presidency members without one come after the counselors.
+  const rank = (r: { calling: string | null; role: string }) => (r.calling && order.includes(r.calling) ? order.indexOf(r.calling) : r.role === "presidency" ? 3.5 : order.length);
+  return rows
+    .sort((a, b) => rank(a) - rank(b))
+    .map((r) => ({ id: r.id, name: r.name, calling: org && isCalling(r.calling) ? callingLabel(r.calling, org) : null }));
+}
+
+/** Notes on one agenda item, taken in the meeting; an item with notes counts as discussed. */
+export function saveAgendaNotes(orgId: number, itemId: number, notes: string) {
+  const text = notes.trim().slice(0, 4000);
+  db().prepare("UPDATE agenda_items SET notes = ?, discussed = CASE WHEN ? <> '' THEN 1 ELSE discussed END WHERE id = ? AND org_id = ?").run(text, text, itemId, orgId);
 }
 
 export interface AgendaItem {
   id: number;
   meeting_id: number | null;
   body: string;
+  /** Notes on it from the meeting. */
+  notes: string;
   source: string;
   link: string | null;
   discussed: number;
@@ -120,6 +200,7 @@ export function reviewRecord(orgId: number, kind: ReviewRecord["kind"], id: numb
   const d = db();
   const table = kind === "meeting" ? "meetings" : kind === "todo" ? "todos" : "agenda_items";
   if (keep) d.prepare(`UPDATE ${table} SET review_at = ? WHERE id = ? AND org_id = ?`).run(reviewDate(today), id, orgId);
+  else if (kind === "meeting") deleteMeetingRecord(orgId, id);
   else d.prepare(`DELETE FROM ${table} WHERE id = ? AND org_id = ?`).run(id, orgId);
 }
 

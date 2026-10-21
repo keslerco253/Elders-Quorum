@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DateTime } from "luxon";
 import { requirePresidency } from "@/lib/auth";
 import { orgMeetings, pendingAgenda, recordsToReview, videoKind, videoLink } from "@/lib/meetings";
 import { formatDate, todayIn } from "@/lib/time";
@@ -19,6 +20,43 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const meetings = orgMeetings(user.org_id);
   const review = recordsToReview(user.org_id, today).length;
   const video = videoLink(user.org_id);
+  // Scheduled and not finished yet (today's too); the rest are past.
+  const upcoming = meetings.filter((m) => !m.held_at && m.date >= today).reverse();
+  const past = meetings.filter((m) => !upcoming.includes(m));
+  // A new meeting starts at the time of the last one.
+  const lastTime = meetings.find((m) => m.time)?.time ?? "";
+  const timeText = (t: string | null) => (t ? DateTime.fromFormat(t, "HH:mm").toFormat("h:mm a") : "");
+  const list = (rows: typeof meetings) => (
+    <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+      {rows.map((m) => (
+        <li key={m.id}>
+          <Link href={`/admin/meetings/${m.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface-2">
+            <span className="min-w-0">
+              <span className="block font-medium">
+                {formatDate(m.date, "short")}
+                {m.time && ` · ${timeText(m.time)}`}
+                {m.title && ` · ${m.title}`}
+              </span>
+              <span className="text-sm text-muted">
+                {[m.attendees, m.item_count && `${m.item_count} agenda item${m.item_count === 1 ? "" : "s"}`, m.todo_count && `${m.todo_count} assignment${m.todo_count === 1 ? "" : "s"}`]
+                  .filter(Boolean)
+                  .join(" · ") || (m.held_at ? "No notes" : "Tap to open the agenda")}
+              </span>
+            </span>
+            {m.held_at ? (
+              m.review_at && m.review_at <= today ? <Badge tone="warn">Review</Badge> : null
+            ) : m.date === today ? (
+              <Badge tone="info">Today</Badge>
+            ) : m.date > today ? (
+              <Badge tone="neutral">Scheduled</Badge>
+            ) : (
+              <Badge tone="warn">Not finished</Badge>
+            )}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
   const kind = video ? videoKind(video) : "Zoom";
 
   return (
@@ -39,6 +77,23 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           {review} record{review === 1 ? "" : "s"} to review: keep only what&apos;s still needed <span>›</span>
         </Link>
       )}
+      <form action={newMeeting} className="card mb-6 space-y-3">
+        <h2 className="h2">Schedule a meeting</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_2fr_auto]">
+          <input name="date" type="date" required defaultValue={today} min={today} className="input" aria-label="Date" />
+          <input name="time" type="time" required defaultValue={lastTime} className="input" aria-label="Time" />
+          <input name="title" maxLength={120} className="input col-span-2 sm:col-span-1" placeholder="Title (optional)" />
+          <SubmitButton className="btn-primary col-span-2 sm:col-span-1">Schedule</SubmitButton>
+        </div>
+        <p className="hint">
+          It goes on the {leadersWord(user.org)}&apos;s calendar and their Coming up list on Home, with a reminder an hour before. Only the {leadersWord(user.org)} sees it.
+        </p>
+      </form>
+      {upcoming.length > 0 && (
+        <div className="mb-6">
+          <Section title="Coming up">{list(upcoming)}</Section>
+        </div>
+      )}
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <div>
           <div id="agenda" className="scroll-mt-20" />
@@ -49,36 +104,12 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
               <SubmitButton className="btn-secondary">Add</SubmitButton>
             </form>
             <p className="hint mt-2">
-              Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message.
+              Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message. In
+              the meeting, open it and tap an item to take notes on it.
             </p>
           </Section>
           <div className="mt-6">
-            <Section title="Meetings">
-              {meetings.length === 0 ? (
-                <Empty>No meetings yet. Start one when you meet.</Empty>
-              ) : (
-                <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
-                  {meetings.map((m) => (
-                    <li key={m.id}>
-                      <Link href={`/admin/meetings/${m.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface-2">
-                        <span className="min-w-0">
-                          <span className="block font-medium">
-                            {formatDate(m.date, "short")}
-                            {m.title && ` · ${m.title}`}
-                          </span>
-                          <span className="text-sm text-muted">
-                            {[m.attendees, m.item_count && `${m.item_count} agenda item${m.item_count === 1 ? "" : "s"}`, m.todo_count && `${m.todo_count} assignment${m.todo_count === 1 ? "" : "s"}`]
-                              .filter(Boolean)
-                              .join(" · ") || "No notes yet"}
-                          </span>
-                        </span>
-                        {m.held_at ? m.review_at && m.review_at <= today ? <Badge tone="warn">Review</Badge> : null : <Badge tone="info">In progress</Badge>}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Section>
+            <Section title="Past meetings">{past.length === 0 ? <Empty>No meetings yet.</Empty> : list(past)}</Section>
           </div>
         </div>
         <div className="space-y-5">
@@ -107,13 +138,6 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
             </form>
           </details>
         </div>
-        <form action={newMeeting} className="card h-fit space-y-3">
-          <h2 className="h2">Start a meeting</h2>
-          <input name="date" type="date" required defaultValue={today} className="input" aria-label="Date" />
-          <input name="title" maxLength={120} className="input" placeholder="Title (optional)" />
-          <SubmitButton>Start</SubmitButton>
-          <p className="hint">Opens the agenda and a page for notes with the usual headings. Notes come up for review 3 months after the meeting.</p>
-        </form>
         </div>
       </div>
     </>

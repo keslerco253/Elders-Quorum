@@ -89,3 +89,34 @@ describe("video meeting links", () => {
     expect(videoKind("https://us02web.zoom.us/j/1")).toBe("Zoom");
   });
 });
+
+describe("scheduled presidency meetings", () => {
+  beforeEach(() => {
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'Pres', 'p@x.com', 'presidency'), (2, 1, 'A', 'Ann', 'a@x.com', 'member');
+    `);
+  });
+
+  it("puts a scheduled meeting on the presidency's calendar and keeps it in step", async () => {
+    const { createMeeting, deleteMeetingRecord, getMeeting, syncMeetingEvent } = await import("@/lib/meetings");
+    const id = createMeeting(1, "2026-10-28", "", 1, { time: "19:30", tz: "America/Boise" });
+    const ev = () => db().prepare("SELECT e.title, e.starts_at, e.presidency_only, e.reminder_minutes FROM events e JOIN meetings m ON m.event_id = e.id WHERE m.id = ?").get(id);
+    expect(ev()).toEqual({ title: "Presidency meeting", starts_at: "2026-10-29T01:30:00Z", presidency_only: 1, reminder_minutes: 60 });
+    db().prepare("UPDATE meetings SET time = '20:00' WHERE id = ?").run(id);
+    syncMeetingEvent(1, id, "America/Boise", 1);
+    expect(ev()).toMatchObject({ starts_at: "2026-10-29T02:00:00Z" });
+    const eventId = getMeeting(1, id)!.event_id;
+    deleteMeetingRecord(1, id);
+    expect(db().prepare("SELECT 1 FROM events WHERE id = ?").get(eventId)).toBeUndefined();
+  });
+
+  it("takes notes on agenda items, and offers anyone with a calling as attending", async () => {
+    const { addAgendaItem, attendeeChoices, pendingAgenda, saveAgendaNotes } = await import("@/lib/meetings");
+    const a = addAgendaItem(1, "Jones family", { addedBy: 1 });
+    saveAgendaNotes(1, a, "Brother P will visit Thursday");
+    expect(pendingAgenda(1)[0]).toMatchObject({ notes: "Brother P will visit Thursday", discussed: 1 });
+    db().prepare("UPDATE org_members SET calling = 'assistant_secretary' WHERE member_id = 2").run();
+    expect(attendeeChoices(1).map((p) => [p.name, p.calling])).toEqual([["Pres", null], ["Ann", "Assistant Secretary"]]);
+  });
+});

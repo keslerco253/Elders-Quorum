@@ -15,6 +15,8 @@ import { SubmitButton } from "@/components/client";
 import { FlyerView } from "@/components/flyer-view";
 import { rsvp } from "../actions";
 import { roleIn } from "@/lib/orgs";
+import { meetingForEvent } from "@/lib/meetings";
+import { withOrg } from "@/lib/org-cookie";
 
 export const metadata = { title: "Event" };
 
@@ -86,6 +88,15 @@ export default async function EventPage({ params, searchParams }: { params: Prom
           </div>
         )}
         {e.description && <p className="whitespace-pre-wrap">{e.description}</p>}
+        {/* A scheduled presidency meeting: its agenda and notes. */}
+        {(() => {
+          const meeting = e.presidency_only ? meetingForEvent(e.id) : undefined;
+          return meeting && roleIn(user.id, e.org_id) === "presidency" ? (
+            <Link href={withOrg(`/admin/meetings/${meeting.id}`, e.org_id)} className="btn-primary btn-sm">
+              Open the agenda and notes
+            </Link>
+          ) : null;
+        })()}
         {e.flyer_file && <FlyerView file={e.flyer_file} name={e.flyer_name} className="" />}
         {e.flyer_file && admin && e.org_id === user.org_id && (
           <a href={`/admin/shared/new?${new URLSearchParams({ file: e.flyer_file, title: e.title })}`} className="btn-secondary btn-sm">

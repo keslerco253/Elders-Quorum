@@ -1213,4 +1213,14 @@ ALTER TABLE lessons ADD COLUMN regular_done INTEGER NOT NULL DEFAULT 0;
     id: 56,
     sql: `ALTER TABLE orgs ADD COLUMN video_link TEXT;`,
   },
+  {
+    // Presidency meetings are scheduled (a time, and a presidency-only event on the
+    // calendar), and agenda items carry their own notes from the meeting.
+    id: 57,
+    sql: `
+ALTER TABLE meetings ADD COLUMN time TEXT;
+ALTER TABLE meetings ADD COLUMN event_id INTEGER REFERENCES events(id) ON DELETE SET NULL;
+ALTER TABLE agenda_items ADD COLUMN notes TEXT NOT NULL DEFAULT '';
+`,
+  },
 ];

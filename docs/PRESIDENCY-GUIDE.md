@@ -497,12 +497,22 @@ Only the presidency can see it.
 
   Each item shows who added it and where it came from, with a link back to the
   conversation.
-- **Start a meeting** opens a page for notes with the usual headings (Ministering,
-  Members needing help, Calendar, Assignments review, Other), and boxes for who
-  was there.
-  - Tick agenda items as you discuss them.
+- **Schedule a meeting** (top of the page): pick the date and time (it starts
+  at the last meeting's time). It goes on the presidency's calendar and their
+  **Coming up** list on Home, seen only by the presidency, with a reminder an
+  hour before. The calendar event has a button to open its agenda and notes.
+  Changing the date or time on the meeting moves the event; deleting the meeting
+  removes it.
+- **In the meeting**, open it from **Coming up**:
+  - Tap an agenda item to take notes on it. An item with notes counts as
+    discussed, and its notes show under **Notes → From the agenda** as the
+    meeting's record. *Other notes* is only for anything that wasn't on the
+    agenda.
+  - **Who was there** has a box for everyone in the presidency and anyone with a
+    calling in the quorum (secretary, assistant secretary, high councilor), plus
+    a line for others.
   - Tap **+ Assignment** on an item to turn it into an assignment.
-  - **Finish meeting** files the ticked items with the meeting; anything not
+  - **Finish meeting** files the discussed items with the meeting; anything not
     ticked stays on the agenda for next time.
 - **Keep notes only as long as they're needed** (General Handbook):
   - A finished meeting comes up for review 3 months after it's held; a finished

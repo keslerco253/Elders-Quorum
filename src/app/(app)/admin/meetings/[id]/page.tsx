@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePresidency } from "@/lib/auth";
-import { getMeeting, meetingAgenda, pendingAgenda, videoKind, videoLink } from "@/lib/meetings";
+import { attendeeChoices, getMeeting, meetingAgenda, meetingName, pendingAgenda, videoKind, videoLink } from "@/lib/meetings";
+import { DateTime } from "luxon";
+import { Linkify } from "@/components/linkify";
 import { orgTodos, STATUS_LABELS } from "@/lib/assignments";
 import { orgPresidency, orgRoster } from "@/lib/orgs";
 import { formatDate, todayIn } from "@/lib/time";
@@ -25,8 +27,13 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const filed = meetingAgenda(m.id);
   const waiting = held ? [] : pendingAgenda(user.org_id);
   const presidency = orgPresidency(user.org_id);
+  // The presidency and anyone with a calling here (secretaries, a high councilor).
+  const choices = attendeeChoices(user.org_id);
   const attending = m.attendees.split(",").map((s) => s.trim()).filter(Boolean);
-  const others = attending.filter((n) => !presidency.some((p) => p.display_name === n));
+  const others = attending.filter((n) => !choices.some((p) => p.name === n));
+  // The record: what was noted on each agenda item.
+  const noted = [...filed, ...waiting].filter((a) => a.notes);
+  const time = m.time ? DateTime.fromFormat(m.time, "HH:mm").toFormat("h:mm a") : null;
   const todos = orgTodos(user.org_id, { meetingId: m.id });
   const from = sp.assign ? [...waiting, ...filed].find((a) => a.id === Number(sp.assign)) : undefined;
   const back = `/admin/meetings/${m.id}`;
@@ -35,9 +42,15 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   return (
     <>
       <PageHeader
-        title={`${m.title || "Presidency meeting"} · ${formatDate(m.date, "short")}`}
+        title={`${meetingName(user.org_id, m)} · ${formatDate(m.date, "short")}${time ? ` · ${time}` : ""}`}
         back={{ href: "/admin/meetings", label: "Meetings" }}
-        subtitle={held ? `Finished. ${m.review_at ? `Up for review ${formatDate(m.review_at, "short")}.` : ""}` : "In progress: tick agenda items as you discuss them, then finish the meeting."}
+        subtitle={
+          held
+            ? `Finished. ${m.review_at ? `Up for review ${formatDate(m.review_at, "short")}.` : ""}`
+            : m.date > today
+              ? "Scheduled. Add to the agenda anytime; in the meeting, tap an item to take notes on it."
+              : "Tap an agenda item to take notes on it; tick what was discussed, then finish the meeting."
+        }
       />
       <Flash msg={sp.msg} />
       {video && (
@@ -83,24 +96,48 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
           <form action={saveMeeting} className="card space-y-3">
             <input type="hidden" name="meeting_id" value={m.id} />
             <h2 className="h2">Notes</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3">
               <input name="date" type="date" required defaultValue={m.date} className="input" aria-label="Date" />
-              <input name="title" maxLength={120} defaultValue={m.title} className="input" placeholder="Title (optional)" />
+              <input name="time" type="time" defaultValue={m.time ?? ""} className="input" aria-label="Time" />
+              <input name="title" maxLength={120} defaultValue={m.title} className="input col-span-2" placeholder="Title (optional)" />
             </div>
             <fieldset>
               <legend className="label">Who was there</legend>
               <div className="flex flex-wrap gap-x-4 gap-y-1">
-                {presidency.map((p) => (
+                {choices.map((p) => (
                   <label key={p.id} className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" name="att" value={p.display_name} defaultChecked={attending.includes(p.display_name)} /> {p.display_name}
+                    <input type="checkbox" name="att" value={p.name} defaultChecked={attending.includes(p.name)} /> {p.name}
+                    {p.calling && <span className="text-xs text-muted">({p.calling})</span>}
                   </label>
                 ))}
               </div>
               <input name="att_other" defaultValue={others.join(", ")} className="input mt-2" placeholder="Others (names, separated by commas)" />
             </fieldset>
-            <textarea name="notes" rows={16} defaultValue={m.notes} className="input font-mono text-sm" aria-label="Notes" />
+            <div>
+              <span className="label">From the agenda</span>
+              {noted.length === 0 ? (
+                <p className="text-sm text-muted">Notes taken on agenda items show here as the meeting&apos;s record.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {noted.map((a) => (
+                    <li key={a.id} className="rounded-lg bg-surface-2 px-3 py-2 text-sm">
+                      <a href={`#item-${a.id}`} className="block font-medium">
+                        {a.body.length > 120 ? `${a.body.slice(0, 117)}…` : a.body}
+                      </a>
+                      <div className="mt-0.5 whitespace-pre-wrap break-words">
+                        <Linkify text={a.notes} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <label className="label" htmlFor="other-notes">
+              Other notes <span className="font-normal text-muted">(optional)</span>
+            </label>
+            <textarea id="other-notes" name="notes" rows={m.notes ? 10 : 4} defaultValue={m.notes} className="input text-sm" placeholder="Anything that wasn't on the agenda…" />
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="hint">Lines starting with ## are headings. Keep notes brief, and only what&apos;s needed.</span>
+              <span className="hint">Keep notes brief, and only what&apos;s needed.</span>
               <SubmitButton pendingText="Saving…">Save notes</SubmitButton>
             </div>
           </form>
