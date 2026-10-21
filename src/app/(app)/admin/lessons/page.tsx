@@ -10,7 +10,7 @@ import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { conferenceLabel } from "@/components/lesson-bits";
 import { addSundays, fillTalks, saveRegular } from "./actions";
-import { fillRegularTeachers, regularByTeacher, regularTeachers, weeksText, WEEK_WORDS, WEEKS } from "@/lib/regular-teachers";
+import { fillRegularTeachers, regularByTeacher, regularTeachers, weekOfMonth, weeksText, WEEK_WORDS, WEEKS } from "@/lib/regular-teachers";
 import { orgRoster } from "@/lib/orgs";
 import { isPresidency } from "@/lib/permissions";
 import { ensureCfmLessons, lastCfmSunday, usesCfm } from "@/lib/cfm";
@@ -36,6 +36,7 @@ export default async function AdminLessonsPage({
   const regularSummary = regularByTeacher(user.org_id);
   const roster = isPresidency(user) ? orgRoster(user.org_id) : [];
   const lessons = upcomingLessons(user.org_id, today, 80);
+  const fifths = lessons.filter((l) => weekOfMonth(l.date) === 5).slice(0, 3);
   // Where pasted links go: Sundays from today with no talk yet, in order.
   const open = openLessonSundays(user.org_id, today);
   const last = lessons.at(-1)?.date;
@@ -188,6 +189,28 @@ export default async function AdminLessonsPage({
                 </select>
               </div>
             ))}
+            {/* 5th Sundays: decided each time, so no regular teacher; the next few, to fill in. */}
+            <div className="sm:col-span-2">
+              <span className="label">5th Sunday</span>
+              <div className="rounded-lg border border-dashed border-border px-3 py-2 text-sm">
+                <span className="text-muted">Filled in each time, as you decide what that Sunday will be.</span>
+                {fifths.length > 0 && (
+                  <ul className="mt-1 space-y-0.5">
+                    {fifths.map((l) => (
+                      <li key={l.id}>
+                        <Link href={`/admin/lessons/${l.id}`} className="link">
+                          {formatDate(l.date, "short")}
+                        </Link>
+                        <span className="text-muted">
+                          {" · "}
+                          {conferenceLabel(l.kind) ?? [l.title || "Not decided yet", l.teacher_name && `Teacher: ${l.teacher_name}`].filter(Boolean).join(" · ")}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
           {regularSummary.length > 0 && (
             <ul className="text-sm">
@@ -199,8 +222,9 @@ export default async function AdminLessonsPage({
             </ul>
           )}
           <p className="hint">
-            5th Sundays never get a regular teacher: assign someone, or members can
-            offer to teach. Conference Sundays are skipped. Taking a regular
+            5th Sundays don&apos;t get a regular teacher: tap one to fill it in
+            once you know what it will be (a lesson and teacher, a combined
+            meeting…), or members can offer to teach. Conference Sundays are skipped. Taking a regular
             teacher off one lesson (or them saying they can&apos;t) leaves that
             Sunday open; it isn&apos;t filled again. Changing a Sunday&apos;s
             regular teacher moves the upcoming lessons they were put on to the
@@ -229,6 +253,9 @@ export default async function AdminLessonsPage({
                 >
                   <div className="w-24 shrink-0 text-sm font-semibold">
                     {formatDate(l.date, "short")}
+                    {weekOfMonth(l.date) === 5 && (
+                      <div className="text-xs font-normal text-muted">5th Sunday</div>
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate">

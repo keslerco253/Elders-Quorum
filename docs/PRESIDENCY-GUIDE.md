@@ -143,8 +143,11 @@ paste.
     put on those lessons automatically, including Sundays added later.
   - Each Sunday has one teacher, so two people can't share a Sunday. One
     person can have more than one (for example the 2nd and 4th).
-  - 5th Sundays never get a regular teacher: assign someone, or members can
-    offer to teach. Conference Sundays are skipped.
+  - 5th Sundays have their own slot, filled in each time as you decide what
+    that Sunday will be: the card lists the next few, and tapping one opens it
+    to set the lesson and teacher (members can also offer to teach). They never
+    get a regular teacher, and show "5th Sunday" in the list. Conference Sundays
+    are skipped.
   - Each teacher is notified once when they're added ("You're teaching on the
     2nd and 4th Sundays of each month"), and again if they're taken off. Their
     lessons show under My assignments, and the usual reminders ask them to
