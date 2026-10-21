@@ -76,11 +76,37 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
     : undefined;
   const reviewSet = (process.env.REVIEW_LOGIN || "").split(":")[0]?.trim().toLowerCase();
   const cfmWeeks = db().prepare("SELECT * FROM cfm_weeks ORDER BY sunday").all() as CfmWeek[];
+  // Everyone with site-owner access: marked so (whoever set up the first ward), or signed
+  // in with the OWNER_EMAIL address. Nothing in the app can give it to anyone else.
+  const ownerEmail = process.env.OWNER_EMAIL?.trim().toLowerCase() ?? "";
+  const owners = db()
+    .prepare("SELECT id, display_name, email, phone FROM members WHERE is_site_owner = 1 OR (? <> '' AND lower(email) = ? AND email_verified_at IS NOT NULL) ORDER BY id")
+    .all(ownerEmail, ownerEmail) as { id: number; display_name: string; email: string | null; phone: string | null }[];
   return (
     <>
       <PageHeader title="Site owner" back={{ href: "/admin", label: "Admin" }} subtitle="Every ward on this app, email and texting, and backups. Only you see this page." />
       <Flash msg={sp.msg} />
       <Flash msg={sp.error} tone="danger" />
+      <Section title="Who has site-owner access">
+        <div className="card space-y-2 text-sm">
+          <ul>
+            {owners.map((o) => (
+              <li key={o.id}>
+                <strong>{o.display_name}</strong>
+                <span className="text-muted">
+                  {" "}
+                  · {[o.email, o.phone && formatPhone(o.phone)].filter(Boolean).join(" · ")}
+                  {o.id === user.id ? " (you)" : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="hint">
+            Only the person who set up the first ward, and anyone who signs in with the <code>OWNER_EMAIL</code> address set on the server ({ownerEmail || "not set"}). Nothing in
+            the app can give this to anyone else.
+          </p>
+        </div>
+      </Section>
 
       <div id="new-wards" className="scroll-mt-20">
         <Section title={`New wards to approve${pending.length ? ` (${pending.length})` : ""}`}>
