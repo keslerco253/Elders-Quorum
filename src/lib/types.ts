@@ -154,6 +154,8 @@ export interface EventRow {
   org_kind?: Org["kind"];
   /** Other organizations invited: "ward" (the whole ward), or organization ids "5,7". */
   invited: string;
+  /** Who it was last announced to ("everyone", "group:3"...), if it was. */
+  announced_to?: string | null;
 }
 
 export type Calling = "bishop" | "president" | "first_counselor" | "second_counselor" | "executive_secretary" | "ward_clerk" | "secretary" | "assistant_secretary" | "stake_high_council";

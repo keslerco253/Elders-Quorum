@@ -1076,4 +1076,13 @@ ALTER TABLE events ADD COLUMN invited TEXT NOT NULL DEFAULT '';
 ALTER TABLE event_series ADD COLUMN invited TEXT NOT NULL DEFAULT '';
 `,
   },
+  {
+    // Who an event or service opportunity was last announced to ("everyone",
+    // "group:3"...), so an update can go to the same people.
+    id: 50,
+    sql: `
+ALTER TABLE events ADD COLUMN announced_to TEXT;
+ALTER TABLE signups ADD COLUMN announced_to TEXT;
+`,
+  },
 ];

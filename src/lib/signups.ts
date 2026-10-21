@@ -13,6 +13,8 @@ export interface Signup {
   /** Reminders to people signed up: days before the date (0 = the morning of), or null for none. */
   reminder1_days: number | null;
   reminder2_days: number | null;
+  /** Who it was last announced to ("everyone", "group:3"...), if it was. */
+  announced_to?: string | null;
 }
 
 /** Choices for a service opportunity's reminders (days before its date). */

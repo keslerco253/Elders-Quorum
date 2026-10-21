@@ -61,3 +61,15 @@ export function inviteChoicesFor(user: CurrentUser) {
     .filter((o) => o.kind === "group" && o.id !== user.org_id)
     .map((o) => ({ id: o.id, label: o.name }));
 }
+
+/**
+ * On an edit page: "The same people as before" first, when it was announced to
+ * someone, then the usual choices.
+ */
+export function withSameAsBefore(choices: AnnounceChoice[], announcedTo: string | null | undefined): AnnounceChoice[] {
+  const before = announcedTo && choices.find((c) => c.value === announcedTo);
+  return before ? [{ value: "same", label: `The same people as before (${before.label})` }, ...choices] : choices;
+}
+
+/** "same" means whoever it was announced to last time. */
+export const resolveSame = (raw: string, announcedTo: string | null | undefined) => (raw === "same" ? announcedTo || "everyone" : raw);
