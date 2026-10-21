@@ -8,11 +8,13 @@ import { db } from "@/lib/db";
 import { requireAdmin, requirePresidency } from "@/lib/auth";
 import { getLesson, markGeneralConferences, openLessonSundays } from "@/lib/lessons";
 import { fetchTalkInfo } from "@/lib/talk-info";
-import { notify } from "@/lib/notify";
+import { notify, recipientById } from "@/lib/notify";
 import { formatDate, sundays, todayIn } from "@/lib/time";
 import type { LessonKind, Member } from "@/lib/types";
 import { wardMember } from "@/lib/orgs";
 import { refillCfmLesson } from "@/lib/cfm";
+import { fillRegularTeachers, saveRegularTeachers, weeksText } from "@/lib/regular-teachers";
+import { orgRoster } from "@/lib/orgs";
 
 const KINDS: LessonKind[] = ["talk", "general_conference", "stake_conference"];
 function go(path: string, text: string): never {
@@ -36,6 +38,7 @@ export async function addSundays(fd: FormData) {
     for (const d of sundays(start, weeks)) added += ins.run(user.org_id, d).changes;
     conferences = markGeneralConferences(user.org_id, start);
   })();
+  fillRegularTeachers(user.org_id, todayIn(user.ward.timezone));
   refresh();
   go(
     "/admin/lessons",
@@ -124,7 +127,10 @@ export async function assignTeacher(fd: FormData) {
   // The previous teacher's notes go with them.
   if (lesson.teacher_id && lesson.teacher_id !== (teacher?.id ?? null)) removeTeacherNotes(lesson.id, lesson.teacher_id);
   // A new teacher hasn't confirmed yet.
-  db().prepare("UPDATE lessons SET teacher_id = ?, teacher_confirmed_at = CASE WHEN teacher_id IS ? THEN teacher_confirmed_at END WHERE id = ?").run(teacher?.id ?? null, teacher?.id ?? null, lesson.id);
+  // Set by hand: the regular teacher doesn't fill it again.
+  db()
+    .prepare("UPDATE lessons SET teacher_id = ?, teacher_confirmed_at = CASE WHEN teacher_id IS ? THEN teacher_confirmed_at END, teacher_auto = CASE WHEN teacher_id IS ? THEN teacher_auto ELSE 0 END, regular_done = 1 WHERE id = ?")
+    .run(teacher?.id ?? null, teacher?.id ?? null, teacher?.id ?? null, lesson.id);
   if (teacher && teacher.id !== lesson.teacher_id && fd.get("notify") !== "off") {
     await notify([{ ...teacher, org_id: user.org_id }], {
       title: `You're teaching in ${user.orgLabel}`,
@@ -157,4 +163,30 @@ export async function cancelTeachingRequest(fd: FormData) {
   cancelRequest(user.org_id, Number(fd.get("item_id")));
   refresh();
   go(`/admin/lessons/${Number(fd.get("lesson_id"))}`, "Request withdrawn.");
+}
+
+/** Regular teachers: who teaches each 1st-4th Sunday of the month. */
+export async function saveRegular(fd: FormData) {
+  const user = await requirePresidency();
+  const roster = new Set(orgRoster(user.org_id).map((p) => p.id));
+  const byWeek = [1, 2, 3, 4].map((w) => {
+    const id = Number(fd.get(`week${w}`)) || null;
+    return id && roster.has(id) ? id : null;
+  });
+  const { added, removed, filled, changed } = saveRegularTeachers(user.org_id, byWeek, todayIn(user.ward.timezone));
+  for (const t of added) {
+    const who = recipientById(t.id, user.org_id);
+    if (!who) continue;
+    await notify([who], {
+      title: `You're a regular teacher in ${user.orgLabel}`,
+      body: `Thank you! You're teaching on the ${weeksText(t.all)} of each month. Your lessons show under My assignments, and you'll get a reminder the week before each one.`,
+      url: "/assignments",
+    });
+  }
+  for (const t of removed) {
+    const who = recipientById(t.id, user.org_id);
+    if (who) await notify([who], { title: `${user.orgLabel} teaching schedule`, body: `You're no longer the regular teacher on the ${weeksText(t.weeks)}. Thank you for teaching!`, url: "/assignments" });
+  }
+  refresh();
+  go("/admin/lessons", changed ? `Regular teachers saved.${filled ? ` ${filled} upcoming lesson${filled === 1 ? "" : "s"} filled.` : ""}${added.length + removed.length ? " Teachers added or changed were notified." : ""}` : "No changes.");
 }

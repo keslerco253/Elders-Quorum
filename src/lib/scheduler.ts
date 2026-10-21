@@ -24,6 +24,7 @@ import { deliverHeldReplies } from "./sms-inbound";
 import { joinNames } from "./invite-text";
 import { withOrg } from "./org-cookie";
 import { recordsToReview } from "./meetings";
+import { fillRegularTeachers } from "./regular-teachers";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
 interface OrgCtx {
@@ -377,6 +378,8 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
     .all() as OrgCtx[];
   // Sunday School's lessons fill from Come, Follow Me as new weeks come up.
   for (const o of orgs) if (usesCfm(o) && hasFeature(o, "lessons")) ensureCfmLessons(o.id, now.setZone(o.timezone).toISODate()!);
+  // Regular teachers go on new lessons as they're added.
+  for (const o of orgs) if (hasFeature(o, "lessons")) fillRegularTeachers(o.id, now.setZone(o.timezone).toISODate()!);
   return orgs.flatMap((o) => [
     ...(hasFeature(o, "lessons") ? lessonReminders(o, now) : []),
     ...(hasFeature(o, "lessons") ? myLessonReminders(o, now) : []),

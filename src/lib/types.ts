@@ -123,6 +123,8 @@ export interface Lesson {
   teacher_confirmed_at: string | null;
   /** Filled from Come, Follow Me (Sunday School) and not changed by hand since. */
   cfm_auto: number;
+  /** The teacher was put on by the regular-teacher schedule. */
+  teacher_auto: number;
 }
 
 export interface Comment {

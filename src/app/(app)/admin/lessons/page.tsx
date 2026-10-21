@@ -9,7 +9,10 @@ import { formatDate, sundayOnOrAfter, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { conferenceLabel } from "@/components/lesson-bits";
-import { addSundays, fillTalks } from "./actions";
+import { addSundays, fillTalks, saveRegular } from "./actions";
+import { fillRegularTeachers, regularByTeacher, regularTeachers, weeksText, WEEK_WORDS, WEEKS } from "@/lib/regular-teachers";
+import { orgRoster } from "@/lib/orgs";
+import { isPresidency } from "@/lib/permissions";
 import { ensureCfmLessons, lastCfmSunday, usesCfm } from "@/lib/cfm";
 
 export const metadata = { title: "Manage lessons" };
@@ -28,6 +31,10 @@ export default async function AdminLessonsPage({
   if (cfm) ensureCfmLessons(user.org_id, today);
   // General Conference Sundays (first Sunday of April and October) are marked on their own.
   markGeneralConferences(user.org_id, today);
+  fillRegularTeachers(user.org_id, today);
+  const regular = regularTeachers(user.org_id);
+  const regularSummary = regularByTeacher(user.org_id);
+  const roster = isPresidency(user) ? orgRoster(user.org_id) : [];
   const lessons = upcomingLessons(user.org_id, today, 80);
   // Where pasted links go: Sundays from today with no talk yet, in order.
   const open = openLessonSundays(user.org_id, today);
@@ -157,6 +164,52 @@ export default async function AdminLessonsPage({
         </div>
       )}
 
+      {isPresidency(user) && (
+        <form action={saveRegular} id="regular" className="card mb-6 scroll-mt-20 space-y-3">
+          <h2 className="h2">Regular teachers</h2>
+          <p className="text-sm text-muted">
+            Someone who teaches the same Sunday each month is put on those lessons
+            automatically. One teacher per Sunday; a teacher can have more than one
+            (for example the 2nd and 4th).
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {WEEKS.map((w) => (
+              <div key={w}>
+                <label className="label" htmlFor={`week${w}`}>
+                  {WEEK_WORDS[w - 1]} Sunday
+                </label>
+                <select id={`week${w}`} name={`week${w}`} className="input" defaultValue={regular.find((r) => r.week === w)?.member_id ?? ""}>
+                  <option value="">No regular teacher</option>
+                  {roster.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.display_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+          {regularSummary.length > 0 && (
+            <ul className="text-sm">
+              {regularSummary.map((t) => (
+                <li key={t.member_id}>
+                  <strong>{t.display_name}</strong>: {weeksText(t.weeks)}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="hint">
+            5th Sundays never get a regular teacher: assign someone, or members can
+            offer to teach. Conference Sundays are skipped. Taking a regular
+            teacher off one lesson (or them saying they can&apos;t) leaves that
+            Sunday open; it isn&apos;t filled again. Changing a Sunday&apos;s
+            regular teacher moves the upcoming lessons they were put on to the
+            new teacher. Teachers are notified when added or taken off.
+          </p>
+          <SubmitButton>Save regular teachers</SubmitButton>
+        </form>
+      )}
+
       <h2 className="h2 mb-2">Each Sunday</h2>
       <p className="mb-2 text-sm text-muted">
         Tap a Sunday to {cfm ? "change the lesson" : "change the talk"}, mark a
@@ -195,6 +248,9 @@ export default async function AdminLessonsPage({
                               <span className="ml-1 text-success">
                                 ✓ confirmed
                               </span>
+                            )}
+                            {!!l.teacher_auto && (
+                              <span className="ml-1">· regular</span>
                             )}
                           </span>
                         ) : cfm && !l.decline_count ? (

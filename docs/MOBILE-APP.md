@@ -242,6 +242,26 @@ during the EAS build by `@bacons/apple-targets`.
   needs it).
 - Needs iOS 17 or later (the app itself still runs on iOS 16.4).
 
+## The home-screen widget (Android)
+
+`mobile/android-widget.tsx` is the Android widget: one widget that can be
+resized, with the same information as the iPhone one and the same sign-in key.
+
+- **Sizes:** small shows the next thing (this Sunday's lesson); medium adds Come,
+  Follow Me; large adds the next three events and the unread count. It follows
+  the phone's light or dark mode.
+- **How it works:** `react-native-android-widget` draws it from the app's own
+  JavaScript, in the background too (registered in `mobile/index.ts`). The app
+  keeps the widget key in secure storage. The widget asks `/api/widget` when it's
+  added, every 30 minutes (the most often Android allows), and whenever the app
+  opens, gets a notification, or signs in or out. With no connection it shows
+  the last thing it loaded. Signed out, it says to open the app and sign in.
+- **Tapping it** opens that page in the app (a `mywardlink://open?path=…` link,
+  so it works before Android App Links are verified).
+- **Adding it:** long-press the home screen → **Widgets** → **My Ward Link**.
+- Nothing to set up: it's part of the next Android build
+  (`eas build --platform android`).
+
 ---
 
 ## Releasing an update to the app itself

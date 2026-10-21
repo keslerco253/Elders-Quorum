@@ -12,6 +12,7 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import * as WebBrowser from "expo-web-browser";
+import { refreshAndroidWidget, saveAndroidWidgetKey } from "./android-widget";
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from "react-native-webview";
 import type { ShouldStartLoadRequest } from "react-native-webview/lib/WebViewTypes";
 
@@ -57,15 +58,18 @@ const TAB_ICONS: Record<string, [keyof typeof Ionicons.glyphMap, keyof typeof Io
   more: ["ellipsis-horizontal-circle-outline", "ellipsis-horizontal-circle"],
 };
 
-// The home-screen widget (iPhone) reads its sign-in key and the site's address
-// from storage shared with the app (an App Group); see targets/widget.
+// The home-screen widget. iPhone: it reads its sign-in key and the site's address
+// from storage shared with the app (an App Group); see targets/widget. Android: the
+// app draws it (android-widget.tsx) with the key kept in secure storage.
 const widgetStorage = Platform.OS === "ios" ? new ExtensionStorage("group.com.MyWardLink.app") : null;
 
 function refreshWidget() {
   if (widgetStorage) ExtensionStorage.reloadWidget();
+  if (Platform.OS === "android") refreshAndroidWidget().catch(() => {});
 }
 
 function saveWidgetKey(key: string | null) {
+  if (Platform.OS === "android") saveAndroidWidgetKey(key).catch(() => {});
   if (!widgetStorage) return;
   if ((widgetStorage.get("widgetKey") ?? null) === key && widgetStorage.get("appUrl") === APP_URL) return;
   if (key) widgetStorage.set("widgetKey", key);
@@ -108,6 +112,18 @@ function isOurPage(url: string) {
   } catch {
     return url.startsWith("about:");
   }
+}
+
+/**
+ * A page to open from a link: the site's own links, or the widget's
+ * "mywardlink://open?path=/lessons/5" (Android).
+ */
+function linkTarget(url: string | null): string | null {
+  if (!url) return null;
+  if (isOurPage(url)) return url;
+  const m = url.match(/^mywardlink:\/\/open\?path=([^&#]+)/);
+  const path = m ? decodeURIComponent(m[1]) : "";
+  return path.startsWith("/") && !path.startsWith("//") ? `${APP_URL}${path}` : null;
 }
 
 /** Calendar files and subscriptions need the phone's calendar app (Safari hands them over). */
@@ -232,7 +248,7 @@ function Main() {
     (async () => {
       const fromNotification = notificationUrl(await Notifications.getLastNotificationResponseAsync());
       const link = await Linking.getInitialURL();
-      setStart(fromNotification ?? (link && isOurPage(link) ? link : APP_URL));
+      setStart(fromNotification ?? linkTarget(link) ?? APP_URL);
     })();
   }, []);
 
@@ -249,7 +265,8 @@ function Main() {
       if (url) go(url);
     });
     const link = Linking.addEventListener("url", ({ url }) => {
-      if (isOurPage(url)) go(url);
+      const target = linkTarget(url);
+      if (target) go(target);
     });
     return () => {
       arrived.remove();
@@ -427,7 +444,7 @@ function Main() {
         source={{ uri: start }}
         style={[styles.fill, { backgroundColor: c.bg }, failed && styles.hidden]}
         applicationNameForUserAgent="MyWardLinkApp/1.0"
-        injectedJavaScriptBeforeContentLoaded={`window.MyWardLinkApp = { platform: ${JSON.stringify(Platform.OS)}, tabs: true, widget: ${Platform.OS === "ios"} }; if (document.documentElement) document.documentElement.classList.add("in-app"); true;`}
+        injectedJavaScriptBeforeContentLoaded={`window.MyWardLinkApp = { platform: ${JSON.stringify(Platform.OS)}, tabs: true, widget: true }; if (document.documentElement) document.documentElement.classList.add("in-app"); true;`}
         onMessage={onMessage}
         onShouldStartLoadWithRequest={onShouldStart}
         // A "new window" link to our own page (a flyer, a PDF) opens in the app, which is signed in.

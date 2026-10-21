@@ -1191,4 +1191,20 @@ CREATE TABLE todo_notes (
 CREATE INDEX todo_notes_todo ON todo_notes(todo_id);
 `,
   },
+  {
+    // Regular teachers: one person for each 1st-4th Sunday of the month (someone can
+    // have several, e.g. 2nd and 4th; 5th Sundays have none). Lessons they're put on
+    // are marked, and a lesson is filled only once (a teacher taken off stays off).
+    id: 55,
+    sql: `
+CREATE TABLE regular_teachers (
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  week INTEGER NOT NULL CHECK (week BETWEEN 1 AND 4),
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  PRIMARY KEY (org_id, week)
+);
+ALTER TABLE lessons ADD COLUMN teacher_auto INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE lessons ADD COLUMN regular_done INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];

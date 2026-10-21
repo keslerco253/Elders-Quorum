@@ -59,8 +59,32 @@ module.exports = {
       ],
     },
     plugins: [
-      // The home-screen widget (targets/widget).
+      // The home-screen widget (iPhone: targets/widget).
       "@bacons/apple-targets",
+      // The home-screen widget (Android: android-widget.tsx). One widget that can be
+      // made small (the next thing), medium or large (everything coming up).
+      [
+        "react-native-android-widget",
+        {
+          widgets: [
+            {
+              name: "WardWidget",
+              label: "My Ward Link",
+              description: "This week's lesson, Come, Follow Me, what's coming up and new messages",
+              minWidth: "180dp",
+              minHeight: "110dp",
+              targetCellWidth: 3,
+              targetCellHeight: 2,
+              maxResizeWidth: "520dp",
+              maxResizeHeight: "420dp",
+              resizeMode: "horizontal|vertical",
+              previewImage: "./assets/widget-preview.png",
+              // Android redraws it every 30 minutes (the least it allows), and whenever the app opens.
+              updatePeriodMillis: 1800000,
+            },
+          ],
+        },
+      ],
       [
         "expo-splash-screen",
         {

@@ -138,6 +138,22 @@ paste.
 
 ## Teachers
 
+- **Regular teachers** (Admin → Lessons → *Regular teachers*):
+  - Choose who teaches the 1st, 2nd, 3rd and 4th Sunday of each month. They're
+    put on those lessons automatically, including Sundays added later.
+  - Each Sunday has one teacher, so two people can't share a Sunday. One
+    person can have more than one (for example the 2nd and 4th).
+  - 5th Sundays never get a regular teacher: assign someone, or members can
+    offer to teach. Conference Sundays are skipped.
+  - Each teacher is notified once when they're added ("You're teaching on the
+    2nd and 4th Sundays of each month"), and again if they're taken off. Their
+    lessons show under My assignments, and the usual reminders ask them to
+    confirm the week before.
+  - Taking the teacher off one lesson, or them saying they can't, leaves that
+    Sunday open; it isn't filled again. Changing a Sunday's regular teacher
+    moves the upcoming lessons the old teacher was put on automatically to the
+    new one. Lessons you assigned by hand stay as they are.
+  - In the list, these lessons show "· regular" next to the teacher.
 - Members tap **I'd like to teach this** on a lesson. You get a notification.
 - **Admin → Lessons**: lessons with volunteers show "2 volunteered". Open the
   lesson and tap **Assign** next to a name, or choose anyone from the list.
