@@ -48,7 +48,7 @@ export default async function HomePage() {
     .slice(0, 4);
   // Organizations a visit can be requested from.
   const visitOrgs = mine.filter((o) => hasFeature(o, "visits"));
-  const pending = adminCounts(user).total;
+  const { total: pending, shortcut } = adminCounts(user);
   const asks = pendingRequestsFor(user.id, today);
   const invites = pendingInvitesFor(user.id, today);
   const hour = DateTime.now().setZone(tz).hour;
@@ -70,10 +70,10 @@ export default async function HomePage() {
 
       {pending > 0 && (
         <Link
-          href="/admin"
+          href={shortcut}
           className="mb-5 flex items-center justify-between rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
         >
-          {pending} item{pending === 1 ? "" : "s"} waiting for your approval{" "}
+          {pending} item{pending === 1 ? "" : "s"} waiting on you{" "}
           <span>›</span>
         </Link>
       )}

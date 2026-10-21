@@ -13,6 +13,7 @@ import { addSundays, fillTalks, saveRegular } from "./actions";
 import { fillRegularTeachers, regularByTeacher, regularTeachers, weekOfMonth, weeksText, WEEK_WORDS, WEEKS } from "@/lib/regular-teachers";
 import { orgRoster } from "@/lib/orgs";
 import { isPresidency } from "@/lib/permissions";
+import { teacherNeededLessons, volunteerLessons } from "@/lib/admin-counts";
 import { ensureCfmLessons, lastCfmSunday, usesCfm } from "@/lib/cfm";
 
 export const metadata = { title: "Manage lessons" };
@@ -36,6 +37,10 @@ export default async function AdminLessonsPage({
   const regularSummary = regularByTeacher(user.org_id);
   const roster = isPresidency(user) ? orgRoster(user.org_id) : [];
   const lessons = upcomingLessons(user.org_id, today, 80);
+  // Lessons waiting on the presidency: someone can't teach, or members offered to.
+  const needs = isPresidency(user)
+    ? [...teacherNeededLessons(user.org_id).map((l) => ({ ...l, why: "Teacher needed" })), ...volunteerLessons(user.org_id).map((l) => ({ ...l, why: "Volunteers to assign" }))].sort((a, b) => a.date.localeCompare(b.date))
+    : [];
   const fifths = lessons.filter((l) => weekOfMonth(l.date) === 5).slice(0, 3);
   // Where pasted links go: Sundays from today with no talk yet, in order.
   const open = openLessonSundays(user.org_id, today);
@@ -58,6 +63,22 @@ export default async function AdminLessonsPage({
         }
       />
       <Flash msg={sp.msg} />
+      {needs.length > 0 && (
+        <div id="needs" className="mb-6 scroll-mt-20">
+          <h2 className="h2 mb-2">Waiting on you</h2>
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-warn/40 bg-warn-soft">
+            {needs.map((l) => (
+              <li key={`${l.why}:${l.id}`}>
+                <Link href={`/admin/lessons/${l.id}#teacher`} className="flex items-center gap-3 px-4 py-3 text-sm">
+                  <span className="w-24 shrink-0 font-semibold">{formatDate(l.date, "short")}</span>
+                  <span className="min-w-0 flex-1 truncate">{l.title || "Lesson"}</span>
+                  <span className="font-medium text-warn">{l.why} ›</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {cfm ? (
         <div className="card mb-6 space-y-2 text-sm">

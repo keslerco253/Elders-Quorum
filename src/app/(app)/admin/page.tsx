@@ -106,14 +106,14 @@ export default async function AdminPage() {
       count: c.eventRequests,
     },
     {
-      href: "/admin/lessons",
+      href: c.volunteersHref,
       label: "Teaching volunteers",
       desc: "Lessons with volunteers to assign",
       count: c.volunteers,
       show: p,
     },
     {
-      href: "/admin/lessons",
+      href: c.teacherNeededHref,
       label: "Teacher needed",
       desc: "A teacher or someone you asked can't teach",
       count: c.teacherNeeded,

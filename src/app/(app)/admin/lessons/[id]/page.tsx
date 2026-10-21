@@ -105,7 +105,7 @@ export default async function EditLessonPage({ params, searchParams }: { params:
 
         <div className="space-y-4">
           {lesson.kind === "talk" && (
-            <div className="card space-y-3">
+            <div id="teacher" className="card scroll-mt-20 space-y-3">
               <h2 className="h2">Teacher</h2>
               {lesson.teacher_name && (
                 <p className="text-sm">
