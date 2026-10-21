@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { SubmitButton } from "@/components/client";
 
-type Channel = "push" | "text";
+type Channel = "push" | "text" | "email";
+type Reminder = { when: string; channels: Channel[] };
+const WAYS: [Channel, string][] = [
+  ["push", "App"],
+  ["text", "Text"],
+  ["email", "Email"],
+];
 type Mode = "default" | "custom" | "off";
 
 /** One area's reminder settings: as scheduled, my own (a list), or none. */
@@ -15,6 +21,7 @@ export function ReminderEditor({
   starting,
   initial,
   canText,
+  canEmail,
   maxTexts,
   maxReminders,
   action,
@@ -23,9 +30,10 @@ export function ReminderEditor({
   title: string;
   scheduledText: string;
   options: [string, string][];
-  starting: { when: string; channel: Channel }[];
-  initial: { mode: Mode; reminders: { when: string; channel: Channel }[] };
+  starting: Reminder[];
+  initial: { mode: Mode; reminders: Reminder[] };
   canText: boolean;
+  canEmail: boolean;
   maxTexts: number;
   maxReminders: number;
   action: (fd: FormData) => void;
@@ -34,9 +42,18 @@ export function ReminderEditor({
   const [list, setList] = useState(
     initial.reminders.length ? initial.reminders : starting,
   );
-  const texts = list.filter((r) => r.channel === "text").length;
-  const set = (i: number, patch: Partial<{ when: string; channel: Channel }>) =>
+  const texts = list.filter((r) => r.channels.includes("text")).length;
+  const set = (i: number, patch: Partial<Reminder>) =>
     setList((l) => l.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  // Tick or untick one way; at least one stays ticked.
+  const toggle = (i: number, c: Channel) =>
+    setList((l) =>
+      l.map((r, j) => {
+        if (j !== i) return r;
+        const channels = r.channels.includes(c) ? r.channels.filter((x) => x !== c) : [...r.channels, c];
+        return channels.length ? { ...r, channels } : r;
+      }),
+    );
   const unused =
     options.find(([k]) => !list.some((r) => r.when === k))?.[0] ??
     options[0][0];
@@ -52,7 +69,7 @@ export function ReminderEditor({
             [
               "custom",
               "My own reminders",
-              "Choose when, and whether each comes as an app notification or a text.",
+              "Choose when, and how each one comes: app notification, text, email, or any of them.",
             ],
             ["off", "No reminders", ""],
           ] as const
@@ -94,24 +111,17 @@ export function ReminderEditor({
                   </option>
                 ))}
               </select>
-              <select
-                name="channel"
-                value={r.channel}
-                onChange={(e) => set(i, { channel: e.target.value as Channel })}
-                className="input min-w-0 flex-1 sm:w-auto sm:flex-none"
-                data-native
-                aria-label={`Reminder ${i + 1}: how`}
-              >
-                <option value="push">App notification</option>
-                <option
-                  value="text"
-                  disabled={
-                    !canText || (r.channel !== "text" && texts >= maxTexts)
-                  }
-                >
-                  Text message
-                </option>
-              </select>
+              <span className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 sm:flex-none" role="group" aria-label={`Reminder ${i + 1}: how`}>
+                {WAYS.map(([c, label]) => {
+                  const off = (c === "text" && (!canText || (!r.channels.includes("text") && texts >= maxTexts))) || (c === "email" && !canEmail);
+                  return (
+                    <label key={c} className={`flex items-center gap-1.5 text-sm ${off ? "opacity-50" : ""}`}>
+                      <input type="checkbox" name={`ch_${i}`} value={c} checked={r.channels.includes(c)} disabled={off} onChange={() => toggle(i, c)} />
+                      {label}
+                    </label>
+                  );
+                })}
+              </span>
               <button
                 type="button"
                 className="rounded-lg px-2 py-1 text-muted hover:text-danger"
@@ -127,7 +137,7 @@ export function ReminderEditor({
               type="button"
               className="btn-secondary btn-sm"
               onClick={() =>
-                setList((l) => [...l, { when: unused, channel: "push" }])
+                setList((l) => [...l, { when: unused, channels: ["push"] }])
               }
             >
               + Add a reminder
@@ -135,8 +145,9 @@ export function ReminderEditor({
           )}
           <p className="hint mt-0">
             {canText
-              ? `Up to ${maxTexts} can be texts (${texts} used); app notifications as many as you like.`
+              ? `Up to ${maxTexts} can be texts (${texts} used); app notifications and emails as many as you like.`
               : "To get reminders by text, turn on texts under More → Contact & notifications."}
+            {!canEmail && " To get them by email, add your email there."}
           </p>
         </div>
       )}

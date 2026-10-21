@@ -10,7 +10,7 @@ export const metadata = { title: "My reminders" };
 const SCHEDULED: Record<ReminderKind, string> = {
   lessons: "Sunday evening about the next Sunday's lesson, and Saturday morning.",
   events: "Whatever reminders your leaders set for each event (usually the day before).",
-  service: "For what you signed up for: usually a week and a day before, at 8 AM.",
+  service: "For what you signed up for: whatever your leaders set (usually a week and a day before, at 8 AM).",
 };
 
 export default async function MyRemindersPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -19,7 +19,7 @@ export default async function MyRemindersPage({ searchParams }: { searchParams: 
   const canText = memberCanText(user);
   return (
     <>
-      <PageHeader title="My reminders" back={{ href: "/more", label: "More" }} subtitle="How and when you're reminded about lessons, events and service. Each area can be different." />
+      <PageHeader title="My reminders" back={{ href: "/more", label: "More" }} subtitle="How and when you're reminded about lessons, events and service. Each area can be different. Messages and other notifications follow More → Contact & notifications." />
       <Flash msg={sp.msg} tone="success" />
       <Flash msg={sp.error} tone="danger" />
       <div className="max-w-2xl space-y-4">
@@ -33,6 +33,7 @@ export default async function MyRemindersPage({ searchParams }: { searchParams: 
             starting={STARTING_REMINDERS[kind]}
             initial={getReminderSettings(user.id, kind)}
             canText={canText}
+            canEmail={!!user.email}
             maxTexts={MAX_TEXTS}
             maxReminders={MAX_REMINDERS}
             action={saveReminders}

@@ -1223,4 +1223,33 @@ ALTER TABLE meetings ADD COLUMN event_id INTEGER REFERENCES events(id) ON DELETE
 ALTER TABLE agenda_items ADD COLUMN notes TEXT NOT NULL DEFAULT '';
 `,
   },
+  {
+    // Members' own reminders can come by email too (and by more than one way at once:
+    // a row per way). Service opportunities can have a start time, and members' own
+    // service reminders use the same timings as events (before the start).
+    id: 58,
+    sql: `
+ALTER TABLE signups ADD COLUMN time TEXT;
+CREATE TABLE member_reminders_new (
+  id INTEGER PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('lessons','events','service')),
+  when_key TEXT NOT NULL,
+  channel TEXT NOT NULL CHECK (channel IN ('push','text','email'))
+);
+INSERT INTO member_reminders_new (id, member_id, kind, when_key, channel)
+  SELECT id, member_id, kind,
+    CASE WHEN kind <> 'service' THEN when_key
+      WHEN when_key LIKE 'd:14@%' THEN 'm:20160'
+      WHEN when_key LIKE 'd:7@%' THEN 'm:10080'
+      WHEN when_key LIKE 'd:3@%' OR when_key LIKE 'd:2@%' THEN 'm:2880'
+      WHEN when_key LIKE 'd:1@%' THEN 'm:1440'
+      ELSE 'm:120' END,
+    channel
+  FROM member_reminders;
+DROP TABLE member_reminders;
+ALTER TABLE member_reminders_new RENAME TO member_reminders;
+CREATE INDEX member_reminders_member ON member_reminders(member_id, kind);
+`,
+  },
 ];

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { saveReminderSettings, type ReminderChannel, type ReminderKind, type ReminderMode } from "@/lib/reminder-prefs";
+import { CHANNELS, saveReminderSettings, type ReminderChannel, type ReminderKind, type ReminderMode } from "@/lib/reminder-prefs";
 import { memberCanText } from "./can-text";
 
 export async function saveReminders(fd: FormData) {
@@ -11,9 +11,9 @@ export async function saveReminders(fd: FormData) {
   if (!["lessons", "events", "service"].includes(kind)) redirect("/more/reminders");
   const mode = (["default", "custom", "off"].includes(String(fd.get("mode"))) ? String(fd.get("mode")) : "default") as ReminderMode;
   const whens = fd.getAll("when").map(String);
-  const channels = fd.getAll("channel").map(String);
-  const reminders = whens.map((when, i) => ({ when, channel: (channels[i] === "text" ? "text" : "push") as ReminderChannel }));
-  const error = saveReminderSettings(user.id, kind, mode, reminders, memberCanText(user));
+  // Each reminder's ways: the boxes ticked in its row (ch_<row>).
+  const reminders = whens.map((when, i) => ({ when, channels: fd.getAll(`ch_${i}`).map(String).filter((c): c is ReminderChannel => CHANNELS.includes(c as ReminderChannel)) }));
+  const error = saveReminderSettings(user.id, kind, mode, reminders, { text: memberCanText(user), email: !!user.email });
   const label = kind === "lessons" ? "Lesson" : kind === "events" ? "Event" : "Service";
   redirect(`/more/reminders?${error ? "error" : "msg"}=${encodeURIComponent(error ?? `${label} reminders saved.`)}#${kind}`);
 }

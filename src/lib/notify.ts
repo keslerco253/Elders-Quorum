@@ -96,7 +96,7 @@ function smsBody(wardName: string, payload: PushPayload, url: string) {
  * them, their backup choice (contact_pref) is used. Texts only go to members
  * who agreed to them themselves.
  */
-export async function notify(recipients: Recipient[], payload: PushPayload, opts: { fallback?: boolean; only?: "push" | "text" } = {}) {
+export async function notify(recipients: Recipient[], payload: PushPayload, opts: { fallback?: boolean; only?: ("push" | "text" | "email")[] } = {}) {
   const fallback = opts.fallback ?? true;
   let push = 0;
   let email = 0;
@@ -153,18 +153,26 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
     const url = appUrl() + p.url;
     const canText = !!r.sms_consent_at && !!r.phone && canSendNotice(r.org_id);
     let got = false;
-    // A member's own reminder says how: by text (up to their limit), or as an app
-    // notification. If that way can't reach them, the next best does.
+    // A member's own reminder says how: any of app notification, text (up to their
+    // limit) and email. If none of those reaches them, the next best does.
     if (opts.only) {
-      if (opts.only === "text" && canText && (await sendText(r, `${appUrl()}/n/${logId}`))) {
-        text++;
-        got = true;
-      }
-      if (!got && (await pushToMember(r.id, p)) > 0) {
+      if (opts.only.includes("push") && (await pushToMember(r.id, p)) > 0) {
         push++;
         got = true;
       }
-      if (!got && (await sendEmail(r, url))) {
+      if (opts.only.includes("text") && canText && (await sendText(r, `${appUrl()}/n/${logId}`))) {
+        text++;
+        got = true;
+      }
+      if (opts.only.includes("email") && (await sendEmail(r, url))) {
+        email++;
+        got = true;
+      }
+      if (!got && !opts.only.includes("push") && (await pushToMember(r.id, p)) > 0) {
+        push++;
+        got = true;
+      }
+      if (!got && !opts.only.includes("email") && (await sendEmail(r, url))) {
         email++;
         got = true;
       }

@@ -11,7 +11,7 @@ import { formatDate, formatDateTime } from "./time";
 import type { PushPayload } from "./push";
 import type { EventRow } from "./types";
 import { eventAudience } from "./events";
-import { daysBetween, dueForDate, dueForStart, ownSettings } from "./reminder-prefs";
+import { daysBetween, dueForDate, dueForStart, ownSettings, type ReminderChannel } from "./reminder-prefs";
 import { hasFeature } from "./orgs";
 import { runRetention } from "./retention";
 import { extendAllSeries } from "./event-series";
@@ -40,7 +40,7 @@ export interface DueNotification {
   recipients: Recipient[];
   payload: PushPayload;
   /** A member's own reminder: sent as a text or as an app notification. */
-  only?: "push" | "text";
+  only?: ReminderChannel[];
 }
 
 // Lesson reminders: Sunday 7 PM for the next Sunday's lesson, and Saturday 8 AM
@@ -160,7 +160,7 @@ function myLessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       if (lesson.kind === "talk" && m.id === lesson.teacher_id) continue;
       for (const r of own.get(m.id)!.reminders) {
         if (!dueForDate(r.when, lesson.date, local)) continue;
-        out.push({ key: `lesson-mine:${org.id}:${lesson.date}:${m.id}:${r.when}:${r.channel}`, recipients: [m], payload, only: r.channel });
+        out.push({ key: `lesson-mine:${org.id}:${lesson.date}:${m.id}:${r.when}:${r.channels.join("+")}`, recipients: [m], payload, only: r.channels });
       }
     }
   }
@@ -183,7 +183,7 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       const mine = own.get(m.id);
       if (mine?.mode !== "custom") continue;
       for (const r of mine.reminders) {
-        if (dueForStart(r.when, e.starts_at, now)) out.push({ key: `event-mine:${e.id}:${e.starts_at}:${m.id}:${r.when}:${r.channel}`, recipients: [m], payload, only: r.channel });
+        if (dueForStart(r.when, e.starts_at, now)) out.push({ key: `event-mine:${e.id}:${e.starts_at}:${m.id}:${r.when}:${r.channels.join("+")}`, recipients: [m], payload, only: r.channels });
       }
     }
     // An event can have two reminders (e.g. a week before and a day before).
@@ -326,12 +326,12 @@ function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const today = local.toISODate()!;
   const rows = db()
     .prepare(
-      `SELECT s.id, s.title, s.date, s.reminder1_days, s.reminder2_days, e.member_id, group_concat(sl.label, ', ') AS slots
+      `SELECT s.id, s.title, s.date, s.time, s.reminder1_days, s.reminder2_days, e.member_id, group_concat(sl.label, ', ') AS slots
        FROM signups s JOIN signup_slots sl ON sl.signup_id = s.id JOIN signup_entries e ON e.slot_id = sl.id JOIN members m ON m.id = e.member_id
        WHERE s.org_id = ? AND s.date >= ? AND s.date <= date(?, '+14 days') AND m.status = 'active'
        GROUP BY s.id, e.member_id`,
     )
-    .all(org.id, today, today) as { id: number; title: string; date: string; reminder1_days: number | null; reminder2_days: number | null; member_id: number; slots: string }[];
+    .all(org.id, today, today) as { id: number; title: string; date: string; time: string | null; reminder1_days: number | null; reminder2_days: number | null; member_id: number; slots: string }[];
   const out: DueNotification[] = [];
   const whenWord = (days: number) => (days === 0 ? "Today" : days === 1 ? "Tomorrow" : days === 7 ? "Next week" : days === 14 ? "In two weeks" : `In ${days} days`);
   for (const r of rows) {
@@ -339,13 +339,15 @@ function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
     const mine = own.get(r.member_id);
     if (mine) {
       const who = mine.mode === "custom" ? recipientById(r.member_id, org.id) : undefined;
+      // Like events: counted back from when it starts (9 AM when no time is set).
+      const starts = DateTime.fromISO(`${r.date}T${r.time ?? "09:00"}`, { zone: org.timezone }).toUTC().toISO()!;
       for (const rem of who ? mine.reminders : []) {
-        if (!dueForDate(rem.when, r.date, local)) continue;
+        if (!dueForStart(rem.when, starts, now)) continue;
         out.push({
-          key: `signup-mine:${r.id}:${r.date}:${r.member_id}:${rem.when}:${rem.channel}`,
+          key: `signup-mine:${r.id}:${r.date}:${r.time ?? ""}:${r.member_id}:${rem.when}:${rem.channels.join("+")}`,
           recipients: [who!],
           payload: { ...renderTemplate(org.id, "service_reminder", { when: whenWord(daysAway), title: r.title, slots: r.slots, date: formatDate(r.date, "short") }), url: `/signups/${r.id}` },
-          only: rem.channel,
+          only: rem.channels,
         });
       }
       continue;

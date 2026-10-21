@@ -6,6 +6,8 @@ export interface Signup {
   title: string;
   description: string;
   date: string | null;
+  /** Start time (HH:MM), if set. */
+  time: string | null;
   closed: number;
   /** A flyer: a PDF or picture (stored name, and the name it was uploaded with). */
   flyer_file: string | null;

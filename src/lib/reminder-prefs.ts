@@ -3,15 +3,19 @@ import { db } from "./db";
 
 // Each member's own reminders for lessons, events and service opportunities. By
 // default they get the reminders their leaders scheduled; they can set their own
-// instead (up to 3 texts, any number of app notifications), or turn them off.
+// instead, each by app notification, text and/or email (up to 3 texts), or turn
+// them off. Stored as a row per way.
 
 export type ReminderKind = "lessons" | "events" | "service";
-export type ReminderChannel = "push" | "text";
+export type ReminderChannel = "push" | "text" | "email";
 export type ReminderMode = "default" | "custom" | "off";
+
+export const CHANNELS: ReminderChannel[] = ["push", "text", "email"];
+export const CHANNEL_LABELS: Record<ReminderChannel, string> = { push: "App notification", text: "Text", email: "Email" };
 
 export interface MyReminder {
   when: string;
-  channel: ReminderChannel;
+  channels: ReminderChannel[];
 }
 
 export const MAX_TEXTS = 3;
@@ -19,7 +23,7 @@ export const MAX_REMINDERS = 10;
 
 export const KIND_LABELS: Record<ReminderKind, string> = { lessons: "Lessons", events: "Events", service: "Service" };
 
-/** The timings offered for each kind. Lessons and service: days before at a time; events: before the start. */
+/** The timings offered for each kind. Lessons: days before at a time; events and service: before the start. */
 export const WHEN_OPTIONS: Record<ReminderKind, [string, string][]> = {
   lessons: [
     ["d:7@19:00", "The Sunday before, 7 PM"],
@@ -40,29 +44,36 @@ export const WHEN_OPTIONS: Record<ReminderKind, [string, string][]> = {
     ["m:10080", "1 week before"],
     ["m:20160", "2 weeks before"],
   ],
-  service: [
-    ["d:14@08:00", "2 weeks before, 8 AM"],
-    ["d:7@08:00", "1 week before, 8 AM"],
-    ["d:3@08:00", "3 days before, 8 AM"],
-    ["d:2@08:00", "2 days before, 8 AM"],
-    ["d:1@08:00", "The day before, 8 AM"],
-    ["d:1@19:00", "The day before, 7 PM"],
-    ["d:0@07:00", "The morning of, 7 AM"],
-  ],
+  // The same as events, counted from the start time (9 AM if there's none).
+  service: [],
 };
 
 /** What "my own reminders" starts with: about what leaders usually schedule. */
 export const STARTING_REMINDERS: Record<ReminderKind, MyReminder[]> = {
   lessons: [
-    { when: "d:7@19:00", channel: "push" },
-    { when: "d:1@08:00", channel: "push" },
+    { when: "d:7@19:00", channels: ["push"] },
+    { when: "d:1@08:00", channels: ["push"] },
   ],
-  events: [{ when: "m:1440", channel: "push" }],
+  events: [{ when: "m:1440", channels: ["push"] }],
   service: [
-    { when: "d:7@08:00", channel: "push" },
-    { when: "d:1@08:00", channel: "push" },
+    { when: "m:10080", channels: ["push"] },
+    { when: "m:1440", channels: ["push"] },
   ],
 };
+
+/** Rows (one per way) to reminders (each with its ways), in the order first seen. */
+function group(rows: { when: string; channel: ReminderChannel }[]): MyReminder[] {
+  const out: MyReminder[] = [];
+  for (const r of rows) {
+    const found = out.find((x) => x.when === r.when);
+    if (!found) out.push({ when: r.when, channels: [r.channel] });
+    else if (!found.channels.includes(r.channel)) found.channels.push(r.channel);
+  }
+  for (const r of out) r.channels.sort((a, b) => CHANNELS.indexOf(a) - CHANNELS.indexOf(b));
+  return out;
+}
+
+WHEN_OPTIONS.service = WHEN_OPTIONS.events;
 
 export const whenLabel = (kind: ReminderKind, when: string) => WHEN_OPTIONS[kind].find(([k]) => k === when)?.[1] ?? when;
 
@@ -73,21 +84,29 @@ export interface ReminderSettings {
 
 export function getReminderSettings(memberId: number, kind: ReminderKind): ReminderSettings {
   const row = db().prepare("SELECT mode FROM reminder_prefs WHERE member_id = ? AND kind = ?").get(memberId, kind) as { mode: ReminderMode } | undefined;
-  const reminders = db().prepare("SELECT when_key AS [when], channel FROM member_reminders WHERE member_id = ? AND kind = ? ORDER BY id").all(memberId, kind) as MyReminder[];
-  return { mode: row?.mode ?? "default", reminders };
+  const rows = db().prepare("SELECT when_key AS [when], channel FROM member_reminders WHERE member_id = ? AND kind = ? ORDER BY id").all(memberId, kind) as { when: string; channel: ReminderChannel }[];
+  return { mode: row?.mode ?? "default", reminders: group(rows) };
 }
 
-/** Saves a member's settings for one kind. Returns an error to show, or null. */
-export function saveReminderSettings(memberId: number, kind: ReminderKind, mode: ReminderMode, reminders: MyReminder[], canText: boolean): string | null {
+/**
+ * Saves a member's settings for one kind. Each reminder comes by the ways ticked
+ * (texts only if they can get texts, email only if they have one; none ticked
+ * means an app notification). Returns an error to show, or null.
+ */
+export function saveReminderSettings(memberId: number, kind: ReminderKind, mode: ReminderMode, reminders: MyReminder[], can: { text: boolean; email: boolean }): string | null {
   const valid = new Set(WHEN_OPTIONS[kind].map(([k]) => k));
-  const list = reminders
-    .filter((r) => valid.has(r.when) && (r.channel === "push" || r.channel === "text"))
-    .map((r) => ({ when: r.when, channel: r.channel === "text" && canText ? "text" : "push" }) as MyReminder)
-    // The same reminder twice is just once.
-    .filter((r, i, all) => all.findIndex((x) => x.when === r.when && x.channel === r.channel) === i);
+  const allowed = (c: ReminderChannel) => c === "push" || (c === "text" && can.text) || (c === "email" && can.email);
+  const list = group(
+    reminders
+      .filter((r) => valid.has(r.when))
+      .flatMap((r) => {
+        const ways = r.channels.filter((c) => CHANNELS.includes(c) && allowed(c));
+        return (ways.length ? ways : (["push"] as ReminderChannel[])).map((channel) => ({ when: r.when, channel }));
+      }),
+  );
   if (mode === "custom") {
     if (!list.length) return "Add at least one reminder, or choose No reminders.";
-    if (list.filter((r) => r.channel === "text").length > MAX_TEXTS) return `You can have up to ${MAX_TEXTS} text reminders.`;
+    if (list.filter((r) => r.channels.includes("text")).length > MAX_TEXTS) return `You can have up to ${MAX_TEXTS} text reminders.`;
     if (list.length > MAX_REMINDERS) return `You can have up to ${MAX_REMINDERS} reminders.`;
   }
   const d = db();
@@ -98,7 +117,7 @@ export function saveReminderSettings(memberId: number, kind: ReminderKind, mode:
     d.prepare("INSERT INTO reminder_prefs (member_id, kind, mode) VALUES (?, ?, ?)").run(memberId, kind, mode);
     if (mode === "custom") {
       const ins = d.prepare("INSERT INTO member_reminders (member_id, kind, when_key, channel) VALUES (?, ?, ?, ?)");
-      for (const r of list) ins.run(memberId, kind, r.when, r.channel);
+      for (const r of list) for (const channel of r.channels) ins.run(memberId, kind, r.when, channel);
     }
   })();
   return null;
@@ -110,8 +129,13 @@ export function ownSettings(kind: ReminderKind): Map<number, ReminderSettings> {
   for (const r of db().prepare("SELECT member_id, mode FROM reminder_prefs WHERE kind = ?").all(kind) as { member_id: number; mode: ReminderMode }[]) {
     out.set(r.member_id, { mode: r.mode, reminders: [] });
   }
+  const rows = new Map<number, { when: string; channel: ReminderChannel }[]>();
   for (const r of db().prepare("SELECT member_id, when_key, channel FROM member_reminders WHERE kind = ? ORDER BY id").all(kind) as { member_id: number; when_key: string; channel: ReminderChannel }[]) {
-    out.get(r.member_id)?.reminders.push({ when: r.when_key, channel: r.channel });
+    rows.set(r.member_id, [...(rows.get(r.member_id) ?? []), { when: r.when_key, channel: r.channel }]);
+  }
+  for (const [id, list] of rows) {
+    const s = out.get(id);
+    if (s) s.reminders = group(list);
   }
   return out;
 }

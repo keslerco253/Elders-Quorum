@@ -102,7 +102,13 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
                 Text{user.phone ? ` to ${formatPhone(user.phone)}` : ": add a mobile number above first"}
               </label>
             )}
-            <p className="hint">Leave these off to get just the push notification.</p>
+            <p className="hint">
+              Leave these off to get just the push notification. Reminders for lessons, events and service can each be set their own way under{" "}
+              <a href="/more/reminders" className="link">
+                My reminders
+              </a>
+              .
+            </p>
           </div>
           <div className="space-y-2">
             <div className="font-medium">If a notification doesn&apos;t reach you</div>

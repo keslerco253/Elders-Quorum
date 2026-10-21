@@ -90,9 +90,23 @@ lesson and **Saturday 8 AM** about tomorrow's.
 
 **Each member can change their own reminders** (🔔 **My reminders** on the
 Lessons, Calendar and Service pages, or More → My reminders): for lessons,
-events and service separately, keep them **as scheduled**, set **their own**
-(when, and as an app notification or a text; up to 3 texts each), or turn them
-off. Teachers still get their teaching reminders.
+events and service separately, keep them **as scheduled**, set **their own**,
+or turn them off. Teachers still get their teaching reminders.
+- With their own, each reminder has a time and any mix of **App**, **Text** and
+  **Email** (up to 3 texts in each area).
+- Service uses the same timings as events (15 minutes to 2 weeks before),
+  counted from the opportunity's **start time**. You can set that time when
+  creating or editing an opportunity; without one, reminders count from 9 AM
+  that day.
+
+**How everything else reaches a member** (messages, and reminders left as
+scheduled) is under **More → Contact & notifications**:
+- Turn app notifications on for each phone or computer.
+- Tick **Email** and/or **Text** under *Also send every reminder and message by*.
+  For example, app notifications and email but no texts: notifications on, Email
+  ticked, Text not ticked.
+- *If a notification doesn't reach you* is the backup when notifications are
+  off.
 
 ## When members reply
 

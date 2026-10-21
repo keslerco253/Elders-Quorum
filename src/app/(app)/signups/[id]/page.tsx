@@ -1,3 +1,4 @@
+import { DateTime } from "luxon";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
@@ -34,7 +35,7 @@ export default async function SignupPage({
       <PageHeader
         title={s.title}
         back={{ href: "/signups", label: "Service" }}
-        subtitle={s.date ? formatDate(s.date) : undefined}
+        subtitle={s.date ? `${formatDate(s.date)}${s.time ? ` · ${DateTime.fromFormat(s.time, "HH:mm").toFormat("h:mm a")}` : ""}` : undefined}
         actions={
           <>
             <ShareButton

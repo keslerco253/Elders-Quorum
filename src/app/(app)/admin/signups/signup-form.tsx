@@ -31,17 +31,37 @@ export function SignupForm({
         />
       </div>
       <div>
-        <label className="label" htmlFor="date">
-          Date (optional)
-        </label>
-        <input
-          id="date"
-          name="date"
-          type="date"
-          className="input max-w-xs"
-          defaultValue={s?.date ?? ""}
-        />
-        <p className="hint">After this date it moves off the list.</p>
+        <div className="grid max-w-md grid-cols-2 gap-3">
+          <div>
+            <label className="label" htmlFor="date">
+              Date (optional)
+            </label>
+            <input
+              id="date"
+              name="date"
+              type="date"
+              className="input"
+              defaultValue={s?.date ?? ""}
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="time">
+              Start time (optional)
+            </label>
+            <input
+              id="time"
+              name="time"
+              type="time"
+              className="input"
+              defaultValue={s?.time ?? ""}
+            />
+          </div>
+        </div>
+        <p className="hint">
+          After this date it moves off the list. Members&apos; own reminders
+          (&ldquo;1 hour before&rdquo;) count from the start time, or 9 AM if
+          there isn&apos;t one.
+        </p>
       </div>
       <div>
         <label className="label" htmlFor="description">
