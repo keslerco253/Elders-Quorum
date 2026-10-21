@@ -20,6 +20,7 @@ import { VISIT_TYPES } from "./visits";
 import { firstName } from "./names";
 import { renderTemplate } from "./templates";
 import { guestRemindersDue, sendGuestReminder } from "./guest-signups";
+import { deliverHeldReplies } from "./sms-inbound";
 import { joinNames } from "./invite-text";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
@@ -390,6 +391,8 @@ export async function tick(now: DateTime = DateTime.utc()) {
       const res = await notify(n.recipients, n.payload, { only: n.only });
       console.log(`[scheduler] ${n.key}: ${res.push} push, ${res.email} email`);
     }
+    // Texted replies held while asking which organization they're for.
+    await deliverHeldReplies();
     // People without an account who signed up for service from a public link.
     for (const r of guestRemindersDue(now.toJSDate())) {
       if (!claimOnce(r.key)) continue;

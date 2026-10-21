@@ -1,7 +1,8 @@
 import { db } from "./db";
 import { audienceMembers, notify, recipientById } from "./notify";
 import { callingLabel, CALLINGS, type Calling, type Org } from "./types";
-import { getOrg } from "./orgs";
+import { getOrg, leadersPhrase, orgLabel } from "./orgs";
+import { backupReceivers, confirmToSender, orgReceivers } from "./message-routing";
 
 // In each organization, a member can talk with the whole presidency
 // (recipient_id NULL) and, privately, with any one presidency member
@@ -20,6 +21,8 @@ export interface ConversationItem {
   via: "app" | "text";
   read_at: string | null;
   created_at: string;
+  /** "Forwarded by … from …", "Forwarded to … by …". */
+  note: string | null;
 }
 
 export interface ConversationSummary {
@@ -98,18 +101,30 @@ function presidencyMember(orgId: number, id: number) {
   return ok ? recipientById(id, orgId) : undefined;
 }
 
-/** Saves a member's message and lets the presidency (or just the one person) know. */
+/**
+ * Saves a member's message and lets the presidency (or just the one person) know.
+ * If nobody in that organization can receive it (turned off, or no presidency),
+ * it goes to the ward's backup person to pass on. A member who texted is told
+ * where it went, by app notification. Returns who got it.
+ */
 export async function receiveReply(member: { id: number; org_id: number; display_name: string }, body: string, via: "app" | "text", messageId: number | null, thread: Thread = { private: false }) {
   const text = body.trim().slice(0, MAX_BODY);
-  if (!text) return;
+  if (!text) return "";
   const to = thread.private ? presidencyMember(member.org_id, thread.withId) : undefined;
   // A private message to someone no longer in the presidency goes to the whole presidency instead.
   const recipientId = to ? to.id : null;
+  const presidency = to ? [to] : orgReceivers(member.org_id, member.id);
+  const org = getOrg(member.org_id);
+  const backup = presidency.length || !org ? [] : backupReceivers(org.ward_id, member.id);
   // Only link messages this member actually received.
   const msg = messageId ? (db().prepare("SELECT 1 FROM message_recipients WHERE message_id = ? AND member_id = ?").get(messageId, member.id) ? messageId : null) : null;
-  db().prepare("INSERT INTO member_messages (org_id, member_id, direction, message_id, body, via, recipient_id) VALUES (?, ?, 'in', ?, ?, ?, ?)").run(member.org_id, member.id, msg, text, via, recipientId);
+  db()
+    .prepare("INSERT INTO member_messages (org_id, member_id, direction, message_id, body, via, recipient_id, needs_home) VALUES (?, ?, 'in', ?, ?, ?, ?, ?)")
+    .run(member.org_id, member.id, msg, text, via, recipientId, presidency.length ? 0 : 1);
+  let where: string;
   // Leaders read the whole message in the notification, text or email; answering is in the app.
   if (to) {
+    where = to.display_name;
     await notify([to], {
       title: `Private message from ${member.display_name}`,
       textTitle: `${member.display_name} (private)`,
@@ -120,9 +135,9 @@ export async function receiveReply(member: { id: number; org_id: number; display
       replyTo: { memberId: member.id, private: true },
       tag: `conv-${member.org_id}-${member.id}-p`,
     });
-  } else {
-    // The presidency, but never the sender (a leader writing as a member).
-    await notify(audienceMembers(member.org_id, "presidency").filter((r) => r.id !== member.id), {
+  } else if (presidency.length) {
+    where = org ? leadersPhrase(org) : "the presidency";
+    await notify(presidency, {
       title: `Reply from ${member.display_name}`,
       textTitle: member.display_name,
       body: text,
@@ -132,7 +147,19 @@ export async function receiveReply(member: { id: number; org_id: number; display
       replyTo: { memberId: member.id, private: false },
       tag: `conv-${member.org_id}-${member.id}`,
     });
+  } else {
+    // Nobody to receive it there: the ward's backup person passes it on.
+    where = `your ward's leaders, who will pass it on`;
+    await notify(backup, {
+      title: `A message needs passing on`,
+      body: `${member.display_name} wrote to ${org ? orgLabel(org) : "an organization"}, which has nobody to receive it: "${text.slice(0, 300)}"`,
+      url: "/pass-on",
+      linkLabel: "Pass it on",
+      tag: `pass-on-${member.id}`,
+    });
   }
+  if (via === "text") await confirmToSender(member.id, where);
+  return where;
 }
 
 /** Sends a presidency member's answer to a member, in the whole-presidency thread or privately. */
@@ -150,7 +177,7 @@ export async function sendAnswer(author: { id: number; org_id: number; display_n
   return true;
 }
 
-const ITEM_SQL = `SELECT c.id, c.direction, a.display_name AS author_name, c.recipient_id, r.display_name AS recipient_name, c.message_id, m.title AS message_title, c.body, c.via, c.read_at, c.created_at
+const ITEM_SQL = `SELECT c.id, c.direction, a.display_name AS author_name, c.recipient_id, r.display_name AS recipient_name, c.message_id, m.title AS message_title, c.body, c.via, c.read_at, c.created_at, c.note
   FROM member_messages c LEFT JOIN members a ON a.id = c.author_id LEFT JOIN members r ON r.id = c.recipient_id LEFT JOIN messages m ON m.id = c.message_id`;
 
 /** Everything a member has sent to or received from one organization (their own view). */

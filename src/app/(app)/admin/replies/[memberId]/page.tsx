@@ -3,6 +3,9 @@ import { Linkify } from "@/components/linkify";
 import { notFound } from "next/navigation";
 import { firstName } from "@/lib/names";
 import { requirePresidency } from "@/lib/auth";
+import { ForwardForm } from "@/components/forward-form";
+import { forwardTargets } from "@/lib/message-routing";
+import { forwardMemberMessage } from "../../../pass-on/actions";
 import { db } from "@/lib/db";
 import { conversation, markThreadRead, type Thread } from "@/lib/conversations";
 import { formatPhone } from "@/lib/contact";
@@ -38,6 +41,8 @@ export default async function ConversationPage({ params, searchParams }: { param
       .get(...(privately ? [user.org_id, member.id, user.id] : [user.org_id, member.id, user.id, user.id])) as { n: number }
   ).n;
   const first = firstName(member.display_name);
+  // Other organizations (and leaders) a message can be forwarded to.
+  const forwardTo = forwardTargets(user.ward_id).filter((t) => !t.value.startsWith(`org:${user.org_id}`) && !t.value.startsWith(`leader:${user.org_id}:`));
   const lastOut = thread.findLastIndex((c) => c.direction === "out");
   const tab = (on: boolean) => `rounded-lg px-3 py-1.5 text-sm font-medium ${on ? "bg-accent-soft text-accent" : "text-muted hover:bg-surface-2"}`;
 
@@ -84,6 +89,11 @@ export default async function ConversationPage({ params, searchParams }: { param
                   {c.direction === "out" ? `${c.author_name ?? "Presidency"} · ` : c.via === "text" ? "By text · " : "In the app · "}
                   {formatDateTime(c.created_at, tz, "LLL d, h:mm a")}
                 </div>
+                {c.note && <div className="mt-0.5 text-[11px] italic opacity-80">{c.note}</div>}
+                {/* Meant for someone else? Send it on. */}
+                {c.direction === "in" && (
+                  <ForwardForm messageId={c.id} targets={forwardTo} action={forwardMemberMessage} back={`/admin/replies/${member.id}${privately ? "?private=1" : ""}`} />
+                )}
               </div>
               {/* Like a read receipt: under the newest answer, whether they've seen it. */}
               {c.direction === "out" && i === lastOut && (

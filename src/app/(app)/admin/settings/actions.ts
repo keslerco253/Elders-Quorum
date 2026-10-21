@@ -129,3 +129,13 @@ export async function startAnotherWard(fd: FormData) {
   revalidatePath("/", "layout");
   redirect(`/admin/settings?org=${wardOrg(ward.id).id}&msg=${encodeURIComponent(`${name} is ready. Share its join code, then turn off any organizations it doesn't use below.`)}`);
 }
+
+/** Who gets members' messages that an organization can't receive, to pass them on. */
+export async function setReplyBackup(fd: FormData) {
+  const user = await requireWardLeader();
+  const id = Number(fd.get("backup_id")) || null;
+  if (id && !db().prepare("SELECT 1 FROM ward_members WHERE ward_id = ? AND member_id = ?").get(user.ward_id, id)) go("Choose someone in the ward.");
+  db().prepare("UPDATE wards SET reply_backup_id = ? WHERE id = ?").run(id, user.ward_id);
+  revalidatePath("/admin/settings");
+  go(id ? "Saved. Messages that can't be delivered will go to them." : "Saved. Messages that can't be delivered will go to the bishopric.");
+}

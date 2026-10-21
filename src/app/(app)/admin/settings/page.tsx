@@ -3,8 +3,9 @@ import { requirePresidency } from "@/lib/auth";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addOrganization, deleteOrganization, setOrganizationActive, setOrganizationPresident, saveOrgSettings, saveWardSettings, setJoinCode, startAnotherWard } from "./actions";
+import { setReplyBackup, addOrganization, deleteOrganization, setOrganizationActive, setOrganizationPresident, saveOrgSettings, saveWardSettings, setJoinCode, startAnotherWard } from "./actions";
 import { db } from "@/lib/db";
+import { wardPeople } from "@/lib/announce";
 import { hasFeature, orgRoster } from "@/lib/orgs";
 import { FEATURES, STANDARD_ORGS, type Feature } from "@/lib/types";
 
@@ -79,6 +80,24 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 <p className="hint">Lesson reminders go out Sunday at 7:00 PM and Saturday at 8:00 AM in this time zone.</p>
               </div>
               <SubmitButton>Save</SubmitButton>
+            </form>
+          </Section>
+          <Section title="Backup for members' messages">
+            <form action={setReplyBackup} className="card max-w-xl space-y-3 text-sm">
+              <p>
+                If a member writes or texts to an organization that can&apos;t receive it (it&apos;s turned off, or has nobody in its presidency), the message
+                goes to this person. They&apos;re notified and can pass it on to the right organization or leader under <strong>Pass it on</strong>.
+                With nobody chosen, it goes to the bishopric.
+              </p>
+              <select name="backup_id" className="input" defaultValue={user.ward.reply_backup_id ?? ""}>
+                <option value="">The bishopric</option>
+                {wardPeople(user.ward_id).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <SubmitButton className="btn-secondary btn-sm">Save</SubmitButton>
             </form>
           </Section>
           <Section title="Join code">

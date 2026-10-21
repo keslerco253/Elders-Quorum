@@ -1115,4 +1115,30 @@ CREATE TABLE member_reminders (
 CREATE INDEX member_reminders_member ON member_reminders(member_id, kind);
 `,
   },
+  {
+    // Making sure a member's message always reaches someone:
+    // - the ward's backup person gets replies an organization can't receive (turned off,
+    //   or nobody in its presidency) and passes them on;
+    // - a message can be forwarded to another organization or leader (note says so);
+    // - which organizations texted a member lately, to ask which one a reply is for;
+    // - a texted reply held while asking.
+    id: 53,
+    sql: `
+ALTER TABLE wards ADD COLUMN reply_backup_id INTEGER REFERENCES members(id) ON DELETE SET NULL;
+ALTER TABLE member_messages ADD COLUMN needs_home INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE member_messages ADD COLUMN note TEXT;
+CREATE TABLE member_text_orgs (
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (member_id, org_id)
+);
+CREATE TABLE sms_member_pending (
+  member_id INTEGER PRIMARY KEY REFERENCES members(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  options TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`,
+  },
 ];

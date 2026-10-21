@@ -50,6 +50,8 @@ export interface Ward {
   pending: number;
   stake: string;
   request_note: string;
+  /** Gets members' messages an organization can't receive, and passes them on. */
+  reply_backup_id: number | null;
 }
 
 /** Features an organization can hide when it doesn't use them. */

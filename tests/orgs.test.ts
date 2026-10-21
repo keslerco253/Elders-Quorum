@@ -129,9 +129,12 @@ describe("notifications per organization", () => {
     expect(canSendNotice(rs.id)).toBe(false);
     expect(canSendNotice(1)).toBe(false);
 
-    // A reply goes to the organization that texted last (Relief Society).
+    // Both organizations texted them: the reply asks which one it's for, then goes there.
     const { handleInboundText } = await import("@/lib/sms-inbound");
-    expect(await handleInboundText({ From: "+12085550103", Body: "I'll bring rolls" })).toBe("saved");
+    expect(await handleInboundText({ From: "+12085550103", Body: "I'll bring rolls" })).toBe("asked_which");
+    const options = JSON.parse((d.prepare("SELECT options FROM sms_member_pending").get() as { options: string }).options) as number[];
+    expect(options.sort()).toEqual([1, rs.id].sort());
+    expect(await handleInboundText({ From: "+12085550103", Body: String(options.indexOf(rs.id) + 1) })).toBe("saved");
     expect(d.prepare("SELECT org_id, body FROM member_messages").all()).toEqual([{ org_id: rs.id, body: "I'll bring rolls" }]);
   });
 

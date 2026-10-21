@@ -12,6 +12,7 @@ import { adminCounts } from "@/lib/admin-counts";
 import { SubmitButton } from "@/components/client";
 import { QuickLinks } from "@/components/quick-links";
 import { PushToggle } from "@/components/push-toggle";
+import { handlesBackup, messagesNeedingHome } from "@/lib/message-routing";
 import { AppLockToggle } from "@/components/app-lock-toggle";
 import { signOut } from "../../(public)/actions";
 import { SignOutForm } from "@/components/sign-out-form";
@@ -30,6 +31,9 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
     { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },
     { href: "/messages", label: "Messages", count: unread, desc: `Messages from ${user.orgLabel} and replies from its ${leadersWord(user.org)}` },
     ...(myOrgs(user.id).some((o) => hasFeature(o, "visits")) ? [{ href: "/more/visit", label: "Request a visit", desc: "Ask your leaders to come by, talk, or help" }] : []),
+    ...(handlesBackup(user) && messagesNeedingHome(user.ward_id).length
+      ? [{ href: "/pass-on", label: "Pass it on", count: messagesNeedingHome(user.ward_id).length, desc: "Members' messages that need passing on to the right organization" }]
+      : []),
     { href: "/more/reminders", label: "My reminders", desc: "When and how you're reminded about lessons, events and service" },
     { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },
     ...(isAdmin(user) || ledOrgsAnywhere(user.id).length ? [{ href: "/admin", label: "Admin tools", count: adminCounts(user).total, desc: "Members, lessons, messages and approvals" }] : []),

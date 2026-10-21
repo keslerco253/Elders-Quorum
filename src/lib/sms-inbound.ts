@@ -5,7 +5,8 @@ import { normalizePhone } from "./contact";
 import { receiveReply, recentMessageFor, recentReplies, sendAnswer, threadForTextReply } from "./conversations";
 import { twilioConfigured } from "./sms";
 import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching";
-import { getOrg, getWard, homeOf, orgFullName } from "./orgs";
+import { getOrg, getWard, homeOf, orgFullName, orgLabel } from "./orgs";
+import { allowHit } from "./rate-limit";
 import { answerRequest, latestPendingRequest } from "./teaching-requests";
 import { DateTime } from "luxon";
 import { guestOptOut } from "./guest-signups";
@@ -36,7 +37,12 @@ export type InboundResult =
   | "teacher_declined"
   | "request_accepted"
   | "request_declined"
-  | "request_taken";
+  | "request_taken"
+  | "asked_which";
+
+/** Texted back (once a month) to a number that isn't anyone's in the app. */
+export const UNKNOWN_NUMBER_REPLY =
+  "My Ward Link: this phone number isn't connected to anyone in the app, so your message wasn't delivered. Please text from the number your ward leaders have for you, or message them in the app.";
 
 /** What the app texts back after a teacher's TEACH / CANT reply. */
 export const AUTO_REPLIES: Partial<Record<InboundResult, string>> = {
@@ -121,6 +127,9 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   if (!row) {
     const word = body.toUpperCase().replace(/[^A-Z]/g, "");
     if ((params.OptOutType || "").toUpperCase() === "STOP" || STOP_WORDS.includes(word)) return guestOptOut(from) ? "opted_out" : "unknown_sender";
+    if ((params.OptOutType || "").toUpperCase() === "HELP" || SKIP_WORDS.includes(word)) return "unknown_sender";
+    // Let them know it wasn't delivered (once a month per number, so it can't run up texts).
+    if (allowHit(`sms-unknown:${from}`, 1, 30 * 24 * 60)) seen.reply = UNKNOWN_NUMBER_REPLY;
     return "unknown_sender";
   }
   seen.memberId = row.id;
@@ -253,8 +262,61 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     if (r) return r;
   }
   if (recentReplies(member.id) >= 20) return "ignored";
-  const thread = threadForTextReply(member.id, orgId);
-  await receiveReply(member, body, "text", recentMessageFor(member.id, orgId), thread);
-  seen.note = thread.private ? `Private message to ${nameOf(thread.withId)}` : "Message to the presidency";
+  // Answering "Which is this for?": the held message goes where they say. Anything else:
+  // the held message goes to whoever texted them last, and this one is handled as usual.
+  const held = db().prepare("SELECT body, options FROM sms_member_pending WHERE member_id = ?").get(member.id) as { body: string; options: string } | undefined;
+  if (held) {
+    db().prepare("DELETE FROM sms_member_pending WHERE member_id = ?").run(member.id);
+    const options = JSON.parse(held.options) as number[];
+    const pick = body.match(/^\s*(\d)\s*[.)]?\s*$/);
+    const chosen = pick ? options[Number(pick[1]) - 1] : undefined;
+    if (chosen) {
+      seen.note = await deliverTextReply(member, chosen, held.body);
+      return "saved";
+    }
+    await deliverTextReply(member, options[0], held.body);
+  }
+  // Two or more organizations texted them in the last few days: ask which one this is for.
+  const lately = orgsThatTextedLately(member.id);
+  if (lately.length > 1) {
+    const options = lately.slice(0, 3);
+    db().prepare("INSERT OR REPLACE INTO sms_member_pending (member_id, body, options) VALUES (?, ?, ?)").run(member.id, body, JSON.stringify(options));
+    const names = options.map((id, i) => `${i + 1} for ${orgLabel(getOrg(id)!)}`);
+    seen.reply = `Which is your message for? Reply ${names.length > 2 ? names.slice(0, -1).join(", ") + ", or " + names.at(-1) : names.join(" or ")}.`;
+    seen.note = `Asked which organization (${options.map((id) => orgLabel(getOrg(id)!)).join(", ")})`;
+    return "asked_which";
+  }
+  seen.note = await deliverTextReply(member, orgId, body);
   return "saved";
+}
+
+/** Active organizations that texted this member in the last 3 days, newest first. */
+function orgsThatTextedLately(memberId: number): number[] {
+  return (
+    db()
+      .prepare(
+        `SELECT t.org_id FROM member_text_orgs t JOIN orgs o ON o.id = t.org_id
+         WHERE t.member_id = ? AND o.active = 1 AND t.at > datetime('now', '-3 days') ORDER BY t.at DESC`,
+      )
+      .all(memberId) as { org_id: number }[]
+  ).map((r) => r.org_id);
+}
+
+/** Saves a member's texted reply in an organization (privately, if they were in a private conversation there). */
+async function deliverTextReply(member: { id: number; display_name: string }, orgId: number, body: string) {
+  db().prepare("UPDATE members SET last_text_org_id = ? WHERE id = ?").run(orgId, member.id);
+  const thread = threadForTextReply(member.id, orgId);
+  const where = await receiveReply({ ...member, org_id: orgId }, body, "text", recentMessageFor(member.id, orgId), thread);
+  return `Message to ${where}`;
+}
+
+/** Texted replies held while asking "Which is this for?" go to whoever texted last if there's no answer in 30 minutes. */
+export async function deliverHeldReplies() {
+  const held = db().prepare("SELECT member_id, body, options FROM sms_member_pending WHERE created_at < datetime('now', '-30 minutes')").all() as { member_id: number; body: string; options: string }[];
+  for (const h of held) {
+    db().prepare("DELETE FROM sms_member_pending WHERE member_id = ?").run(h.member_id);
+    const member = db().prepare("SELECT id, display_name FROM members WHERE id = ?").get(h.member_id) as { id: number; display_name: string } | undefined;
+    const [first] = JSON.parse(h.options) as number[];
+    if (member && first) await deliverTextReply(member, first, h.body);
+  }
 }

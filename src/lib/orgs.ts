@@ -5,7 +5,7 @@ import { deleteAccount } from "./accounts";
 export { ORG_COOKIE } from "./org-cookie";
 import { isCalling, STANDARD_ORGS, type Calling, type CurrentUser, type Feature, type Member, type Org, type OrgEntry, type Role, type Ward } from "./types";
 
-const WARD_COLUMNS = "id, name, timezone, join_code, sms_monthly_limit, created_by, texting_enabled, pending, stake, request_note";
+const WARD_COLUMNS = "id, name, timezone, join_code, sms_monthly_limit, created_by, texting_enabled, pending, stake, request_note, reply_backup_id";
 const ORG_COLUMNS = "id, ward_id, name, kind, hidden_features, active";
 
 export function getWard(id: number): Ward | undefined {

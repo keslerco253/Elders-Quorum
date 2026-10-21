@@ -94,6 +94,26 @@ events and service separately, keep them **as scheduled**, set **their own**
 (when, and as an app notification or a text; up to 3 texts each), or turn them
 off. Teachers still get their teaching reminders.
 
+## When members reply
+
+A member's reply (in the app or by text) goes to the organization that last
+texted them, and everyone in its presidency is notified. A member who texted
+gets an app notification saying where it went.
+
+- **Two organizations texted them in the last 3 days?** Their reply first gets
+  "Which is your message for? Reply 1 for … or 2 for …". With no answer in 30
+  minutes, it goes to whoever texted last, so nothing is lost.
+- **Went to the wrong place?** Open the conversation and tap **Forward…** under
+  the message: send it to another organization's presidency or one leader. They
+  see it with a "Forwarded by …" note, and the member's next texted reply goes
+  to them.
+- **Backup person:** the bishopric picks one under ward-level **Admin →
+  Settings → Backup for members' messages**. If an organization can't receive a
+  message (it's turned off, or nobody is in its presidency), it goes to them
+  (or the bishopric) under **More → Pass it on**, to forward on.
+- A text from a number that isn't in the app gets one reply (at most once a
+  month) saying it wasn't delivered and to use their number on file or the app.
+
 ## Sunday School: Come, Follow Me
 
 Sunday School's lessons fill themselves from Come, Follow Me: **every week**

@@ -126,6 +126,8 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
     if (!r.phone) return false;
     if (!orgNames.has(r.org_id)) orgNames.set(r.org_id, orgFullName(r.org_id));
     const res = await sendSms(r.org_id, r.phone, smsBody(orgNames.get(r.org_id)!, payload, url), "notice");
+    // Which organizations texted them lately (to ask which one a reply is for).
+    if (res === "sent") d().prepare("INSERT INTO member_text_orgs (member_id, org_id) VALUES (?, ?) ON CONFLICT DO UPDATE SET at = datetime('now')").run(r.id, r.org_id);
     // A texted reply goes to this organization (and, after a member's message, to that member).
     if (res === "sent")
       d()
