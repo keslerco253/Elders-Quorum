@@ -6,7 +6,9 @@ import { ORG_COOKIE, orgCookieMaxAge, orgCookieValue } from "@/lib/org-cookie";
  * After the app moves to another server, set MOVED_TO=https://new-address on
  * the old one: every page and link sends people to the same page there.
  * Also sends www.<address> to the address itself, so sign-ins and forms work,
- * and shows visitors who aren't signed in the home page (/about) at "/".
+ * other domains pointed at the app (OTHER_DOMAINS, comma-separated; by default
+ * mywardlink.com, with or without www) to the same page at the address, and
+ * shows visitors who aren't signed in the home page (/about) at "/".
  */
 export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname + req.nextUrl.search;
@@ -14,7 +16,9 @@ export function middleware(req: NextRequest) {
   const to = moved && !/^https?:\/\//i.test(moved) ? `https://${moved}` : moved;
   if (to && req.nextUrl.pathname !== "/api/health") return NextResponse.redirect(to + path, 308);
   const app = appAddress();
-  if (app && req.headers.get("host") === "www." + app.host) return NextResponse.redirect(app.origin + path, 308);
+  const host = (req.headers.get("host") ?? "").toLowerCase().replace(/:\d+$/, "");
+  if (app && host === "www." + app.host) return NextResponse.redirect(app.origin + path, 308);
+  if (app && host !== app.host && otherDomains().includes(host.replace(/^www\./, ""))) return NextResponse.redirect(app.origin + path, 308);
   // ?org=<id> (from notifications and links between organizations) switches
   // to that organization, then shows the same page without it.
   const org = req.nextUrl.searchParams.get("org");
@@ -41,6 +45,13 @@ export function middleware(req: NextRequest) {
     return NextResponse.rewrite(url);
   }
   return NextResponse.next();
+}
+
+function otherDomains() {
+  return (process.env.OTHER_DOMAINS ?? "mywardlink.com")
+    .split(",")
+    .map((d) => d.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, ""))
+    .filter(Boolean);
 }
 
 function appAddress() {

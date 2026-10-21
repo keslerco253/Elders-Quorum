@@ -77,6 +77,13 @@ path **`/api/health`**. (Optional, but it lets Northflank restart the app if it 
    - If your registrar can't do it, send me a screenshot of its DNS page. The usual fix is to move the domain's DNS to Cloudflare (free); the domain itself stays where it is.
 5. Back in Northflank, link `mywardlink.net` (and `www` if you added it) to your service's port **3000** (in the domain's page, or the service's **Networking** section). Northflank sets up the https certificate itself.
 
+**Other domains (mywardlink.com):** add `mywardlink.com` (and `www.mywardlink.com`) the
+same way: verify it, add its records at its registrar, and link it to the same service's
+port 3000. The app sends every page there to the same page on mywardlink.net
+(`OTHER_DOMAINS`, default `mywardlink.com`; list more separated by commas). Or skip
+Northflank and use your registrar's **URL forwarding** (301, keep the path) to
+`https://mywardlink.net`.
+
 **Check:** open https://mywardlink.net on your phone. You should see
 **First-time setup**. **Don't fill in the setup form** — you'll restore instead.
 

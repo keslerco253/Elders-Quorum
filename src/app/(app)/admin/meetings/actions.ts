@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { addAgendaItem, createMeeting, finishMeeting, getMeeting, reviewRecord, type ReviewRecord } from "@/lib/meetings";
+import { addAgendaItem, cleanVideoLink, createMeeting, finishMeeting, getMeeting, reviewRecord, setVideoLink, videoKind, videoLink, type ReviewRecord } from "@/lib/meetings";
+import { audienceMembers, notify } from "@/lib/notify";
+import { withOrg } from "@/lib/org-cookie";
+import { leadersWord } from "@/lib/types";
 import { ledOrgIds } from "@/lib/conversations";
 import { formatDate, todayIn } from "@/lib/time";
 
@@ -103,4 +106,35 @@ export async function agendaFromMessage(fd: FormData) {
   addAgendaItem(msg.org_id, msg.body, { source: `Message from ${msg.display_name}, ${formatDate(msg.created_at.slice(0, 10), "short")}`, link: `/admin/replies/${msg.member_id}`, addedBy: user.id });
   revalidatePath("/admin", "layout");
   go(safeBack, "Added to the next presidency meeting's agenda.");
+}
+
+export async function saveVideoLink(fd: FormData) {
+  const user = await requirePresidency();
+  const raw = String(fd.get("link") || "").trim();
+  if (!raw) {
+    setVideoLink(user.org_id, null);
+    go("/admin/meetings", "Video meeting link removed.");
+  }
+  const link = cleanVideoLink(raw);
+  if (!link) go("/admin/meetings", "Paste a Zoom, Google Meet or Teams meeting link (it starts with https://).");
+  setVideoLink(user.org_id, link);
+  revalidatePath("/admin/meetings");
+  go("/admin/meetings", `${videoKind(link)} link saved. Tap Start to begin a meeting.`);
+}
+
+/** Opens the video meeting, and (if ticked) tells the rest of the presidency to join. */
+export async function startVideo(fd: FormData) {
+  const user = await requirePresidency();
+  const link = videoLink(user.org_id);
+  if (!link) go("/admin/meetings", "Add your meeting link first.");
+  if (fd.get("notify") === "on") {
+    const others = audienceMembers(user.org_id, "presidency").filter((r) => r.id !== user.id);
+    await notify(others, {
+      title: `${user.display_name} started a ${videoKind(link)} meeting`,
+      body: `The ${leadersWord(user.org)} meeting is starting. Tap to join.`,
+      url: withOrg("/admin/meetings/join", user.org_id),
+      linkLabel: "Join",
+    });
+  }
+  redirect(link);
 }

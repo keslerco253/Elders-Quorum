@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePresidency } from "@/lib/auth";
-import { getMeeting, meetingAgenda, pendingAgenda } from "@/lib/meetings";
+import { getMeeting, meetingAgenda, pendingAgenda, videoKind, videoLink } from "@/lib/meetings";
 import { orgTodos, STATUS_LABELS } from "@/lib/assignments";
 import { orgPresidency, orgRoster } from "@/lib/orgs";
 import { formatDate, todayIn } from "@/lib/time";
@@ -9,7 +9,7 @@ import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AssignmentForm } from "@/components/assignment-form";
 import { AgendaList } from "../agenda-list";
-import { addAgenda, deleteMeeting, finish, saveMeeting } from "../actions";
+import { addAgenda, deleteMeeting, finish, saveMeeting, startVideo } from "../actions";
 
 export const metadata = { title: "Presidency meeting" };
 
@@ -30,6 +30,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const todos = orgTodos(user.org_id, { meetingId: m.id });
   const from = sp.assign ? [...waiting, ...filed].find((a) => a.id === Number(sp.assign)) : undefined;
   const back = `/admin/meetings/${m.id}`;
+  const video = held ? null : videoLink(user.org_id);
 
   return (
     <>
@@ -39,6 +40,16 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
         subtitle={held ? `Finished. ${m.review_at ? `Up for review ${formatDate(m.review_at, "short")}.` : ""}` : "In progress: tick agenda items as you discuss them, then finish the meeting."}
       />
       <Flash msg={sp.msg} />
+      {video && (
+        <form action={startVideo} className="mb-5 flex flex-wrap items-center gap-3">
+          <SubmitButton className="btn-secondary" pendingText="Opening…">
+            Start {videoKind(video)} meeting
+          </SubmitButton>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="notify" defaultChecked /> Let the others know
+          </label>
+        </form>
+      )}
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <div id="agenda" className="scroll-mt-20" />

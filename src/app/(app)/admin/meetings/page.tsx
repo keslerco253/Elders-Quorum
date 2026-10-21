@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { requirePresidency } from "@/lib/auth";
-import { orgMeetings, pendingAgenda, recordsToReview } from "@/lib/meetings";
+import { orgMeetings, pendingAgenda, recordsToReview, videoKind, videoLink } from "@/lib/meetings";
 import { formatDate, todayIn } from "@/lib/time";
-import { roleLabel } from "@/lib/types";
+import { leadersWord, roleLabel } from "@/lib/types";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AgendaList } from "./agenda-list";
-import { addAgenda, newMeeting } from "./actions";
+import { addAgenda, newMeeting, saveVideoLink, startVideo } from "./actions";
 
 export const metadata = { title: "Presidency meetings" };
 
@@ -18,6 +18,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const agenda = pendingAgenda(user.org_id);
   const meetings = orgMeetings(user.org_id);
   const review = recordsToReview(user.org_id, today).length;
+  const video = videoLink(user.org_id);
+  const kind = video ? videoKind(video) : "Zoom";
 
   return (
     <>
@@ -79,6 +81,32 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
             </Section>
           </div>
         </div>
+        <div className="space-y-5">
+        <div id="video" className="card scroll-mt-20 space-y-3">
+          <h2 className="h2">{kind === "video" ? "Video meeting" : `${kind} meeting`}</h2>
+          {video ? (
+            <form action={startVideo} className="space-y-2">
+              <SubmitButton pendingText="Opening…">Start {kind} meeting</SubmitButton>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" name="notify" defaultChecked className="mt-1" />
+                <span>Let the rest of the {leadersWord(user.org)} know, with a Join button</span>
+              </label>
+            </form>
+          ) : (
+            <p className="text-sm text-muted">
+              Save your {leadersWord(user.org)}&apos;s meeting link once (a Zoom personal meeting room or recurring meeting, Google Meet or Teams). Then anyone in the{" "}
+              {leadersWord(user.org)} can start it from here.
+            </p>
+          )}
+          <details open={!video}>
+            <summary className="cursor-pointer text-sm text-accent">{video ? "Change the link" : "Add the link"}</summary>
+            <form action={saveVideoLink} className="mt-2 space-y-2">
+              <input name="link" type="url" defaultValue={video ?? ""} className="input" placeholder="https://us02web.zoom.us/j/1234567890?pwd=…" />
+              <SubmitButton className="btn-secondary btn-sm">Save link</SubmitButton>
+              <p className="hint">In Zoom: Meetings → Personal Room → Copy Invitation, and paste the link (it includes the passcode). Only the {leadersWord(user.org)} sees it. Leave it empty and save to remove it.</p>
+            </form>
+          </details>
+        </div>
         <form action={newMeeting} className="card h-fit space-y-3">
           <h2 className="h2">Start a meeting</h2>
           <input name="date" type="date" required defaultValue={today} className="input" aria-label="Date" />
@@ -86,6 +114,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           <SubmitButton>Start</SubmitButton>
           <p className="hint">Opens the agenda and a page for notes with the usual headings. Notes come up for review 3 months after the meeting.</p>
         </form>
+        </div>
       </div>
     </>
   );

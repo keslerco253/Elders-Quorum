@@ -131,7 +131,20 @@ function isCalendarLink(url: string) {
   return url.startsWith("webcal:") || /\/calendar\/\d+\/ics|\/feed\/\d+\//.test(url);
 }
 
+/** Video meetings open in their own app (Zoom, Meet, Teams) when it's installed. */
+function isVideoMeeting(url: string) {
+  try {
+    return /(^|\.)(zoom\.us|zoomgov\.com|meet\.google\.com|teams\.microsoft\.com|teams\.live\.com)$/i.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
 function openOutside(url: string) {
+  if (isVideoMeeting(url)) {
+    Linking.openURL(url).catch(() => WebBrowser.openBrowserAsync(url).catch(() => {}));
+    return;
+  }
   if (url.startsWith("https://") && !isCalendarLink(url)) WebBrowser.openBrowserAsync(url).catch(() => Linking.openURL(url));
   else Linking.openURL(url).catch(() => {});
 }

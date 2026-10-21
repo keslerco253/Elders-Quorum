@@ -1207,4 +1207,10 @@ ALTER TABLE lessons ADD COLUMN teacher_auto INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE lessons ADD COLUMN regular_done INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    // A presidency's (or bishopric's) video meeting link (Zoom, Google Meet, Teams), to
+    // start a meeting from the app and let the others join.
+    id: 56,
+    sql: `ALTER TABLE orgs ADD COLUMN video_link TEXT;`,
+  },
 ];

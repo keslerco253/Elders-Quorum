@@ -77,3 +77,15 @@ describe("presidency planning and My assignments", () => {
     expect(tomorrow?.payload.url).toBe("/assignments/31?org=1");
   });
 });
+
+describe("video meeting links", () => {
+  it("accepts Zoom, Meet and Teams links only", async () => {
+    const { cleanVideoLink, videoKind } = await import("@/lib/meetings");
+    expect(cleanVideoLink("us02web.zoom.us/j/123?pwd=x")).toBe("https://us02web.zoom.us/j/123?pwd=x");
+    expect(cleanVideoLink("https://meet.google.com/abc-defg-hij")).toBeTruthy();
+    expect(cleanVideoLink("http://zoom.us/j/1")).toBeNull();
+    expect(cleanVideoLink("https://zoom.us.evil.com/j/1")).toBeNull();
+    expect(cleanVideoLink("javascript:alert(1)")).toBeNull();
+    expect(videoKind("https://us02web.zoom.us/j/1")).toBe("Zoom");
+  });
+});

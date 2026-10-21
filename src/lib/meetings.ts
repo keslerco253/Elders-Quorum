@@ -122,3 +122,32 @@ export function reviewRecord(orgId: number, kind: ReviewRecord["kind"], id: numb
   if (keep) d.prepare(`UPDATE ${table} SET review_at = ? WHERE id = ? AND org_id = ?`).run(reviewDate(today), id, orgId);
   else d.prepare(`DELETE FROM ${table} WHERE id = ? AND org_id = ?`).run(id, orgId);
 }
+
+// Video meetings: the presidency's own link (a Zoom personal meeting room, a recurring
+// meeting, Google Meet or Teams). Only the presidency sees it.
+
+/** Accepts a Zoom, Google Meet or Teams link (https only); null if it isn't one. */
+export function cleanVideoLink(raw: string): string | null {
+  const v = raw.trim();
+  try {
+    const u = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`);
+    if (u.protocol !== "https:") return null;
+    return /(^|\.)(zoom\.us|zoomgov\.com|meet\.google\.com|teams\.microsoft\.com|teams\.live\.com)$/i.test(u.hostname) ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** "Zoom", "Google Meet", "Teams" or "video". */
+export function videoKind(link: string): string {
+  const host = new URL(link).hostname;
+  return /zoom/.test(host) ? "Zoom" : /meet\.google/.test(host) ? "Google Meet" : /teams/.test(host) ? "Teams" : "video";
+}
+
+export function videoLink(orgId: number): string | null {
+  return (db().prepare("SELECT video_link FROM orgs WHERE id = ?").get(orgId) as { video_link: string | null } | undefined)?.video_link ?? null;
+}
+
+export function setVideoLink(orgId: number, link: string | null) {
+  db().prepare("UPDATE orgs SET video_link = ? WHERE id = ?").run(link, orgId);
+}

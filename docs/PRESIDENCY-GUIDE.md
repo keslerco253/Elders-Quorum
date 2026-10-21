@@ -512,6 +512,16 @@ Only the presidency can see it.
   - **Records to review** lists each one with **Keep 3 more months** or
     **Delete**. Nothing is deleted on its own.
 
+**Video meetings (Zoom):**
+- On **Admin → Presidency meetings**, save your presidency's meeting link once:
+  a Zoom personal meeting room or recurring meeting, Google Meet or Teams. In
+  Zoom, use Meetings → Personal Room → Copy Invitation and paste the link; it
+  includes the passcode. Only the presidency sees it.
+- **Start Zoom meeting** opens it. With **Let the rest of the presidency know**
+  ticked, the others get a notification with a **Join** button that opens the
+  same meeting. The button also shows at the top of an unfinished meeting's page.
+- The bishopric can do the same for the ward.
+
 **Admin → Assignments**:
 - Give anyone in the organization an assignment (a presidency member or any
   member), with a due date and details.
