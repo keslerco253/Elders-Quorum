@@ -43,7 +43,7 @@ export function markGeneralConferences(orgId: number, fromDate: string): number 
  */
 export function openLessonSundays(orgId: number, fromDate: string): { id: number; date: string }[] {
   return db()
-    .prepare("SELECT id, date FROM lessons WHERE org_id = ? AND date >= ? AND kind = 'talk' AND url = '' AND title = '' ORDER BY date")
+    .prepare("SELECT id, date FROM lessons WHERE org_id = ? AND date >= ? AND kind = 'talk' AND topic = 0 AND url = '' AND title = '' ORDER BY date")
     .all(orgId, fromDate) as { id: number; date: string }[];
 }
 

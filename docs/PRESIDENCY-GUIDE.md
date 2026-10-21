@@ -150,6 +150,17 @@ paste.
   Library, copy its list of lessons, paste it in the box and load again. Check
   **See every week** afterwards.
 
+## Assigned topics
+
+When a Sunday's lesson is on an assigned topic instead of a talk:
+1. Open that Sunday in **Admin → Manage lessons**.
+2. Under *This Sunday is*, choose **A lesson on an assigned topic**.
+3. Fill in the **Topic**, optional **Details** (who assigned it, what to focus
+   on) and an optional link.
+
+It works like any other lesson: teachers, regular teachers, reminders, notes and
+comments. Pasted talk links skip it.
+
 ## Teachers
 
 - **Regular teachers** (Admin → Lessons → *Regular teachers*):

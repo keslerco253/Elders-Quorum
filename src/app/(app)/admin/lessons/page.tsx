@@ -283,7 +283,7 @@ export default async function AdminLessonsPage({
                       {conf ??
                         (l.title || (
                           <span className="text-muted">
-                            {cfm ? "No lesson yet" : "No talk yet"}
+                            {cfm ? "No lesson yet" : l.topic ? "No topic yet" : "No talk yet"}
                           </span>
                         ))}
                     </div>

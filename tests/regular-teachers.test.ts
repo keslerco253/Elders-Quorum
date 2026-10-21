@@ -45,3 +45,19 @@ describe("regular teachers", () => {
     expect(r.removed).toEqual([{ id: 2, weeks: [1] }]);
   });
 });
+
+describe("assigned topics", () => {
+  it("skips topic Sundays when pasting talk links, and fills them with regular teachers", async () => {
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (2, 1, 'S', 'Smith', 's@x.com', 'member');
+      INSERT INTO lessons (ward_id, date, kind) VALUES (1, '2026-11-01', 'talk'), (1, '2026-11-08', 'talk');
+    `);
+    db().prepare("UPDATE lessons SET topic = 1, title = 'Ministering' WHERE date = '2026-11-08'").run();
+    db().prepare("UPDATE lessons SET title = '' WHERE date = '2026-11-08'").run();
+    const { openLessonSundays } = await import("@/lib/lessons");
+    expect(openLessonSundays(1, "2026-10-21").map((l) => l.date)).toEqual(["2026-11-01"]);
+    saveRegularTeachers(1, [null, 2, null, null], "2026-10-21");
+    expect(teacherOn("2026-11-08")).toBe(2);
+  });
+});

@@ -7,6 +7,7 @@ import { getLesson } from "@/lib/lessons";
 import { isPresidency } from "@/lib/permissions";
 import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
+import { LessonFields } from "./lesson-fields";
 import { SubmitButton } from "@/components/client";
 import { askTeacher, assignTeacher, cancelTeachingRequest, deleteLesson, refillFromCfm, saveLesson } from "../actions";
 import { cfmWeekOn, usesCfm } from "@/lib/cfm";
@@ -59,47 +60,9 @@ export default async function EditLessonPage({ params, searchParams }: { params:
       )}
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         {/* Keyed on the lesson, so it shows the new values after a refill. */}
-        <form key={`${lesson.kind}|${lesson.date}|${lesson.title}|${lesson.speaker}|${lesson.url}`} action={saveLesson} className="card space-y-4">
+        <form key={`${lesson.kind}|${lesson.topic}|${lesson.date}|${lesson.title}|${lesson.speaker}|${lesson.url}`} action={saveLesson} className="card space-y-4">
           <input type="hidden" name="item_id" value={lesson.id} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="label" htmlFor="kind">
-                This Sunday is
-              </label>
-              <select id="kind" name="kind" defaultValue={lesson.kind} className="input">
-                <option value="talk">{cfm ? "A lesson" : "A lesson on a talk"}</option>
-                <option value="general_conference">General Conference (no lesson)</option>
-                <option value="stake_conference">Stake Conference (no lesson)</option>
-              </select>
-            </div>
-            <div>
-              <label className="label" htmlFor="date">
-                Date
-              </label>
-              <input id="date" name="date" type="date" defaultValue={lesson.date} className="input" />
-            </div>
-          </div>
-          <div>
-            <label className="label" htmlFor="url">
-              {cfm ? "Lesson link (Gospel Library)" : "Talk link (Gospel Library)"}
-            </label>
-            <input id="url" name="url" type="url" defaultValue={lesson.url} className="input" placeholder="https://www.churchofjesuschrist.org/study/general-conference/…" />
-            {!cfm && <p className="hint">Leave the title and speaker blank to look them up from the link.</p>}
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="label" htmlFor="title">
-                {cfm ? "Reading" : "Talk title"}
-              </label>
-              <input id="title" name="title" defaultValue={lesson.title} className="input" />
-            </div>
-            <div>
-              <label className="label" htmlFor="speaker">
-                {cfm ? "Lesson title" : "Speaker"}
-              </label>
-              <input id="speaker" name="speaker" defaultValue={lesson.speaker} className="input" />
-            </div>
-          </div>
+          <LessonFields kind={lesson.topic ? "topic" : lesson.kind} date={lesson.date} url={lesson.url} title={lesson.title} speaker={lesson.speaker} cfm={cfm} />
           <SubmitButton>Save lesson</SubmitButton>
         </form>
 

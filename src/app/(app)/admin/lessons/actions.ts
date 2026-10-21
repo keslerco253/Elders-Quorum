@@ -74,13 +74,15 @@ export async function saveLesson(fd: FormData) {
   const user = await requireAdmin();
   const lesson = getLesson(user.org_id, Number(fd.get("item_id")));
   if (!lesson) redirect("/admin/lessons");
+  // An assigned topic is a lesson (kind talk) marked as a topic.
+  const topic = fd.get("kind") === "topic" ? 1 : 0;
   const kind = KINDS.includes(fd.get("kind") as LessonKind) ? (fd.get("kind") as LessonKind) : "talk";
   const rawUrl = String(fd.get("url") || "").trim();
   // Only web links (never javascript: or data:).
   const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : rawUrl && !/^[a-z][a-z0-9+.-]*:/i.test(rawUrl) ? `https://${rawUrl}` : "";
   let title = String(fd.get("title") || "").trim();
   let speaker = String(fd.get("speaker") || "").trim();
-  if (url && url !== lesson.url && (!title || !speaker)) {
+  if (!topic && url && url !== lesson.url && (!title || !speaker)) {
     const info = await fetchTalkInfo(url);
     title ||= info.title;
     speaker ||= info.speaker;
@@ -92,8 +94,8 @@ export async function saveLesson(fd: FormData) {
   d.transaction(() => {
     if (other) d.prepare("UPDATE lessons SET date = ? WHERE id = ?").run(`swap-${other.id}`, other.id);
     // Changed by hand: a Come, Follow Me lesson is no longer updated from the schedule.
-    const handEdited = kind !== lesson.kind || title !== lesson.title || speaker !== lesson.speaker || url !== lesson.url || date !== lesson.date;
-    d.prepare("UPDATE lessons SET kind = ?, title = ?, speaker = ?, url = ?, date = ?, cfm_auto = cfm_auto * ? WHERE id = ?").run(kind, title, speaker, url, date, handEdited ? 0 : 1, lesson.id);
+    const handEdited = kind !== lesson.kind || topic !== lesson.topic || title !== lesson.title || speaker !== lesson.speaker || url !== lesson.url || date !== lesson.date;
+    d.prepare("UPDATE lessons SET kind = ?, topic = ?, title = ?, speaker = ?, url = ?, date = ?, cfm_auto = cfm_auto * ? WHERE id = ?").run(kind, topic, title, speaker, url, date, handEdited ? 0 : 1, lesson.id);
     if (other) d.prepare("UPDATE lessons SET date = ?, cfm_auto = 0 WHERE id = ?").run(lesson.date, other.id);
   })();
   refresh();

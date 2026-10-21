@@ -231,7 +231,7 @@ export default async function HomePage() {
                     </div>
                   ) : (
                     <>
-                      <div className="font-semibold">{next.title || (cfm ? "Lesson to be announced" : "Talk to be announced")}</div>
+                      <div className="font-semibold">{next.title || (cfm ? "Lesson to be announced" : next.topic ? "Topic to be announced" : "Talk to be announced")}</div>
                       {next.speaker && <div className="text-sm text-muted">{next.speaker}</div>}
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                         {next.teacher_name ? (
@@ -259,7 +259,7 @@ export default async function HomePage() {
                     className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-sm hover:bg-surface-2"
                   >
                     <DateChip date={l.date} />
-                    <span className="min-w-0 flex-1 truncate">{conferenceLabel(l.kind) ?? (l.title || (cfm ? "Lesson to be announced" : "Talk to be announced"))}</span>
+                    <span className="min-w-0 flex-1 truncate">{conferenceLabel(l.kind) ?? (l.title || (cfm ? "Lesson to be announced" : l.topic ? "Topic to be announced" : "Talk to be announced"))}</span>
                   </OrgLink>
                 ))}
               </div>

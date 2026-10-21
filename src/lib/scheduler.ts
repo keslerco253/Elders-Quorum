@@ -81,7 +81,7 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       payload = { ...renderTemplate(org.id, "lesson_conference", { day: when, conference: conf, org: org.label, this_week: w.tag === "sat" ? "tomorrow" : "this week" }), url: `/lessons/${lesson.id}` };
     } else {
       payload = {
-        ...renderTemplate(org.id, "lesson_reminder", { day: when, lesson_title: lesson.title, speaker: lesson.speaker, teacher: lesson.teacher_name }),
+        ...renderTemplate(org.id, "lesson_reminder", { day: when, lesson_title: lesson.title, speaker: lesson.topic ? "" : lesson.speaker, teacher: lesson.teacher_name }),
         url: `/lessons/${lesson.id}`,
       };
     }
@@ -93,7 +93,7 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
     out.push({ key: `lesson-${w.tag}:${org.id}:${date}`, recipients: everyone, payload });
     if (teacher) {
       const confirmed = !!lesson.teacher_confirmed_at;
-      const about = [lesson.title ? `"${lesson.title}"${lesson.speaker ? ` by ${lesson.speaker}` : ""}.` : "", teacherNotesLine(lesson.id)].filter(Boolean).join(" ");
+      const about = [lesson.title ? `"${lesson.title}"${lesson.speaker && !lesson.topic ? ` by ${lesson.speaker}` : ""}.` : "", teacherNotesLine(lesson.id)].filter(Boolean).join(" ");
       out.push({
         key: `lesson-teacher-${w.tag}:${org.id}:${date}:${teacher.id}`,
         recipients: [teacher],
@@ -154,7 +154,7 @@ function myLessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
           }
         : cfm && days >= 2
           ? { ...renderTemplate(org.id, "cfm_week", { reading: lesson.title, lesson_title: lesson.speaker }), url: `/lessons/${lesson.id}` }
-          : { ...renderTemplate(org.id, "lesson_reminder", { day, lesson_title: lesson.title, speaker: lesson.speaker, teacher: lesson.teacher_name }), url: `/lessons/${lesson.id}` };
+          : { ...renderTemplate(org.id, "lesson_reminder", { day, lesson_title: lesson.title, speaker: lesson.topic ? "" : lesson.speaker, teacher: lesson.teacher_name }), url: `/lessons/${lesson.id}` };
     for (const m of members) {
       // The teacher gets the teacher's reminders instead.
       if (lesson.kind === "talk" && m.id === lesson.teacher_id) continue;

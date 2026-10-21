@@ -1271,4 +1271,9 @@ CREATE TABLE conducting_swaps (
 CREATE INDEX conducting_swaps_org ON conducting_swaps(org_id, date);
 `,
   },
+  {
+    // A lesson on an assigned topic (not a conference talk): a flag on a lesson.
+    id: 60,
+    sql: `ALTER TABLE lessons ADD COLUMN topic INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];

@@ -61,7 +61,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
                       <div className="font-semibold">{conf}</div>
                     ) : (
                       <>
-                        <div className="truncate font-semibold">{l.title || (cfm ? "Lesson to be announced" : "Talk to be announced")}</div>
+                        <div className="truncate font-semibold">{l.title || (cfm ? "Lesson to be announced" : l.topic ? "Topic to be announced" : "Talk to be announced")}</div>
                         <div className="truncate text-sm text-muted">{l.speaker}</div>
                       </>
                     )}

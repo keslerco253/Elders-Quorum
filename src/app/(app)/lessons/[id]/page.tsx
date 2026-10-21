@@ -66,7 +66,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
 
   return (
     <>
-      <PageHeader title={conf ?? (lesson.title || (cfm ? "Lesson to be announced" : "Talk to be announced"))} back={{ href: "/lessons", label: "Lessons" }} subtitle={formatDate(lesson.date)} />
+      <PageHeader title={conf ?? (lesson.title || (cfm ? "Lesson to be announced" : lesson.topic ? "Topic to be announced" : "Talk to be announced"))} back={{ href: "/lessons", label: "Lessons" }} subtitle={formatDate(lesson.date)} />
       <Flash msg={sp.msg} />
 
       {conf ? (
@@ -94,12 +94,13 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
               </div>
             ))}
           <div className="card mb-5 space-y-4">
-            {lesson.speaker && <p className="text-muted">{lesson.speaker}</p>}
+            {!!lesson.topic && <div className="text-xs font-semibold tracking-wide text-accent uppercase">Assigned topic</div>}
+            {lesson.speaker && <p className="text-muted whitespace-pre-wrap">{lesson.speaker}</p>}
             {lesson.url ? (
               <a href={lesson.url} target="_blank" rel="noreferrer" className="btn-primary w-full sm:w-auto">
-                {cfm ? "Read this week's lesson in Gospel Library ↗" : "Read the talk in Gospel Library ↗"}
+                {cfm ? "Read this week's lesson in Gospel Library ↗" : lesson.topic ? "Open the link ↗" : "Read the talk in Gospel Library ↗"}
               </a>
-            ) : (
+            ) : lesson.topic ? null : (
               <p className="text-sm text-muted">{cfm ? "The lesson link hasn't been posted yet." : "The talk link hasn't been posted yet."}</p>
             )}
             <div className="border-t border-border pt-4">
