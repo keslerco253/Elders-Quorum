@@ -15,7 +15,7 @@ function go(text: string): never {
   redirect(`/admin/settings?msg=${encodeURIComponent(text)}`);
 }
 
-/** Back to More → Ward settings. */
+/** Back to Admin → Ward settings. */
 function goWard(text: string): never {
   redirect(`/ward-settings?msg=${encodeURIComponent(text)}`);
 }
@@ -154,7 +154,7 @@ export async function saveWardAdmins(fd: FormData) {
   const orgId = wardOrg(user.ward_id).id;
   for (const id of kept.filter((id) => !before.has(id) && id !== user.id)) {
     const r = recipientById(id, orgId);
-    if (r) await notify([r], { title: `You're a ward administrator for ${user.ward.name}`, body: `${user.display_name} made you a ward administrator. You manage the ward's organizations, join code and settings under More → Ward settings.`, url: "/ward-settings" });
+    if (r) await notify([r], { title: `You're a ward administrator for ${user.ward.name}`, body: `${user.display_name} made you a ward administrator. You manage the ward's organizations, join code and settings under Admin → Ward settings.`, url: "/ward-settings" });
   }
   revalidatePath("/", "layout");
   goWard(kept.length ? "Ward administrators saved." : "No ward administrators: the bishopric manages Ward settings until you choose some.");

@@ -40,7 +40,7 @@ Keep the `EldersQuorumApp` folder in the Windows user folder (`C:\Users\<you>\El
 
 To move off a home computer onto Northflank (or another host), see
 [Moving to Northflank](SETUP-NORTHFLANK.md): download a backup in
-**More → Site owner → Backup**, restore it on the new server's setup page, then
+**Admin → Site owner → Backup**, restore it on the new server's setup page, then
 set `MOVED_TO` on the old one so old links and Home Screen icons follow.
 
 ## The phone app

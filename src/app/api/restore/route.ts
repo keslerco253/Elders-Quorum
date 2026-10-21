@@ -7,7 +7,7 @@ const back = (path: string, params: Record<string, string>) => new Response(null
 
 /**
  * Replaces everything with a backup. The site owner can do this any time
- * (More → Site owner, typing RESTORE). On a brand-new server with no one in
+ * (Admin → Site owner, typing RESTORE). On a brand-new server with no one in
  * it yet, the setup page can too, with the SETUP_CODE setting.
  */
 export async function POST(req: Request) {
@@ -19,8 +19,8 @@ export async function POST(req: Request) {
   if (owner) {
     if (String(form.get("confirm") || "").trim().toUpperCase() !== "RESTORE") return back(from, { error: "Type RESTORE to confirm replacing everything." });
   } else {
-    if (!needsSetup()) return back("/login", { error: "This server is already set up. The site owner can restore a backup under More → Site owner." });
-    if (!process.env.SETUP_CODE) return back(from, { error: "Start a ward with the site owner's email, then restore from More → Site owner." });
+    if (!needsSetup()) return back("/login", { error: "This server is already set up. The site owner can restore a backup under Admin → Site owner." });
+    if (!process.env.SETUP_CODE) return back(from, { error: "Start a ward with the site owner's email, then restore from Admin → Site owner." });
     if (!setupCodeMatches(String(form.get("setup_code") || ""))) return back(from, { error: "The setup code is incorrect." });
   }
   const file = form.get("backup");

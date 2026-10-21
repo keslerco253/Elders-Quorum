@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
-import { adminCounts } from "@/lib/admin-counts";
+import { adminCounts, hasAdminTab, passOnCount } from "@/lib/admin-counts";
 import { Nav } from "@/components/nav";
 import { hasFeature, ledOrgsAnywhere, orgLabel, orgsInWard } from "@/lib/orgs";
 import { leaderUnread, unreadAnswers } from "@/lib/conversations";
@@ -23,8 +23,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         targets={targets}
         features={{ lessons: hasFeature(user.org, "lessons"), signups: hasFeature(user.org, "signups") }}
         // Leaders keep the Admin tab while looking at another organization; it shows where to switch.
-        isAdmin={isAdmin(user) || ledOrgsAnywhere(user.id).length > 0}
-        adminCount={counts.total}
+        // Ward administrators, the site owner and the backup person have theirs there too.
+        isAdmin={isAdmin(user) || ledOrgsAnywhere(user.id).length > 0 || hasAdminTab(user)}
+        adminCount={counts.total + passOnCount(user)}
         moreCount={unreadNotifications(user.id)}
         messagesCount={unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id)}
       />

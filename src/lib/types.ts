@@ -70,7 +70,7 @@ export interface Org {
   name: string;
   kind: "ward" | "group";
   hidden_features: string;
-  /** Turned off organizations stay in More → Ward settings but are hidden everywhere else. */
+  /** Turned off organizations stay in Admin → Ward settings but are hidden everywhere else. */
   active: number;
 }
 

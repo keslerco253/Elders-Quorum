@@ -11,7 +11,7 @@ A red number on **Admin** means something is waiting for you.
   members, lessons, messages, visits, approvals and settings. Set someone's
   access level under Admin → Members.
 - **The site owner** (one person, set by `OWNER_EMAIL` on the server) also
-  has **More → Site owner**: every ward, email and texting setup, each ward's
+  has **Admin → Site owner**: every ward, email and texting setup, each ward's
   texting on/off and monthly text limit, backups, and a way back into any ward.
 
 ## Wards and organizations
@@ -55,7 +55,7 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
   (More → Contact & notifications, with a code). Someone already using the app
   in another ward joins yours themselves with your join code.
 - **Ward administrators:** up to two people who manage the whole ward's
-  settings under **More → Ward settings**: its organizations, join code, name
+  settings under **Admin → Ward settings**: its organizations, join code, name
   and time zone, and the backup person for members' messages. The bishop can be
   one, but doesn't have to be. Choose them at the top of Ward settings; new ones
   get a notification. Until they're chosen, the bishopric manages these. The
@@ -63,7 +63,7 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
   their own organization's settings (Admin → Settings).
 - **Organizations (ward administrators):** every ward comes with Elders Quorum,
   Relief Society, Young Men, Young Women, Primary and Sunday School. Under
-  **More → Ward settings → Organizations**: **Turn off** the ones you don't
+  **Admin → Ward settings → Organizations**: **Turn off** the ones you don't
   use (hidden from members, nothing deleted), **Turn on** to bring one back,
   **Delete** to remove one and everything in it for good, or **Add an
   organization** for anything else. Each organization can also turn off
@@ -131,7 +131,7 @@ gets an app notification saying where it went.
 - **Backup person:** the bishopric picks one under ward-level **Admin →
   Settings → Backup for members' messages**. If an organization can't receive a
   message (it's turned off, or nobody is in its presidency), it goes to them
-  (or the bishopric) under **More → Pass it on**, to forward on.
+  (or the bishopric) under **Admin → Pass it on**, to forward on.
 - A text from a number that isn't in the app gets one reply (at most once a
   month) saying it wasn't delivered and to use their number on file or the app.
 
@@ -151,7 +151,7 @@ paste.
   set it. **Refill from Come, Follow Me** puts it back.
 - General Conference Sundays are marked for you; mark Stake Conference as
   usual.
-- **Site owner, once a year:** More → Site owner → **Come, Follow Me
+- **Site owner, once a year:** Admin → Site owner → **Come, Follow Me
   schedule** → **Load the schedule** (it reads the manual from
   churchofjesuschrist.org). If that doesn't work, open the manual in Gospel
   Library, copy its list of lessons, paste it in the box and load again. Check
@@ -459,7 +459,7 @@ requests (TEACH / CAN'T) are still handled as teaching answers.
   name, "Hyrum Johnson, …"). A colon works too ("Hyrum: see you at 7") and
   leaves the name off the message.
 
-**Site owner:** More → Site owner → **Incoming texts** lists the last month's
+**Site owner:** Admin → Site owner → **Incoming texts** lists the last month's
 incoming texts and where each one went (an answer to whom, a message to the
 presidency, a teaching reply, an unknown number).
 

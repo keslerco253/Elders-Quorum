@@ -132,7 +132,7 @@ After that you can turn it off for good (keep a copy of
 1. **Reply webhook:** in Twilio, open your Messaging Service (where you set the
    webhook before) and change the incoming-message URL to
    `https://mywardlink.net/api/sms/inbound` (HTTP POST). Save.
-2. **Test:** in the new app, **More → Site owner → Send me a test text**, then reply to it and check **Admin → Replies**.
+2. **Test:** in the new app, **Admin → Site owner → Send me a test text**, then reply to it and check **Admin → Replies**.
 3. **Campaign links:** your approved texting campaign lists the privacy and
    terms pages at the old address. Open a ticket with Twilio Support (Help →
    Support → Create ticket) asking to update the campaign's links to:
@@ -162,7 +162,7 @@ getting them through the old icon.
 
 The app still makes a nightly backup, but on Northflank it's kept on the same
 disk as the app. Once a month (and before any big change), download one from
-**More → Site owner → Backup** and keep it somewhere safe (not shared).
+**Admin → Site owner → Backup** and keep it somewhere safe (not shared).
 
 ## Updating the app later
 

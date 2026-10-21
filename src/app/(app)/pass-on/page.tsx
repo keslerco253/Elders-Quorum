@@ -22,6 +22,7 @@ export default async function PassOnPage({ searchParams }: { searchParams: Promi
     <>
       <PageHeader
         title="Pass it on"
+        back={{ href: "/admin", label: "Admin" }}
         subtitle="Members' messages to an organization that couldn't receive them (turned off, or nobody in its presidency). Forward each to the right organization or leader."
       />
       <Flash msg={sp.msg} tone="success" />

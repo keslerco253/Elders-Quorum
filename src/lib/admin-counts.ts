@@ -2,6 +2,7 @@ import { db } from "./db";
 import type { CurrentUser } from "./types";
 import { isAdmin, isPresidency } from "./permissions";
 import { unreadReplies } from "./conversations";
+import { handlesBackup, messagesNeedingHome } from "./message-routing";
 
 interface NeedLesson {
   id: number;
@@ -85,4 +86,14 @@ export function adminCounts(user: CurrentUser) {
     // Unread messages from members count on the Messages tab, not here.
     total: comments + notes + eventRequests + access + volunteers + visitRequests + teacherNeeded + newTimes,
   };
+}
+
+/** Members' messages waiting for this person to pass on (they're the ward's backup person). */
+export function passOnCount(user: CurrentUser): number {
+  return handlesBackup(user) ? messagesNeedingHome(user.ward_id).length : 0;
+}
+
+/** Ward tools that put the Admin tab in front of someone who isn't a leader here. */
+export function hasAdminTab(user: CurrentUser): boolean {
+  return user.wardAdmin || !!user.is_site_owner || passOnCount(user) > 0;
 }

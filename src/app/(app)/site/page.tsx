@@ -77,7 +77,7 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
   const cfmWeeks = db().prepare("SELECT * FROM cfm_weeks ORDER BY sunday").all() as CfmWeek[];
   return (
     <>
-      <PageHeader title="Site owner" back={{ href: "/more", label: "More" }} subtitle="Every ward on this app, email and texting, and backups. Only you see this page." />
+      <PageHeader title="Site owner" back={{ href: "/admin", label: "Admin" }} subtitle="Every ward on this app, email and texting, and backups. Only you see this page." />
       <Flash msg={sp.msg} />
       <Flash msg={sp.error} tone="danger" />
 

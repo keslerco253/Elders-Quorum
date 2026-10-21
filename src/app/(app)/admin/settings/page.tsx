@@ -48,7 +48,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <p className="mt-6 max-w-xl text-sm text-muted">
           The ward&apos;s organizations, join code and other ward settings are under{" "}
           <Link href="/ward-settings" className="link">
-            More → Ward settings
+            Admin → Ward settings
           </Link>
           .
         </p>

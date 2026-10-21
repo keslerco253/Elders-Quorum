@@ -42,7 +42,7 @@ export default async function WardSettingsPage({ searchParams }: { searchParams:
   const admins = wardAdmins(user.ward_id);
   return (
     <>
-      <PageHeader title="Ward settings" back={{ href: "/more", label: "More" }} subtitle={`${user.ward.name}: its organizations, join code and settings.`} />
+      <PageHeader title="Ward settings" back={{ href: "/admin", label: "Admin" }} subtitle={`${user.ward.name}: its organizations, join code and settings.`} />
       <Flash msg={sp.msg} />
       <Section title="Ward administrators">
         <form action={saveWardAdmins} className="card max-w-xl space-y-3 text-sm">

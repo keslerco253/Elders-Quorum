@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { requireAdmin } from "@/lib/auth";
-import { adminCounts } from "@/lib/admin-counts";
-import { isPresidency } from "@/lib/permissions";
+import { requireAdminTab } from "@/lib/auth";
+import { adminCounts, passOnCount } from "@/lib/admin-counts";
+import { isAdmin, isPresidency } from "@/lib/permissions";
 import { CountDot, PageHeader, Section } from "@/components/ui";
 import { openInvitations, upcomingVisits } from "@/lib/planned-visits";
 import { roleLabel, type Feature } from "@/lib/types";
@@ -43,7 +43,28 @@ function Tiles({ tiles }: { tiles: Tile[] }) {
 }
 
 export default async function AdminPage() {
-  const user = await requireAdmin();
+  const user = await requireAdminTab();
+  // Ward tools: for ward administrators, the site owner and the backup person, even if
+  // they don't lead the organization they're looking at.
+  const passOn = passOnCount(user);
+  const wardTiles: Tile[] = [
+    ...(passOn ? [{ href: "/pass-on", label: "Pass it on", count: passOn, desc: "Members' messages that need passing on to the right organization" }] : []),
+    ...(user.wardAdmin ? [{ href: "/ward-settings", label: "Ward settings", desc: `${user.ward.name}'s organizations, join code and ward administrators` }] : []),
+    ...(user.is_site_owner ? [{ href: "/site", label: "Site owner", desc: "Every ward, texting, backups" }] : []),
+  ];
+  const wardSection = wardTiles.length > 0 && (
+    <Section title="Ward">
+      <Tiles tiles={wardTiles} />
+    </Section>
+  );
+  if (!isAdmin(user)) {
+    return (
+      <>
+        <PageHeader title="Admin" subtitle={`Ward tools for ${user.ward.name}`} />
+        {wardSection}
+      </>
+    );
+  }
   const c = adminCounts(user);
   const p = isPresidency(user);
   const has = (f: Feature) => hasFeature(user.org, f);
@@ -182,6 +203,7 @@ export default async function AdminPage() {
           ]}
         />
       </Section>
+      {wardSection}
       <Section title="Setup">
         <Tiles
           tiles={[

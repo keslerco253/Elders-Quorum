@@ -33,7 +33,7 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
               </SubmitButton>
             </form>
           ) : (
-            <p>Ask a ward administrator to create one (More → Ward settings).</p>
+            <p>Ask a ward administrator to create one (Admin → Ward settings).</p>
           )}
         </Empty>
       ) : (

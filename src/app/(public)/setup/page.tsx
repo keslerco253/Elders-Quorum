@@ -54,7 +54,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
         ) : (
           <p className="mt-3 text-sm text-muted">
             Start a ward with the site owner&apos;s email{process.env.OWNER_EMAIL ? "" : " (set OWNER_EMAIL on the server first)"}, then restore from{" "}
-            <strong>More → Site owner → Restore a backup</strong>. That replaces the new ward with everything in the backup.
+            <strong>Admin → Site owner → Restore a backup</strong>. That replaces the new ward with everything in the backup.
           </p>
         )}
       </details>

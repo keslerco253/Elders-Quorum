@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { hasAdminTab } from "./admin-counts";
 import { cache } from "react";
 import { isHttps } from "./config";
 import { createSession, deleteSession, userForSession, type Remember } from "./auth-core";
@@ -31,6 +32,16 @@ function notALeaderHere(user: CurrentUser): never {
   redirect(ledOrgsAnywhere(user.id).length ? "/leader" : "/");
 }
 
+/**
+ * The Admin tab: an organization's leaders, plus ward administrators, the site owner
+ * and the ward's backup person (with messages to pass on), for their own tools there.
+ */
+export async function requireAdminTab(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (!isAdmin(user) && !hasAdminTab(user)) notALeaderHere(user);
+  return user;
+}
+
 export async function requireAdmin(): Promise<CurrentUser> {
   const user = await requireUser();
   if (!isAdmin(user)) notALeaderHere(user);
@@ -40,7 +51,7 @@ export async function requireAdmin(): Promise<CurrentUser> {
 /** Ward administrators (or the site owner): ward settings, join code, organizations. */
 export async function requireWardAdmin(): Promise<CurrentUser> {
   const user = await requireUser();
-  if (!user.wardAdmin) redirect("/more");
+  if (!user.wardAdmin) redirect("/");
   return user;
 }
 

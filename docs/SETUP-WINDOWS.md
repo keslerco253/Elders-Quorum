@@ -135,7 +135,7 @@ docker compose up -d
    choose **Mountain – Idaho**, and enter your name and email.
 3. Check your email for the sign-in code.
 4. **Admin → Settings → Join code → Create a code.**
-5. **More → Site owner → Send me a test email** to confirm email works.
+5. **Admin → Site owner → Send me a test email** to confirm email works.
 6. Have the counselors, secretary, bishop and Stake High Council representative join (with the
    code), then open each of them in **Admin → Members** and set their
    **Access level**.
@@ -207,7 +207,7 @@ can be handed to the next president.
    TWILIO_FROM=+12085550100
    ```
 6. Double-click **UPDATE.bat**. Then add your own number under **More → My
-   contact info** and use **More → Site owner → Send me a test text**.
+   contact info** and use **Admin → Site owner → Send me a test text**.
 7. **Let text replies reach the presidency.** In Twilio, go to **Messaging →
    Services → (your service) → Integration**. Under **Incoming Messages**, choose
    **Send a webhook**, set **Request URL** to
@@ -265,7 +265,7 @@ If you change `APP_URL`, run UPDATE.bat (the address is built into the app).
 |---|---|
 | Installer says the app "isn't answering" | Another program may be using port 3000. Run INSTALL.bat again: it now detects this, picks a free port and saves it as `APP_PORT` in the settings file. To see who uses the port: `Get-NetTCPConnection -State Listen -LocalPort 3000` in PowerShell. |
 | Site doesn't load | Is Docker Desktop running? Run `docker ps` (look for `elders-quorum-app-1`). Run `tailscale funnel status` to check the address. |
-| No sign-in emails | More → Site owner → Send me a test email. Check `SMTP_USER`/`SMTP_PASS` with OPEN-SETTINGS.bat, then run UPDATE.bat. |
+| No sign-in emails | Admin → Site owner → Send me a test email. Check `SMTP_USER`/`SMTP_PASS` with OPEN-SETTINGS.bat, then run UPDATE.bat. |
 | See what the app is doing | `docker logs -f elders-quorum-app-1` |
 | Changed the settings file | Run UPDATE.bat (restarts with new settings) |
 
