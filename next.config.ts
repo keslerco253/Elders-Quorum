@@ -14,6 +14,8 @@ const publicHost = (() => {
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // When this version was built, shown by /api/health (to check a deploy went out).
+  env: { BUILT_AT: new Date().toISOString() },
   // Basic browser protections on every page: no framing by other sites (clickjacking),
   // no content-type guessing, HTTPS only, and no full addresses leaked to other sites.
   async headers() {
