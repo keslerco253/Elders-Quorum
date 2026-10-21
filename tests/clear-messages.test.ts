@@ -34,12 +34,12 @@ describe("clearing a ward's messages before going live", () => {
       INSERT INTO events (ward_id, title, starts_at, ends_at) VALUES (1, 'Temple night', '2026-11-01T02:00:00Z', '2026-11-01T04:00:00Z'), (2, 'Theirs', '2026-11-01T02:00:00Z', '2026-11-01T04:00:00Z');
       INSERT INTO signups (id, ward_id, title) VALUES (1, 1, 'Meals'), (2, 2, 'Theirs');
       INSERT INTO signup_slots (signup_id, label, capacity) VALUES (1, 'Dinner', 2);
-      INSERT INTO plans (ward_id, kind, title) VALUES (1, 'temple', 'Temple plan');
     `);
     const count = (t: string) => (db().prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as { n: number }).n;
+    const plans = count("ward_plans");
     expect(clearWardCalendar(1)).toEqual({ events: 1 });
     expect([count("events"), count("signups")]).toEqual([1, 2]);
     expect(clearWardService(1)).toEqual({ signups: 1 });
-    expect([count("signups"), count("signup_slots"), count("plans")]).toEqual([1, 0, 1]);
+    expect([count("signups"), count("signup_slots"), count("ward_plans")]).toEqual([1, 0, plans]);
   });
 });
