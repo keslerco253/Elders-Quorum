@@ -10,6 +10,7 @@ import { respondPath } from "./teaching";
 import { formatDate, formatDateTime } from "./time";
 import type { PushPayload } from "./push";
 import type { EventRow } from "./types";
+import { eventAudience } from "./events";
 import { hasFeature } from "./orgs";
 import { runRetention } from "./retention";
 import { extendAllSeries } from "./event-series";
@@ -130,7 +131,7 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       if (remindAt > now || now.diff(remindAt, "hours").hours > 6) continue;
       out.push({
         key: `${keyPrefix}:${e.id}:${e.starts_at}`,
-        recipients: audienceMembers(org.id, e.presidency_only ? "admins" : "everyone"),
+        recipients: eventAudience(e),
         payload: { ...renderTemplate(org.id, "event_reminder", { event: e.title, date_time: formatDateTime(e.starts_at, org.timezone), location: e.location }), url: `/calendar/${e.id}` },
       });
     }

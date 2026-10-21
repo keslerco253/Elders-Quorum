@@ -1,7 +1,9 @@
 import { db } from "./db";
 import { audienceMembers, recipientById, type Recipient } from "./notify";
 import { getGroup, orgGroups } from "./groups";
+import { orgsInWard } from "./orgs";
 import { leadersWord, type CurrentUser } from "./types";
+import { eventAudience } from "./events";
 
 // "Send a notification" on events and service opportunities: who it can go to.
 
@@ -11,9 +13,9 @@ export interface AnnounceChoice {
 }
 
 /** Everyone, the leaders, each group, plus any choices for this item (people who RSVP'd, who signed up). */
-export function announceChoices(user: CurrentUser, extra: AnnounceChoice[] = []): AnnounceChoice[] {
+export function announceChoices(user: CurrentUser, extra: AnnounceChoice[] = [], opts: { invites?: boolean } = {}): AnnounceChoice[] {
   return [
-    { value: "everyone", label: `Everyone in ${user.orgLabel}` },
+    { value: "everyone", label: `Everyone in ${user.orgLabel}${opts.invites ? " and the organizations invited" : ""}` },
     ...extra,
     { value: "presidency", label: `Just the ${leadersWord(user.org)}` },
     ...orgGroups(user.org_id).map((g) => ({ value: `group:${g.id}`, label: `${g.name} (${g.n} ${g.n === 1 ? "person" : "people"})` })),
@@ -23,9 +25,15 @@ export function announceChoices(user: CurrentUser, extra: AnnounceChoice[] = [])
 const byIds = (ids: number[], orgId: number) => ids.map((id) => recipientById(id, orgId)).filter((r): r is Recipient => !!r);
 
 /** The people a choice means. `leadersOnly` (a leaders-only event) always means just the leaders. */
-export function announceRecipients(user: CurrentUser, raw: string, opts: { leadersOnly?: boolean; eventId?: number; signupId?: number } = {}): Recipient[] {
+export function announceRecipients(
+  user: CurrentUser,
+  raw: string,
+  opts: { leadersOnly?: boolean; eventId?: number; signupId?: number; event?: Parameters<typeof eventAudience>[0] } = {},
+): Recipient[] {
   const org = user.org_id;
   if (opts.leadersOnly) return audienceMembers(org, "admins");
+  // An event's "everyone" includes the organizations it invited.
+  if (raw === "everyone" && opts.event) return eventAudience(opts.event);
   if (raw === "presidency") return audienceMembers(org, "presidency");
   if (raw.startsWith("group:")) {
     const g = getGroup(Number(raw.slice(6)), org);
@@ -45,3 +53,11 @@ export function announceRecipients(user: CurrentUser, raw: string, opts: { leade
 }
 
 export const notifiedNote = (n: number) => ` ${n} ${n === 1 ? "person was" : "people were"} notified.`;
+
+/** For an organization's event form: the ward's other organizations it can invite. */
+export function inviteChoicesFor(user: CurrentUser) {
+  if (user.org.kind === "ward") return undefined;
+  return orgsInWard(user.ward_id)
+    .filter((o) => o.kind === "group" && o.id !== user.org_id)
+    .map((o) => ({ id: o.id, label: o.name }));
+}

@@ -177,6 +177,10 @@ dates**. An existing one-time event can be made repeating by editing it.
   the new event when you save it. When you **change** an event or a service
   opportunity, check **Send an update** to tell people (everyone, the
   presidency, a group, or just the people who RSVP'd or signed up).
+- **Invite other organizations:** on an organization's event, tick **The
+  whole ward** or any other organizations under **Invite other
+  organizations**. They see it on their calendars, get its reminders and can
+  RSVP; it stays your event and only your presidency can change it.
 - Member suggestions show in **Admin → Event requests**. Approving adds the
   event and notifies the member; you can then adjust it.
 

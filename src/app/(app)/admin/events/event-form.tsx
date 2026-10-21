@@ -10,7 +10,23 @@ import { AnnounceField } from "@/components/announce-field";
 
 /** `date` (yyyy-mm-dd) pre-fills a new event for that day, 7–8 PM. */
 /** `announceTo`: who can be told about the new event, or sent an update about a change. */
-export function EventForm({ e, tz, date, series, announceTo }: { e?: EventRow; tz: string; date?: string; series?: SeriesRow; announceTo?: { value: string; label: string }[] }) {
+export function EventForm({
+  e,
+  tz,
+  date,
+  series,
+  announceTo,
+  inviteChoices,
+}: {
+  e?: EventRow;
+  tz: string;
+  date?: string;
+  series?: SeriesRow;
+  announceTo?: { value: string; label: string }[];
+  /** The ward's other organizations, which an organization's event can invite. */
+  inviteChoices?: { id: number; label: string }[];
+}) {
+  const invited = new Set((e?.invited ?? "").split(",").filter(Boolean));
   const startValue = e ? utcToLocalInput(e.starts_at, tz) : date ? `${date}T19:00` : "";
   return (
     <form action={saveEvent} className="card max-w-2xl space-y-4">
@@ -93,6 +109,22 @@ export function EventForm({ e, tz, date, series, announceTo }: { e?: EventRow; t
           </select>
         </div>
       </div>
+      {inviteChoices && inviteChoices.length > 0 && (
+        <fieldset className="rounded-lg border border-border p-3">
+          <legend className="px-1 text-sm font-semibold">Invite other organizations (optional)</legend>
+          <p className="hint mt-0 mb-2">They see it on their calendar, get its reminders and can RSVP. It stays your event; only you can change it.</p>
+          <div className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="invite" value="ward" defaultChecked={invited.has("ward")} /> <strong>The whole ward</strong>
+            </label>
+            {inviteChoices.map((o) => (
+              <label key={o.id} className="flex items-center gap-2">
+                <input type="checkbox" name="invite" value={o.id} defaultChecked={invited.has(String(o.id))} /> {o.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="presidency_only" defaultChecked={!!e?.presidency_only} className="mt-1" />
         <span>

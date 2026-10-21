@@ -1067,4 +1067,13 @@ ALTER TABLE lessons ADD COLUMN cfm_auto INTEGER NOT NULL DEFAULT 0;
     id: 48,
     sql: `ALTER TABLE wards ADD COLUMN demo INTEGER NOT NULL DEFAULT 0;`,
   },
+  {
+    // Other organizations invited to an event: "ward" (everyone in the ward) or
+    // a list of organization ids ("5,7"). They see it, get its reminders and can RSVP.
+    id: 49,
+    sql: `
+ALTER TABLE events ADD COLUMN invited TEXT NOT NULL DEFAULT '';
+ALTER TABLE event_series ADD COLUMN invited TEXT NOT NULL DEFAULT '';
+`,
+  },
 ];

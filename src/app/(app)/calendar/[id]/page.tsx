@@ -36,6 +36,16 @@ export default async function EventPage({ params, searchParams }: { params: Prom
     ? (db().prepare("SELECT r.response, m.display_name FROM event_rsvps r JOIN members m ON m.id = r.member_id WHERE r.event_id = ? ORDER BY m.display_name").all(e.id) as { response: keyof typeof LABELS; display_name: string }[])
     : [];
   const count = (r: string) => rsvps.filter((x) => x.response === r).length;
+  // Other organizations invited to it.
+  const invitedText =
+    e.invited === "ward"
+      ? "the whole ward"
+      : e.invited
+          .split(",")
+          .filter(Boolean)
+          .map((id) => (db().prepare("SELECT name FROM orgs WHERE id = ?").get(Number(id)) as { name: string } | undefined)?.name)
+          .filter(Boolean)
+          .join(", ");
 
   return (
     <>
@@ -57,6 +67,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
       <div className="card space-y-4">
         <div className="flex flex-wrap gap-2">
           <Badge>{e.org_label}</Badge>
+          {invitedText && <Badge tone="info">With {invitedText}</Badge>}
           {e.presidency_only ? <Badge tone="warn">Leaders only: hidden from members</Badge> : null}
         </div>
         <div>

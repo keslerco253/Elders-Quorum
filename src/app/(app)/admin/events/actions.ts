@@ -9,6 +9,7 @@ import { notify, recipientById } from "@/lib/notify";
 import { announceRecipients, notifiedNote } from "@/lib/announce";
 import { renderTemplate } from "@/lib/templates";
 import { DateTime } from "luxon";
+import { orgsInWard } from "@/lib/orgs";
 import { createSeries, endSeriesBefore, getSeries, type SeriesInput } from "@/lib/event-series";
 import { saveUpload } from "@/lib/uploads";
 import { describeRecurrence, patternOptions, type Pattern } from "@/lib/recurrence";
@@ -16,6 +17,15 @@ import type { EventRow } from "@/lib/types";
 
 function go(path: string, text: string): never {
   redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);
+}
+
+/** Other organizations invited: "ward", or ids of this ward's other organizations ("5,7"). */
+function readInvited(fd: FormData, user: { org_id: number; ward_id: number; org: { kind: string } }) {
+  if (user.org.kind === "ward") return "";
+  const wanted = fd.getAll("invite").map(String);
+  if (wanted.includes("ward")) return "ward";
+  const ok = new Set(orgsInWard(user.ward_id).filter((o) => o.kind === "group" && o.id !== user.org_id).map((o) => o.id));
+  return [...new Set(wanted.map(Number))].filter((id) => ok.has(id)).sort((a, b) => a - b).join(",");
 }
 
 function readEvent(fd: FormData, tz: string) {
@@ -33,7 +43,8 @@ function readEvent(fd: FormData, tz: string) {
     rsvp: fd.get("rsvp_enabled") === "on" ? 1 : 0,
     reminder: reminder ? Number(reminder) : null,
     reminder2: reminder2 ? Number(reminder2) : null,
-    // Set by saveEvent once any new flyer is uploaded.
+    // Set by saveEvent: the organizations invited, and any new flyer.
+    invited: "",
     flyerFile: null as string | null,
     flyerName: null as string | null,
   };
@@ -72,6 +83,7 @@ function seriesInput(user: { id: number; org_id: number }, e: ReturnType<typeof 
     flyer_file: e.flyerFile,
     flyer_name: e.flyerName,
     created_by: user.id,
+    invited: e.invited,
   };
 }
 
@@ -82,6 +94,7 @@ export async function saveEvent(fd: FormData) {
   const tz = user.ward.timezone;
   const id = Number(fd.get("item_id")) || null;
   const e = readEvent(fd, tz);
+  e.invited = readInvited(fd, user);
   const back = id ? `/admin/events/${id}` : "/admin/events/new";
   if (!e.title || !e.start || !e.end) go(back, "Please give a title, start and end.");
   if (e.end! < e.start!) go(back, "The end must be after the start.");
@@ -108,9 +121,9 @@ export async function saveEvent(fd: FormData) {
   const update = (eventId: number) =>
     d
       .prepare(
-        "UPDATE events SET title = ?, description = ?, location = ?, starts_at = ?, ends_at = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ?, reminder2_minutes = ?, flyer_file = ?, flyer_name = ? WHERE id = ? AND org_id = ?",
+        "UPDATE events SET title = ?, description = ?, location = ?, starts_at = ?, ends_at = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ?, reminder2_minutes = ?, flyer_file = ?, flyer_name = ?, invited = ? WHERE id = ? AND org_id = ?",
       )
-      .run(e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, eventId, user.org_id);
+      .run(e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, e.invited, eventId, user.org_id);
   let eventId = id;
   let note = "Event saved.";
 
@@ -125,9 +138,9 @@ export async function saveEvent(fd: FormData) {
       eventId = Number(
         d
           .prepare(
-            "INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, reminder2_minutes, flyer_file, flyer_name, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, reminder2_minutes, flyer_file, flyer_name, created_by, invited) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           )
-          .run(user.org_id, e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, user.id).lastInsertRowid,
+          .run(user.org_id, e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, user.id, e.invited).lastInsertRowid,
       );
     }
   } else {
@@ -147,8 +160,8 @@ export async function saveEvent(fd: FormData) {
       if (sameShape) {
         // Same dates and times: update the details on this and later dates, keeping RSVPs.
         d.transaction(() => {
-          const details = [e.title, e.description, e.location, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName];
-          const SET = "title = ?, description = ?, location = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ?, reminder2_minutes = ?, flyer_file = ?, flyer_name = ?";
+          const details = [e.title, e.description, e.location, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, e.invited];
+          const SET = "title = ?, description = ?, location = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ?, reminder2_minutes = ?, flyer_file = ?, flyer_name = ?, invited = ?";
           d.prepare(`UPDATE events SET ${SET} WHERE series_id = ? AND starts_at >= ?`).run(...details, series.id, existing.starts_at);
           d.prepare(`UPDATE event_series SET ${SET} WHERE id = ?`).run(...details, series.id);
         })();
@@ -178,7 +191,11 @@ export async function saveEvent(fd: FormData) {
   }
   // "Send a notification" (new) or "Send an update" (changed): tell the chosen people.
   if (eventId && fd.get("announce") === "on") {
-    const people = announceRecipients(user, String(fd.get("announce_to") || "everyone"), { leadersOnly: !!e.presidencyOnly, eventId });
+    const people = announceRecipients(user, String(fd.get("announce_to") || "everyone"), {
+      leadersOnly: !!e.presidencyOnly,
+      eventId,
+      event: { org_id: user.org_id, invited: e.invited, presidency_only: e.presidencyOnly },
+    });
     await notify(people, {
       ...renderTemplate(user.org_id, id ? "event_updated" : "event_new", { event: e.title, date_time: formatDateTime(e.start!, tz), location: e.location }),
       url: `/calendar/${eventId}`,

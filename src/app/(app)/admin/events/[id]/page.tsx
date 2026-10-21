@@ -5,7 +5,7 @@ import { getSeries } from "@/lib/event-series";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { EventForm } from "../event-form";
-import { announceChoices } from "@/lib/announce";
+import { announceChoices, inviteChoicesFor } from "@/lib/announce";
 import { deleteEvent } from "../actions";
 
 export const metadata = { title: "Edit event" };
@@ -24,7 +24,8 @@ export default async function EditEventPage({ params, searchParams }: { params: 
         e={e}
         tz={user.ward.timezone}
         series={series}
-        announceTo={announceChoices(user, e.rsvp_enabled ? [{ value: "rsvp", label: "Everyone who said Going or Maybe" }] : [])}
+        announceTo={announceChoices(user, e.rsvp_enabled ? [{ value: "rsvp", label: "Everyone who said Going or Maybe" }] : [], { invites: !!inviteChoicesFor(user)?.length })}
+        inviteChoices={inviteChoicesFor(user)}
       />
       <form action={deleteEvent} className="mt-4">
         <input type="hidden" name="item_id" value={e.id} />

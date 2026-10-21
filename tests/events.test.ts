@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { googleCalendarUrl, icsFor } from "@/lib/events";
 import { localInputToUtc, sundays, utcToLocalInput } from "@/lib/time";
 
-const e = { id: 7, org_id: 1, title: "Service project; bring gloves", description: "Yard cleanup", location: "123 Main St, Boise", starts_at: "2026-10-17T15:00:00Z", ends_at: "2026-10-17T17:00:00Z", presidency_only: 0, rsvp_enabled: 0, reminder_minutes: 1440, reminder2_minutes: null, flyer_file: null, flyer_name: null, series_id: null };
+const e = { id: 7, org_id: 1, title: "Service project; bring gloves", description: "Yard cleanup", location: "123 Main St, Boise", starts_at: "2026-10-17T15:00:00Z", ends_at: "2026-10-17T17:00:00Z", presidency_only: 0, rsvp_enabled: 0, reminder_minutes: 1440, reminder2_minutes: null, flyer_file: null, flyer_name: null, series_id: null, invited: "" };
 
 describe("calendar", () => {
   it("builds a Google Calendar link", () => {

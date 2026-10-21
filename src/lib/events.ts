@@ -4,6 +4,7 @@ import { db } from "./db";
 import { appUrl } from "./config";
 import { isAdmin } from "./permissions";
 import type { CurrentUser, EventRow } from "./types";
+import { audienceMembers, type Recipient } from "./notify";
 
 export const REMINDER_OPTIONS: [number | null, string][] = [
   [null, "No reminder"],
@@ -33,8 +34,16 @@ export function eventsBetween(
 ): EventRow[] {
   const conds = ["e.starts_at < @to", "e.ends_at >= @from", VISIBLE, "o.ward_id IN (SELECT ward_id FROM ward_members WHERE member_id = @viewer)"];
   if (where.wardId) conds.push("o.ward_id = @ward");
-  if (where.orgIds?.length) conds.push(`e.org_id IN (${where.orgIds.map(Number).join(",")})`);
-  if (where.joinedOnly) conds.push("(o.kind = 'ward' OR EXISTS (SELECT 1 FROM org_members j WHERE j.org_id = e.org_id AND j.member_id = @viewer))");
+  // An organization's calendar also shows events it was invited to (or the whole ward was).
+  if (where.orgIds?.length) {
+    const ids = where.orgIds.map(Number);
+    conds.push(`(e.org_id IN (${ids.join(",")}) OR e.invited = 'ward' OR ${ids.map((id) => `instr(',' || e.invited || ',', ',${id},') > 0`).join(" OR ")})`);
+  }
+  if (where.joinedOnly) {
+    conds.push(
+      `(o.kind = 'ward' OR e.invited = 'ward' OR EXISTS (SELECT 1 FROM org_members j WHERE j.member_id = @viewer AND (j.org_id = e.org_id OR instr(',' || e.invited || ',', ',' || j.org_id || ',') > 0)))`,
+    );
+  }
   return db()
     .prepare(`SELECT ${EVENT_COLUMNS} FROM ${EVENT_FROM} WHERE ${conds.join(" AND ")} ORDER BY e.starts_at`)
     .all({ viewer: viewerId, from: fromUtc, to: toUtc, ward: where.wardId ?? 0 }) as EventRow[];
@@ -171,4 +180,23 @@ export function feedUrls(member: { id: number; feed_version: number }) {
   const https = appUrl() + feedPath(member);
   const webcal = https.replace(/^https?:/, "webcal:");
   return { https, webcal, google: `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}` };
+}
+
+/** The organizations invited to an event, as ids (the whole ward: its ward-wide organization). */
+export function invitedOrgIds(e: Pick<EventRow, "invited" | "org_id">, wardOrgId: number): number[] {
+  if (!e.invited) return [];
+  if (e.invited === "ward") return [wardOrgId];
+  return e.invited.split(",").map(Number).filter((id) => id && id !== e.org_id);
+}
+
+/**
+ * Who an event is for: its organization (or just its leaders, for a leaders-only
+ * event), plus everyone in the organizations it invited.
+ */
+export function eventAudience(e: Pick<EventRow, "org_id" | "invited" | "presidency_only">): Recipient[] {
+  if (e.presidency_only) return audienceMembers(e.org_id, "admins");
+  const wardOrg = db().prepare("SELECT w.id FROM orgs o JOIN orgs w ON w.ward_id = o.ward_id AND w.kind = 'ward' WHERE o.id = ?").get(e.org_id) as { id: number } | undefined;
+  const all = [e.org_id, ...invitedOrgIds(e, wardOrg?.id ?? 0)].flatMap((id) => audienceMembers(id, "everyone"));
+  // Someone in two of them hears once.
+  return all.filter((r, i) => all.findIndex((x) => x.id === r.id) === i);
 }

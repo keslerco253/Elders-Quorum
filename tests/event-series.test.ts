@@ -22,6 +22,7 @@ const base: SeriesInput = {
   flyer_file: null,
   flyer_name: null,
   created_by: 1,
+  invited: "",
 };
 const events = (seriesId: number) => d.prepare("SELECT starts_at, ends_at, title FROM events WHERE series_id = ? ORDER BY starts_at").all(seriesId) as { starts_at: string; ends_at: string; title: string }[];
 
