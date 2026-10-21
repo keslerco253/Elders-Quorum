@@ -11,7 +11,7 @@ import { createLoginToken, findLoginMember, findMemberByContact, isRemember, red
 import { endSession, getUser, startSession } from "@/lib/auth";
 import { sendLoginCode } from "@/lib/login-code";
 import { parseContact } from "@/lib/contact";
-import { phoneEnabled, phoneOptInVisible } from "@/lib/sms";
+import { memberTextable, phoneEnabled, phoneOptInVisible } from "@/lib/sms";
 import { wardByJoinCode } from "@/lib/wards";
 import { addToWard, createWard } from "@/lib/orgs";
 import { tellOwnerAboutNewWard } from "@/lib/ward-review";
@@ -78,9 +78,12 @@ export async function requestLogin(formData: FormData) {
   if (!allowHit("login:all", 1000, 60)) redirect("/login?" + q({ contact: raw, error: "Sign-in is very busy right now. Please try again in a few minutes." }));
   const res = createLoginToken(member.id, remember);
   if (!res.ok) redirect("/login?" + q({ error: "Too many sign-in codes. Please wait an hour or use the most recent code." }));
-  const sent = await sendLoginCode(member, c.kind, res.token, res.code);
+  // A ward with no texting signs in by email: the code goes there instead.
+  const byEmail = c.kind === "phone" && !memberTextable(member.id);
+  if (byEmail && !member.email) redirect("/login?" + q({ contact: raw, error: "Your ward signs in with email, and there's no email on your account. Please ask your ward leaders to add it." }));
+  const sent = await sendLoginCode(member, byEmail ? "email" : c.kind, res.token, res.code);
   if (!sent) redirect("/login?" + q({ contact: raw, error: "We couldn't send your code just now. Please try again in a few minutes." }));
-  redirect("/login/check?" + q({ to: c.value, next }));
+  redirect("/login/check?" + q({ to: byEmail ? member.email! : c.value, next }));
 }
 
 export async function verifyCode(formData: FormData) {
@@ -162,6 +165,7 @@ export async function joinApp(formData: FormData) {
     allowHit("badjoin:all", 500, 24 * 60);
   }
   if (!ward) back(code ? "That join code didn't match. Check it with your bishopric or an organization presidency." : "Please enter your ward's join code.");
+  if (ward.no_texting && c.kind === "phone") back(`${ward.name} uses email, not texts. Please enter your email address.`);
 
   const existing = findMemberByContact(c.value);
   if (existing?.status === "inactive") back("This account's access was turned off. Please contact your ward leaders.");

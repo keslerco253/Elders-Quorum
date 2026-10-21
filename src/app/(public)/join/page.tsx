@@ -2,13 +2,14 @@ import Link from "next/link";
 import { Flash } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { joinApp } from "../actions";
-import { phoneOptInVisible } from "@/lib/sms";
+import { joinCodeAllowsTexting, phoneOptInVisible } from "@/lib/sms";
 
 export const metadata = { title: "Join" };
 
 export default async function JoinPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
-  const phone = phoneOptInVisible();
+  // A join link for a ward with no texting asks for an email only.
+  const phone = phoneOptInVisible() && joinCodeAllowsTexting(sp.code);
   return (
     <div className="card">
       <h2 className="h2 mb-1">Join the app</h2>

@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { formatContact, formatPhone } from "@/lib/contact";
 import { pendingVerification } from "@/lib/contact-verify";
-import { phoneEnabled, phoneOptInVisible, SMS_DISCLOSURE } from "@/lib/sms";
+import { phoneEnabled, phoneOptInVisible, SMS_DISCLOSURE, memberTextable } from "@/lib/sms";
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { CodeInput } from "@/components/code-input";
 import { SubmitButton } from "@/components/client";
@@ -14,9 +14,9 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
   const user = await requireUser();
   const sp = await searchParams;
   const verifying = sp.verify ? pendingVerification(user.id, Number(sp.verify)) : undefined;
-  const textingOn = phoneEnabled();
+  const textingOn = phoneEnabled() && memberTextable(user.id);
   // While carriers review the texting registration, members can already opt in.
-  const canChooseText = phoneOptInVisible();
+  const canChooseText = phoneOptInVisible() && memberTextable(user.id);
   const prefOptions: [string, string][] = [
     ...(user.phone && canChooseText ? ([["text", "Text"]] as [string, string][]) : []),
     ...(user.email ? ([["email", "Email"]] as [string, string][]) : []),
@@ -38,7 +38,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           </SubmitButton>
         </form>
       ) : kind === "phone" && !textingOn ? (
-        <span className="text-xs text-muted">Coming soon</span>
+        <span className="text-xs text-muted">{phoneEnabled() ? "Your ward uses email" : "Coming soon"}</span>
       ) : (
         <form action={addContact} className="flex flex-wrap gap-2">
           <input type="hidden" name="kind" value={kind} />

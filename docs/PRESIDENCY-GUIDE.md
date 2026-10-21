@@ -74,6 +74,20 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
 - **Texts** name the ward and organization ("Villas Ward Relief Society:
   ..."). The monthly text limit is for the whole ward and is set by the site owner. A member's texted reply
   goes to the organization that last texted them.
+- **Texting for a ward (site owner):** each ward's card under Admin → Site owner
+  has **Texting & billing**:
+  - turn texting on or off, and set its monthly limit;
+  - set a **Paid through** date. Texting turns off by itself the day after, and
+    you're notified two weeks before and when it turns off;
+  - see its texts and their cost for each of the last 12 months, at the **Texting
+    cost** per text you set;
+  - choose **No texting at all**. Nothing is texted, not even sign-in codes:
+    members sign in and get everything by email or app notification. The join
+    page asks those members for an email, and phone sign-in sends the code to
+    their email.
+
+  When starting a ward for someone, choose texting off for now, on, or none at
+  all.
 - **Another ward:** someone serving in two wards enters the second ward's join
   code under More → My organizations, then switches between them at the top.
 

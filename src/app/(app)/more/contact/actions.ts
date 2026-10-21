@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { parseContact, type ContactPref } from "@/lib/contact";
 import { confirmContactVerification, startContactVerification } from "@/lib/contact-verify";
-import { phoneEnabled, phoneOptInVisible } from "@/lib/sms";
+import { phoneEnabled, phoneOptInVisible, memberTextable } from "@/lib/sms";
 
 function go(text: string, extra = ""): never {
   redirect(`/more/contact?msg=${encodeURIComponent(text)}${extra}`);
@@ -17,7 +17,7 @@ export async function addContact(fd: FormData) {
   const c = parseContact(String(fd.get("value") || ""));
   const wanted = String(fd.get("kind"));
   if (!c || c.kind !== wanted) go(wanted === "phone" ? "Please enter a valid mobile number." : "Please enter a valid email address.");
-  if (c.kind === "phone" && !phoneEnabled()) go("Texting isn't set up yet.");
+  if (c.kind === "phone" && !(phoneEnabled() && memberTextable(user.id))) go("Texting isn't set up yet.");
   if (c.kind === "phone" && db().prepare("SELECT 1 FROM members WHERE phone = ? AND id != ?").get(c.value, user.id)) {
     go("That number is already used by another account.");
   }
@@ -67,12 +67,12 @@ export async function setDelivery(fd: FormData) {
   const user = await requireUser();
   const pref = String(fd.get("pref") || user.contact_pref) as ContactPref;
   const allowed: ContactPref[] = ["none"];
-  if (user.phone && phoneOptInVisible()) allowed.push("text");
+  if (user.phone && (phoneOptInVisible() && memberTextable(user.id))) allowed.push("text");
   if (user.email) allowed.push("email");
-  if (user.phone && user.email && phoneOptInVisible()) allowed.push("both");
+  if (user.phone && user.email && (phoneOptInVisible() && memberTextable(user.id))) allowed.push("both");
   if (!allowed.includes(pref)) go("Choose one of the options shown.");
   const alwaysEmail = fd.get("always_email") === "on" && !!user.email ? 1 : 0;
-  const alwaysText = fd.get("always_text") === "on" && !!user.phone && phoneOptInVisible() ? 1 : 0;
+  const alwaysText = fd.get("always_text") === "on" && !!user.phone && (phoneOptInVisible() && memberTextable(user.id)) ? 1 : 0;
   // Choosing any texts here (where the disclosure is shown) is their consent.
   const consent = alwaysText === 1 || pref === "text" || pref === "both";
   db()

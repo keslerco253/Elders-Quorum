@@ -374,6 +374,38 @@ function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   return out;
 }
 
+/**
+ * Paid texting: two weeks before a ward's paid-through date the site owner is
+ * reminded; the day after, its texting turns off and they're told.
+ */
+function textingPaidNotices(now: DateTime): DueNotification[] {
+  const today = now.setZone("America/Boise").toISODate()!;
+  const soon = now.setZone("America/Boise").plus({ days: 14 }).toISODate()!;
+  const wards = db().prepare("SELECT id, name, texting_paid_through AS through FROM wards WHERE texting_enabled = 1 AND texting_paid_through IS NOT NULL").all() as {
+    id: number;
+    name: string;
+    through: string;
+  }[];
+  if (!wards.length) return [];
+  const ownerEmail = process.env.OWNER_EMAIL?.trim().toLowerCase() ?? "";
+  const owners = (db().prepare("SELECT id FROM members WHERE status = 'active' AND (is_site_owner = 1 OR (? <> '' AND lower(email) = ? AND email_verified_at IS NOT NULL))").all(ownerEmail, ownerEmail) as { id: number }[])
+    .map((o) => {
+      const org = db().prepare("SELECT om.org_id FROM org_members om JOIN orgs x ON x.id = om.org_id WHERE om.member_id = ? ORDER BY x.kind = 'ward' DESC LIMIT 1").get(o.id) as { org_id: number } | undefined;
+      return org ? recipientById(o.id, org.org_id) : undefined;
+    })
+    .filter((r): r is Recipient => !!r);
+  const out: DueNotification[] = [];
+  for (const w of wards) {
+    if (w.through < today) {
+      db().prepare("UPDATE wards SET texting_enabled = 0 WHERE id = ?").run(w.id);
+      out.push({ key: `texting-ended:${w.id}:${w.through}`, recipients: owners, payload: { title: `Texting ended for ${w.name}`, body: `It was paid through ${formatDate(w.through, "short")}, so texting is off now. Members get email and app notifications instead.`, url: "/site" } });
+    } else if (w.through <= soon) {
+      out.push({ key: `texting-ending:${w.id}:${w.through}`, recipients: owners, payload: { title: `${w.name}: texting paid through ${formatDate(w.through, "short")}`, body: "It turns off the day after unless you set a new date (Admin → Site owner → Texting & billing).", url: "/site" } });
+    }
+  }
+  return out;
+}
+
 export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   const orgs = db()
     .prepare("SELECT o.id, o.kind, w.timezone, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS label, o.hidden_features FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.active = 1")
@@ -382,7 +414,9 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   for (const o of orgs) if (usesCfm(o) && hasFeature(o, "lessons")) ensureCfmLessons(o.id, now.setZone(o.timezone).toISODate()!);
   // Regular teachers go on new lessons as they're added.
   for (const o of orgs) if (hasFeature(o, "lessons")) fillRegularTeachers(o.id, now.setZone(o.timezone).toISODate()!);
-  return orgs.flatMap((o) => [
+  return [
+    ...textingPaidNotices(now),
+    ...orgs.flatMap((o) => [
     ...(hasFeature(o, "lessons") ? lessonReminders(o, now) : []),
     ...(hasFeature(o, "lessons") ? myLessonReminders(o, now) : []),
     ...eventReminders(o, now),
@@ -390,7 +424,8 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
     ...(hasFeature(o, "todos") ? reviewReminders(o, now) : []),
     ...(hasFeature(o, "visits") ? visitReminders(o, now) : []),
     ...(hasFeature(o, "signups") ? signupReminders(o, now) : []),
-  ]);
+    ]),
+  ];
 }
 
 /**

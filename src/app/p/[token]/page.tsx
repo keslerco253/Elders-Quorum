@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { formatDate } from "@/lib/time";
 import { isPicture } from "@/lib/upload-names";
 import { GUEST_TEXT_CONSENT, slotTaken } from "@/lib/guest-signups";
-import { phoneEnabled, phoneOptInVisible } from "@/lib/sms";
+import { orgHasNoTexting, phoneEnabled, phoneOptInVisible } from "@/lib/sms";
 import { stillNeeded, type Signup } from "@/lib/signups";
 import { FlyerView } from "@/components/flyer-view";
 import { CodeInput } from "@/components/code-input";
@@ -92,7 +92,9 @@ export default async function PublicSharePage({ params, searchParams }: { params
   const today = new Date().toISOString().slice(0, 10);
   const closed = !!s.closed || (!!s.date && s.date < today);
   const anyOpen = open.some((sl) => sl.left > 0);
-  const phone = phoneEnabled();
+  // Wards with no texting take emails only.
+  const noTexting = orgHasNoTexting(s.org_id);
+  const phone = phoneEnabled() && !noTexting;
   return (
     <div className="space-y-4">
       <header className="text-center">
@@ -154,7 +156,7 @@ export default async function PublicSharePage({ params, searchParams }: { params
               </label>
               <input id="g-note" name="note" maxLength={200} className="input" placeholder="e.g. I'll bring a ladder" defaultValue={sp.note} />
             </div>
-            {phoneOptInVisible() && (
+            {phoneOptInVisible() && !noTexting && (
               <label className="flex items-start gap-2 rounded-lg bg-surface-2 p-3 text-sm">
                 <input type="checkbox" name="text_consent" className="mt-1" />
                 <span>

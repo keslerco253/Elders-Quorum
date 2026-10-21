@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getUser } from "@/lib/auth";
-import { phoneOptInVisible } from "@/lib/sms";
+import { phoneOptInVisible, memberTextable } from "@/lib/sms";
 import type { ContactPref } from "@/lib/contact";
 
 export async function acceptWelcome(fd: FormData) {
@@ -15,8 +15,8 @@ export async function acceptWelcome(fd: FormData) {
 
   const allowed: ContactPref[] = ["none"];
   if (user.email) allowed.push("email");
-  if (user.phone && phoneOptInVisible()) allowed.push("text");
-  if (user.email && user.phone && phoneOptInVisible()) allowed.push("both");
+  if (user.phone && (phoneOptInVisible() && memberTextable(user.id))) allowed.push("text");
+  if (user.email && user.phone && (phoneOptInVisible() && memberTextable(user.id))) allowed.push("both");
   const pref = String(fd.get("pref") || "none") as ContactPref;
   if (!allowed.includes(pref)) back("Choose how we should reach you.");
   // Choosing Text or Both on this screen, with the disclosure beside it, is their consent to ward texts.

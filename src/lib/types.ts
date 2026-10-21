@@ -52,6 +52,10 @@ export interface Ward {
   request_note: string;
   /** Gets members' messages an organization can't receive, and passes them on. */
   reply_backup_id: number | null;
+  /** No texting at all, not even sign-in codes: the ward uses email (set by the site owner). */
+  no_texting: number;
+  /** Texting is paid through this date (yyyy-mm-dd); it turns off after it. */
+  texting_paid_through: string | null;
 }
 
 /** Features an organization can hide when it doesn't use them. */

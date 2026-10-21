@@ -42,10 +42,51 @@ export function monthlyLimit(wardId: number): number {
 }
 
 const wardOfOrg = (orgId: number) =>
-  (db().prepare("SELECT o.ward_id, w.texting_enabled FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.id = ?").get(orgId) as { ward_id: number; texting_enabled: number } | undefined) ?? {
+  (db().prepare("SELECT o.ward_id, w.texting_enabled, w.no_texting FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.id = ?").get(orgId) as
+    | { ward_id: number; texting_enabled: number; no_texting: number }
+    | undefined) ?? {
     ward_id: 0,
     texting_enabled: 0,
+    no_texting: 0,
   };
+
+/** A ward set to no texting at all: no texts, not even sign-in codes (it uses email). */
+export const orgHasNoTexting = (orgId: number | null) => !!orgId && !!wardOfOrg(orgId).no_texting;
+
+/** Whether a member can be texted at all: they're in at least one ward that allows texting. */
+export function memberTextable(memberId: number): boolean {
+  return !!db().prepare("SELECT 1 FROM ward_members wm JOIN wards w ON w.id = wm.ward_id WHERE wm.member_id = ? AND w.no_texting = 0").get(memberId);
+}
+
+/** Whether a ward (by its join code) allows texting. Unknown codes count as allowing it. */
+export function joinCodeAllowsTexting(code: string | undefined): boolean {
+  if (!code) return true;
+  const w = db().prepare("SELECT no_texting FROM wards WHERE join_code = ? COLLATE NOCASE").get(code.trim()) as { no_texting: number } | undefined;
+  return !w?.no_texting;
+}
+
+// What texting costs, to bill wards their share (Admin → Site owner).
+
+/** The cost of one text in dollars (site owner's setting; Twilio plus carrier fees). */
+export function textCost(): number {
+  const v = (db().prepare("SELECT value FROM app_settings WHERE key = 'text_cost'").get() as { value: string } | undefined)?.value;
+  const n = Number(v);
+  return v && Number.isFinite(n) && n >= 0 ? n : 0.012;
+}
+
+export function setTextCost(dollars: number) {
+  db().prepare("INSERT INTO app_settings (key, value) VALUES ('text_cost', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(String(dollars));
+}
+
+/** A ward's texts by month (yyyy-mm), newest first, up to 12 months: codes, notices and replies together. */
+export function textsByMonth(wardId: number): { month: string; texts: number }[] {
+  return db()
+    .prepare(
+      `SELECT substr(l.sent_at, 1, 7) AS month, COUNT(*) AS texts FROM sms_log l JOIN orgs o ON o.id = l.org_id
+       WHERE o.ward_id = ? AND l.sent_at >= date('now', 'start of month', '-11 months') GROUP BY month ORDER BY month DESC`,
+    )
+    .all(wardId) as { month: string; texts: number }[];
+}
 
 /**
  * Notices stop at the ward's monthly limit, which also counts texts members
@@ -54,7 +95,7 @@ const wardOfOrg = (orgId: number) =>
  */
 export function canSendNotice(orgId: number) {
   const w = wardOfOrg(orgId);
-  return phoneEnabled() && !!w.texting_enabled && textsThisMonth(w.ward_id, "notice") + textsThisMonth(w.ward_id, "reply") < monthlyLimit(w.ward_id);
+  return phoneEnabled() && !w.no_texting && !!w.texting_enabled && textsThisMonth(w.ward_id, "notice") + textsThisMonth(w.ward_id, "reply") < monthlyLimit(w.ward_id);
 }
 
 /**
@@ -71,7 +112,7 @@ export type SmsResult = "sent" | "failed" | "opted_out";
 
 /** Sends a text; orgId is the organization it's for (counted against its ward's limit). */
 export async function sendSms(orgId: number | null, to: string, body: string, kind: "code" | "notice"): Promise<SmsResult> {
-  if (!phoneEnabled()) return "failed";
+  if (!phoneEnabled() || orgHasNoTexting(orgId)) return "failed";
   let result: SmsResult = "sent";
   if (!twilioConfigured()) {
     const dir = path.join(DATA_DIR, "outbox");
@@ -101,4 +142,17 @@ export async function sendSms(orgId: number | null, to: string, body: string, ki
   }
   if (result === "sent" && orgId) db().prepare("INSERT INTO sms_log (org_id, kind) VALUES (?, ?)").run(orgId, kind);
   return result;
+}
+
+/** People who sign in with only a phone number and are in no other ward that allows texting (they'd need an email first). */
+export function phoneOnlyMembers(wardId: number): number {
+  return (
+    db()
+      .prepare(
+        `SELECT COUNT(*) AS n FROM members m JOIN ward_members wm ON wm.member_id = m.id AND wm.ward_id = ?
+         WHERE m.email IS NULL AND m.phone IS NOT NULL AND m.status = 'active'
+           AND NOT EXISTS (SELECT 1 FROM ward_members x JOIN wards w ON w.id = x.ward_id WHERE x.member_id = m.id AND w.id <> ? AND w.no_texting = 0)`,
+      )
+      .get(wardId, wardId) as { n: number }
+  ).n;
 }

@@ -5,7 +5,7 @@ import { deleteAccount } from "./accounts";
 export { ORG_COOKIE } from "./org-cookie";
 import { isCalling, STANDARD_ORGS, type Calling, type CurrentUser, type Feature, type Member, type Org, type OrgEntry, type Role, type Ward } from "./types";
 
-const WARD_COLUMNS = "id, name, timezone, join_code, sms_monthly_limit, created_by, texting_enabled, pending, stake, request_note, reply_backup_id";
+const WARD_COLUMNS = "id, name, timezone, join_code, sms_monthly_limit, created_by, texting_enabled, pending, stake, request_note, reply_backup_id, no_texting, texting_paid_through";
 const ORG_COLUMNS = "id, ward_id, name, kind, hidden_features, active";
 
 export function getWard(id: number): Ward | undefined {
@@ -183,13 +183,13 @@ export function newJoinCode(): string {
  * A new ward with its ward-wide organization. The person who creates it leads
  * that organization (with the bishopric, once they're added).
  */
-export function createWard(opts: { name: string; timezone: string; creatorId: number; calling?: Calling | null; texting?: boolean; pending?: { stake: string; note: string } }): Ward {
+export function createWard(opts: { name: string; timezone: string; creatorId: number; calling?: Calling | null; texting?: boolean; noTexting?: boolean; pending?: { stake: string; note: string } }): Ward {
   const d = db();
   return d.transaction(() => {
     const wardId = Number(
       d
-        .prepare("INSERT INTO wards (name, timezone, join_code, created_by, texting_enabled, pending, stake, request_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-        .run(opts.name, opts.timezone, newJoinCode(), opts.creatorId, opts.texting ? 1 : 0, opts.pending ? 1 : 0, opts.pending?.stake ?? "", opts.pending?.note ?? "").lastInsertRowid,
+        .prepare("INSERT INTO wards (name, timezone, join_code, created_by, texting_enabled, no_texting, pending, stake, request_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .run(opts.name, opts.timezone, newJoinCode(), opts.creatorId, opts.texting && !opts.noTexting ? 1 : 0, opts.noTexting ? 1 : 0, opts.pending ? 1 : 0, opts.pending?.stake ?? "", opts.pending?.note ?? "").lastInsertRowid,
     );
     // The ward level starts without lessons (organizations have those), and
     // with the two plans every ward keeps.

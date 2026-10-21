@@ -10,7 +10,7 @@ import { addToWard, clearWardCalendar, clearWardMessages, clearWardService, crea
 import { validZone } from "@/lib/time";
 import type { Member } from "@/lib/types";
 import { emailHtml, sendMail } from "@/lib/mail";
-import { sendSms } from "@/lib/sms";
+import { sendSms, setTextCost } from "@/lib/sms";
 import { formatPhone } from "@/lib/contact";
 import { approveWard, declineWard } from "@/lib/ward-review";
 import { setUpReviewDemo } from "@/lib/review-demo";
@@ -32,6 +32,7 @@ export async function setWardTexting(fd: FormData) {
   const ward = getWard(Number(fd.get("ward_id")));
   if (!ward) go("That ward is gone.", true);
   const on = fd.get("on") === "1";
+  if (on && ward.no_texting) go(`${ward.name} is set to no texting at all. Change that first.`, true);
   db().prepare("UPDATE wards SET texting_enabled = ? WHERE id = ?").run(on ? 1 : 0, ward.id);
   revalidatePath("/site");
   go(`Texting is ${on ? "on" : "off"} for ${ward.name}.`);
@@ -86,7 +87,7 @@ export async function clearWardData(fd: FormData) {
   go(`${ward.name}: cleared ${done.join("; ")}.`);
 }
 
-/** Starts a ward for someone else (its texting is on, since the site owner made it). */
+/** Starts a ward for someone else, with texting on, off (turned on once paid), or none at all. */
 export async function addWard(fd: FormData) {
   await requireSiteOwner();
   const wardName = String(fd.get("ward_name") || "").trim().slice(0, 80);
@@ -98,7 +99,8 @@ export async function addWard(fd: FormData) {
   const existing = findMemberByContact(email);
   const memberId =
     existing?.id ?? Number(d.prepare("INSERT INTO members (name, display_name, email, source) VALUES (?, ?, ?, 'setup')").run(name, name, email).lastInsertRowid);
-  createWard({ name: wardName, timezone: tz, creatorId: memberId, texting: true });
+  const texting = String(fd.get("texting") || "off");
+  createWard({ name: wardName, timezone: tz, creatorId: memberId, texting: texting === "on", noTexting: texting === "none" });
   const res = createLoginToken(memberId, "month");
   if (res.ok) await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, "email", res.token, res.code);
   revalidatePath("/site");
@@ -194,4 +196,40 @@ export async function setUpReview(fd: FormData) {
   }
   revalidatePath("/site");
   redirect(`/site?msg=${encodeURIComponent("The demo ward is ready. Set REVIEW_LOGIN on Northflank as shown below.")}#review`);
+}
+
+/**
+ * No texting at all for a ward: no reminder or message texts and no sign-in codes by
+ * text (members sign in by email). Turning it off again allows texting to be turned on.
+ */
+export async function setNoTexting(fd: FormData) {
+  await requireSiteOwner();
+  const ward = getWard(Number(fd.get("ward_id")));
+  if (!ward) go("That ward is gone.", true);
+  const none = fd.get("none") === "1";
+  db().prepare("UPDATE wards SET no_texting = ?, texting_enabled = CASE WHEN ? = 1 THEN 0 ELSE texting_enabled END WHERE id = ?").run(none ? 1 : 0, none ? 1 : 0, ward.id);
+  revalidatePath("/", "layout");
+  go(none ? `${ward.name} has no texting at all now: members sign in and get everything by email or app notification.` : `${ward.name} can use texting again. Turn it on when they're ready.`);
+}
+
+/** Texting is paid through a date: it turns off after it (you're reminded two weeks before). Empty: no end date. */
+export async function setPaidThrough(fd: FormData) {
+  await requireSiteOwner();
+  const ward = getWard(Number(fd.get("ward_id")));
+  if (!ward) go("That ward is gone.", true);
+  const raw = String(fd.get("paid_through") || "");
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
+  db().prepare("UPDATE wards SET texting_paid_through = ? WHERE id = ?").run(date, ward.id);
+  revalidatePath("/site");
+  go(date ? `${ward.name}'s texting is paid through ${date}.` : `${ward.name}'s texting has no end date.`);
+}
+
+/** What one text costs, to work out each ward's share. */
+export async function saveTextCost(fd: FormData) {
+  await requireSiteOwner();
+  const cost = Number(String(fd.get("cost") || "").replace(/[$\s]/g, ""));
+  if (!Number.isFinite(cost) || cost < 0 || cost > 1) go("Enter the cost of one text in dollars, e.g. 0.012.", true);
+  setTextCost(cost);
+  revalidatePath("/site");
+  go(`Cost per text set to $${cost}.`);
 }

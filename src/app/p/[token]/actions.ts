@@ -7,7 +7,7 @@ import { getShare } from "@/lib/public-shares";
 import { confirmGuest, sendGuestConfirmation, slotTaken, startGuestSignup } from "@/lib/guest-signups";
 import { parseContact } from "@/lib/contact";
 import { allowHit, clientIp } from "@/lib/rate-limit";
-import { phoneEnabled } from "@/lib/sms";
+import { orgHasNoTexting, phoneEnabled } from "@/lib/sms";
 
 const q = (p: Record<string, string>) => new URLSearchParams(p).toString();
 
@@ -24,7 +24,8 @@ export async function guestSignUp(fd: FormData) {
   const back = (error: string): never => redirect(`/p/${token}?${q({ error, name, contact: raw, note })}#signup`);
   const c = parseContact(raw);
   if (!name) back("Please enter your name.");
-  if (!c || (c.kind === "phone" && !phoneEnabled())) return back(phoneEnabled() ? "Please enter a mobile number or an email address." : "Please enter your email address.");
+  const texting = phoneEnabled() && !orgHasNoTexting(share.org_id);
+  if (!c || (c.kind === "phone" && !texting)) return back(texting ? "Please enter a mobile number or an email address." : "Please enter your email address.");
   if (c.kind === "phone" && !textConsent) back("To use a mobile number, tick the box to agree to texts. Or use an email address instead.");
   const slot = db()
     .prepare("SELECT sl.id, sl.capacity, s.closed, s.date FROM signup_slots sl JOIN signups s ON s.id = sl.signup_id WHERE sl.id = ? AND s.id = ?")

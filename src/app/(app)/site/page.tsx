@@ -3,7 +3,8 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime } from "@/lib/time";
 import { dataOnVolume } from "@/lib/setup-code";
-import { monthlyLimit, phoneEnabled, textsThisMonth, twilioConfigured } from "@/lib/sms";
+import { monthlyLimit, phoneEnabled, phoneOnlyMembers, textCost, textsByMonth, textsThisMonth, twilioConfigured } from "@/lib/sms";
+import { DateTime } from "luxon";
 import { inboundUrl } from "@/lib/sms-inbound";
 import { emailConfigured } from "@/lib/mail";
 import { appUrl } from "@/lib/config";
@@ -11,7 +12,7 @@ import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
 import { addWard, approveNewWard, declineNewWard, leadWard, loadCfmSchedule, setUpReview, removeCfmYear, removeWard,
-  clearWardData, saveTextLimit, sendTestEmail, sendTestText, setWardTexting } from "./actions";
+  clearWardData, saveTextCost, saveTextLimit, setNoTexting, setPaidThrough, sendTestEmail, sendTestText, setWardTexting } from "./actions";
 import { pendingWards } from "@/lib/ward-review";
 import { formatPhone } from "@/lib/contact";
 import { cfmYears, manualUrl } from "@/lib/cfm";
@@ -25,6 +26,8 @@ interface WardRow {
   name: string;
   created_at: string;
   texting_enabled: number;
+  no_texting: number;
+  texting_paid_through: string | null;
   creator: string | null;
   creator_contact: string | null;
   people: number;
@@ -52,9 +55,14 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
   const user = await requireUser();
   if (!user.is_site_owner) redirect("/");
   const sp = await searchParams;
+  // Texting cost, and when paid texting runs out.
+  const rate = textCost();
+  const money = (n: number) => `$${n.toFixed(2)}`;
+  const today = DateTime.now().toISODate()!;
+  const soon = DateTime.now().plus({ days: 14 }).toISODate()!;
   const wards = db()
     .prepare(
-      `SELECT w.id, w.name, w.created_at, w.texting_enabled, m.display_name AS creator, COALESCE(m.email, m.phone) AS creator_contact,
+      `SELECT w.id, w.name, w.created_at, w.texting_enabled, w.no_texting, w.texting_paid_through, m.display_name AS creator, COALESCE(m.email, m.phone) AS creator_contact,
          (SELECT COUNT(*) FROM ward_members wm WHERE wm.ward_id = w.id) AS people,
          (SELECT COUNT(*) FROM orgs o WHERE o.ward_id = w.id AND o.kind = 'group' AND o.active = 1) AS orgs
        FROM wards w LEFT JOIN members m ON m.id = w.created_by ORDER BY w.created_at DESC`,
@@ -168,32 +176,110 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
         </Section>
       </div>
 
+      {phoneEnabled() && (
+        <Section title="Texting cost">
+          <form action={saveTextCost} className="card flex max-w-xl flex-wrap items-center gap-2 text-sm">
+            <label htmlFor="cost">Cost of one text, in dollars</label>
+            <input id="cost" name="cost" inputMode="decimal" defaultValue={rate} className="input w-28 py-1" />
+            <SubmitButton className="btn-secondary btn-sm">Save</SubmitButton>
+            <p className="hint w-full">
+              Twilio&apos;s price plus carrier fees (about $0.012). Each ward&apos;s texts and their cost are under Texting &amp; billing on its card. This month, all wards:{" "}
+              {wards.reduce((n, w) => n + textsThisMonth(w.id), 0)} texts, about {money(wards.reduce((n, w) => n + textsThisMonth(w.id), 0) * rate)}. Sign-in codes are included.
+            </p>
+          </form>
+        </Section>
+      )}
       <Section title={`Wards (${wards.length})`}>
         <ul className="space-y-3">
           {wards.map((w) => (
             <li key={w.id} className="card space-y-2 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold">{w.name}</span>
-                {w.texting_enabled ? <Badge tone="success">Texting on</Badge> : <Badge tone="warn">Texting off</Badge>}
+                {w.no_texting ? <Badge>No texting</Badge> : w.texting_enabled ? <Badge tone="success">Texting on</Badge> : <Badge tone="warn">Texting off</Badge>}
+                {!w.no_texting && w.texting_paid_through && (
+                  <Badge tone={w.texting_paid_through < today ? "danger" : w.texting_paid_through <= soon ? "warn" : "neutral"}>Paid through {formatDate(w.texting_paid_through, "short")}</Badge>
+                )}
               </div>
               <div className="text-muted">
                 {w.people} {w.people === 1 ? "person" : "people"} · {w.orgs} {w.orgs === 1 ? "organization" : "organizations"} · started {formatDate(w.created_at.slice(0, 10), "short")}
                 {w.creator && ` by ${w.creator}${w.creator_contact ? ` (${w.creator_contact})` : ""}`}
-                {phoneEnabled() && ` · ${textsThisMonth(w.id)} of ${monthlyLimit(w.id)} texts this month`}
+                {phoneEnabled() && !w.no_texting && ` · ${textsThisMonth(w.id)} texts this month (about ${money(textsThisMonth(w.id) * rate)}), limit ${monthlyLimit(w.id)}`}
               </div>
               <div className="flex flex-wrap gap-2">
-                <form action={setWardTexting}>
-                  <input type="hidden" name="ward_id" value={w.id} />
-                  <input type="hidden" name="on" value={w.texting_enabled ? "0" : "1"} />
-                  <SubmitButton className="btn-secondary btn-sm">{w.texting_enabled ? "Turn texting off" : "Turn texting on"}</SubmitButton>
-                </form>
-                {phoneEnabled() && !!w.texting_enabled && (
-                  <form action={saveTextLimit} className="flex items-center gap-1">
-                    <input type="hidden" name="ward_id" value={w.id} />
-                    <input name="limit" type="number" min={0} max={100000} defaultValue={monthlyLimit(w.id)} className="input w-24 py-1 text-sm" aria-label={`Monthly text limit for ${w.name}`} />
-                    <SubmitButton className="btn-secondary btn-sm">Set limit</SubmitButton>
-                  </form>
-                )}
+                <details>
+                  <summary className="btn-secondary btn-sm cursor-pointer">Texting &amp; billing…</summary>
+                  <div className="mt-2 space-y-3">
+                    {!w.no_texting && (
+                      <div className="flex flex-wrap gap-2">
+                        <form action={setWardTexting}>
+                          <input type="hidden" name="ward_id" value={w.id} />
+                          <input type="hidden" name="on" value={w.texting_enabled ? "0" : "1"} />
+                          <SubmitButton className="btn-secondary btn-sm">{w.texting_enabled ? "Turn texting off" : "Turn texting on"}</SubmitButton>
+                        </form>
+                        {phoneEnabled() && !!w.texting_enabled && (
+                          <form action={saveTextLimit} className="flex items-center gap-1">
+                            <input type="hidden" name="ward_id" value={w.id} />
+                            <input name="limit" type="number" min={0} max={100000} defaultValue={monthlyLimit(w.id)} className="input w-24 py-1 text-sm" aria-label={`Monthly text limit for ${w.name}`} />
+                            <SubmitButton className="btn-secondary btn-sm">Set limit</SubmitButton>
+                          </form>
+                        )}
+                      </div>
+                    )}
+                    {!w.no_texting && (
+                      <form action={setPaidThrough} className="flex flex-wrap items-center gap-2">
+                        <input type="hidden" name="ward_id" value={w.id} />
+                        <label className="text-sm" htmlFor={`paid-${w.id}`}>
+                          Paid through
+                        </label>
+                        <input id={`paid-${w.id}`} name="paid_through" type="date" defaultValue={w.texting_paid_through ?? ""} className="input w-auto py-1 text-sm" />
+                        <SubmitButton className="btn-secondary btn-sm">Save</SubmitButton>
+                        <p className="hint w-full">Texting turns off by itself the day after. You get a notification two weeks before, and when it turns off. Leave empty for no end date.</p>
+                      </form>
+                    )}
+                    {!w.no_texting && (
+                      <table className="w-full max-w-sm text-sm">
+                        <thead>
+                          <tr className="text-left text-muted">
+                            <th className="font-normal">Month</th>
+                            <th className="text-right font-normal">Texts</th>
+                            <th className="text-right font-normal">About</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {textsByMonth(w.id).map((m) => (
+                            <tr key={m.month}>
+                              <td>{DateTime.fromFormat(m.month, "yyyy-MM").toFormat("LLL yyyy")}</td>
+                              <td className="text-right">{m.texts}</td>
+                              <td className="text-right">{money(m.texts * rate)}</td>
+                            </tr>
+                          ))}
+                          {textsByMonth(w.id).length === 0 && (
+                            <tr>
+                              <td colSpan={3} className="text-muted">
+                                No texts in the last 12 months.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    )}
+                    <form action={setNoTexting}>
+                      <input type="hidden" name="ward_id" value={w.id} />
+                      <input type="hidden" name="none" value={w.no_texting ? "0" : "1"} />
+                      <SubmitButton
+                        className="btn-secondary btn-sm"
+                        confirm={w.no_texting ? undefined : phoneOnlyMembers(w.id) ? `${phoneOnlyMembers(w.id)} people here sign in with only a phone number and would need an email. Turn off all texting anyway?` : "No texts at all for this ward, not even sign-in codes?"}
+                      >
+                        {w.no_texting ? "Allow texting again" : "No texting at all"}
+                      </SubmitButton>
+                      <p className="hint mt-1">
+                        {w.no_texting
+                          ? "No texts at all, not even sign-in codes: members sign in and get everything by email or app notification."
+                          : "Turns off every text for this ward, sign-in codes included. Members use email (and app notifications) instead."}
+                      </p>
+                    </form>
+                  </div>
+                </details>
                 <form action={leadWard}>
                   <input type="hidden" name="ward_id" value={w.id} />
                   <SubmitButton className="btn-secondary btn-sm" confirm={`Join the ${w.name} bishopric in the app, so you can manage it?`}>
@@ -425,6 +511,18 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
           <TimezoneSelect name="timezone" defaultValue={user.ward.timezone} />
           <input name="name" required className="input" placeholder="Their bishop's (or clerk's) full name" />
           <input name="email" type="email" required className="input" placeholder="Their email" />
+          <fieldset className="space-y-1 text-sm">
+            <legend className="label">Texting</legend>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="texting" value="off" defaultChecked /> Off for now (turn it on once they&apos;ve paid)
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="texting" value="on" /> On
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="texting" value="none" /> No texting at all (email and app notifications only, including sign-in)
+            </label>
+          </fieldset>
           <SubmitButton className="btn-secondary" pendingText="Adding…">
             Add ward and email them
           </SubmitButton>

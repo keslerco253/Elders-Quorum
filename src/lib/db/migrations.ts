@@ -1294,4 +1294,13 @@ CREATE TABLE ward_admins (
 );
 `,
   },
+  {
+    // Texting by ward: a ward can have no texting at all (not even sign-in codes; it uses
+    // email), and texting can be paid through a date (turned off after it).
+    id: 63,
+    sql: `
+ALTER TABLE wards ADD COLUMN no_texting INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE wards ADD COLUMN texting_paid_through TEXT;
+`,
+  },
 ];
