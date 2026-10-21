@@ -1252,4 +1252,23 @@ ALTER TABLE member_reminders_new RENAME TO member_reminders;
 CREATE INDEX member_reminders_member ON member_reminders(member_id, kind);
 `,
   },
+  {
+    // Who conducts each Sunday follows the presidency's callings by month; someone
+    // who can't be there asks another presidency member, who accepts or declines.
+    id: 59,
+    sql: `
+CREATE TABLE conducting_swaps (
+  id INTEGER PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  from_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+  to_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  note TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','declined','cancelled')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  decided_at TEXT
+);
+CREATE INDEX conducting_swaps_org ON conducting_swaps(org_id, date);
+`,
+  },
 ];

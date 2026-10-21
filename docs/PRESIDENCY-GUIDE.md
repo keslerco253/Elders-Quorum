@@ -496,6 +496,24 @@ On **Admin → Visit requests**:
 Members see the status and any reply, and can cancel. Bishops and high
 councilors don't see visit requests.
 
+## Who's conducting (presidency only)
+
+- **Who conducts goes by month**, using the callings set under Admin → Members:
+  - the president (the bishop, for the ward): January, April, July, October;
+  - the first counselor: February, May, August, November;
+  - the second counselor: March, June, September, December.
+- Presidency members see **Conducting this Sunday** on their Home page.
+  Tapping it shows the next three months; conference Sundays show "no meeting".
+- **Can't be there?** On your Sunday, tap **Ask someone to conduct**, choose
+  someone in the presidency and add a note if you like.
+  - They get a notification and a card on Home to answer **Yes, I'll conduct**
+    or **I can't**.
+  - When they say yes, the whole presidency is notified, and Home shows them
+    conducting ("instead of …").
+  - If they can't, you're told, so you can ask someone else. You can withdraw a
+    request until it's answered.
+  - Whoever takes a Sunday can pass it on the same way.
+
 ## Presidency meetings and assignments (presidency only)
 
 **Admin → Presidency meetings** keeps the agenda, notes and decisions in one place.

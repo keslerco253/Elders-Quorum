@@ -25,6 +25,8 @@ import { hasFeature, leadersPhrase, myOrgs } from "@/lib/orgs";
 import { withOrg } from "@/lib/org-cookie";
 import { usesCfm } from "@/lib/cfm";
 import { KIND_ICONS, soonAssignments } from "@/lib/assignments";
+import { conductingSchedule, swapsWaitingOn } from "@/lib/conducting";
+import { ledOrgIds } from "@/lib/conversations";
 
 export default async function HomePage() {
   const user = await requireUser();
@@ -60,6 +62,14 @@ export default async function HomePage() {
   const chooseOrgs = groups.length > 0 && !groups.some((o) => o.joined);
   // What they've been asked to do, are teaching or signed up for, soon (or overdue).
   const assignments = soonAssignments(user.id, today);
+  // Presidency members: who's conducting this Sunday in each organization they lead,
+  // and anyone asking them to conduct.
+  const led = ledOrgIds(user.id);
+  const conducting = mine
+    .filter((o) => led.includes(o.id))
+    .map((o) => ({ org: o, c: conductingSchedule(o.id, currentLessonDate(tz), 1)[0] }))
+    .filter(({ c }) => c && (c.name || c.conference));
+  const conductAsks = swapsWaitingOn(user.id, today);
 
   return (
     <>
@@ -111,6 +121,41 @@ export default async function HomePage() {
             {r.lesson_title ? ` about "${r.lesson_title}"` : ""}. Tap to answer.
           </span>
           <span>›</span>
+        </Link>
+      ))}
+
+      {conductAsks.map((a) => (
+        <Link
+          key={a.id}
+          href={inOrg(`/conducting#ask-${a.id}`, a.org_id)}
+          className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent"
+        >
+          <span>
+            <span className="block font-semibold">Can you conduct on {formatDate(a.date, "short")}?</span>
+            {a.from_name ?? "Someone"} asked. Tap to answer.
+          </span>
+          <span>›</span>
+        </Link>
+      ))}
+
+      {conducting.map(({ org, c }) => (
+        <Link key={org.id} href={inOrg("/conducting", org.id)} className="card mb-5 flex items-center justify-between gap-3 hover:bg-surface-2">
+          <span className="min-w-0">
+            <span className="block text-xs font-semibold tracking-wide text-accent uppercase">
+              Conducting {c.date === today ? "today" : "this Sunday"}
+              {conducting.length > 1 ? ` · ${org.label}` : ""}
+            </span>
+            <span className="block font-semibold">
+              {c.conference ? `${c.conference}: no meeting` : c.memberId === user.id ? "You're conducting" : c.name}
+            </span>
+            {!c.conference && (
+              <span className="text-sm text-muted">
+                {c.insteadOf ? `Instead of ${c.insteadOf}` : c.calling}
+                {c.pending ? ` · asked ${c.pending.toId === user.id ? "you" : c.pending.toName} to take it` : ""}
+              </span>
+            )}
+          </span>
+          <span className="text-muted">›</span>
         </Link>
       ))}
 
