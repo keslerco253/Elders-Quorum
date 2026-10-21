@@ -28,6 +28,14 @@ export async function saveTodo(fd: FormData) {
   const due = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("due_date"))) ? String(fd.get("due_date")) : null;
   const assigneeId = Number(fd.get("assignee_id")) || null;
   const meetingId = Number(fd.get("meeting_id")) || null;
+  // Reminders: days before it's due (0 = the morning it's due), or blank for none.
+  const days = (name: string) => {
+    const v = String(fd.get(name) ?? "");
+    const n = Number(v);
+    return v !== "" && Number.isInteger(n) && n >= 0 && n <= 30 ? n : null;
+  };
+  const r1 = days("reminder1_days");
+  const r2 = days("reminder2_days");
   if (!title) go(back, "Give the assignment a title.");
   // Anyone in the organization (the presidency or any member).
   const assignee = assigneeId
@@ -42,12 +50,12 @@ export async function saveTodo(fd: FormData) {
     const prev = db().prepare("SELECT assignee_id FROM todos WHERE id = ? AND org_id = ?").get(id, user.org_id) as { assignee_id: number | null } | undefined;
     if (!prev) go(back, "That assignment no longer exists.");
     previousAssignee = prev.assignee_id;
-    db().prepare("UPDATE todos SET title = ?, notes = ?, due_date = ?, assignee_id = ? WHERE id = ?").run(title, notes, due, assignee?.id ?? null, id);
+    db().prepare("UPDATE todos SET title = ?, notes = ?, due_date = ?, assignee_id = ?, reminder1_days = ?, reminder2_days = ? WHERE id = ?").run(title, notes, due, assignee?.id ?? null, r1, r2, id);
   } else {
     todoId = Number(
       db()
-        .prepare("INSERT INTO todos (org_id, title, notes, due_date, assignee_id, created_by, meeting_id) VALUES (?, ?, ?, ?, ?, ?, ?)")
-        .run(user.org_id, title, notes, due, assignee?.id ?? null, user.id, meeting?.id ?? null).lastInsertRowid,
+        .prepare("INSERT INTO todos (org_id, title, notes, due_date, assignee_id, created_by, meeting_id, reminder1_days, reminder2_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .run(user.org_id, title, notes, due, assignee?.id ?? null, user.id, meeting?.id ?? null, r1, r2).lastInsertRowid,
     );
   }
   if (assignee && assignee.id !== user.id && assignee.id !== previousAssignee) {

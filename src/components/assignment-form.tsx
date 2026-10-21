@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SubmitButton } from "@/components/client";
 import { saveTodo } from "@/app/(app)/admin/todos/actions";
 import type { Todo } from "@/lib/assignments";
+import { SIGNUP_REMINDER_OPTIONS } from "@/lib/signups";
 
 /** New or edit assignment: to anyone in the organization, with a due date and details. */
 export function AssignmentForm({
@@ -55,6 +56,22 @@ export function AssignmentForm({
         <input name="due_date" type="date" className="input" defaultValue={todo?.due_date ?? ""} aria-label="Due date" />
       </div>
       <textarea name="notes" rows={3} className="input" placeholder="Details (optional): what's needed, who to talk to…" defaultValue={todo?.notes} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        {(["reminder1_days", "reminder2_days"] as const).map((field, i) => (
+          <div key={field}>
+            <label className="label" htmlFor={`${field}-${todo?.id ?? "new"}`}>
+              {i === 0 ? "Reminder" : "Second reminder"}
+            </label>
+            <select id={`${field}-${todo?.id ?? "new"}`} name={field} className="input" defaultValue={String((todo ? todo[field] : i === 0 ? 1 : 0) ?? "")}>
+              {SIGNUP_REMINDER_OPTIONS.map(([v, label]) => (
+                <option key={label} value={v ?? ""}>
+                  {v === 0 ? "The morning it's due" : label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
+      </div>
       <div className="flex gap-2">
         <SubmitButton>{todo ? "Save" : "Add assignment"}</SubmitButton>
         {(todo || cancelHref) && (
@@ -64,8 +81,9 @@ export function AssignmentForm({
         )}
       </div>
       <p className="hint">
-        The person gets a notification, sees it under My assignments and on their home page, and is reminded the day before and the day it&apos;s due. They can add progress notes
-        and mark it done.
+        The person gets a notification, sees it under My assignments and on their home page, and gets the reminders above (from 8 AM, when it has a due date). Everything
+        reaches them the way they chose under Contact &amp; notifications: app notification, plus email and/or text if they picked those. They can add progress notes and
+        mark it done.
       </p>
     </form>
   );

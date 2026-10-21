@@ -32,9 +32,12 @@ export interface Todo {
   creator: string | null;
   created_at: string;
   note_count: number;
+  /** Reminders: days before it's due (0 = the morning it's due), or null for none. */
+  reminder1_days: number | null;
+  reminder2_days: number | null;
 }
 
-const TODO_SELECT = `SELECT t.id, t.org_id, t.title, t.notes, t.due_date, t.assignee_id, t.status, t.done, t.done_at, t.meeting_id, t.created_by, t.created_at,
+const TODO_SELECT = `SELECT t.id, t.org_id, t.title, t.notes, t.due_date, t.assignee_id, t.status, t.done, t.done_at, t.meeting_id, t.created_by, t.created_at, t.reminder1_days, t.reminder2_days,
     a.display_name AS assignee, c.display_name AS creator, mt.date AS meeting_date,
     (SELECT COUNT(*) FROM todo_notes n WHERE n.todo_id = t.id) AS note_count
   FROM todos t LEFT JOIN members a ON a.id = t.assignee_id LEFT JOIN members c ON c.id = t.created_by LEFT JOIN meetings mt ON mt.id = t.meeting_id`;

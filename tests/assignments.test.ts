@@ -75,6 +75,10 @@ describe("presidency planning and My assignments", () => {
     expect(rem).toBeUndefined();
     const tomorrow = collectDue(at("2026-11-30T09:00")).find((n) => n.key.startsWith("todo-pre:31"));
     expect(tomorrow?.payload.url).toBe("/assignments/31?org=1");
+    // Reminders chosen on the assignment: 3 days before, and none on the day.
+    db().prepare("UPDATE todos SET reminder1_days = 3, reminder2_days = NULL WHERE id = 31").run();
+    expect(collectDue(at("2026-11-28T09:00")).find((n) => n.key.startsWith("todo-r3:31"))?.payload.title).toBe("Assignment due in 3 days");
+    expect(collectDue(at("2026-12-01T09:00")).find((n) => n.key.startsWith("todo-due:31"))).toBeUndefined();
   });
 });
 

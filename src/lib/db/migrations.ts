@@ -1303,4 +1303,12 @@ ALTER TABLE wards ADD COLUMN no_texting INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE wards ADD COLUMN texting_paid_through TEXT;
 `,
   },
+  {
+    // An assignment's reminders: days before it's due (0 = the morning it's due), or none.
+    id: 64,
+    sql: `
+ALTER TABLE todos ADD COLUMN reminder1_days INTEGER DEFAULT 1;
+ALTER TABLE todos ADD COLUMN reminder2_days INTEGER DEFAULT 0;
+`,
+  },
 ];

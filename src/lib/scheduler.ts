@@ -209,18 +209,31 @@ function todoReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
   if (local.hour < 8 || local.hour >= 20) return [];
   const today = local.toISODate()!;
-  const tomorrow = local.plus({ days: 1 }).toISODate()!;
+  // Each assignment's reminders (days before it's due; 0 = the morning it's due), from 8 AM.
   const rows = db()
     .prepare(
-      `SELECT t.id, t.title, t.due_date, m.id AS mid FROM todos t JOIN members m ON m.id = t.assignee_id
-       WHERE t.org_id = ? AND t.done = 0 AND t.due_date IN (?, ?) AND m.status = 'active'`,
+      `SELECT t.id, t.title, t.due_date, t.reminder1_days AS r1, t.reminder2_days AS r2, m.id AS mid FROM todos t JOIN members m ON m.id = t.assignee_id
+       WHERE t.org_id = ? AND t.done = 0 AND t.due_date >= ? AND t.due_date <= date(?, '+30 days') AND m.status = 'active'`,
     )
-    .all(org.id, today, tomorrow) as { id: number; title: string; due_date: string; mid: number }[];
-  return rows.map((t) => ({
-    key: `todo-${t.due_date === today ? "due" : "pre"}:${t.id}:${t.due_date}`,
-    recipients: [recipientById(t.mid, org.id)].filter((r): r is Recipient => !!r),
-    payload: { title: t.due_date === today ? "Assignment due today" : "Assignment due tomorrow", body: `${t.title} (due ${formatDate(t.due_date, "short")})`, url: withOrg(`/assignments/${t.id}`, org.id) },
-  }));
+    .all(org.id, today, today) as { id: number; title: string; due_date: string; r1: number | null; r2: number | null; mid: number }[];
+  const out: DueNotification[] = [];
+  for (const t of rows) {
+    const away = daysBetween(today, t.due_date);
+    if (away !== t.r1 && away !== t.r2) continue;
+    const who = recipientById(t.mid, org.id);
+    if (!who) continue;
+    out.push({
+      // (The day-before and day-of keys are the ones used before reminders could be chosen.)
+      key: away === 0 ? `todo-due:${t.id}:${t.due_date}` : away === 1 ? `todo-pre:${t.id}:${t.due_date}` : `todo-r${away}:${t.id}:${t.due_date}`,
+      recipients: [who],
+      payload: {
+        title: away === 0 ? "Assignment due today" : away === 1 ? "Assignment due tomorrow" : `Assignment due in ${away} days`,
+        body: `${t.title} (due ${formatDate(t.due_date, "short")})`,
+        url: withOrg(`/assignments/${t.id}`, org.id),
+      },
+    });
+  }
+  return out;
 }
 
 /**

@@ -610,7 +610,7 @@ Tap an assignment to see its **progress notes**:
 - The person hears about the presidency's notes, except those marked
   **Presidency only**, which they never see.
 
-Reminders go out at 8 AM the day before and the day it's due.
+Each assignment has two **Reminders** you choose (from 2 weeks before to the morning it's due, or none). They start as the day before and the morning it's due, sent from 8 AM. They reach the person however they chose under Contact & notifications: app notification, plus email and/or text.
 
 ## My assignments (every member)
 
