@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { requireAdmin } from "@/lib/auth";
-import { isPresidency } from "@/lib/permissions";
+import { requireUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { isAdmin } from "@/lib/permissions";
 import { appUrl } from "@/lib/config";
 import { joinLink, joinQrSvg } from "@/lib/invite";
 import { Empty, Flash, PageHeader } from "@/components/ui";
@@ -11,19 +12,20 @@ import { setJoinCode } from "../settings/actions";
 export const metadata = { title: "Invite members" };
 
 export default async function InvitePage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
-  const user = await requireAdmin();
+  const user = await requireUser();
+  // Leaders, and ward administrators (who manage the join code).
+  if (!isAdmin(user) && !user.wardAdmin) redirect("/");
   const sp = await searchParams;
   const code = user.ward.join_code;
-  const presidency = isPresidency(user);
 
   return (
     <>
-      <PageHeader title="Invite members" back={{ href: "/admin", label: "Admin" }} subtitle="Use this in a ward meeting or class: everyone scans the code with their phone camera and joins in about a minute." />
+      <PageHeader title="Invite members" back={isAdmin(user) ? { href: "/admin", label: "Admin" } : { href: "/ward-settings", label: "Ward settings" }} subtitle="Use this in a ward meeting or class: everyone scans the code with their phone camera and joins in about a minute." />
       <Flash msg={sp.msg} />
       {!code ? (
         <Empty>
           <p className="mb-3">There&apos;s no join code yet.</p>
-          {presidency ? (
+          {user.wardAdmin ? (
             <form action={setJoinCode}>
               <input type="hidden" name="return" value="/admin/invite" />
               <SubmitButton name="mode" value="new">
@@ -31,7 +33,7 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
               </SubmitButton>
             </form>
           ) : (
-            <p>Ask a presidency member to create one.</p>
+            <p>Ask a ward administrator to create one (More → Ward settings).</p>
           )}
         </Empty>
       ) : (
@@ -64,7 +66,7 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
               <p className="rounded-lg bg-surface-2 px-3 py-2 font-mono text-sm break-all">{joinLink(code)}</p>
               <ShareInvite text={`Join the ${user.ward.name} app for reminders, sign-ups and ward news. Join code: ${code}`} link={joinLink(code)} />
             </div>
-            {presidency && (
+            {user.wardAdmin && (
               <form action={setJoinCode} className="card space-y-2 text-sm">
                 <input type="hidden" name="return" value="/admin/invite" />
                 <p className="text-muted">If the code gets shared outside the ward, make a new one. The old code and QR code stop working.</p>

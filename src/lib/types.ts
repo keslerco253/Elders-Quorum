@@ -70,7 +70,7 @@ export interface Org {
   name: string;
   kind: "ward" | "group";
   hidden_features: string;
-  /** Turned off organizations stay in Admin → Settings but are hidden everywhere else. */
+  /** Turned off organizations stay in More → Ward settings but are hidden everywhere else. */
   active: number;
 }
 
@@ -107,6 +107,11 @@ export interface CurrentUser extends Member {
   wards: Ward[];
   /** Bishopric (leads the ward-wide organization) or created the ward. */
   wardLeader: boolean;
+  /**
+   * Manages the ward's settings (organizations, join code…): one of its ward
+   * administrators, or the site owner. Until any are chosen, the ward's leaders.
+   */
+  wardAdmin: boolean;
 }
 
 export type LessonKind = "talk" | "general_conference" | "stake_conference";

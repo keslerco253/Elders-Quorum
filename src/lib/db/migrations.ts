@@ -1282,4 +1282,16 @@ CREATE INDEX conducting_swaps_org ON conducting_swaps(org_id, date);
     id: 61,
     sql: `ALTER TABLE notification_log ADD COLUMN message INTEGER NOT NULL DEFAULT 0;`,
   },
+  {
+    // Ward administrators: up to two people per ward who manage the ward's settings
+    // (organizations, join code…). The bishop can be one, but doesn't have to be.
+    id: 62,
+    sql: `
+CREATE TABLE ward_admins (
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  PRIMARY KEY (ward_id, member_id)
+);
+`,
+  },
 ];

@@ -34,6 +34,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
       ? [{ href: "/pass-on", label: "Pass it on", count: messagesNeedingHome(user.ward_id).length, desc: "Members' messages that need passing on to the right organization" }]
       : []),
     { href: "/more/reminders", label: "My reminders", desc: "When and how you're reminded about lessons, events and service" },
+    ...(user.wardAdmin ? [{ href: "/ward-settings", label: "Ward settings", desc: `${user.ward.name}'s organizations, join code and ward administrators` }] : []),
     { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },
     ...(user.is_site_owner ? [{ href: "/site", label: "Site owner", desc: "Every ward, texting, backups" }] : []),
   ];

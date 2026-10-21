@@ -162,6 +162,7 @@ export function currentUserFor(member: Member, wantedOrg?: number): CurrentUser 
     orgs,
     wards: memberWards(member.id),
     wardLeader: wardEntry?.role === "presidency" || ward.created_by === member.id,
+    wardAdmin: isWardAdmin(member, ward.id, wardEntry?.role === "presidency" || ward.created_by === member.id),
   };
 }
 
@@ -363,4 +364,29 @@ export function myOrgs(memberId: number): MyOrg[] {
     .all(memberId) as (Org & { ward_name: string; role: Role })[];
   const manyWards = new Set(rows.map((r) => r.ward_id)).size > 1;
   return rows.map(({ ward_name, ...o }) => ({ ...o, label: o.kind === "ward" ? ward_name : manyWards ? `${ward_name} ${o.name}` : o.name }));
+}
+
+/** A ward's administrators (up to two), by name. */
+export function wardAdmins(wardId: number): { id: number; display_name: string }[] {
+  return db()
+    .prepare("SELECT m.id, m.display_name FROM ward_admins a JOIN members m ON m.id = a.member_id WHERE a.ward_id = ? ORDER BY m.display_name COLLATE NOCASE")
+    .all(wardId) as { id: number; display_name: string }[];
+}
+
+/** Ward settings are for its administrators and the site owner; until any are chosen, its leaders too. */
+function isWardAdmin(member: { id: number; is_site_owner?: number | boolean }, wardId: number, leader: boolean): boolean {
+  if (member.is_site_owner) return true;
+  const admins = wardAdmins(wardId);
+  return admins.length ? admins.some((a) => a.id === member.id) : leader;
+}
+
+/** Sets a ward's administrators (at most two, people in the ward). */
+export function setWardAdmins(wardId: number, ids: number[]) {
+  const d = db();
+  const keep = [...new Set(ids)].filter((id) => d.prepare("SELECT 1 FROM ward_members WHERE ward_id = ? AND member_id = ?").get(wardId, id)).slice(0, 2);
+  d.transaction(() => {
+    d.prepare("DELETE FROM ward_admins WHERE ward_id = ?").run(wardId);
+    for (const id of keep) d.prepare("INSERT INTO ward_admins (ward_id, member_id) VALUES (?, ?)").run(wardId, id);
+  })();
+  return keep;
 }

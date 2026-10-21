@@ -91,7 +91,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         <button className="btn-secondary">Search</button>
       </form>
       {members.length === 0 ? (
-        <Empty>No one yet. Share the ward&apos;s join code from Admin → Settings so members can join.</Empty>
+        <Empty>No one yet. Share the ward&apos;s join code from Admin → Invite members so members can join.</Empty>
       ) : (
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
           {members.map((m) => (

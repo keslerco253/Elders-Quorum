@@ -54,10 +54,16 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
   someone who hasn't signed in yet. After that, only the member changes it
   (More → Contact & notifications, with a code). Someone already using the app
   in another ward joins yours themselves with your join code.
-- **Organizations (bishopric, whoever started the ward, or the site owner):**
-  every ward comes with Elders Quorum, Relief Society, Young Men, Young Women,
-  Primary and Sunday School. **Admin → Settings → Organizations** (under "The
-  whole ward", whichever organization you're looking at): **Turn off** the ones you don't
+- **Ward administrators:** up to two people who manage the whole ward's
+  settings under **More → Ward settings**: its organizations, join code, name
+  and time zone, and the backup person for members' messages. The bishop can be
+  one, but doesn't have to be. Choose them at the top of Ward settings; new ones
+  get a notification. Until they're chosen, the bishopric manages these. The
+  app's site owner can always open the page. Organization presidents only see
+  their own organization's settings (Admin → Settings).
+- **Organizations (ward administrators):** every ward comes with Elders Quorum,
+  Relief Society, Young Men, Young Women, Primary and Sunday School. Under
+  **More → Ward settings → Organizations**: **Turn off** the ones you don't
   use (hidden from members, nothing deleted), **Turn on** to bring one back,
   **Delete** to remove one and everything in it for good, or **Add an
   organization** for anything else. Each organization can also turn off
