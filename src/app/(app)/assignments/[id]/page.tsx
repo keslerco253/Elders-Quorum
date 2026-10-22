@@ -8,6 +8,7 @@ import { Linkify } from "@/components/linkify";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { addProgress } from "../actions";
+import { deleteTodo } from "../../admin/todos/actions";
 
 export const metadata = { title: "Assignment" };
 
@@ -31,9 +32,18 @@ export default async function AssignmentPage({ params, searchParams }: { params:
         back={leader ? { href: withOrg("/admin/todos", t.org_id), label: "Assignments" } : { href: "/assignments", label: "My assignments" }}
         actions={
           leader && (
-            <Link href={withOrg(`/admin/todos?edit=${t.id}`, t.org_id)} className="btn-secondary">
-              Edit
-            </Link>
+            <div className="flex gap-2">
+              <Link href={withOrg(`/admin/todos?edit=${t.id}`, t.org_id)} className="btn-secondary">
+                Edit
+              </Link>
+              <form action={deleteTodo}>
+                <input type="hidden" name="item_id" value={t.id} />
+                <input type="hidden" name="back" value={withOrg("/admin/todos", t.org_id)} />
+                <SubmitButton className="btn-secondary text-danger" confirm="Delete this assignment and its progress notes?" pendingText="Deleting…">
+                  Delete
+                </SubmitButton>
+              </form>
+            </div>
           )
         }
       />

@@ -3,10 +3,10 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requirePresidency } from "@/lib/auth";
+import { requirePresidency, requireUser } from "@/lib/auth";
 import { notify, RECIPIENT_COLUMNS, type Recipient } from "@/lib/notify";
 import { formatDate, todayIn } from "@/lib/time";
-import { setTodoStatus, type TodoStatus } from "@/lib/assignments";
+import { getTodo, isPresidencyOf, setTodoStatus, type TodoStatus } from "@/lib/assignments";
 import { withOrg } from "@/lib/org-cookie";
 
 /** Back to the meeting the form was on, or the assignments list. */
@@ -79,9 +79,13 @@ export async function setStatus(fd: FormData) {
   redirect(backTo(fd));
 }
 
+/** Deletes an assignment and its progress notes (anyone in that organization's presidency). */
 export async function deleteTodo(fd: FormData) {
-  const user = await requirePresidency();
-  db().prepare("DELETE FROM todos WHERE id = ? AND org_id = ?").run(Number(fd.get("item_id")), user.org_id);
+  const user = await requireUser();
+  const t = getTodo(Number(fd.get("item_id")));
+  if (!t) go(backTo(fd), "That assignment no longer exists.");
+  if (!isPresidencyOf(user.id, t.org_id)) go(backTo(fd), "Only that organization's presidency can delete it.");
+  db().prepare("DELETE FROM todos WHERE id = ?").run(t.id);
   revalidatePath("/", "layout");
   go(backTo(fd), "Assignment deleted.");
 }

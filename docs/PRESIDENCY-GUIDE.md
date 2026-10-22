@@ -613,6 +613,8 @@ Tap an assignment to see its **progress notes**:
 
 Each assignment has two **Reminders** you choose (from 2 weeks before to the morning it's due, or none). They start as the day before and the morning it's due, sent from 8 AM (or the hour you set under Admin → Settings → Reminder times). They reach the person however they chose under Contact & notifications: app notification, plus email and/or text.
 
+**Deleting an assignment:** anyone in the presidency can tap **Delete** on the assignment's page, or ✕ next to it under Admin → Assignments or under "Assignments you've given" on My assignments. It's gone for everyone, with its progress notes and reminders. (To keep a record instead, mark it done.)
+
 ## My assignments (every member)
 
 Presidency members can also give an assignment from **More → My assignments →

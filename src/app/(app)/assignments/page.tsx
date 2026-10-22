@@ -7,6 +7,8 @@ import { ledOrgIds } from "@/lib/conversations";
 import { withOrg } from "@/lib/org-cookie";
 import { todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
+import { SubmitButton } from "@/components/client";
+import { deleteTodo } from "../admin/todos/actions";
 
 export const metadata = { title: "My assignments" };
 
@@ -128,8 +130,8 @@ export default async function MyAssignmentsPage({ searchParams }: { searchParams
           >
             <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
               {given.map((t) => (
-                <li key={t.id}>
-                  <Link href={withOrg(`/assignments/${t.id}`, t.org_id)} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
+                <li key={t.id} className="flex items-center">
+                  <Link href={withOrg(`/assignments/${t.id}`, t.org_id)} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 hover:bg-surface-2">
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium">{t.title}</span>
                       <span className="text-sm text-muted">
@@ -141,6 +143,13 @@ export default async function MyAssignmentsPage({ searchParams }: { searchParams
                     {t.due_date && t.due_date < today ? <Badge tone="danger">Overdue</Badge> : t.status === "progress" && <Badge tone="info">{STATUS_LABELS.progress}</Badge>}
                     <span className="text-muted">›</span>
                   </Link>
+                  <form action={deleteTodo} className="shrink-0 pr-3">
+                    <input type="hidden" name="item_id" value={t.id} />
+                    <input type="hidden" name="back" value="/assignments" />
+                    <SubmitButton className="btn-secondary btn-sm" confirm="Delete this assignment?" pendingText="…">
+                      ✕
+                    </SubmitButton>
+                  </form>
                 </li>
               ))}
             </ul>
