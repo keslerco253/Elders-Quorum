@@ -3,9 +3,10 @@ node_modules
 data
 .env
 .git
-# Docs stay out, except the guide the app shows (Admin -> Leader guide).
+# Docs stay out, except the guides the app shows (Admin -> Leader guide, More -> Help).
 docs/*
 !docs/PRESIDENCY-GUIDE.md
+!docs/MEMBER-GUIDE.md
 tests
 backups
 mobile
