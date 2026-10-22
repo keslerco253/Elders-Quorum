@@ -672,6 +672,11 @@ family history work.
   can see what anyone else logged.
 - The day after it ends, everyone on the teams hears the final scores. Thirty
   days later, entries stop being tied to anyone; only the totals stay.
+- The presidency that started it can **Edit challenge** (on its page): the name,
+  dates, teams (rename, change organizations, add or remove one) and what counts
+  (rename, change points, add or remove). Points already logged stay with their
+  team; changing something's points changes its total too. Removing a team or
+  something that counts removes what was logged for it (you're asked first).
 - The presidency that started it can delete it.
 
 ## Plans

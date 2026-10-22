@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import { db, useTestDb } from "@/lib/db";
 import { collectDue } from "@/lib/scheduler";
 import { runRetention } from "@/lib/retention";
-import { challengeItems, createChallenge, getChallenge, logEntry, memberTeams, myEntries, scoreboard } from "@/lib/challenges";
+import { challengeItems, challengeTeams, createChallenge, getChallenge, logEntry, memberTeams, myEntries, scoreboard, updateChallenge } from "@/lib/challenges";
 
 describe("challenges between organizations", () => {
   let eq: number, rs: number, ym: number;
@@ -69,5 +69,49 @@ describe("challenges between organizations", () => {
     runRetention();
     expect(myEntries(c.id, 2)).toEqual([]);
     expect(scoreboard(c.id).map((b) => b.points)).toEqual([4, 4]);
+  });
+
+  it("can be changed: name, dates, points, teams; removing something removes its points", () => {
+    const res = createChallenge(1, eq, 1, {
+      title: "Temple challenge",
+      starts_on: "2026-10-20",
+      ends_on: "2026-11-30",
+      teams: [
+        { name: "", orgIds: [eq] },
+        { name: "", orgIds: [rs] },
+      ],
+      items: [
+        { label: "Ordinances", points: 1 },
+        { label: "Indexing hours", points: 1 },
+      ],
+    });
+    if (!("id" in res)) throw new Error(res.error);
+    const c = getChallenge(1, res.id)!;
+    const [ord, idx] = challengeItems(c.id);
+    const [men, sisters] = challengeTeams(c.id);
+    logEntry(c, 1, men.id, ord.id, 3, "2026-10-22");
+    logEntry(c, 2, sisters.id, idx.id, 2, "2026-10-22");
+    const upd = updateChallenge(1, c.id, {
+      title: "Fall temple challenge",
+      starts_on: "2026-10-20",
+      ends_on: "2026-12-15",
+      teams: [
+        { id: men.id, name: "The Elders", orgIds: [eq] },
+        { id: sisters.id, name: "", orgIds: [rs] },
+        { name: "", orgIds: [ym] },
+      ],
+      items: [{ id: ord.id, label: "Ordinances", points: 2 }],
+    });
+    expect(upd).toEqual({ id: c.id });
+    expect(getChallenge(1, c.id)).toMatchObject({ title: "Fall temple challenge", ends_on: "2026-12-15" });
+    // Ordinances now 2 points each; indexing (and its points) is gone; a third team joined.
+    expect(scoreboard(c.id).map((b) => [b.team.name, b.points])).toEqual([
+      ["The Elders", 6],
+      ["Relief Society", 0],
+      ["Young Men", 0],
+    ]);
+    expect(updateChallenge(1, c.id, { title: "x", starts_on: "2026-10-20", ends_on: "2026-12-15", teams: [{ name: "", orgIds: [eq] }], items: [{ label: "a", points: 1 }] })).toEqual({
+      error: expect.stringMatching(/two teams/),
+    });
   });
 });

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requirePresidency, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { challengeMemberIds, createChallenge, deleteMyEntry, getChallenge, logEntry } from "@/lib/challenges";
+import { challengeMemberIds, createChallenge, deleteMyEntry, getChallenge, logEntry, updateChallenge, type ChallengeInput } from "@/lib/challenges";
 import { isPresidencyOf } from "@/lib/assignments";
 import { notify, recipientById, type Recipient } from "@/lib/notify";
 import { homeOf } from "@/lib/orgs";
@@ -22,16 +22,32 @@ const parse = <T,>(raw: FormDataEntryValue | null, fallback: T): T => {
   }
 };
 
-/** A presidency starts a challenge; everyone on the teams is told. */
-export async function newChallenge(fd: FormData) {
-  const user = await requirePresidency();
-  const res = createChallenge(user.ward_id, user.org_id, user.id, {
+/** The challenge's setup, from the form. */
+function readInput(fd: FormData): ChallengeInput {
+  return {
     title: String(fd.get("title") || ""),
     starts_on: String(fd.get("starts_on") || ""),
     ends_on: String(fd.get("ends_on") || ""),
-    teams: parse<{ name: string; orgIds: number[] }[]>(fd.get("teams"), []).map((t) => ({ name: String(t.name ?? ""), orgIds: (t.orgIds ?? []).map(Number) })),
-    items: parse<{ label: string; points: number }[]>(fd.get("items"), []).map((i) => ({ label: String(i.label ?? ""), points: Number(i.points) })),
-  });
+    teams: parse<{ id?: number; name: string; orgIds: number[] }[]>(fd.get("teams"), []).map((t) => ({ id: Number(t.id) || undefined, name: String(t.name ?? ""), orgIds: (t.orgIds ?? []).map(Number) })),
+    items: parse<{ id?: number; label: string; points: number }[]>(fd.get("items"), []).map((i) => ({ id: Number(i.id) || undefined, label: String(i.label ?? ""), points: Number(i.points) })),
+  };
+}
+
+/** The presidency that started it changes its name, dates, teams or what counts. */
+export async function editChallenge(fd: FormData) {
+  const user = await requireUser();
+  const c = getChallenge(user.ward_id, Number(fd.get("challenge_id")));
+  if (!c || !c.org_id || !isPresidencyOf(user.id, c.org_id)) go("/admin/challenges", "Only the presidency that started it can change it.");
+  const res = updateChallenge(user.ward_id, c.id, readInput(fd));
+  if ("error" in res) go(`/admin/challenges/${c.id}/edit`, res.error);
+  revalidatePath("/", "layout");
+  go(`/plans/challenges/${c.id}`, "Challenge updated.");
+}
+
+/** A presidency starts a challenge; everyone on the teams is told. */
+export async function newChallenge(fd: FormData) {
+  const user = await requirePresidency();
+  const res = createChallenge(user.ward_id, user.org_id, user.id, readInput(fd));
   if ("error" in res) go("/admin/challenges/new", res.error);
   const c = getChallenge(user.ward_id, res.id)!;
   const recipients = challengeMemberIds(c.id)

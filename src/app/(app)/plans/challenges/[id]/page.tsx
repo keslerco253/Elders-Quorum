@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { challengeItems, getChallenge, memberTeams, myEntries, scoreboard, statusOf } from "@/lib/challenges";
@@ -139,7 +140,12 @@ export default async function ChallengePage({ params, searchParams }: { params: 
       </div>
 
       {manager && (
-        <form action={deleteChallenge} className="mt-6">
+        <Link href={`/admin/challenges/${c.id}/edit`} className="btn-secondary btn-sm mt-6 mr-2 inline-block">
+          Edit challenge
+        </Link>
+      )}
+      {manager && (
+        <form action={deleteChallenge} className="mt-6 inline-block">
           <input type="hidden" name="challenge_id" value={c.id} />
           <SubmitButton className="btn-secondary btn-sm" confirm="Delete this challenge and everything logged for it?" pendingText="Deleting…">
             Delete challenge

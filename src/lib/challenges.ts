@@ -61,40 +61,93 @@ export function challengeItems(challengeId: number): ChallengeItem[] {
   return db().prepare("SELECT id, label, points FROM challenge_items WHERE challenge_id = ? ORDER BY position, id").all(challengeId) as ChallengeItem[];
 }
 
+export interface ChallengeInput {
+  title: string;
+  starts_on: string;
+  ends_on: string;
+  /** Teams (with their id when editing an existing one). */
+  teams: { id?: number; name: string; orgIds: number[] }[];
+  /** What counts (with its id when editing an existing one). */
+  items: { id?: number; label: string; points: number }[];
+}
+
 /**
- * Creates a challenge. Each organization can be on only one team; there must be at
- * least two teams and one thing that counts. Returns the id, or an error to show.
+ * Checks a challenge's setup: a name, dates, at least two teams with organizations
+ * (each organization on only one team) and something that counts.
  */
-export function createChallenge(
-  wardId: number,
-  orgId: number,
-  createdBy: number,
-  c: { title: string; starts_on: string; ends_on: string; teams: { name: string; orgIds: number[] }[]; items: { label: string; points: number }[] },
-): { id: number } | { error: string } {
-  const d = db();
-  const wardOrgs = new Set((d.prepare("SELECT id FROM orgs WHERE ward_id = ? AND active = 1").all(wardId) as { id: number }[]).map((o) => o.id));
+function checkInput(wardId: number, c: ChallengeInput): { error: string } | { teams: ChallengeInput["teams"]; items: ChallengeInput["items"] } {
+  const wardOrgs = new Set((db().prepare("SELECT id FROM orgs WHERE ward_id = ? AND active = 1").all(wardId) as { id: number }[]).map((o) => o.id));
   const teams = c.teams.map((t) => ({ ...t, orgIds: [...new Set(t.orgIds)].filter((id) => wardOrgs.has(id)) })).filter((t) => t.orgIds.length);
-  const items = c.items.map((i) => ({ label: i.label.trim().slice(0, 80), points: i.points })).filter((i) => i.label && Number.isFinite(i.points) && i.points > 0);
+  const items = c.items.map((i) => ({ ...i, label: i.label.trim().slice(0, 80) })).filter((i) => i.label && Number.isFinite(i.points) && i.points > 0);
   if (!c.title.trim()) return { error: "Give the challenge a name." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(c.starts_on) || !/^\d{4}-\d{2}-\d{2}$/.test(c.ends_on) || c.ends_on < c.starts_on) return { error: "Choose a start date and an end date after it." };
   if (teams.length < 2) return { error: "Choose at least two teams, each with at least one organization." };
   const all = teams.flatMap((t) => t.orgIds);
   if (new Set(all).size !== all.length) return { error: "An organization can be on only one team." };
   if (!items.length) return { error: "Add at least one thing that counts." };
-  const name = (ids: number[]) =>
-    ids.map((id) => (d.prepare("SELECT CASE WHEN kind = 'ward' THEN 'Ward' ELSE name END AS n FROM orgs WHERE id = ?").get(id) as { n: string }).n).join(" + ");
+  return { teams, items };
+}
+
+/** "Elders Quorum + Young Men": a team's default name. */
+function orgNames(ids: number[]): string {
+  return ids.map((id) => (db().prepare("SELECT CASE WHEN kind = 'ward' THEN 'Ward' ELSE name END AS n FROM orgs WHERE id = ?").get(id) as { n: string }).n).join(" + ");
+}
+
+/** Creates a challenge. Returns the id, or an error to show. */
+export function createChallenge(wardId: number, orgId: number, createdBy: number, c: ChallengeInput): { id: number } | { error: string } {
+  const checked = checkInput(wardId, c);
+  if ("error" in checked) return checked;
+  const d = db();
   return d.transaction(() => {
     const id = Number(
       d.prepare("INSERT INTO challenges (ward_id, org_id, title, starts_on, ends_on, created_by) VALUES (?, ?, ?, ?, ?, ?)").run(wardId, orgId, c.title.trim().slice(0, 120), c.starts_on, c.ends_on, createdBy)
         .lastInsertRowid,
     );
-    teams.forEach((t, i) => {
-      const teamId = Number(d.prepare("INSERT INTO challenge_teams (challenge_id, name, position) VALUES (?, ?, ?)").run(id, t.name.trim().slice(0, 80) || name(t.orgIds), i).lastInsertRowid);
-      for (const org of t.orgIds) d.prepare("INSERT INTO challenge_team_orgs (team_id, org_id) VALUES (?, ?)").run(teamId, org);
-    });
-    items.forEach((it, i) => d.prepare("INSERT INTO challenge_items (challenge_id, label, points, position) VALUES (?, ?, ?, ?)").run(id, it.label, it.points, i));
+    saveParts(id, checked.teams, checked.items);
     return { id };
   })();
+}
+
+/**
+ * Changes a challenge: its name, dates, teams and what counts. Teams and things that
+ * are kept keep what was logged for them; ones taken out lose it.
+ */
+export function updateChallenge(wardId: number, id: number, c: ChallengeInput): { id: number } | { error: string } {
+  if (!getChallenge(wardId, id)) return { error: "That challenge no longer exists." };
+  const checked = checkInput(wardId, c);
+  if ("error" in checked) return checked;
+  const d = db();
+  d.transaction(() => {
+    d.prepare("UPDATE challenges SET title = ?, starts_on = ?, ends_on = ? WHERE id = ?").run(c.title.trim().slice(0, 120), c.starts_on, c.ends_on, id);
+    saveParts(id, checked.teams, checked.items);
+  })();
+  return { id };
+}
+
+/** Writes a challenge's teams and items: updates ones it has, adds new ones, removes the rest. */
+function saveParts(id: number, teams: ChallengeInput["teams"], items: ChallengeInput["items"]) {
+  const d = db();
+  const haveTeams = new Set((d.prepare("SELECT id FROM challenge_teams WHERE challenge_id = ?").all(id) as { id: number }[]).map((r) => r.id));
+  const keepTeams = new Set<number>();
+  teams.forEach((t, i) => {
+    const name = t.name.trim().slice(0, 80) || orgNames(t.orgIds);
+    let teamId = t.id && haveTeams.has(t.id) ? t.id : 0;
+    if (teamId) d.prepare("UPDATE challenge_teams SET name = ?, position = ? WHERE id = ?").run(name, i, teamId);
+    else teamId = Number(d.prepare("INSERT INTO challenge_teams (challenge_id, name, position) VALUES (?, ?, ?)").run(id, name, i).lastInsertRowid);
+    keepTeams.add(teamId);
+    d.prepare("DELETE FROM challenge_team_orgs WHERE team_id = ?").run(teamId);
+    for (const org of t.orgIds) d.prepare("INSERT INTO challenge_team_orgs (team_id, org_id) VALUES (?, ?)").run(teamId, org);
+  });
+  for (const t of haveTeams) if (!keepTeams.has(t)) d.prepare("DELETE FROM challenge_teams WHERE id = ?").run(t);
+  const haveItems = new Set((d.prepare("SELECT id FROM challenge_items WHERE challenge_id = ?").all(id) as { id: number }[]).map((r) => r.id));
+  const keepItems = new Set<number>();
+  items.forEach((it, i) => {
+    if (it.id && haveItems.has(it.id)) {
+      d.prepare("UPDATE challenge_items SET label = ?, points = ?, position = ? WHERE id = ?").run(it.label, it.points, i, it.id);
+      keepItems.add(it.id);
+    } else keepItems.add(Number(d.prepare("INSERT INTO challenge_items (challenge_id, label, points, position) VALUES (?, ?, ?, ?)").run(id, it.label, it.points, i).lastInsertRowid));
+  });
+  for (const it of haveItems) if (!keepItems.has(it)) d.prepare("DELETE FROM challenge_items WHERE id = ?").run(it);
 }
 
 export interface TeamScore {

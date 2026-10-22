@@ -2,44 +2,75 @@
 
 import { useState } from "react";
 import { SubmitButton } from "@/components/client";
-import { newChallenge } from "./actions";
+import { editChallenge, newChallenge } from "./actions";
 
-type Team = { name: string; orgIds: number[] };
-type Item = { label: string; points: string };
+type Team = { id?: number; name: string; orgIds: number[] };
+type Item = { id?: number; label: string; points: string };
 
-/** A new challenge: name, dates, teams of organizations, and what counts for how many points. */
-export function ChallengeForm({ orgs, mine, today, defaults }: { orgs: { id: number; name: string }[]; mine: number; today: string; defaults: { label: string; points: number }[] }) {
-  const [teams, setTeams] = useState<Team[]>([
-    { name: "", orgIds: [mine] },
-    { name: "", orgIds: [] },
-  ]);
-  const [items, setItems] = useState<Item[]>(defaults.map((d) => ({ label: d.label, points: String(d.points) })));
+export interface ExistingChallenge {
+  id: number;
+  title: string;
+  starts_on: string;
+  ends_on: string;
+  teams: { id: number; name: string; orgIds: number[] }[];
+  items: { id: number; label: string; points: number }[];
+}
+
+/**
+ * A challenge's setup: name, dates, teams of organizations, and what counts for how
+ * many points. New, or editing an existing one.
+ */
+export function ChallengeForm({
+  orgs,
+  mine,
+  today,
+  defaults,
+  existing,
+}: {
+  orgs: { id: number; name: string }[];
+  mine: number;
+  today: string;
+  defaults: { label: string; points: number }[];
+  existing?: ExistingChallenge;
+}) {
+  const [teams, setTeams] = useState<Team[]>(
+    existing?.teams ?? [
+      { name: "", orgIds: [mine] },
+      { name: "", orgIds: [] },
+    ],
+  );
+  const [items, setItems] = useState<Item[]>(
+    existing ? existing.items.map((i) => ({ id: i.id, label: i.label, points: String(i.points) })) : defaults.map((d) => ({ label: d.label, points: String(d.points) })),
+  );
+  // Taking out a team or something already in the challenge loses what was logged for it.
+  const confirmRemove = (what: string) => !existing || window.confirm(`Remove ${what}? Anything already logged for it is removed too.`);
   const used = (except: number) => new Set(teams.flatMap((t, i) => (i === except ? [] : t.orgIds)));
   const toggle = (ti: number, id: number) =>
     setTeams((ts) => ts.map((t, i) => (i !== ti ? t : { ...t, orgIds: t.orgIds.includes(id) ? t.orgIds.filter((x) => x !== id) : [...t.orgIds, id] })));
   const setItem = (i: number, patch: Partial<Item>) => setItems((l) => l.map((it, j) => (j === i ? { ...it, ...patch } : it)));
   return (
-    <form action={newChallenge} className="card max-w-2xl space-y-5">
+    <form action={existing ? editChallenge : newChallenge} className="card max-w-2xl space-y-5">
+      {existing && <input type="hidden" name="challenge_id" value={existing.id} />}
       <input type="hidden" name="teams" value={JSON.stringify(teams)} />
-      <input type="hidden" name="items" value={JSON.stringify(items.map((i) => ({ label: i.label, points: Number(i.points) })))} />
+      <input type="hidden" name="items" value={JSON.stringify(items.map((i) => ({ id: i.id, label: i.label, points: Number(i.points) })))} />
       <div>
         <label className="label" htmlFor="title">
           Name
         </label>
-        <input id="title" name="title" required maxLength={120} className="input" placeholder="e.g. Fall Temple & Family History Challenge" />
+        <input id="title" name="title" required maxLength={120} className="input" placeholder="e.g. Fall Temple & Family History Challenge" defaultValue={existing?.title} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="label" htmlFor="starts_on">
             Starts
           </label>
-          <input id="starts_on" name="starts_on" type="date" required defaultValue={today} className="input" />
+          <input id="starts_on" name="starts_on" type="date" required defaultValue={existing?.starts_on ?? today} className="input" />
         </div>
         <div>
           <label className="label" htmlFor="ends_on">
             Ends
           </label>
-          <input id="ends_on" name="ends_on" type="date" required className="input" />
+          <input id="ends_on" name="ends_on" type="date" required defaultValue={existing?.ends_on} className="input" />
         </div>
       </div>
 
@@ -60,7 +91,7 @@ export function ChallengeForm({ orgs, mine, today, defaults }: { orgs: { id: num
                   aria-label={`Team ${ti + 1} name`}
                 />
                 {teams.length > 2 && (
-                  <button type="button" className="text-muted hover:text-danger" aria-label={`Remove team ${ti + 1}`} onClick={() => setTeams((ts) => ts.filter((_, i) => i !== ti))}>
+                  <button type="button" className="text-muted hover:text-danger" aria-label={`Remove team ${ti + 1}`} onClick={() => (!t.id || confirmRemove(t.name || `team ${ti + 1}`)) && setTeams((ts) => ts.filter((_, i) => i !== ti))}>
                     ✕
                   </button>
                 )}
@@ -94,7 +125,7 @@ export function ChallengeForm({ orgs, mine, today, defaults }: { orgs: { id: num
               aria-label={`Points for ${it.label || `thing ${i + 1}`}`}
             />
             <span className="text-xs text-muted">pt</span>
-            <button type="button" className="text-muted hover:text-danger" aria-label={`Remove ${it.label}`} onClick={() => setItems((l) => l.filter((_, j) => j !== i))}>
+            <button type="button" className="text-muted hover:text-danger" aria-label={`Remove ${it.label}`} onClick={() => (!it.id || confirmRemove(`"${it.label}"`)) && setItems((l) => l.filter((_, j) => j !== i))}>
               ✕
             </button>
           </div>
@@ -105,8 +136,12 @@ export function ChallengeForm({ orgs, mine, today, defaults }: { orgs: { id: num
         <p className="hint">Points for each one (e.g. 1 per ordinance, 1 per hour). Members log how many they did.</p>
       </fieldset>
 
-      <SubmitButton pendingText="Starting…">Start the challenge</SubmitButton>
-      <p className="hint">Everyone on the teams gets a notification. Only team totals are shown: no one sees what anyone else logged.</p>
+      <SubmitButton pendingText={existing ? "Saving…" : "Starting…"}>{existing ? "Save changes" : "Start the challenge"}</SubmitButton>
+      <p className="hint">
+        {existing
+          ? "Points already logged stay with their team and what they were for. Changing the points for something changes its total too."
+          : "Everyone on the teams gets a notification. Only team totals are shown: no one sees what anyone else logged."}
+      </p>
     </form>
   );
 }
