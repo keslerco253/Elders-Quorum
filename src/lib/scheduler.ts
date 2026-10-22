@@ -7,7 +7,8 @@ import { lessonOn } from "./lessons";
 import { ensureCfmLessons, usesCfm } from "./cfm";
 import { getNotes } from "./lesson-notes";
 import { respondPath } from "./teaching";
-import { formatDate, formatDateTime } from "./time";
+import { formatDate, formatDateTime, sundays } from "./time";
+import { reminderSettings, type LessonWhen } from "./reminder-settings";
 import type { PushPayload } from "./push";
 import type { EventRow } from "./types";
 import { eventAudience } from "./events";
@@ -45,13 +46,13 @@ export interface DueNotification {
   only?: ReminderChannel[];
 }
 
-// Lesson reminders: Sunday 7 PM for the next Sunday's lesson, and Saturday 8 AM
-// for tomorrow's. If the server was off at that moment it still sends within a
-// few hours, but never twice.
-const LESSON_WINDOWS = [
-  { weekday: 7, hour: 19, untilHour: 24, daysAhead: 7, tag: "sun" },
-  { weekday: 6, hour: 8, untilHour: 14, daysAhead: 1, tag: "sat" },
-];
+// Lesson reminders, at the times each organization set (Admin → Settings → Reminder
+// times; by default Sunday 7 PM for the next Sunday's lesson, and Saturday 8 AM for
+// tomorrow's). If the server was off at that moment it still sends within a few
+// hours, but never twice.
+
+/** A reminder's key: the original "sun"/"sat" ones keep their names, so none goes twice. */
+const windowTag = (w: LessonWhen) => (w.days === 7 && w.time === "19:00" ? "sun" : w.days === 1 && w.time === "08:00" ? "sat" : `d${w.days}-${w.time.replace(":", "")}`);
 
 /** Where the teacher's notes for the class stand. */
 function teacherNotesLine(lessonId: number) {
@@ -65,50 +66,64 @@ function teacherNotesLine(lessonId: number) {
 function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
   const out: DueNotification[] = [];
-  for (const w of LESSON_WINDOWS) {
-    if (local.weekday !== w.weekday || local.hour < w.hour || local.hour >= w.untilHour) continue;
-    const date = local.plus({ days: w.daysAhead }).toISODate()!;
-    const lesson = lessonOn(org.id, date);
-    if (!lesson) continue;
-    const when = w.tag === "sat" ? "Tomorrow" : "This Sunday";
-    // Sunday School follows Come, Follow Me: Sunday evening, the coming week's reading; on
-    // Saturday, a reminder about class only when a teacher is set for it.
-    const cfm = usesCfm(org) && lesson.kind === "talk" && !!lesson.cfm_auto;
-    let payload: PushPayload;
-    if (cfm && w.tag === "sat" && !lesson.teacher_id) continue;
-    if (cfm && w.tag === "sun") {
-      payload = { ...renderTemplate(org.id, "cfm_week", { reading: lesson.title, lesson_title: lesson.speaker }), url: `/lessons/${lesson.id}` };
-    } else if (lesson.kind !== "talk") {
-      const conf = lesson.kind === "general_conference" ? "General Conference" : "Stake Conference";
-      payload = { ...renderTemplate(org.id, "lesson_conference", { day: when, conference: conf, org: org.label, this_week: w.tag === "sat" ? "tomorrow" : "this week" }), url: `/lessons/${lesson.id}` };
-    } else {
-      payload = {
-        ...renderTemplate(org.id, "lesson_reminder", { day: when, lesson_title: lesson.title, speaker: lesson.topic ? "" : lesson.speaker, teacher: lesson.teacher_name }),
-        url: `/lessons/${lesson.id}`,
-      };
-    }
-    // The teacher gets their own reminder instead of the general one.
+  const times = reminderSettings(org.id);
+  // The next two Sundays' lessons (a reminder can be up to a week ahead).
+  const lessons = sundays(local.toISODate()!, 2)
+    .map((d) => lessonOn(org.id, d))
+    .filter((l): l is NonNullable<typeof l> => !!l);
+  for (const lesson of lessons) {
+    const date = lesson.date;
     const teacher = lesson.kind === "talk" ? recipientById(lesson.teacher_id, org.id) : undefined;
-    // Members who set their own lesson reminders (or none) get those instead.
-    const own = ownSettings("lessons");
-    const everyone = audienceMembers(org.id, "everyone").filter((r) => r.id !== teacher?.id && !own.has(r.id));
-    out.push({ key: `lesson-${w.tag}:${org.id}:${date}`, recipients: everyone, payload });
-    if (teacher) {
+    const cfm = usesCfm(org) && lesson.kind === "talk" && !!lesson.cfm_auto;
+
+    // To everyone (except the teacher, and members who set their own lesson reminders).
+    for (const w of times.lesson) {
+      if (!dueForDate(`d:${w.days}@${w.time}`, date, local)) continue;
+      const when = w.days === 0 ? "Today" : w.days === 1 ? "Tomorrow" : "This Sunday";
+      // Sunday School follows Come, Follow Me: earlier in the week, the coming week's
+      // reading; the day before or the day of, a reminder about class only when a
+      // teacher is set for it.
+      if (cfm && w.days <= 1 && !lesson.teacher_id) continue;
+      let payload: PushPayload;
+      if (cfm && w.days >= 2) {
+        payload = { ...renderTemplate(org.id, "cfm_week", { reading: lesson.title, lesson_title: lesson.speaker }), url: `/lessons/${lesson.id}` };
+      } else if (lesson.kind !== "talk") {
+        const conf = lesson.kind === "general_conference" ? "General Conference" : "Stake Conference";
+        payload = {
+          ...renderTemplate(org.id, "lesson_conference", { day: when, conference: conf, org: org.label, this_week: w.days === 0 ? "today" : w.days === 1 ? "tomorrow" : "this week" }),
+          url: `/lessons/${lesson.id}`,
+        };
+      } else {
+        payload = {
+          ...renderTemplate(org.id, "lesson_reminder", { day: when, lesson_title: lesson.title, speaker: lesson.topic ? "" : lesson.speaker, teacher: lesson.teacher_name }),
+          url: `/lessons/${lesson.id}`,
+        };
+      }
+      const own = ownSettings("lessons");
+      const everyone = audienceMembers(org.id, "everyone").filter((r) => r.id !== teacher?.id && !own.has(r.id));
+      out.push({ key: `lesson-${windowTag(w)}:${org.id}:${date}`, recipients: everyone, payload });
+    }
+
+    // The teacher's own reminder, asking them to confirm.
+    if (!teacher) continue;
+    for (const w of times.teacher) {
+      if (!dueForDate(`d:${w.days}@${w.time}`, date, local)) continue;
+      const title = w.days === 0 ? "You're teaching today" : w.days === 1 ? "You're teaching tomorrow" : "You're teaching this Sunday";
       const confirmed = !!lesson.teacher_confirmed_at;
       const about = [lesson.title ? `"${lesson.title}"${lesson.speaker && !lesson.topic ? ` by ${lesson.speaker}` : ""}.` : "", teacherNotesLine(lesson.id)].filter(Boolean).join(" ");
       out.push({
-        key: `lesson-teacher-${w.tag}:${org.id}:${date}:${teacher.id}`,
+        key: `lesson-teacher-${windowTag(w)}:${org.id}:${date}:${teacher.id}`,
         recipients: [teacher],
         payload: confirmed
           ? {
-              title: w.tag === "sat" ? "You're teaching tomorrow" : "You're teaching this Sunday",
+              title,
               body: `${about} Thanks for confirming. Plans changed? Tap to let us know.`,
               url: respondPath(lesson.id, teacher.id),
               linkLabel: "Open",
               textBody: `${about} Thanks for confirming. Plans changed? Reply CANT and a reason.`,
             }
           : {
-              title: w.tag === "sat" ? "You're teaching tomorrow" : "You're teaching this Sunday",
+              title,
               body: `${about} Still planning to teach? Tap to let us know either way.`,
               url: respondPath(lesson.id, teacher.id),
               linkLabel: "Reply: teaching or not",
@@ -209,7 +224,7 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 
 function todoReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
-  if (local.hour < 8 || local.hour >= 20) return [];
+  if (local.hour < reminderSettings(org.id).morningHour || local.hour >= 20) return [];
   const today = local.toISODate()!;
   // Each assignment's reminders (days before it's due; 0 = the morning it's due), from 8 AM.
   const rows = db()
@@ -267,8 +282,6 @@ function reviewReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   ];
 }
 
-/** How long before a visit its reminder goes out. */
-export const VISIT_REMINDER_HOURS = 3;
 
 /**
  * A planned visit's reminder, the same day and at least 3 hours ahead, to the
@@ -279,11 +292,17 @@ export const VISIT_REMINDER_HOURS = 3;
 function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
   const out: DueNotification[] = [];
+  // How long before (Admin → Settings → Reminder times; 3 hours unless changed, 0 for none).
+  const { visitHours: hours, morningHour } = reminderSettings(org.id);
+  if (!hours) return out;
   for (const p of upcomingVisits(org.id)) {
     const day = DateTime.fromISO(p.date, { zone: org.timezone });
     const start = p.time ? DateTime.fromISO(`${p.date}T${p.time}`, { zone: org.timezone }) : day.set({ hour: 20 });
-    let due = p.time ? start.minus({ hours: VISIT_REMINDER_HOURS }) : day.set({ hour: 8 });
-    if (due.hour < 7 || due < day) due = day.minus({ days: 1 }).set({ hour: 20 });
+    let due = p.time ? start.minus({ hours }) : day.set({ hour: morningHour });
+    // Never before 7 AM: the evening before instead (and a same-day reminder that would
+    // land the day before goes out that evening, at 8 PM).
+    if (due.hour < 7) due = due.minus({ days: 1 }).set({ hour: 20, minute: 0 });
+    else if (hours < 12 && due < day) due = day.minus({ days: 1 }).set({ hour: 20 });
     if (local < due || local >= start) continue;
     const when = whenText(p.date, p.time);
     const kind = VISIT_TYPES[p.type]?.toLowerCase() ?? p.type;
@@ -335,7 +354,7 @@ function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
   // The scheduled ones go out from 8 AM; members' own (Service → My reminders) at the time they chose.
-  const scheduledHours = local.hour >= 8 && local.hour < 20;
+  const scheduledHours = local.hour >= reminderSettings(org.id).morningHour && local.hour < 20;
   const own = ownSettings("service");
   if (!scheduledHours && !own.size) return [];
   const today = local.toISODate()!;

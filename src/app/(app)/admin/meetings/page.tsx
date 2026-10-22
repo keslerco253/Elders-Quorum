@@ -4,6 +4,7 @@ import { requirePresidency } from "@/lib/auth";
 import { orgMeetings, pendingAgenda, recordsToReview, videoKind, videoLink } from "@/lib/meetings";
 import { formatDate, todayIn } from "@/lib/time";
 import { leadersWord, roleLabel } from "@/lib/types";
+import { MEETING_MINUTES, reminderSettings } from "@/lib/reminder-settings";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AgendaList } from "./agenda-list";
@@ -20,6 +21,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const meetings = orgMeetings(user.org_id);
   const review = recordsToReview(user.org_id, today).length;
   const video = videoLink(user.org_id);
+  const reminderMin = reminderSettings(user.org_id).meetingMinutes;
+  const reminderText = reminderMin ? `with a reminder ${MEETING_MINUTES.find(([m]) => m === reminderMin)?.[1]}` : "with no reminder";
   // Scheduled and not finished yet (today's too); the rest are past.
   const upcoming = meetings.filter((m) => !m.held_at && m.date >= today).reverse();
   const past = meetings.filter((m) => !upcoming.includes(m));
@@ -86,7 +89,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           <SubmitButton className="btn-primary col-span-2 sm:col-span-1">Schedule</SubmitButton>
         </div>
         <p className="hint">
-          It goes on the {leadersWord(user.org)}&apos;s calendar and their Coming up list on Home, with a reminder an hour before. Only the {leadersWord(user.org)} sees it.
+          It goes on the {leadersWord(user.org)}&apos;s calendar and their Coming up list on Home, {reminderText} (change it under Settings → Reminder times). Only the {leadersWord(user.org)} sees it.
         </p>
       </form>
       {upcoming.length > 0 && (

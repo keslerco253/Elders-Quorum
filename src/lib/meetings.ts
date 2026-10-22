@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { db } from "./db";
 import { reviewDate } from "./assignments";
 import { localInputToUtc } from "./time";
+import { reminderSettings } from "./reminder-settings";
 import { getOrg } from "./orgs";
 import { CALLINGS, callingLabel, isCalling, leadersWord } from "./types";
 
@@ -70,11 +71,11 @@ export function syncMeetingEvent(orgId: number, meetingId: number, tz: string, b
   const title = meetingName(orgId, m);
   const description = "The agenda and notes are under Admin → Presidency meetings.";
   const exists = m.event_id && d.prepare("SELECT 1 FROM events WHERE id = ? AND org_id = ?").get(m.event_id, orgId);
-  if (exists) d.prepare("UPDATE events SET title = ?, starts_at = ?, ends_at = ? WHERE id = ?").run(title, starts, ends, m.event_id);
+  if (exists) d.prepare("UPDATE events SET title = ?, starts_at = ?, ends_at = ?, reminder_minutes = ? WHERE id = ?").run(title, starts, ends, reminderSettings(orgId).meetingMinutes || null, m.event_id);
   else {
     const id = d
-      .prepare("INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, reminder_minutes, created_by) VALUES (?, ?, ?, '', ?, ?, 1, 60, ?)")
-      .run(orgId, title, description, starts, ends, by).lastInsertRowid;
+      .prepare("INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, reminder_minutes, created_by) VALUES (?, ?, ?, '', ?, ?, 1, ?, ?)")
+      .run(orgId, title, description, starts, ends, reminderSettings(orgId).meetingMinutes || null, by).lastInsertRowid;
     d.prepare("UPDATE meetings SET event_id = ? WHERE id = ?").run(Number(id), m.id);
   }
 }

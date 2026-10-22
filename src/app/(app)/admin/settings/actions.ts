@@ -10,6 +10,7 @@ import { addToOrg, createOrg, createWard, deleteOrg, getOrg, inOrgWard, newJoinC
 import { notify, recipientById } from "@/lib/notify";
 import { validZone } from "@/lib/time";
 import { FEATURES, type Feature } from "@/lib/types";
+import { LESSON_DAYS, MEETING_MINUTES, saveOrgReminderSettings, VISIT_HOURS, type LessonWhen } from "@/lib/reminder-settings";
 
 function go(text: string): never {
   redirect(`/admin/settings?msg=${encodeURIComponent(text)}`);
@@ -42,6 +43,34 @@ export async function saveOrgSettings(fd: FormData) {
     .run(name, hidden.join(","), user.org_id);
   revalidatePath("/", "layout");
   go("Saved.");
+}
+
+/** When this organization's automatic reminders go out (lessons, teachers, visits, service, meetings). */
+export async function saveReminderTimes(fd: FormData) {
+  const user = await requirePresidency();
+  const whens = (name: string): LessonWhen[] =>
+    [0, 1]
+      .map((i) => ({ days: String(fd.get(`${name}_days_${i}`) ?? ""), time: String(fd.get(`${name}_time_${i}`) || "08:00") }))
+      .filter((w) => w.days !== "" && LESSON_DAYS.some(([d]) => String(d) === w.days) && /^\d{2}:\d{2}$/.test(w.time))
+      .map((w) => ({ days: Number(w.days), time: w.time }))
+      // The same one twice is just once.
+      .filter((w, i, all) => all.findIndex((x) => x.days === w.days && x.time === w.time) === i);
+  const visit = Number(fd.get("visit_hours"));
+  const morning = Number(fd.get("morning_hour"));
+  const meeting = Number(fd.get("meeting_minutes"));
+  saveOrgReminderSettings(user.org_id, {
+    lesson: whens("lesson"),
+    teacher: whens("teacher"),
+    visitHours: visit === 0 || VISIT_HOURS.includes(visit) ? visit : 3,
+    morningHour: Number.isInteger(morning) && morning >= 5 && morning <= 12 ? morning : 8,
+    meetingMinutes: MEETING_MINUTES.some(([m]) => m === meeting) ? meeting : 60,
+  });
+  // Upcoming presidency meetings already on the calendar get the new reminder too.
+  db()
+    .prepare("UPDATE events SET reminder_minutes = ? WHERE id IN (SELECT event_id FROM meetings WHERE org_id = ? AND held_at IS NULL) AND starts_at > datetime('now')")
+    .run(MEETING_MINUTES.some(([m]) => m === meeting) && meeting ? meeting : null, user.org_id);
+  revalidatePath("/admin/settings");
+  go("Reminder times saved.");
 }
 
 /** The bishopric adds an organization, optionally naming its president. */

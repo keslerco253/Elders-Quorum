@@ -3,6 +3,7 @@ import { requirePresidency } from "@/lib/auth";
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { saveOrgSettings } from "./actions";
+import { ReminderTimes } from "./reminder-times";
 import { hasFeature } from "@/lib/orgs";
 import { FEATURES, type Feature } from "@/lib/types";
 
@@ -44,6 +45,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <p className="mt-3 max-w-xl text-sm text-muted">The ward&apos;s join code, time zone and list of organizations are managed by its ward administrators.</p>
         )}
       </Section>
+      <ReminderTimes org={user.org} />
       {user.wardAdmin && (
         <p className="mt-6 max-w-xl text-sm text-muted">
           The ward&apos;s organizations, join code and other ward settings are under{" "}

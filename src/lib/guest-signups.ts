@@ -1,3 +1,4 @@
+import { reminderSettings } from "./reminder-settings";
 import crypto from "crypto";
 import { db } from "./db";
 import { sha256 } from "./auth-core";
@@ -176,7 +177,7 @@ export function guestRemindersDue(now: Date = new Date()): GuestReminder[] {
   const out: GuestReminder[] = [];
   for (const r of rows) {
     const local = new Date(now.toLocaleString("en-US", { timeZone: r.timezone }));
-    if (local.getHours() < 8 || local.getHours() >= 20) continue;
+    if (local.getHours() < reminderSettings(r.org_id).morningHour || local.getHours() >= 20) continue;
     const today = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, "0")}-${String(local.getDate()).padStart(2, "0")}`;
     const days = Math.round((Date.parse(r.date) - Date.parse(today)) / 86_400_000);
     for (const [d, tag] of [

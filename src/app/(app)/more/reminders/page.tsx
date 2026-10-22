@@ -8,9 +8,9 @@ import { memberCanText } from "./can-text";
 export const metadata = { title: "My reminders" };
 
 const SCHEDULED: Record<ReminderKind, string> = {
-  lessons: "Sunday evening about the next Sunday's lesson, and Saturday morning.",
+  lessons: "When your leaders set it (usually Sunday evening about the next Sunday's lesson, and Saturday morning).",
   events: "Whatever reminders your leaders set for each event (usually the day before).",
-  service: "For what you signed up for: whatever your leaders set (usually a week and a day before, at 8 AM).",
+  service: "For what you signed up for: whatever your leaders set (usually a week and a day before, in the morning).",
 };
 
 export default async function MyRemindersPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {

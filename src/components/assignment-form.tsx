@@ -81,7 +81,7 @@ export function AssignmentForm({
         )}
       </div>
       <p className="hint">
-        The person gets a notification, sees it under My assignments and on their home page, and gets the reminders above (from 8 AM, when it has a due date). Everything
+        The person gets a notification, sees it under My assignments and on their home page, and gets the reminders above (when it has a due date, at the hour set under Admin → Settings → Reminder times). Everything
         reaches them the way they chose under Contact &amp; notifications: app notification, plus email and/or text if they picked those. They can add progress notes and
         mark it done.
       </p>

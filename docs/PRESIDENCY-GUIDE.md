@@ -107,7 +107,8 @@ Relief Society, Primary, and so on) plus the ward itself, led by the bishopric.
    Sunday that already has one swaps the two.
 
 Members get reminders automatically: **Sunday 7 PM** about the next Sunday's
-lesson and **Saturday 8 AM** about tomorrow's.
+lesson and **Saturday 8 AM** about tomorrow's, unless you change these under
+**Admin → Settings → Reminder times**.
 
 **Each member can change their own reminders** (🔔 **My reminders** on the
 Lessons, Calendar and Service pages, or More → My reminders): for lessons,
@@ -216,7 +217,7 @@ comments. Pasted talk links skip it.
   notified either way; the lesson shows who was asked and their answers, and a
   "no" shows under **Waiting on you → Teacher needed**.
 - The teacher gets their own reminder **Sunday at 7 PM** the week before and
-  **Saturday at 8 AM** the day before ("You're teaching this Sunday" /
+  **Saturday at 8 AM** the day before (times you can change under Admin → Settings → Reminder times) ("You're teaching this Sunday" /
   "You're teaching tomorrow"), with the lesson title and whether their notes
   are posted, waiting for approval, or not added yet. They get this instead of
   the general lesson reminder the rest of the quorum gets at those times.
@@ -394,7 +395,7 @@ and time, and who's going. A visit gets there two ways:
   send them a confirmation) moves it to Upcoming visits; you can also record
   **They want another time** or **They'd rather not right now**.
 
-The whole presidency (and anyone else going) gets a reminder the same day, 3 hours before the visit (by notification, or text or email as each person chose). The member gets a friendly one too if they were sent the date and time or an invitation ("Hi Hyrum! Just a quick reminder that Mark Johnson from the Elders Quorum presidency is planning to visit you in your home today at 7:00 PM. If something has come up, please just let us know by replying to this message. See you soon!"); if they text back, it comes to the presidency like any message. A visit before 10 AM is reminded at 8 PM the evening before; one with no time set, at 8 AM that day. Afterwards tap
+The whole presidency (and anyone else going) gets a reminder the same day, 3 hours before the visit (or whatever you choose under Admin → Settings → Reminder times) (by notification, or text or email as each person chose). The member gets a friendly one too if they were sent the date and time or an invitation ("Hi Hyrum! Just a quick reminder that Mark Johnson from the Elders Quorum presidency is planning to visit you in your home today at 7:00 PM. If something has come up, please just let us know by replying to this message. See you soon!"); if they text back, it comes to the presidency like any message. A visit before 10 AM is reminded at 8 PM the evening before; one with no time set, at 8 AM that day. Afterwards tap
 **Record visit** (the form is filled in from the plan); that moves it to the
 visit history and closes the member's request. **Change** reschedules it and
 **Cancel** removes it (a request goes back to Visit requests). If the member
@@ -610,7 +611,7 @@ Tap an assignment to see its **progress notes**:
 - The person hears about the presidency's notes, except those marked
   **Presidency only**, which they never see.
 
-Each assignment has two **Reminders** you choose (from 2 weeks before to the morning it's due, or none). They start as the day before and the morning it's due, sent from 8 AM. They reach the person however they chose under Contact & notifications: app notification, plus email and/or text.
+Each assignment has two **Reminders** you choose (from 2 weeks before to the morning it's due, or none). They start as the day before and the morning it's due, sent from 8 AM (or the hour you set under Admin → Settings → Reminder times). They reach the person however they chose under Contact & notifications: app notification, plus email and/or text.
 
 ## My assignments (every member)
 
@@ -645,7 +646,7 @@ take it off, or attach a new one to replace it. A small preview of the flyer sho
 to the opportunity in the Service list and on members' home pages.
 
 **Reminders:** everyone signed up for a service opportunity with a date gets two
-reminders (from 8 AM), saying what they signed up for. They're **a week before**
+reminders (from 8 AM, or the hour set under Reminder times), saying what they signed up for. They're **a week before**
 and **the day before** unless you change them on the opportunity's edit screen
 (**Reminder** and **Second reminder**: the morning of, 1, 2 or 3 days, 1 or 2
 weeks before, or no reminder). Opportunities without a date don't send reminders.
@@ -765,6 +766,26 @@ you; each organization keeps its own wording.
 **Admin → Settings** (bishopric, looking at the ward): the ward's name, time
 zone, join code, features and organizations, and starting another ward.
 Email, texting and backups are on the site owner's page.
+
+### Reminder times
+
+**Admin → Settings → Reminder times** (presidency) sets when your
+organization's automatic reminders go out. Only the parts for features you use
+are shown.
+
+- **Lesson reminder** to everyone: up to two, each on a day (the Sunday before,
+  any weekday, or Sunday morning) at a time, or none. Starts as Sunday 7 PM and
+  Saturday 8 AM.
+- **Teacher's reminder** ("You're teaching…"): the same choices, separately.
+- **Visit reminder**: 1–24 hours before a planned visit, or none (3 hours to
+  start).
+- **Service and assignment reminders**: the hour they go out (8 AM to start).
+  Which days is still chosen on each opportunity or assignment.
+- **Presidency meeting reminder**: 15 minutes to a day before, or none (1 hour
+  to start). Changing it updates meetings already scheduled.
+
+Event reminders are still set on each event, and each member can still change
+how they're reminded under My reminders.
 
 ## Notifications
 

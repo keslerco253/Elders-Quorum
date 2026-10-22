@@ -111,8 +111,7 @@ export function SignupForm({
           </div>
         ))}
         <p className="hint sm:col-span-2">
-          Sent to everyone signed up (from 8 AM), when the opportunity has a
-          date.
+          Sent to everyone signed up, when the opportunity has a date, at the hour set under Admin → Settings → Reminder times (8 AM unless changed).
         </p>
       </div>
       {s && (
