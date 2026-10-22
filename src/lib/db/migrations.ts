@@ -1332,4 +1332,52 @@ CREATE TABLE personal_todos (
 CREATE INDEX personal_todos_member ON personal_todos(member_id, done);
 `,
   },
+  {
+    // Friendly challenges between organizations (e.g. temple and family history work):
+    // teams of one or more organizations, what counts and for how many points, and
+    // what members log. Only team totals are shown; each entry is seen only by whoever
+    // logged it, and entries stop being tied to anyone 30 days after a challenge ends.
+    id: 66,
+    sql: `
+CREATE TABLE challenges (
+  id INTEGER PRIMARY KEY,
+  ward_id INTEGER NOT NULL REFERENCES wards(id) ON DELETE CASCADE,
+  org_id INTEGER REFERENCES orgs(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  starts_on TEXT NOT NULL,
+  ends_on TEXT NOT NULL,
+  created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE challenge_teams (
+  id INTEGER PRIMARY KEY,
+  challenge_id INTEGER NOT NULL REFERENCES challenges(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE challenge_team_orgs (
+  team_id INTEGER NOT NULL REFERENCES challenge_teams(id) ON DELETE CASCADE,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  PRIMARY KEY (team_id, org_id)
+);
+CREATE TABLE challenge_items (
+  id INTEGER PRIMARY KEY,
+  challenge_id INTEGER NOT NULL REFERENCES challenges(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  points REAL NOT NULL DEFAULT 1,
+  position INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE challenge_entries (
+  id INTEGER PRIMARY KEY,
+  challenge_id INTEGER NOT NULL REFERENCES challenges(id) ON DELETE CASCADE,
+  team_id INTEGER NOT NULL REFERENCES challenge_teams(id) ON DELETE CASCADE,
+  item_id INTEGER NOT NULL REFERENCES challenge_items(id) ON DELETE CASCADE,
+  member_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  amount REAL NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX challenge_entries_challenge ON challenge_entries(challenge_id, team_id);
+CREATE INDEX challenge_entries_member ON challenge_entries(member_id);
+`,
+  },
 ];

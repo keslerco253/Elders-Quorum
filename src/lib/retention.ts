@@ -45,6 +45,10 @@ export function runRetention() {
     run("member_messages", `DELETE FROM member_messages WHERE created_at < datetime('now', '-6 months')`);
     // The Reminders & alerts list (and messages' log entries) after 30 days.
     run("notification_log", `DELETE FROM notification_log WHERE created_at < datetime('now', '-30 days')`);
+    // Challenge entries stop being tied to anyone 30 days after the challenge ends (the totals stay).
+    counts.challenge_entries = d
+      .prepare("UPDATE challenge_entries SET member_id = NULL WHERE member_id IS NOT NULL AND challenge_id IN (SELECT id FROM challenges WHERE ends_on < date('now', '-30 days'))")
+      .run().changes;
     // Members' own to-dos: 6 months after they're done.
     run("personal_todos", `DELETE FROM personal_todos WHERE done = 1 AND done_at < datetime('now', '-6 months')`);
     // Message history after a year.

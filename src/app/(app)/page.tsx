@@ -26,6 +26,7 @@ import { withOrg } from "@/lib/org-cookie";
 import { usesCfm } from "@/lib/cfm";
 import { KIND_ICONS, soonAssignments } from "@/lib/assignments";
 import { conductingSchedule, swapsWaitingOn } from "@/lib/conducting";
+import { runningChallengesFor, scoreboard } from "@/lib/challenges";
 import { ledOrgIds } from "@/lib/conversations";
 
 export default async function HomePage() {
@@ -70,6 +71,8 @@ export default async function HomePage() {
     .map((o) => ({ org: o, c: conductingSchedule(o.id, currentLessonDate(tz), 1)[0] }))
     .filter(({ c }) => c && (c.name || c.conference));
   const conductAsks = swapsWaitingOn(user.id, today);
+  // A challenge their organization is in: the scores, and a nudge to log.
+  const challenges = runningChallengesFor(user.ward_id, user.id, today).map((c) => ({ c, board: scoreboard(c.id) }));
 
   return (
     <>
@@ -156,6 +159,21 @@ export default async function HomePage() {
             )}
           </span>
           <span className="text-muted">›</span>
+        </Link>
+      ))}
+
+      {challenges.map(({ c, board }) => (
+        <Link key={c.id} href={`/plans/challenges/${c.id}`} className="card mb-5 block hover:bg-surface-2">
+          <span className="block text-xs font-semibold tracking-wide text-accent uppercase">🏆 {c.title}</span>
+          <span className="mt-1 block text-sm">
+            {board.map((b, i) => (
+              <span key={b.team.id}>
+                {i > 0 && " · "}
+                <strong>{b.team.name}</strong> {Number.isInteger(b.points) ? b.points : b.points.toFixed(1)}
+              </span>
+            ))}
+          </span>
+          <span className="mt-1 block text-sm font-semibold text-accent">Log what you did ›</span>
         </Link>
       ))}
 

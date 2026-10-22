@@ -21,6 +21,7 @@ export default function PrivacyPage() {
           notes and the agenda are seen only by the presidency; you see assignments given to you and their notes, except notes the presidency keeps to itself.
         </li>
         <li>Your own to-dos under My assignments: only you can see them.</li>
+        <li>What you log in a ward challenge (e.g. temple work): only you see your entries; everyone else sees team totals only.</li>
         <li>If you turn on notifications, a technical address for your device so it can receive them.</li>
         <li>
           If you sign up for a service project from a shared link without an account: your name, the mobile number or email you give, and an optional note. Only the organizers see them. We
@@ -61,6 +62,7 @@ export default function PrivacyPage() {
           that, and deleted once they&apos;re no longer needed.
         </li>
         <li>Your own to-dos: deleted 6 months after you mark them done, or any time you delete them.</li>
+        <li>Challenge entries: no longer tied to you 30 days after the challenge ends (only the team totals stay).</li>
         <li>Your account: deleted if you don&apos;t sign in for 12 months, or any time you choose.</li>
       </ul>
       <h3>Your choices</h3>

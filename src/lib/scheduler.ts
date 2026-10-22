@@ -26,6 +26,7 @@ import { withOrg } from "./org-cookie";
 import { recordsToReview } from "./meetings";
 import { fillRegularTeachers } from "./regular-teachers";
 import { todoChannels } from "./personal-todos";
+import { challengeMemberIds, scoreboard } from "./challenges";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
 interface OrgCtx {
@@ -425,6 +426,39 @@ function personalTodoReminders(now: DateTime): DueNotification[] {
   return out;
 }
 
+/** The day after a challenge ends, everyone on its teams hears the final scores. */
+function challengeResults(now: DateTime): DueNotification[] {
+  const out: DueNotification[] = [];
+  const rows = db()
+    .prepare("SELECT c.id, c.title, c.ends_on, w.timezone FROM challenges c JOIN wards w ON w.id = c.ward_id WHERE c.ends_on >= ? AND c.ends_on <= ?")
+    .all(now.minus({ days: 3 }).toISODate(), now.toISODate()) as { id: number; title: string; ends_on: string; timezone: string }[];
+  for (const c of rows) {
+    const local = now.setZone(c.timezone);
+    if (local.toISODate()! <= c.ends_on || local.hour < 9 || local.hour >= 20) continue;
+    const board = scoreboard(c.id);
+    const [first, second] = board;
+    if (!first) continue;
+    const tied = !!second && second.points === first.points;
+    const recipients = challengeMemberIds(c.id)
+      .map((id) => {
+        const home = homeOf(id);
+        return home.orgId ? recipientById(id, home.orgId) : undefined;
+      })
+      .filter((r): r is Recipient => !!r);
+    const fmt = (n: number) => (Number.isInteger(n) ? n : n.toFixed(1));
+    out.push({
+      key: `challenge-end:${c.id}:${c.ends_on}`,
+      recipients,
+      payload: {
+        title: tied ? `${c.title}: it's a tie!` : `${c.title}: ${first.team.name} wins! 🏆`,
+        body: `Final scores: ${board.map((b) => `${b.team.name} ${fmt(b.points)}`).join(", ")}. Thanks, everyone!`,
+        url: `/plans/challenges/${c.id}`,
+      },
+    });
+  }
+  return out;
+}
+
 /**
  * Paid texting: two weeks before a ward's paid-through date the site owner is
  * reminded; the day after, its texting turns off and they're told.
@@ -468,6 +502,7 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   return [
     ...textingPaidNotices(now),
     ...personalTodoReminders(now),
+    ...challengeResults(now),
     ...orgs.flatMap((o) => [
     ...(hasFeature(o, "lessons") ? lessonReminders(o, now) : []),
     ...(hasFeature(o, "lessons") ? myLessonReminders(o, now) : []),
