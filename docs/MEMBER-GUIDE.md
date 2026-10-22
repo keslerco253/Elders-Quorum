@@ -80,9 +80,14 @@ Then switch between wards at the top left.
 For example, for app notifications and email but no texts: turn notifications on,
 tick **Email**, and leave **Text** unticked.
 
+**When you join,** everything comes to you by the way you joined with (text or
+email) and by app notification once you turn it on. Change it anytime here.
+
 **Your phone number and email:** add, change or remove them on the same page. A new
-one is confirmed with a 6-digit code. You can't remove your only way to sign in.
-Adding a phone number means agreeing to texts from your ward. If your ward doesn't
+one is confirmed with a 6-digit code. A new email gets every reminder and message
+too. When adding a phone number, **Send me reminders and messages by text** is
+ticked; untick it to use the number only for sign-in codes. You can't remove your
+only way to sign in. If your ward doesn't
 use texting, it says "Your ward uses email".
 
 **Turning on app notifications:**

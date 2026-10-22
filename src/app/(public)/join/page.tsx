@@ -46,8 +46,10 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
         <label className="flex items-start gap-2 rounded-lg bg-surface-2 p-3 text-sm">
           <input type="checkbox" name="agree" required className="mt-1" />
           <span>
-            I understand this app keeps only my name, {phone ? "the phone number or email I give" : "my email"}, and what I choose to post, and that I can delete my account at any time.
-            {phone && " If I give a mobile number, I agree to receive sign-in codes and messages from my ward by text. Message and data rates may apply. Reply STOP to opt out, HELP for help."}{" "}
+            I understand this app keeps only my name, {phone ? "the phone number or email I give" : "my email"}, and what I choose to post, and that I can delete my account at any time. I&apos;ll
+            get reminders and messages from my ward {phone ? "by text or email (whichever I give)" : "by email"} and app notifications, and can change that anytime under More → Contact &amp;
+            notifications.
+            {phone && " If I give a mobile number, I agree to receive sign-in codes, reminders and messages from my ward by text. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help."}{" "}
             <Link href="/privacy" className="link" target="_blank">
               Privacy
             </Link>{" "}

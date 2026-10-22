@@ -190,6 +190,7 @@ export async function joinApp(formData: FormData) {
   addToWard(memberId, ward.id);
 
   if (c.kind === "phone") d.prepare("UPDATE members SET sms_consent_at = datetime('now') WHERE id = ?").run(memberId);
+  everythingByDefault(memberId, c.kind);
   const res = createLoginToken(memberId, "month");
   const sent = res.ok && (await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, c.kind, res.token, res.code));
   // After signing in, they choose the organizations they belong to.
@@ -228,6 +229,7 @@ export async function startWard(formData: FormData) {
       .run(name, name, c.value, c.kind === "phone" ? "text" : "email").lastInsertRowid,
   );
   if (c.kind === "phone") d.prepare("UPDATE members SET sms_consent_at = datetime('now') WHERE id = ?").run(memberId);
+  everythingByDefault(memberId, c.kind);
   // The first ward on a brand-new server is the site owner's: its texting is on.
   const first = !(d.prepare("SELECT 1 FROM wards").get());
   if (first) d.prepare("UPDATE members SET is_site_owner = 1 WHERE id = ?").run(memberId);
@@ -247,3 +249,14 @@ export async function startWard(formData: FormData) {
   redirect("/login/check?" + q({ to: c.value, ...(sent ? {} : { error: NOT_SENT }) }));
 }
 
+/**
+ * Someone who joins (agreeing to texts if they gave a phone number) gets every
+ * reminder and message by the way they joined with, every time, as well as app
+ * notifications once they turn them on. They change it under More → Contact &
+ * notifications.
+ */
+function everythingByDefault(memberId: number, kind: "phone" | "email") {
+  db()
+    .prepare(`UPDATE members SET ${kind === "phone" ? "always_text" : "always_email"} = 1, contact_pref = 'both' WHERE id = ?`)
+    .run(memberId);
+}

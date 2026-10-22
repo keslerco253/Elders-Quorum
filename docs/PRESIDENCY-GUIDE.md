@@ -320,11 +320,20 @@ Contact & notifications**:
 So a member who wants app notifications and email but no texts turns
 notifications on, ticks Email, and leaves Text unticked.
 
+**New members start with everything on.** Someone who joins gets every reminder
+and message by the way they joined with (text for a phone number, which they agree
+to when joining; email for an email), plus app notifications once they turn them
+on. Adding an email later turns it on for everything too; adding a phone number
+has a **Send me reminders and messages by text** box right under it (ticked to
+start; unticked, the number is only for sign-in codes). They change any of it under
+Contact & notifications. Members a leader added choose on their welcome screen
+instead. Keep an eye on the ward's monthly text limit (Admin → Settings → Texting)
+as more people get everything by text.
+
 **Contact & notifications** also has their **Mobile number** and **Email**:
 each shows "✓ confirmed" with **Remove**, or a box to add one with **Send code**
 (a 6-digit code, good for 20 minutes). They can't remove their only way to
-sign in, and a number or email already on another account is refused. Adding a
-phone means agreeing to ward texts. In a ward with no texting the phone row says
+sign in, and a number or email already on another account is refused. In a ward with no texting the phone row says
 "Your ward uses email"; before texting is set up it says "Coming soon"; while
 the phone carriers are approving the app's number, members can choose Text now
 but get email until it starts.

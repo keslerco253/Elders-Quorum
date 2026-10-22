@@ -53,7 +53,18 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           <SubmitButton className="btn-primary btn-sm" pendingText="Sending…">
             Send code
           </SubmitButton>
-          {kind === "phone" && <p className="hint w-full">Adding your number means you agree to receive texts from your ward. {SMS_DISCLOSURE}</p>}
+          {kind === "phone" && (
+            <>
+              <label className="flex w-full items-start gap-2 text-sm">
+                <input type="checkbox" name="texts" defaultChecked className="mt-1" />
+                <span>
+                  <strong>Send me reminders and messages by text</strong>
+                  <span className="block text-muted">Untick to use this number only for sign-in codes. You can change it below anytime.</span>
+                </span>
+              </label>
+              <p className="hint w-full">Ticked, you agree to receive texts from your ward. {SMS_DISCLOSURE}</p>
+            </>
+          )}
         </form>
       )}
     </div>
@@ -71,6 +82,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             We {verifying.kind === "phone" ? "texted" : "emailed"} a 6-digit code to <strong className="text-text">{formatContact(verifying.kind, verifying.value)}</strong>.
           </p>
           <input type="hidden" name="verify_id" value={sp.verify} />
+          {verifying.kind === "phone" && <input type="hidden" name="texts" value={sp.texts === "0" ? "0" : "1"} />}
           <CodeInput className="input max-w-40 text-center text-xl tracking-[0.3em]" />
           <SubmitButton pendingText="Checking…">Confirm</SubmitButton>
         </form>

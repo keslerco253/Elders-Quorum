@@ -26,7 +26,8 @@ export async function addContact(fd: FormData) {
   }
   const res = await startContactVerification(user, c.kind, c.value);
   if (!res.ok) go(res.reason);
-  redirect(`/more/contact?verify=${res.id}`);
+  // Whether they ticked "Send me reminders and messages by text" goes along to the confirm step.
+  redirect(`/more/contact?verify=${res.id}${c.kind === "phone" ? `&texts=${fd.get("texts") === "on" ? 1 : 0}` : ""}`);
 }
 
 export async function confirmContact(fd: FormData) {
@@ -42,13 +43,27 @@ export async function confirmContact(fd: FormData) {
     if (confirmed.kind === "email") db().prepare("UPDATE members SET email_verified_at = datetime('now') WHERE id = ?").run(user.id);
     // Sign-in codes or links sent to the old contact stop working.
     db().prepare("UPDATE login_tokens SET used_at = datetime('now') WHERE member_id = ? AND used_at IS NULL").run(user.id);
-    // Adding and confirming their own number (with the disclosure in the code text) is their consent to texts.
-    if (confirmed.kind === "phone") db().prepare("UPDATE members SET sms_consent_at = datetime('now') WHERE id = ?").run(user.id);
+    // A new email gets everything, like when joining. A new number does if they ticked
+    // "Send me reminders and messages by text" (with the disclosure: their consent to
+    // texts); otherwise it's only for sign-in codes. They can change either below.
+    const texts = confirmed.kind === "phone" && fd.get("texts") !== "0";
+    if (confirmed.kind === "email" || texts) {
+      if (texts) db().prepare("UPDATE members SET sms_consent_at = datetime('now') WHERE id = ?").run(user.id);
+      db().prepare(`UPDATE members SET ${texts ? "always_text" : "always_email"} = 1, contact_pref = CASE WHEN contact_pref = 'none' THEN 'none' ELSE 'both' END WHERE id = ?`).run(user.id);
+    } else {
+      db().prepare("UPDATE members SET sms_consent_at = NULL, always_text = 0, contact_pref = CASE WHEN contact_pref = 'text' THEN 'email' ELSE contact_pref END WHERE id = ?").run(user.id);
+    }
   } catch {
     go("That number is already used by another account.");
   }
   revalidatePath("/more");
-  go(hadOther ? `Added. We'll contact you by email when notifications are off; you can change that below.` : "Added.", "&ok=1");
+  const said =
+    confirmed.kind === "email"
+      ? "Added. You'll get every reminder and message by email too; you can change that below."
+      : fd.get("texts") !== "0"
+        ? "Added. You'll get every reminder and message by text too; you can change that below."
+        : "Added. This number is for sign-in codes only; tick Text below anytime to get texts.";
+  go(said, "&ok=1");
 }
 
 export async function removeContact(fd: FormData) {
