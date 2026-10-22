@@ -48,7 +48,8 @@ export default function PrivacyPage() {
       <h3>Sharing</h3>
       <p>
         We do not sell, rent or share your personal information with anyone. Only the quorum leaders who run the app can see members&apos; contact information. Our text and
-        email providers process messages only to deliver them.
+        email providers process messages only to deliver them. When a leader asks the leader guide a question, the question they type (and the guide itself, never anyone&apos;s
+        information) is sent to Anthropic&apos;s Claude to write the answer.
       </p>
       <h3>How long we keep it</h3>
       <ul>

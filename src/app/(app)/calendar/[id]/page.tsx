@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getEvent, googleCalendarUrl, icsPath, isAppleMobile } from "@/lib/events";
+import { getEvent, googleCalendarUrl, icsPath, isAppleMobile, isOngoing, spanText } from "@/lib/events";
 import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, formatTime, parseUtc } from "@/lib/time";
 import { getSeries, recurrenceOf } from "@/lib/event-series";
@@ -74,7 +74,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
           {e.presidency_only ? <Badge tone="warn">Leaders only: hidden from members</Badge> : null}
         </div>
         <div>
-          <div className="font-semibold">{formatDateTime(e.starts_at, tz, "cccc, LLLL d, yyyy")}</div>
+          <div className="font-semibold">{isOngoing(e) ? spanText(e, tz) : formatDateTime(e.starts_at, tz, "cccc, LLLL d, yyyy")}</div>
           <div className="text-muted">
             {formatTime(e.starts_at, tz)} – {sameDay ? formatTime(e.ends_at, tz) : formatDateTime(e.ends_at, tz)}
           </div>

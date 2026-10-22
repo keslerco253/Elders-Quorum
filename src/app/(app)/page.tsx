@@ -6,7 +6,7 @@ import { firstName } from "@/lib/names";
 import { DateTime } from "luxon";
 import { requireUser } from "@/lib/auth";
 import { adminCounts } from "@/lib/admin-counts";
-import { eventsBetween } from "@/lib/events";
+import { eventsBetween, isOngoing, ongoingText } from "@/lib/events";
 import { upcomingLessons } from "@/lib/lessons";
 import { getNotes } from "@/lib/lesson-notes";
 import { listSignups, stillNeeded } from "@/lib/signups";
@@ -233,7 +233,7 @@ export default async function HomePage() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{e.title}</div>
                     <div className="text-sm text-muted">
-                      {formatDateTime(e.starts_at, tz)}
+                      {isOngoing(e) ? ongoingText(e, tz) : formatDateTime(e.starts_at, tz)}
                       {e.location && ` · ${e.location}`}
                     </div>
                     {eventOrgs && <div className="text-xs text-muted">{e.org_label}</div>}

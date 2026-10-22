@@ -98,6 +98,10 @@ export function EventForm({
             }
           />
         </div>
+        <p className="hint sm:col-span-2">
+          Something that runs for days or months, like a temple open house? Set it to end on the last day. It shows as &ldquo;going on&rdquo; at the top of
+          the calendar each month and as &ldquo;Now through …&rdquo; on members&apos; home pages, instead of on one day.
+        </p>
       </div>
       <RepeatFields
         initialStart={startValue}

@@ -3,6 +3,8 @@ import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { ledOrgsAnywhere } from "@/lib/orgs";
 import { leaderGuide, searchGuide } from "@/lib/guide";
+import { askConfigured, askGuide } from "@/lib/guide-ai";
+import { allowHit } from "@/lib/rate-limit";
 import { PageHeader } from "@/components/ui";
 
 export const metadata = { title: "Leader guide" };
@@ -13,7 +15,11 @@ export default async function LeaderGuidePage({ searchParams }: { searchParams: 
   const q = String((await searchParams).q ?? "").trim().slice(0, 100);
   if (!isAdmin(user) && ledOrgsAnywhere(user.id).length === 0) redirect("/");
   const guide = leaderGuide();
-  const hits = q ? searchGuide(q) : [];
+  // A question in their own words gets an answer from the guide (when it's set up); the word search shows too.
+  const canAsk = askConfigured();
+  const ask = q && canAsk ? (allowHit(`guide-ask:${user.id}`, 40, 60) ? await askGuide(q) : null) : null;
+  const words = q.replace(/[?.!,]/g, " ").split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w.toLowerCase()));
+  const hits = q ? (searchGuide(q).length ? searchGuide(q) : searchGuide(words.slice(0, 3).join(" "))) : [];
   return (
     <>
       <PageHeader title="Leader guide" back={{ href: "/admin", label: "Admin" }} subtitle="How to do everything in the app as a leader. Tap a topic to jump to it." />
@@ -22,14 +28,38 @@ export default async function LeaderGuidePage({ searchParams }: { searchParams: 
       ) : (
         <>
           <form action="/admin/guide" className="mb-4 flex gap-2" role="search">
-            <input name="q" type="search" defaultValue={q} className="input min-w-0 flex-1" placeholder="Search the guide (e.g. reminders, assignment, texting)" aria-label="Search the guide" />
-            <button className="btn-primary">Search</button>
+            <input
+              name="q"
+              type="search"
+              defaultValue={q}
+              className="input min-w-0 flex-1"
+              placeholder={canAsk ? "Ask a question, like “How do I turn off texting?”" : "Search the guide (e.g. reminders, assignment, texting)"}
+              aria-label={canAsk ? "Ask the guide" : "Search the guide"}
+            />
+            <button className="btn-primary">{canAsk ? "Ask" : "Search"}</button>
           </form>
+          {ask && (
+            <section className="card mb-4 space-y-3 border-accent/40 bg-accent-soft text-sm" aria-label="Answer">
+              <div className="whitespace-pre-wrap">{ask.answer}</div>
+              {ask.sections.length > 0 && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  <span className="text-muted">Read more:</span>
+                  {ask.sections.map((s) => (
+                    <a key={s.id} href={`#${s.id}`} className="link">
+                      {s.title}
+                    </a>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-muted">Answered by AI from this guide. If something doesn&apos;t look right, check the section it points to.</p>
+            </section>
+          )}
+          {q && canAsk && !ask && <p className="mb-4 text-sm text-muted">The question answerer isn&apos;t available right now, so here&apos;s what the guide says about those words.</p>}
           {q && (
             <section className="card mb-6 text-sm" aria-label="Search results">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="font-semibold">
-                  {hits.length ? `${hits.length}${hits.length === 40 ? "+" : ""} result${hits.length === 1 ? "" : "s"} for “${q}”` : `Nothing found for “${q}”. Try fewer or different words.`}
+                  {hits.length ? `${hits.length}${hits.length === 40 ? "+" : ""} place${hits.length === 1 ? "" : "s"} in the guide${ask ? " that mention it" : ` for “${q}”`}` : ask ? "No exact word matches." : `Nothing found for “${q}”. Try fewer or different words.`}
                 </span>
                 <a href="/admin/guide" className="link">
                   Clear
@@ -40,7 +70,7 @@ export default async function LeaderGuidePage({ searchParams }: { searchParams: 
                   <li key={i} className="py-2">
                     <a href={`#${h.id}`} className="block hover:bg-surface-2">
                       <span className="block text-xs font-semibold text-accent">{h.section}</span>
-                      <span className="text-muted">{highlight(h.text, q)}</span>
+                      <span className="text-muted">{highlight(h.text, searchGuide(q).length ? q : words.slice(0, 3).join(" ") || q)}</span>
                     </a>
                   </li>
                 ))}
@@ -65,6 +95,9 @@ export default async function LeaderGuidePage({ searchParams }: { searchParams: 
     </>
   );
 }
+
+/** Little words left out when a whole question is searched word by word. */
+const STOP = new Set(["how", "the", "and", "for", "can", "what", "where", "when", "who", "does", "turn", "off", "app", "you", "our", "with", "this", "that", "want", "way", "make"]);
 
 /** The words searched for, marked in a result (shortened around the first one). */
 function highlight(text: string, q: string) {

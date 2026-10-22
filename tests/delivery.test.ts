@@ -61,3 +61,14 @@ describe("members who turned notifications off", () => {
     expect(reach.unreached).toEqual(["Quiet Quinn"]);
   });
 });
+
+describe("events that run for months", () => {
+  it("are ongoing, with their span", async () => {
+    const { isOngoing, spanText, ongoingText } = await import("@/lib/events");
+    const e = { starts_at: "2027-03-01T17:00:00.000Z", ends_at: "2027-06-30T23:00:00.000Z" };
+    expect(isOngoing(e)).toBe(true);
+    expect(isOngoing({ starts_at: "2027-03-01T17:00:00.000Z", ends_at: "2027-03-01T19:00:00.000Z" })).toBe(false);
+    expect(spanText(e, "America/Boise")).toBe("Mar 1 – Jun 30, 2027");
+    expect(ongoingText(e, "America/Boise", DateTime.fromISO("2027-04-01T12:00:00Z"))).toBe("Now through Jun 30");
+  });
+});

@@ -14,6 +14,7 @@
     "vapid": "tsx scripts/vapid.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
     "better-sqlite3": "^13.0.3",
     "luxon": "^3.7.2",
     "marked": "^18.1.0",

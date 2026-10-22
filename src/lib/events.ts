@@ -201,3 +201,25 @@ export function eventAudience(e: Pick<EventRow, "org_id" | "invited" | "presiden
   // Someone in two of them hears once.
   return all.filter((r, i) => all.findIndex((x) => x.id === r.id) === i);
 }
+
+/**
+ * Lasts two days or more (like a temple open house running for months): shown as
+ * "going on" through its dates, not as something on one day.
+ */
+export function isOngoing(e: { starts_at: string; ends_at: string }): boolean {
+  return DateTime.fromISO(e.ends_at, { zone: "utc" }).diff(DateTime.fromISO(e.starts_at, { zone: "utc" }), "days").days >= 2;
+}
+
+/** "Mar 1 – Jun 30, 2027" (the years only when they're needed). */
+export function spanText(e: { starts_at: string; ends_at: string }, tz: string): string {
+  const a = DateTime.fromISO(e.starts_at, { zone: "utc" }).setZone(tz);
+  const b = DateTime.fromISO(e.ends_at, { zone: "utc" }).setZone(tz);
+  const thisYear = DateTime.now().setZone(tz).year;
+  return `${a.toFormat(a.year === b.year ? "LLL d" : "LLL d, yyyy")} – ${b.toFormat(b.year === thisYear && a.year === b.year ? "LLL d" : "LLL d, yyyy")}`;
+}
+
+/** For lists: "Now through Jun 30" once it's started, or "Mar 1 – Jun 30" before. */
+export function ongoingText(e: { starts_at: string; ends_at: string }, tz: string, now: DateTime = DateTime.now()): string {
+  const started = DateTime.fromISO(e.starts_at, { zone: "utc" }) <= now;
+  return started ? `Now through ${DateTime.fromISO(e.ends_at, { zone: "utc" }).setZone(tz).toFormat("LLL d")}` : spanText(e, tz);
+}

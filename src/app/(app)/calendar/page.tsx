@@ -2,7 +2,7 @@ import Link from "next/link";
 import { RemindersLink } from "@/components/reminders-link";
 import { DateTime } from "luxon";
 import { requireUser } from "@/lib/auth";
-import { eventsBetween } from "@/lib/events";
+import { eventsBetween, isOngoing, spanText } from "@/lib/events";
 import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, formatTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
@@ -32,19 +32,29 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   };
   // The calendar holds every organization's events, so each says where it's from.
   const showOrg = !only;
+  // Events lasting days or months (an open house) show as going on, not on their first day.
+  const ongoing = events.filter(isOngoing);
+  const monthStart = month.startOf("month").toUTC().toISO()!;
+  const monthEnd = month.endOf("month").toUTC().toISO()!;
+  const ongoingThisMonth = ongoing.filter((e) => e.starts_at <= monthEnd && e.ends_at >= monthStart);
   const byDay = new Map<string, typeof events>();
-  for (const e of events) {
+  for (const e of events.filter((e) => !isOngoing(e))) {
     const k = DateTime.fromISO(e.starts_at, { zone: "utc" }).setZone(tz).toISODate()!;
     byDay.set(k, [...(byDay.get(k) ?? []), e]);
   }
   const days: DateTime[] = [];
   for (let d = gridStart; d <= gridEnd; d = d.plus({ days: 1 })) days.push(d);
-  const monthEvents = events.filter((e) => DateTime.fromISO(e.starts_at, { zone: "utc" }).setZone(tz).hasSame(month, "month"));
+  const monthEvents = events.filter((e) => !isOngoing(e) && DateTime.fromISO(e.starts_at, { zone: "utc" }).setZone(tz).hasSame(month, "month"));
   const upcoming = month.hasSame(now, "month") ? monthEvents.filter((e) => e.ends_at >= now.toUTC().toISO()!) : monthEvents;
   const admin = isAdmin(user);
   const dayHref = (d: DateTime) => keep({ m: d.toFormat("yyyy-LL"), d: d.toISODate()! });
-  const dayEvents = selected ? (byDay.get(selected.toISODate()!) ?? []) : [];
-  const list = selected ? dayEvents : upcoming;
+  const dayEvents = selected
+    ? [
+        ...ongoing.filter((e) => e.starts_at <= selected.endOf("day").toUTC().toISO()! && e.ends_at >= selected.startOf("day").toUTC().toISO()!),
+        ...(byDay.get(selected.toISODate()!) ?? []),
+      ]
+    : [];
+  const list = selected ? dayEvents : [...ongoingThisMonth, ...upcoming];
 
   return (
     <>
@@ -105,6 +115,18 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             ›
           </Link>
         </div>
+        {ongoingThisMonth.length > 0 && (
+          <ul className="mb-2 space-y-1">
+            {ongoingThisMonth.map((e) => (
+              <li key={e.id}>
+                <Link href={`/calendar/${e.id}`} className="flex flex-wrap items-baseline gap-x-2 rounded-lg bg-accent-soft px-3 py-1.5 text-xs text-accent hover:opacity-90">
+                  <span className="font-semibold">Going on: {e.title}</span>
+                  <span>{spanText(e, tz)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-muted">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
             <div key={d} className="py-1">
@@ -169,7 +191,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                     {showOrg && <Badge>{e.org_label}</Badge>}
                   </div>
                   <div className="text-sm text-muted">
-                    {selected ? `${formatTime(e.starts_at, tz)} – ${formatTime(e.ends_at, tz)}` : formatDateTime(e.starts_at, tz)}
+                    {isOngoing(e) ? spanText(e, tz) : selected ? `${formatTime(e.starts_at, tz)} – ${formatTime(e.ends_at, tz)}` : formatDateTime(e.starts_at, tz)}
                     {e.location && ` · ${e.location}`}
                   </div>
                 </div>

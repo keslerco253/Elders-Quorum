@@ -287,6 +287,10 @@ to two **reminders** (default 1 hour before) that are put on every event in
 their calendar. On iPhone they must turn off **Remove Alerts** when
 subscribing; Google Calendar ignores them (set reminders in Google instead).
 
+### Events that last for weeks or months
+
+For something like a temple open house that runs for months, add one event that starts on the first day and **ends on the last day** (put the ticket link in the description and attach the flyer). Anything lasting two days or more shows as **Going on: …** at the top of the calendar for every month it covers and on any day you tap, and on members' home pages as **Now through Feb 28**, instead of sitting on its first day. Then send one message to everyone from the bishopric with the link.
+
 ## Messages
 
 **Message groups** (Admin → Message groups): when you create
@@ -793,7 +797,7 @@ you; each organization keeps its own wording.
 
 ## Settings
 
-The **Leader guide** (Admin → Leader guide) has a search box at the top: type a word or two (like "reminders" or "texting") to see every part of the guide that mentions it, then tap one to jump there.
+The **Leader guide** (Admin → Leader guide) has a box at the top. Ask a question in your own words, like "How do I turn off texting?", and you get a short answer with links to the sections that cover it (answered by AI from this guide; the site owner sets ANTHROPIC_API_KEY on the server to turn this on). Below it, every part of the guide that mentions those words is listed. Without the key, the box is a word search.
 
 **Admin → Settings** (bishopric, looking at the ward): the ward's name, time
 zone, join code, features and organizations, and starting another ward.
@@ -819,6 +823,17 @@ all back):
 - Public links and QR codes (flyers, sign-ups)
 
 Messages from members and reminder times have their own sections on the same page.
+
+### Did they get it?
+
+Every notification records how it reached the person: app notification, email, text, or nothing.
+
+- **Sent messages** (Messages → Sent) show **Opened by 12 of 30**. Tap it to see who **couldn't be reached** (no app notifications, and no email or texts they allow), who **turned off notifications** from your organization (More → My organizations), and who hasn't opened it in the app yet (they may have read the email or text).
+- **Assignments** show how the person was told and whether they've seen it. If they couldn't be reached, there's a red warning with the reason, and you're told right when you save it, so you can tell them in person.
+- A request still unopened after 2 days is sent once more by email and text.
+- **Admin → Members** marks anyone the app **can't reach** and anyone who **turned off** your organization's notifications.
+
+An app notification that arrives on a phone with notifications muted can't be detected, so "not opened yet" is the thing to watch, and for assignments, whether they've accepted.
 
 ### Reminder times
 
