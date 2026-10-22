@@ -9,7 +9,7 @@ import { getUser } from "@/lib/auth";
 export const metadata: Metadata = {
   title: { absolute: "My Ward Link · Your ward, organized in one place" },
   description:
-    "A free, volunteer-run app for wards and their organizations: lessons and teachers, the ward calendar, sign-ups, messages and visits. Not an official website of The Church of Jesus Christ of Latter-day Saints.",
+    "A free, volunteer-run app for wards and their organizations: lessons and teachers, the ward calendar, service sign-ups, messages, assignments, presidency meetings, plans and visits. Not an official website of The Church of Jesus Christ of Latter-day Saints.",
 };
 
 const DISCLAIMER = DISCLAIMER_TEXT;
@@ -23,6 +23,11 @@ const ICONS: Record<string, string> = {
   people: "M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3 3-5 6-5s6 2 6 5m0-5c1-.6 2-1 3-1 3 0 5 2 5 5",
   bell: "M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0",
   shield: "M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z",
+  check: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11",
+  clipboard: "M9 4h6v3H9zM7 5H5v16h14V5h-2M8 12h8M8 16h5",
+  plan: "M4 4h16v16H4zM4 9h16M9 9v11",
+  more: "M5 12h.01M12 12h.01M19 12h.01",
+  help: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01",
 };
 
 function Icon({ name, className = "h-6 w-6" }: { name: string; className?: string }) {
@@ -37,17 +42,21 @@ const FEATURES = [
   { icon: "book", title: "Lessons and teachers", text: "Post the schedule once. Teachers get reminders, confirm with one tap, and can share notes before Sunday. Members read and comment ahead of time." },
   { icon: "calendar", title: "One ward calendar", text: "Every organization's activities in one place, filtered when you want. Add events to your phone's calendar, or subscribe and stay up to date." },
   { icon: "people", title: "Every organization", text: "Elders quorum, Relief Society, Primary, youth, and more. Each has its own leaders, lessons and messages, and members choose the ones they belong to." },
-  { icon: "chat", title: "Messages and replies", text: "Leaders send announcements by notification, text or email. Members can reply, and write privately to one leader when it's personal." },
-  { icon: "list", title: "Service", text: "Meals, moves, service projects and rides, with spots that fill as people sign up." },
-  { icon: "home", title: "Visits", text: "Members can ask for a visit. Leaders invite, plan who's going, and get a reminder the morning of." },
-  { icon: "bell", title: "Reach people their way", text: "Notifications on the phone, plus text or email for those who prefer it. Each person chooses." },
-  { icon: "shield", title: "Private by design", text: "Only a name and a phone number or email. No addresses, no ads, nothing sold. Delete your account any time." },
+  { icon: "chat", title: "Messages and replies", text: "Leaders send announcements by notification, text or email. Members can reply, or write privately to one leader. Or turn replies off and just send information out." },
+  { icon: "check", title: "Assignments", text: "Ask someone to take an assignment; they accept or say they can't. Due dates, reminders, attachments and progress notes, all in one list." },
+  { icon: "clipboard", title: "Presidency meetings", text: "The agenda builds itself from messages and notes. Take notes, track who was there, start a Zoom call, and see who's conducting each Sunday." },
+  { icon: "list", title: "Service", text: "Meals, moves, service projects and rides, with spots that fill as people sign up. Share a link or QR code so friends can sign up too." },
+  { icon: "home", title: "Visits", text: "Members can ask for a visit. Leaders invite, plan who's going, and everyone gets a reminder before it." },
+  { icon: "plan", title: "Plans and challenges", text: "Plan pages with pictures and PDFs for ward activities, and friendly challenges between organizations with team totals." },
+  { icon: "bell", title: "Reach people their way", text: "Notifications on the phone, plus text or email. Each person chooses, and leaders see who opened a message and who couldn't be reached." },
+  { icon: "help", title: "Help built in", text: "Ask a question in your own words, like \"How do I stop getting texts?\", and get a plain answer from the app's own guide. Leaders have their own guide too." },
+  { icon: "shield", title: "Private by design", text: "Only a name and a phone number or email. No addresses, no ads, nothing sold. Old information deletes itself; delete your account any time." },
 ];
 
 const STEPS = [
-  { title: "Start your ward", text: "A member of the bishopric (or someone they ask) starts the ward in a minute and gets a join code." },
+  { title: "Start your ward", text: "A member of the bishopric (or someone they ask) starts the ward in a minute. After a quick check that it's real (usually within a day), you get its join code." },
   { title: "Set up organizations", text: "Your ward comes with Elders Quorum, Relief Society, Young Men, Young Women, Primary and Sunday School. Turn off any you don't use and choose who leads each." },
-  { title: "Share the join code", text: "Members join with their phone or email, choose their organizations, and add the app to their home screen." },
+  { title: "Share the join code", text: "Show the QR code in a meeting or send the join link. Members join with their phone or email, choose their organizations, and add the app to their home screen." },
 ];
 
 const FAQ = [
@@ -55,6 +64,8 @@ const FAQ = [
   { q: "What does it cost?", a: "Nothing. It's free for wards and members, and there are no ads." },
   { q: "Do I need to download anything?", a: "No. It opens in your phone's browser. Add it to your home screen and it works like an app, with notifications." },
   { q: "Who can see my information?", a: "Your ward's leaders can see the name and phone number or email you give. Other members see only your name on things you post or sign up for." },
+  { q: "How do I get help using it?", a: "In the app, open More → Help and ask a question in your own words, like \"How do I stop getting texts?\". Leaders have their own Leader guide under Admin." },
+  { q: "Can each organization choose what it uses?", a: "Yes. Each presidency turns on just what it needs (lessons, service, visits, assignments, plans, challenges and more) and sets when its reminders go out." },
 ];
 
 /** A small picture of the app's home screen, drawn with the app's own styles. */
@@ -102,12 +113,13 @@ function PhonePreview() {
             <span>›</span>
           </div>
         </div>
-        <div className="grid grid-cols-4 border-t border-border bg-surface py-2 text-[9px] text-muted">
+        <div className="grid grid-cols-5 border-t border-border bg-surface py-2 text-[9px] text-muted">
           {[
             ["home", "Home"],
             ["book", "Lessons"],
             ["calendar", "Calendar"],
-            ["list", "Service"],
+            ["plan", "Plans"],
+            ["more", "More"],
           ].map(([icon, label], i) => (
             <div key={label} className={`flex flex-col items-center gap-0.5 ${i === 0 ? "text-accent" : ""}`}>
               <Icon name={icon} className="h-4 w-4" />
@@ -157,8 +169,8 @@ export default async function AboutPage() {
               <p className="mb-3 text-sm font-semibold tracking-wide text-[#e9c46a] uppercase">For wards and their organizations</p>
               <h1 className="text-4xl leading-tight font-bold sm:text-5xl">Your ward, organized in one place.</h1>
               <p className="mt-4 max-w-xl text-lg opacity-90">
-                Lessons and teachers, the ward calendar, sign-ups, messages and visits, for every organization in your ward. Free, private, and made by volunteers who serve in wards
-                too.
+                Lessons and teachers, the ward calendar, service sign-ups, messages, assignments and visits, for every organization in your ward. Free, private, and made by
+                volunteers who serve in wards too.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link href="/join" className="btn min-h-12 bg-white px-6 text-base text-[#1d3a5f] hover:bg-[#e3eef6]">
