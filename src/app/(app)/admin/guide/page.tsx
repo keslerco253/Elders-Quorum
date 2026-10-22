@@ -4,6 +4,7 @@ import { isAdmin } from "@/lib/permissions";
 import { ledOrgsAnywhere } from "@/lib/orgs";
 import { leaderGuide, searchGuide } from "@/lib/guide";
 import { askConfigured, askGuide } from "@/lib/guide-ai";
+import { renderMarkdown } from "@/lib/markdown";
 import { allowHit } from "@/lib/rate-limit";
 import { PageHeader } from "@/components/ui";
 
@@ -39,19 +40,25 @@ export default async function LeaderGuidePage({ searchParams }: { searchParams: 
             <button className="btn-primary">{canAsk ? "Ask" : "Search"}</button>
           </form>
           {ask && (
-            <section className="card mb-4 space-y-3 border-accent/40 bg-accent-soft text-sm" aria-label="Answer">
-              <div className="whitespace-pre-wrap">{ask.answer}</div>
+            <section className="card mb-4 overflow-hidden p-0" aria-label="Answer">
+              <div className="border-b border-border bg-accent-soft px-4 py-3">
+                <div className="text-xs font-semibold tracking-wide text-accent uppercase">Answer</div>
+                <div className="font-semibold">{q}</div>
+              </div>
+              <div className="guide-answer prose-eq px-4 py-1" dangerouslySetInnerHTML={{ __html: renderMarkdown(ask.answer) }} />
               {ask.sections.length > 0 && (
-                <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  <span className="text-muted">Read more:</span>
-                  {ask.sections.map((s) => (
-                    <a key={s.id} href={`#${s.id}`} className="link">
-                      {s.title}
-                    </a>
-                  ))}
+                <div className="border-t border-border px-4 py-3">
+                  <div className="mb-2 text-xs font-semibold text-muted">Read more in the guide</div>
+                  <div className="flex flex-wrap gap-2">
+                    {ask.sections.map((s) => (
+                      <a key={s.id} href={`#${s.id}`} className="rounded-full border border-border bg-surface-2 px-3 py-1 text-sm text-accent hover:bg-accent-soft">
+                        {s.title} ↓
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
-              <p className="text-xs text-muted">Answered by AI from this guide. If something doesn&apos;t look right, check the section it points to.</p>
+              <p className="border-t border-border px-4 py-2 text-xs text-muted">Answered by AI from this guide. If something doesn&apos;t look right, check the part it points to.</p>
             </section>
           )}
           {q && canAsk && !ask && <p className="mb-4 text-sm text-muted">The question answerer isn&apos;t available right now, so here&apos;s what the guide says about those words.</p>}

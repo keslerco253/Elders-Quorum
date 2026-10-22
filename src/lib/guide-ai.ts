@@ -20,10 +20,11 @@ export interface GuideAnswer {
 
 const SYSTEM_INTRO = `You answer questions from church leaders (bishoprics and organization presidencies) about how to use My Ward Link, their ward's app. Answer only from the leader guide below.
 
-- Give the steps plainly: where to tap (like "Admin → Settings → Messages from members") and what happens. Keep it short: a sentence or a few numbered steps.
+- Start with one plain sentence that answers the question. If there are steps or several cases, follow with a short numbered or bulleted list (Markdown); no headings, no tables.
+- Put on-screen labels and paths in bold, like **Admin → Settings → Messages from members**, and say what happens. Keep it under about 150 words.
 - If the guide doesn't cover it, say so plainly and suggest the closest thing it does cover. Don't invent features or settings.
 - If it depends on who they are (site owner, ward administrator, presidency, member), say who can do it.
-- List in "sections" the guide sections (exact titles) that cover the answer, most useful first, at most three.
+- List in "sections" the parts of the guide (exact titles from the allowed list) that best explain the answer, most useful first, at most three. Prefer the most specific part (a subsection) over a whole section, and leave out parts that only mention the topic in passing.
 
 The leader guide:
 
@@ -40,7 +41,7 @@ export async function askGuide(question: string): Promise<GuideAnswer | null> {
     return null;
   }
   if (!guide) return null;
-  const titles = guide.sections.map((s) => s.title);
+  const titles = guide.anchors.map((s) => s.title);
   const client = new Anthropic();
   try {
     const response = await client.beta.messages.create({
@@ -74,7 +75,7 @@ export async function askGuide(question: string): Promise<GuideAnswer | null> {
     const parsed = JSON.parse(text) as { answer: string; sections: string[] };
     return {
       answer: parsed.answer.trim(),
-      sections: parsed.sections.map((t) => guide.sections.find((s) => s.title === t)).filter((s): s is { id: string; title: string } => !!s),
+      sections: parsed.sections.map((t) => guide.anchors.find((s) => s.title === t)).filter((s): s is { id: string; title: string } => !!s),
     };
   } catch (err) {
     if (err instanceof Anthropic.RateLimitError) console.error("[guide-ai] rate limited");

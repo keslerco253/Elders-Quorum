@@ -11,8 +11,12 @@ const slug = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
-/** The presidency guide (docs/PRESIDENCY-GUIDE.md) as a page, with a link to each section. */
-export function leaderGuide(): { html: string; sections: { id: string; title: string }[] } | null {
+/**
+ * The presidency guide (docs/PRESIDENCY-GUIDE.md) as a page, with a link to each
+ * section, and to each subsection too (`anchors`, e.g. "Messages › Turning off
+ * messages from members") for pointing at the exact part.
+ */
+export function leaderGuide(): { html: string; sections: { id: string; title: string }[]; anchors: { id: string; title: string }[] } | null {
   let md: string;
   try {
     md = fs.readFileSync(FILE, "utf8");
@@ -22,28 +26,37 @@ export function leaderGuide(): { html: string; sections: { id: string; title: st
   // The file's own title is the page title.
   md = md.replace(/^# .*\n/, "");
   const sections: { id: string; title: string }[] = [];
+  const anchors: { id: string; title: string }[] = [];
   const renderer = new marked.Renderer();
   renderer.heading = ({ tokens, depth }) => {
     const text = renderer.parser.parseInline(tokens);
-    if (depth !== 2) return `<h${depth}>${text}</h${depth}>`;
+    if (depth !== 2 && depth !== 3) return `<h${depth}>${text}</h${depth}>`;
     const title = text
       .replace(/<[^>]+>/g, "")
       .replace(/&#39;/g, "'")
       .replace(/&quot;/g, '"')
       .replace(/&amp;/g, "&");
-    const id = slug(title);
-    sections.push({ id, title });
-    return `<h2 id="${id}">${text}</h2>`;
+    if (depth === 2) {
+      const id = slug(title);
+      sections.push({ id, title });
+      anchors.push({ id, title });
+      return `<h2 id="${id}">${text}</h2>`;
+    }
+    const parent = sections.at(-1);
+    const id = `${parent ? `${parent.id}--` : ""}${slug(title)}`;
+    anchors.push({ id, title: parent ? `${parent.title} › ${title}` : title });
+    return `<h3 id="${id}">${text}</h3>`;
   };
   const html = marked.parse(md, { async: false, gfm: true, renderer }) as string;
   return {
     html: sanitizeHtml(html, {
       allowedTags: sanitizeHtml.defaults.allowedTags.concat(["h1", "h2"]),
-      allowedAttributes: { a: ["href", "title"], h2: ["id"] },
+      allowedAttributes: { a: ["href", "title"], h2: ["id"], h3: ["id"] },
       allowedSchemes: ["http", "https", "mailto", "tel"],
       transformTags: { a: sanitizeHtml.simpleTransform("a", { target: "_blank", rel: "noreferrer" }) },
     }),
     sections,
+    anchors,
   };
 }
 

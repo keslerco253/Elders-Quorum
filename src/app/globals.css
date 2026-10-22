@@ -172,6 +172,10 @@ body {
   .prose-eq code { @apply rounded bg-surface-2 px-1 text-[0.9em]; }
   .prose-eq pre { @apply my-3 overflow-x-auto rounded-lg bg-surface-2 p-3 text-sm; }
   .guide h2 { @apply scroll-mt-20 border-t border-border pt-5; }
+  .guide h3 { @apply scroll-mt-20; }
+  /* An answer from Ask the guide: steps with room to breathe, paths stand out. */
+  .guide-answer ol, .guide-answer ul { @apply space-y-2; }
+  .guide-answer strong { @apply font-semibold text-text; }
 }
 
 /* Plan pages: blocks with pictures and PDFs placed left, right or centered. */
