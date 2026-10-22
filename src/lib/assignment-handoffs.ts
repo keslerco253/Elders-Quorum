@@ -70,7 +70,7 @@ export function answerHandoff(id: number, memberId: number, accept: boolean): { 
   let allDeclined = false;
   d.transaction(() => {
     if (accept) {
-      d.prepare("UPDATE todos SET assignee_id = ? WHERE id = ?").run(memberId, t.id);
+      d.prepare("UPDATE todos SET assignee_id = ?, accept_status = 'accepted' WHERE id = ?").run(memberId, t.id);
       d.prepare("UPDATE todo_handoffs SET status = 'accepted', taken_by = ?, decided_at = datetime('now') WHERE id = ?").run(memberId, id);
     } else if (h.to_id) {
       d.prepare("UPDATE todo_handoffs SET status = 'declined', decided_at = datetime('now') WHERE id = ?").run(id);
@@ -124,13 +124,13 @@ export function handoffsWaitingOn(memberId: number): HandoffAsk[] {
  * The person assigned can't do it: it goes back to the presidency unassigned, with
  * their note (if any) on it. Returns the assignment as it was, or null if it isn't theirs.
  */
-export function unableToDo(todoId: number, memberId: number, note: string): Todo | null {
+export function unableToDo(todoId: number, memberId: number, note: string, what = "Unable to do this assignment"): Todo | null {
   const t = getTodo(todoId);
   if (!t || t.assignee_id !== memberId || t.done) return null;
   const d = db();
-  const body = `Unable to do this assignment${note.trim() ? `: ${note.trim().slice(0, 1000)}` : "."}`;
+  const body = `${what}${note.trim() ? `: ${note.trim().slice(0, 1000)}` : "."}`;
   d.transaction(() => {
-    d.prepare("UPDATE todos SET assignee_id = NULL, status = 'open' WHERE id = ?").run(todoId);
+    d.prepare("UPDATE todos SET assignee_id = NULL, status = 'open', accept_status = 'accepted' WHERE id = ?").run(todoId);
     d.prepare("INSERT INTO todo_notes (todo_id, author_id, body, private) VALUES (?, ?, ?, 0)").run(todoId, memberId, body);
   })();
   return t;

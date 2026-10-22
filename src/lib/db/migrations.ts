@@ -1420,4 +1420,16 @@ ALTER TABLE orgs ADD COLUMN member_messages INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE org_members ADD COLUMN member_messages INTEGER NOT NULL DEFAULT 1;
 `,
   },
+  {
+    // An assignment to someone else is a request until they accept it (accept_status
+    // 'pending'); assignments can have a time of day and an attachment (a flyer).
+    id: 70,
+    sql: `
+ALTER TABLE todos ADD COLUMN accept_status TEXT NOT NULL DEFAULT 'accepted';
+ALTER TABLE todos ADD COLUMN asked_at TEXT;
+ALTER TABLE todos ADD COLUMN due_time TEXT;
+ALTER TABLE todos ADD COLUMN flyer_file TEXT;
+ALTER TABLE todos ADD COLUMN flyer_name TEXT;
+`,
+  },
 ];

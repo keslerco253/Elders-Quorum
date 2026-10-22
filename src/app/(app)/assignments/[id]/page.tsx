@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { getTodo, isPresidencyOf, STATUS_LABELS, todoNotes } from "@/lib/assignments";
+import { dueText, getTodo, isPresidencyOf, STATUS_LABELS, todoNotes } from "@/lib/assignments";
 import { withOrg } from "@/lib/org-cookie";
 import { formatDate, formatDateTime, todayIn } from "@/lib/time";
 import { Linkify } from "@/components/linkify";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { addProgress, answerAssignmentAsk, askToTakeAssignment, unableToDoAssignment, withdrawAssignmentAsk } from "../actions";
+import { acceptAssignmentRequest, addProgress, answerAssignmentAsk, askToTakeAssignment, declineAssignmentRequest, unableToDoAssignment, withdrawAssignmentAsk } from "../actions";
+import { FlyerView } from "@/components/flyer-view";
 import { canAnswer, pendingHandoff } from "@/lib/assignment-handoffs";
 import { orgPresidency, orgRoster } from "@/lib/orgs";
 import { deleteTodo } from "../../admin/todos/actions";
@@ -61,7 +62,8 @@ export default async function AssignmentPage({ params, searchParams }: { params:
       <div className="card mb-5 space-y-2">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <Badge tone={tone}>{STATUS_LABELS[t.status]}</Badge>
-          {t.due_date && (overdue ? <Badge tone="danger">Overdue · was due {formatDate(t.due_date, "short")}</Badge> : <span className="text-muted">Due {formatDate(t.due_date)}</span>)}
+          {!t.done && t.assignee_id && t.accept_status === "pending" && <Badge tone="warn">Not accepted yet</Badge>}
+          {t.due_date && (overdue ? <Badge tone="danger">Overdue · was due {formatDate(t.due_date, "short")}</Badge> : <span className="text-muted">Due {dueText(t.due_date, t.due_time)}</span>)}
         </div>
         <div className="text-sm text-muted">
           {mine ? "Assigned to you" : `Assigned to ${t.assignee ?? "no one yet"}`}
@@ -82,6 +84,32 @@ export default async function AssignmentPage({ params, searchParams }: { params:
           </p>
         )}
       </div>
+
+      {t.flyer_file && <FlyerView file={t.flyer_file} name={t.flyer_name} className="card mb-5" />}
+
+      {/* A request waiting for their answer. */}
+      {mine && !t.done && t.accept_status === "pending" && (
+        <div className="card mb-5 space-y-3 border-accent/40 bg-accent-soft">
+          <div className="text-sm">
+            <span className="block font-semibold">Would you be willing to accept this assignment?</span>
+            <span className="text-muted">{t.creator ?? "Your presidency"} asked you. Read the details above, then let them know.</span>
+          </div>
+          <form action={acceptAssignmentRequest}>
+            <input type="hidden" name="item_id" value={t.id} />
+            <SubmitButton pendingText="Accepting…">Yes, I accept</SubmitButton>
+          </form>
+          <details>
+            <summary className="cursor-pointer text-sm font-medium">I&apos;m not able to</summary>
+            <form action={declineAssignmentRequest} className="mt-2 space-y-2">
+              <input type="hidden" name="item_id" value={t.id} />
+              <textarea name="note" rows={2} maxLength={1000} className="input" placeholder="A note for the presidency (optional)" />
+              <SubmitButton className="btn-secondary" pendingText="Sending…">
+                Let them know I can&apos;t
+              </SubmitButton>
+            </form>
+          </details>
+        </div>
+      )}
 
       {ask && (askedMe || leader) && (
         <div className="card mb-5 space-y-3 border-accent/40 bg-accent-soft">
@@ -146,7 +174,7 @@ export default async function AssignmentPage({ params, searchParams }: { params:
         </details>
       )}
 
-      {mine && !t.done && (
+      {mine && !t.done && t.accept_status !== "pending" && (
         <details className="card mb-5">
           <summary className="cursor-pointer font-medium">I&apos;m unable to do this assignment</summary>
           <form action={unableToDoAssignment} className="mt-3 space-y-3">

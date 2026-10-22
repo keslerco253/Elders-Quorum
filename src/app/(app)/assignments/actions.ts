@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getTodo, isPresidencyOf, setTodoStatus, STATUS_LABELS, type TodoStatus } from "@/lib/assignments";
+import { acceptAssignment, getTodo, isPresidencyOf, setTodoStatus, STATUS_LABELS, type TodoStatus } from "@/lib/assignments";
 import { audienceMembers, notify, recipientById, type Recipient } from "@/lib/notify";
 import { withOrg } from "@/lib/org-cookie";
 import { todayIn } from "@/lib/time";
@@ -128,5 +128,31 @@ export async function unableToDoAssignment(fd: FormData) {
   });
   revalidatePath("/", "layout");
   if (isPresidencyOf(user.id, t.org_id)) back(t, "Done. It's unassigned now, and the presidency knows.");
+  redirect("/assignments?msg=" + encodeURIComponent("Thanks for letting us know. Your presidency has been told."));
+}
+
+/** The person asked accepts the assignment; whoever gave it (and the presidency) is told. */
+export async function acceptAssignmentRequest(fd: FormData) {
+  const user = await requireUser();
+  const t = getTodo(Number(fd.get("item_id")));
+  if (!t || !acceptAssignment(t.id, user.id)) redirect("/assignments");
+  await notify(presidencyAnd(t.org_id, [t.created_by], user.id), { title: `${user.display_name} accepted an assignment`, body: t.title, url: withOrg(`/assignments/${t.id}`, t.org_id) });
+  revalidatePath("/", "layout");
+  back(t, "Accepted. Thank you!");
+}
+
+/** The person asked can't take it: it goes back to the presidency unassigned, with their note. */
+export async function declineAssignmentRequest(fd: FormData) {
+  const user = await requireUser();
+  const note = String(fd.get("note") || "");
+  const t = getTodo(Number(fd.get("item_id")));
+  if (!t || t.assignee_id !== user.id || t.accept_status !== "pending" || !unableToDo(t.id, user.id, note, "Not able to accept this assignment")) redirect("/assignments");
+  await notify(presidencyAnd(t.org_id, [t.created_by], user.id), {
+    title: `${user.display_name} can't accept an assignment`,
+    body: `${t.title}${note.trim() ? `: “${note.trim().slice(0, 200)}”` : ""}`.slice(0, 300),
+    url: withOrg(`/assignments/${t.id}`, t.org_id),
+  });
+  revalidatePath("/", "layout");
+  if (isPresidencyOf(user.id, t.org_id)) back(t, "Thanks for letting us know. It's unassigned now.");
   redirect("/assignments?msg=" + encodeURIComponent("Thanks for letting us know. Your presidency has been told."));
 }

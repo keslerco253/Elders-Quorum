@@ -230,7 +230,7 @@ function todoReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const rows = db()
     .prepare(
       `SELECT t.id, t.title, t.due_date, t.reminder1_days AS r1, t.reminder2_days AS r2, m.id AS mid FROM todos t JOIN members m ON m.id = t.assignee_id
-       WHERE t.org_id = ? AND t.done = 0 AND t.due_date >= ? AND t.due_date <= date(?, '+30 days') AND m.status = 'active'`,
+       WHERE t.org_id = ? AND t.done = 0 AND t.accept_status = 'accepted' AND t.due_date >= ? AND t.due_date <= date(?, '+30 days') AND m.status = 'active'`,
     )
     .all(org.id, today, today) as { id: number; title: string; due_date: string; r1: number | null; r2: number | null; mid: number }[];
   const out: DueNotification[] = [];

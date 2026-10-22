@@ -7,11 +7,11 @@ import { AssignmentForm } from "@/components/assignment-form";
 import { deleteTodo, setStatus } from "./actions";
 import { orgPresidency, orgRoster } from "@/lib/orgs";
 import { roleLabel } from "@/lib/types";
-import { KIND_ICONS, myAssignments, orgTodos, STATUS_LABELS, type Todo } from "@/lib/assignments";
+import { dueText, KIND_ICONS, myAssignments, orgTodos, STATUS_LABELS, type Todo } from "@/lib/assignments";
 
 export const metadata = { title: "Assignments" };
 
-const SHOW = { open: "Open", unassigned: "Unassigned", overdue: "Overdue", done: "Done", all: "All" } as const;
+const SHOW = { open: "Open", pending: "Not accepted", unassigned: "Unassigned", overdue: "Overdue", done: "Done", all: "All" } as const;
 type Show = keyof typeof SHOW;
 
 export default async function TodosPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -22,7 +22,7 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
   const show: Show = sp.show && sp.show in SHOW ? (sp.show as Show) : "open";
   const all = orgTodos(user.org_id, { assigneeId: who || undefined });
   const overdue = (t: Todo) => !t.done && !!t.due_date && t.due_date < today;
-  const todos = all.filter((t) => (show === "open" ? !t.done : show === "unassigned" ? !t.done && !t.assignee_id : show === "done" ? !!t.done : show === "overdue" ? overdue(t) : true));
+  const todos = all.filter((t) => (show === "open" ? !t.done : show === "pending" ? !t.done && !!t.assignee_id && t.accept_status === "pending" : show === "unassigned" ? !t.done && !t.assignee_id : show === "done" ? !!t.done : show === "overdue" ? overdue(t) : true));
   const presidencyIds = orgPresidency(user.org_id).map((p) => p.id);
   const people = orgRoster(user.org_id, { includeId: who || undefined });
   const editing = sp.edit ? all.find((t) => t.id === Number(sp.edit)) : undefined;
@@ -55,7 +55,8 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
         <div className={`font-medium ${t.done ? "text-muted line-through" : ""}`}>{t.title}</div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
           <span>{t.assignee ?? "Unassigned"}</span>
-          {t.due_date && (overdue(t) ? <Badge tone="danger">Overdue · {formatDate(t.due_date, "short")}</Badge> : <span>Due {formatDate(t.due_date, "short")}</span>)}
+          {!t.done && t.assignee_id && t.accept_status === "pending" && <Badge tone="warn">Not accepted yet</Badge>}
+          {t.due_date && (overdue(t) ? <Badge tone="danger">Overdue · {formatDate(t.due_date, "short")}</Badge> : <span>Due {dueText(t.due_date, t.due_time)}</span>)}
           {t.status === "progress" && <Badge tone="info">{STATUS_LABELS.progress}</Badge>}
           {t.note_count > 0 && <span>· {t.note_count} progress note{t.note_count === 1 ? "" : "s"}</span>}
           {t.meeting_date && <span>· from the {formatDate(t.meeting_date, "short")} meeting</span>}

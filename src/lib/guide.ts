@@ -46,3 +46,54 @@ export function leaderGuide(): { html: string; sections: { id: string; title: st
     sections,
   };
 }
+
+export interface GuideHit {
+  /** The section it's in (to link to). */
+  id: string;
+  section: string;
+  /** The paragraph or list item, as plain text. */
+  text: string;
+}
+
+/** Plain text from a bit of the guide's Markdown. */
+const plain = (md: string) =>
+  md
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[*`]/g, "")
+    .replace(/^#+\s*/gm, "")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/**
+ * Searches the guide: every paragraph or list item (and heading) containing all the
+ * words searched for, with the section it's in. Up to 40.
+ */
+export function searchGuide(query: string): GuideHit[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  let md: string;
+  try {
+    md = fs.readFileSync(FILE, "utf8");
+  } catch {
+    return [];
+  }
+  const hits: GuideHit[] = [];
+  for (const part of md.split(/^(?=## )/m)) {
+    const m = part.match(/^## (.+)$/m);
+    if (!m) continue;
+    const section = plain(m[1]);
+    // Blocks: paragraphs, and each list item on its own.
+    const blocks = part
+      .replace(/^## .+$/m, "")
+      .split(/\n\s*\n|\n(?=\s*[-*] |\s*\d+\. )/)
+      .map(plain)
+      .filter(Boolean);
+    for (const text of [section, ...blocks]) {
+      const lower = text.toLowerCase();
+      if (words.every((w) => lower.includes(w))) hits.push({ id: slug(section), section, text });
+      if (hits.length >= 40) return hits;
+    }
+  }
+  return hits;
+}

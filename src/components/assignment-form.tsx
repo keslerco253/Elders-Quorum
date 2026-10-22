@@ -3,6 +3,7 @@ import { SubmitButton } from "@/components/client";
 import { saveTodo } from "@/app/(app)/admin/todos/actions";
 import type { Todo } from "@/lib/assignments";
 import { SIGNUP_REMINDER_OPTIONS } from "@/lib/signups";
+import { FlyerField } from "@/components/flyer-field";
 
 /** New or edit assignment: to anyone in the organization, with a due date and details. */
 export function AssignmentForm({
@@ -53,9 +54,13 @@ export function AssignmentForm({
             </optgroup>
           )}
         </select>
-        <input name="due_date" type="date" className="input" defaultValue={todo?.due_date ?? ""} aria-label="Due date" />
+        <div className="flex gap-2">
+          <input name="due_date" type="date" className="input min-w-0 flex-1" defaultValue={todo?.due_date ?? ""} aria-label="Due date" />
+          <input name="due_time" type="time" className="input w-32" defaultValue={todo?.due_time ?? ""} aria-label="Time (optional)" title="Time (optional)" />
+        </div>
       </div>
       <textarea name="notes" rows={3} className="input" placeholder="Details (optional): what's needed, who to talk to…" defaultValue={todo?.notes} />
+      <FlyerField file={todo?.flyer_file} name={todo?.flyer_name} hint="Optional: a flyer, handout or picture (PDF or picture, up to 15 MB). It's on the assignment and sent with the request." />
       <div className="grid gap-3 sm:grid-cols-2">
         {(["reminder1_days", "reminder2_days"] as const).map((field, i) => (
           <div key={field}>
@@ -81,7 +86,8 @@ export function AssignmentForm({
         )}
       </div>
       <p className="hint">
-        The person gets a notification, sees it under My assignments and on their home page, and gets the reminders above (when it has a due date, at the hour set under Admin → Settings → Reminder times). Everything
+        Given to someone else, it&apos;s a request: they&apos;re asked &ldquo;Would you be willing to accept this assignment?&rdquo; and can accept or say they can&apos;t
+        (with a note). Until they accept, it shows under Waiting on you as not accepted yet. Once accepted, it&apos;s on their home page and they get the reminders above (when it has a due date, at the hour set under Admin → Settings → Reminder times). Everything
         reaches them the way they chose under Contact &amp; notifications: app notification, plus email and/or text if they picked those. They can add progress notes and
         mark it done.
       </p>

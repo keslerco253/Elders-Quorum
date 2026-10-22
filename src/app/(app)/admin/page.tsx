@@ -136,6 +136,13 @@ export default async function AdminPage() {
       show: p,
     },
     {
+      href: "/admin/todos?show=pending",
+      label: "Assignments not accepted yet",
+      desc: "Waiting for the person to say yes",
+      count: c.notAccepted,
+      show: p && has("todos"),
+    },
+    {
       href: "/admin/todos?show=unassigned",
       label: "Unassigned assignments",
       desc: "No one has these (or the person was unable to do them)",

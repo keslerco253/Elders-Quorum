@@ -25,7 +25,7 @@ import { invitePath, pendingInvitesFor, whenText } from "@/lib/planned-visits";
 import { hasFeature, leadersPhrase, myOrgs } from "@/lib/orgs";
 import { withOrg } from "@/lib/org-cookie";
 import { usesCfm } from "@/lib/cfm";
-import { KIND_ICONS, soonAssignments } from "@/lib/assignments";
+import { assignmentRequestsFor, dueText, KIND_ICONS, soonAssignments } from "@/lib/assignments";
 import { conductingSchedule, swapsWaitingOn } from "@/lib/conducting";
 import { runningChallengesFor, scoreboard } from "@/lib/challenges";
 import { ledOrgIds } from "@/lib/conversations";
@@ -76,6 +76,8 @@ export default async function HomePage() {
   const conductAsks = swapsWaitingOn(user.id, today).filter((a) => mine.some((o) => o.id === a.org_id && hasFeature(o, "conducting")));
   // Someone asking them (or their whole presidency) to take an assignment.
   const takeAsks = handoffsWaitingOn(user.id);
+  // Assignments they've been asked to accept.
+  const assignmentAsks = assignmentRequestsFor(user.id);
   // A challenge their organization is in: the scores, and a nudge to log.
   const challenges = runningChallengesFor(user.ward_id, user.id, today).map((c) => ({ c, board: scoreboard(c.id) }));
 
@@ -398,6 +400,21 @@ export default async function HomePage() {
           <span>
             <span className="block font-semibold">Can you conduct on {formatDate(a.date, "short")}?</span>
             {a.from_name ?? "Someone"} asked. Tap to answer.
+          </span>
+          <span>›</span>
+        </Link>
+      ))}
+
+      {assignmentAsks.map((t) => (
+        <Link
+          key={t.id}
+          href={withOrg(`/assignments/${t.id}`, t.org_id)}
+          className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent"
+        >
+          <span>
+            <span className="block font-semibold">Would you be willing to accept this assignment?</span>
+            {t.title}
+            {t.due_date ? ` · due ${dueText(t.due_date, t.due_time)}` : ""} · from {t.creator ?? "your presidency"}. Tap to answer.
           </span>
           <span>›</span>
         </Link>

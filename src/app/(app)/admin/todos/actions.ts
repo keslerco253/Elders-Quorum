@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePresidency, requireUser } from "@/lib/auth";
 import { notify, RECIPIENT_COLUMNS, type Recipient } from "@/lib/notify";
-import { formatDate, todayIn } from "@/lib/time";
-import { getTodo, isPresidencyOf, setTodoStatus, type TodoStatus } from "@/lib/assignments";
+import { todayIn } from "@/lib/time";
+import { dueText, getTodo, isPresidencyOf, setTodoStatus, type TodoStatus } from "@/lib/assignments";
+import { saveUpload } from "@/lib/uploads";
 import { withOrg } from "@/lib/org-cookie";
 
 /** Back to the meeting the form was on, or the assignments list. */
@@ -26,6 +27,7 @@ export async function saveTodo(fd: FormData) {
   const title = String(fd.get("title") || "").trim().slice(0, 200);
   const notes = String(fd.get("notes") || "").trim().slice(0, 2000);
   const due = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("due_date"))) ? String(fd.get("due_date")) : null;
+  const dueTime = due && /^\d{2}:\d{2}$/.test(String(fd.get("due_time"))) ? String(fd.get("due_time")) : null;
   const assigneeId = Number(fd.get("assignee_id")) || null;
   const meetingId = Number(fd.get("meeting_id")) || null;
   // Reminders: days before it's due (0 = the morning it's due), or blank for none.
@@ -46,27 +48,59 @@ export async function saveTodo(fd: FormData) {
   const meeting = meetingId ? (db().prepare("SELECT id FROM meetings WHERE id = ? AND org_id = ?").get(meetingId, user.org_id) as { id: number } | undefined) : undefined;
   let previousAssignee: number | null = null;
   let todoId = id;
+  const prev = id
+    ? (db().prepare("SELECT assignee_id, accept_status, flyer_file, flyer_name FROM todos WHERE id = ? AND org_id = ?").get(id, user.org_id) as
+        | { assignee_id: number | null; accept_status: string; flyer_file: string | null; flyer_name: string | null }
+        | undefined)
+    : undefined;
+  if (id && !prev) go(back, "That assignment no longer exists.");
+  previousAssignee = prev?.assignee_id ?? null;
+  // An attachment (a flyer, a handout): a new upload, the one it had, or none.
+  let flyerFile = fd.get("remove_flyer") === "on" ? null : (prev?.flyer_file ?? null);
+  let flyerName = flyerFile ? (prev?.flyer_name ?? null) : null;
+  const file = fd.get("flyer");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > 15_000_000) go(back, "The attachment must be under 15 MB.");
+    try {
+      flyerFile = await saveUpload(file);
+      flyerName = file.name.slice(0, 200) || "Attachment";
+      // Recorded with the ward, so only its members can open it.
+      db().prepare("INSERT INTO plan_files (name, ward_id, original_name, uploaded_by) VALUES (?, ?, ?, ?)").run(flyerFile, user.ward_id, flyerName, user.id);
+    } catch {
+      go(back, "That kind of file can't be attached. Use a PDF or a picture (PNG, JPEG, GIF, WebP or an iPhone photo).");
+    }
+  }
+  // Given to someone else, it's a request until they accept it.
+  const newPerson = !!assignee && assignee.id !== previousAssignee;
+  const asking = !!assignee && assignee.id !== user.id && newPerson;
+  const acceptStatus = asking ? "pending" : !assignee || assignee.id === user.id ? "accepted" : (prev?.accept_status ?? "accepted");
   if (id) {
-    const prev = db().prepare("SELECT assignee_id FROM todos WHERE id = ? AND org_id = ?").get(id, user.org_id) as { assignee_id: number | null } | undefined;
-    if (!prev) go(back, "That assignment no longer exists.");
-    previousAssignee = prev.assignee_id;
-    db().prepare("UPDATE todos SET title = ?, notes = ?, due_date = ?, assignee_id = ?, reminder1_days = ?, reminder2_days = ? WHERE id = ?").run(title, notes, due, assignee?.id ?? null, r1, r2, id);
+    db()
+      .prepare(
+        `UPDATE todos SET title = ?, notes = ?, due_date = ?, due_time = ?, assignee_id = ?, reminder1_days = ?, reminder2_days = ?, flyer_file = ?, flyer_name = ?,
+           accept_status = ?, asked_at = CASE WHEN ? THEN datetime('now') ELSE asked_at END WHERE id = ?`,
+      )
+      .run(title, notes, due, dueTime, assignee?.id ?? null, r1, r2, flyerFile, flyerName, acceptStatus, asking ? 1 : 0, id);
   } else {
     todoId = Number(
       db()
-        .prepare("INSERT INTO todos (org_id, title, notes, due_date, assignee_id, created_by, meeting_id, reminder1_days, reminder2_days) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-        .run(user.org_id, title, notes, due, assignee?.id ?? null, user.id, meeting?.id ?? null, r1, r2).lastInsertRowid,
+        .prepare(
+          `INSERT INTO todos (org_id, title, notes, due_date, due_time, assignee_id, created_by, meeting_id, reminder1_days, reminder2_days, flyer_file, flyer_name, accept_status, asked_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? THEN datetime('now') END)`,
+        )
+        .run(user.org_id, title, notes, due, dueTime, assignee?.id ?? null, user.id, meeting?.id ?? null, r1, r2, flyerFile, flyerName, acceptStatus, asking ? 1 : 0).lastInsertRowid,
     );
   }
-  if (assignee && assignee.id !== user.id && assignee.id !== previousAssignee) {
-    await notify([assignee], {
-      title: "New assignment",
-      body: `${title}${due ? ` (due ${formatDate(due, "short")})` : ""}. From ${user.display_name}.`,
+  if (asking) {
+    await notify([assignee!], {
+      title: "Would you be willing to accept this assignment?",
+      body: `${title}${due ? ` (due ${dueText(due, dueTime)})` : ""}. From ${user.display_name}. Tap to accept or let them know you can't.`,
       url: withOrg(`/assignments/${todoId}`, user.org_id),
+      ...(flyerFile ? { attachment: { file: flyerFile, name: flyerName ?? "Attachment" } } : {}),
     });
   }
   revalidatePath("/", "layout");
-  go(back, id ? "Assignment updated." : assignee && assignee.id !== user.id ? `Assignment added. ${assignee.display_name} was notified.` : "Assignment added.");
+  go(back, asking ? `Sent to ${assignee!.display_name} to accept. It shows as not accepted until they say yes.` : id ? "Assignment updated." : "Assignment added.");
 }
 
 export async function setStatus(fd: FormData) {

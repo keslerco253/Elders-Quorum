@@ -631,6 +631,10 @@ Tap an assignment to see its **progress notes**:
 - The person hears about the presidency's notes, except those marked
   **Presidency only**, which they never see.
 
+**Assignment requests:** giving an assignment to someone else sends them a request: "Would you be willing to accept this assignment?" with the details, due date and time, and any attachment. They tap **Yes, I accept** or **I'm not able to** (with an optional note). Until they accept, it shows as **Not accepted yet** on the assignment and under **Waiting on you** (Admin → Assignments not accepted yet), and no due-date reminders go out. If they say no, it comes back Unassigned with their note, and the presidency (and whoever gave it) is told. Assigning it to yourself needs no answer.
+
+**Time and attachment:** an assignment can have a time of day with its due date ("due Thu, Nov 5 at 7:00 PM") and an attachment, like a flyer or handout (a PDF or picture, up to 15 MB). The attachment shows on the assignment and is sent with the request.
+
 Each assignment has two **Reminders** you choose (from 2 weeks before to the morning it's due, or none). They start as the day before and the morning it's due, sent from 8 AM (or the hour you set under Admin → Settings → Reminder times). They reach the person however they chose under Contact & notifications: app notification, plus email and/or text.
 
 **Asking someone else to take it:** on an assignment's page, anyone in the presidency can tap **Ask someone else to take it** and choose one person (presidency or member) or **the whole presidency**, with an optional note. They get a notification and a "Can you take this assignment?" card at the top of Home, with **Yes, I'll take it** and **I can't**. When someone says yes, the assignment becomes theirs and the presidency (and whoever had it) is told. When the whole presidency is asked, the first to say yes takes it; if everyone says no, whoever asked is told. Whoever asked can **Withdraw the request** until it's answered.
@@ -788,6 +792,8 @@ you; each organization keeps its own wording.
   your changes; it also shows who changed it last.
 
 ## Settings
+
+The **Leader guide** (Admin → Leader guide) has a search box at the top: type a word or two (like "reminders" or "texting") to see every part of the guide that mentions it, then tap one to jump there.
 
 **Admin → Settings** (bishopric, looking at the ward): the ward's name, time
 zone, join code, features and organizations, and starting another ward.

@@ -36,9 +36,17 @@ export interface Todo {
   /** Reminders: days before it's due (0 = the morning it's due), or null for none. */
   reminder1_days: number | null;
   reminder2_days: number | null;
+  /** 'pending' while the person asked hasn't accepted it yet. */
+  accept_status: "pending" | "accepted";
+  asked_at: string | null;
+  /** Time of day it's due (HH:MM), if any. */
+  due_time: string | null;
+  flyer_file: string | null;
+  flyer_name: string | null;
 }
 
 const TODO_SELECT = `SELECT t.id, t.org_id, t.title, t.notes, t.due_date, t.assignee_id, t.status, t.done, t.done_at, t.meeting_id, t.created_by, t.created_at, t.reminder1_days, t.reminder2_days,
+    t.accept_status, t.asked_at, t.due_time, t.flyer_file, t.flyer_name,
     a.display_name AS assignee, c.display_name AS creator, mt.date AS meeting_date,
     (SELECT COUNT(*) FROM todo_notes n WHERE n.todo_id = t.id) AS note_count
   FROM todos t LEFT JOIN members a ON a.id = t.assignee_id LEFT JOIN members c ON c.id = t.created_by LEFT JOIN meetings mt ON mt.id = t.meeting_id`;
@@ -147,8 +155,17 @@ export function myAssignments(memberId: number, today: string, opts: { past?: bo
       orgId: t.org_id,
       orgLabel: label.get(t.org_id) ?? "",
       href: link(`/assignments/${t.id}`, t.org_id),
-      detail: t.done ? `Done ${t.done_at ? formatDate(t.done_at.slice(0, 10), "short") : ""}` : t.due_date ? `Due ${formatDate(t.due_date, "short")}` : "No due date",
-      flag: overdue ? { tone: "danger", text: "Overdue" } : t.due_date === today ? { tone: "warn", text: "Due today" } : t.status === "progress" ? { tone: "info", text: "In progress" } : undefined,
+      detail: t.done ? `Done ${t.done_at ? formatDate(t.done_at.slice(0, 10), "short") : ""}` : t.due_date ? `Due ${dueText(t.due_date, t.due_time)}` : "No due date",
+      flag:
+        !t.done && t.accept_status === "pending"
+          ? { tone: "warn", text: "Please respond" }
+          : overdue
+            ? { tone: "danger", text: "Overdue" }
+            : t.due_date === today
+              ? { tone: "warn", text: "Due today" }
+              : t.status === "progress"
+                ? { tone: "info", text: "In progress" }
+                : undefined,
       done: !!t.done,
     });
   }
@@ -227,7 +244,23 @@ export function myAssignments(memberId: number, today: string, opts: { past?: bo
 /** For the home page: anything overdue, needing an answer, or in the next two weeks. */
 export function soonAssignments(memberId: number, today: string): MyItem[] {
   const until = DateTime.fromISO(today).plus({ days: 14 }).toISODate()!;
-  return myAssignments(memberId, today).filter((i) => i.flag?.tone === "danger" || i.flag?.text === "Please confirm" || (i.date !== null && i.date <= until) || ((i.kind === "todo" || i.kind === "mine") && !i.date));
+  return myAssignments(memberId, today).filter((i) => i.flag?.tone === "danger" || i.flag?.text === "Please confirm" || i.flag?.text === "Please respond" || (i.date !== null && i.date <= until) || ((i.kind === "todo" || i.kind === "mine") && !i.date));
 }
 
 export const KIND_ICONS: Record<MyItemKind, string> = { todo: "📋", mine: "📝", teach: "📖", serve: "🛠️" };
+
+/** "Thu, Oct 30" or "Thu, Oct 30 at 7:00 PM". */
+export function dueText(date: string, time: string | null): string {
+  return `${formatDate(date, "short")}${time ? ` at ${DateTime.fromFormat(time, "HH:mm").toFormat("h:mm a")}` : ""}`;
+}
+
+/** Assignment requests waiting for this person's answer (for their home page). */
+export function assignmentRequestsFor(memberId: number): Todo[] {
+  const orgs = new Set(myOrgs(memberId).filter((o) => hasFeature(o, "todos")).map((o) => o.id));
+  return (db().prepare(`${TODO_SELECT} WHERE t.assignee_id = ? AND t.done = 0 AND t.accept_status = 'pending' ORDER BY t.id`).all(memberId) as Todo[]).filter((t) => orgs.has(t.org_id));
+}
+
+/** The person asked accepts an assignment. Returns false if it isn't waiting on them. */
+export function acceptAssignment(id: number, memberId: number): boolean {
+  return db().prepare("UPDATE todos SET accept_status = 'accepted' WHERE id = ? AND assignee_id = ? AND accept_status = 'pending' AND done = 0").run(id, memberId).changes > 0;
+}
