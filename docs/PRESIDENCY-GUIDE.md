@@ -667,9 +667,8 @@ family history work.
 - **Logging:** members on a team open the challenge (from Plans, or the card on
   Home while it's on) and tap **+ Log it**: what they did and how many. They can
   remove their own entries while it's running.
-- **Scores:** each team's **total points** and **points per member**, so a
-  bigger organization has no head start. Only team totals are shown: no one can
-  see what anyone else logged.
+- **Scores:** each team's **total points**. Only team totals are shown: no one
+  can see what anyone else logged.
 - The day after it ends, everyone on the teams hears the final scores. Thirty
   days later, entries stop being tied to anyone; only the totals stay.
 - The presidency that started it can delete it.

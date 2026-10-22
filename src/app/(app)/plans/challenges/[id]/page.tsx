@@ -11,7 +11,7 @@ export const metadata = { title: "Challenge" };
 
 const pts = (n: number) => `${Number.isInteger(n) ? n : n.toFixed(1)} ${n === 1 ? "point" : "points"}`;
 
-/** The scoreboard (team totals and points per member, never names), logging, and your own entries. */
+/** The scoreboard (team totals only, never names), logging, and your own entries. */
 export default async function ChallengePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
   const sp = await searchParams;
@@ -24,10 +24,8 @@ export default async function ChallengePage({ params, searchParams }: { params: 
   const teams = memberTeams(c.id, user.id);
   const mine = myEntries(c.id, user.id);
   const top = Math.max(1, ...board.map((b) => b.points));
-  const topPer = Math.max(0.01, ...board.map((b) => b.perMember));
   const [first, second] = board;
   const lead = first && second ? Math.round((first.points - second.points) * 10) / 10 : 0;
-  const bestPer = [...board].sort((a, b) => b.perMember - a.perMember)[0];
   const manager = !!c.org_id && isPresidencyOf(user.id, c.org_id);
 
   return (
@@ -54,28 +52,15 @@ export default async function ChallengePage({ params, searchParams }: { params: 
               <li key={b.team.id}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
                   <span className="font-semibold">{b.team.name}</span>
-                  <span>
-                    <strong>{pts(b.points)}</strong> <span className="text-muted">· {b.perMember} per member</span>
-                  </span>
+                  <strong>{pts(b.points)}</strong>
                 </div>
                 <div className="mt-1 h-3 overflow-hidden rounded-full bg-surface-2" aria-hidden>
                   <div className="h-full rounded-full bg-accent" style={{ width: `${(b.points / top) * 100}%` }} />
                 </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2" aria-hidden>
-                  <div className="h-full rounded-full bg-success" style={{ width: `${(b.perMember / topPer) * 100}%` }} />
-                </div>
               </li>
             ))}
           </ul>
-          {bestPer && bestPer.perMember > 0 && (
-            <p className="text-sm text-muted">
-              Per member (so team size doesn&apos;t matter): <strong className="text-text">{bestPer.team.name}</strong> leads with {pts(bestPer.perMember)} per member.
-            </p>
-          )}
-          <p className="hint">
-            <span className="mr-1 inline-block h-2 w-3 rounded-full bg-accent align-middle" /> Total points{" "}
-            <span className="mr-1 ml-2 inline-block h-2 w-3 rounded-full bg-success align-middle" /> Points per member. Team totals only: no one can see what anyone else logged.
-          </p>
+          <p className="hint">Team totals only: no one can see what anyone else logged.</p>
         </div>
       </Section>
 

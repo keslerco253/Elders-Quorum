@@ -2,7 +2,7 @@ import { db } from "./db";
 
 // Friendly challenges between organizations, e.g. temple and family history work.
 // Teams are one or more organizations. Members log what they did; everyone sees only
-// team totals (and points per member, so a bigger organization has no head start).
+// team totals.
 // Each entry is seen only by whoever logged it, and 30 days after a challenge ends
 // entries stop being tied to anyone.
 
@@ -97,28 +97,12 @@ export function createChallenge(
   })();
 }
 
-/** People who count toward a team: active members of its organizations (each once). */
-function teamMemberCount(team: ChallengeTeam): number {
-  if (!team.orgIds.length) return 0;
-  return (
-    db()
-      .prepare(
-        `SELECT COUNT(DISTINCT om.member_id) AS n FROM org_members om JOIN members m ON m.id = om.member_id
-         WHERE om.org_id IN (${team.orgIds.map(() => "?").join(",")}) AND m.status = 'active' AND (om.official = 1 OR om.role <> 'member')`,
-      )
-      .get(...team.orgIds) as { n: number }
-  ).n;
-}
-
 export interface TeamScore {
   team: ChallengeTeam;
   points: number;
-  members: number;
-  /** Points per member (0 for a team with no members). */
-  perMember: number;
 }
 
-/** Each team's total points and points per member, highest total first. Totals only: no names. */
+/** Each team's total points, highest first. Totals only: no names. */
 export function scoreboard(challengeId: number): TeamScore[] {
   const totals = new Map(
     (
@@ -129,9 +113,7 @@ export function scoreboard(challengeId: number): TeamScore[] {
   );
   return challengeTeams(challengeId)
     .map((team) => {
-      const points = Math.round((totals.get(team.id) ?? 0) * 10) / 10;
-      const members = teamMemberCount(team);
-      return { team, points, members, perMember: members ? Math.round((points / members) * 100) / 100 : 0 };
+      return { team, points: Math.round((totals.get(team.id) ?? 0) * 10) / 10 };
     })
     .sort((a, b) => b.points - a.points);
 }

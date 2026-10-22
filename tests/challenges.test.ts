@@ -27,7 +27,7 @@ describe("challenges between organizations", () => {
     expect(createChallenge(1, eq, 1, { ...base, items: [], teams: [{ name: "", orgIds: [eq] }, { name: "", orgIds: [rs] }] })).toEqual({ error: expect.stringMatching(/at least one thing/) });
   });
 
-  it("shows team totals and points per member; each entry only to whoever logged it", () => {
+  it("shows team totals only; each entry only to whoever logged it", () => {
     const res = createChallenge(1, eq, 1, {
       title: "Temple challenge",
       starts_on: "2026-10-20",
@@ -51,9 +51,9 @@ describe("challenges between organizations", () => {
     expect(logEntry(c, 2, sisters.id, hours.id, 1.5, "2026-10-22")).toBeNull();
     expect(logEntry(c, 3, sisters.id, ord.id, 1, "2026-10-22")).toBeNull();
     expect(logEntry(c, 3, sisters.id, ord.id, 1, "2026-12-01")).toBe("The challenge has ended.");
-    expect(scoreboard(c.id).map((b) => [b.team.name, b.points, b.members, b.perMember])).toEqual([
-      ["Elders Quorum + Young Men", 4, 1, 4],
-      ["Sisters", 4, 2, 2],
+    expect(scoreboard(c.id).map((b) => [b.team.name, b.points])).toEqual([
+      ["Elders Quorum + Young Men", 4],
+      ["Sisters", 4],
     ]);
     expect(myEntries(c.id, 2).map((e) => e.label)).toEqual(["Hours of indexing"]);
     expect(myEntries(c.id, 1).map((e) => e.label)).toEqual(["Ordinances"]);
