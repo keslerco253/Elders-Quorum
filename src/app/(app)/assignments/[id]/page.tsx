@@ -7,7 +7,9 @@ import { formatDate, formatDateTime, todayIn } from "@/lib/time";
 import { Linkify } from "@/components/linkify";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { addProgress } from "../actions";
+import { addProgress, answerAssignmentAsk, askToTakeAssignment, unableToDoAssignment, withdrawAssignmentAsk } from "../actions";
+import { canAnswer, pendingHandoff } from "@/lib/assignment-handoffs";
+import { orgPresidency, orgRoster } from "@/lib/orgs";
 import { deleteTodo } from "../../admin/todos/actions";
 
 export const metadata = { title: "Assignment" };
@@ -17,12 +19,19 @@ export default async function AssignmentPage({ params, searchParams }: { params:
   const sp = await searchParams;
   const t = getTodo(Number((await params).id));
   const leader = !!t && isPresidencyOf(user.id, t.org_id);
-  if (!t || (!leader && t.assignee_id !== user.id)) notFound();
+  // An unanswered "can you take this?" (to them, or to the whole presidency).
+  const ask = t ? pendingHandoff(t.id) : undefined;
+  const askedMe = !!ask && !!t && canAnswer(ask, t, user.id);
+  if (!t || (!leader && t.assignee_id !== user.id && !askedMe)) notFound();
   const tz = user.ward.timezone;
   const today = todayIn(tz);
   const mine = t.assignee_id === user.id;
   const notes = todoNotes(t.id, leader);
   const overdue = !t.done && !!t.due_date && t.due_date < today;
+  const presidencyIds = leader ? orgPresidency(t.org_id).map((p) => p.id) : [];
+  const people = leader ? orgRoster(t.org_id).filter((p) => p.id !== user.id && p.id !== t.assignee_id) : [];
+  const presidency = people.filter((p) => presidencyIds.includes(p.id));
+  const others = people.filter((p) => !presidencyIds.includes(p.id));
   const tone = t.done ? "success" : t.status === "progress" ? "info" : "neutral";
 
   return (
@@ -48,6 +57,7 @@ export default async function AssignmentPage({ params, searchParams }: { params:
         }
       />
       <Flash msg={sp.msg} tone="success" />
+      <Flash msg={sp.error} tone="danger" />
       <div className="card mb-5 space-y-2">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <Badge tone={tone}>{STATUS_LABELS[t.status]}</Badge>
@@ -72,6 +82,83 @@ export default async function AssignmentPage({ params, searchParams }: { params:
           </p>
         )}
       </div>
+
+      {ask && (askedMe || leader) && (
+        <div className="card mb-5 space-y-3 border-accent/40 bg-accent-soft">
+          <div className="text-sm">
+            <span className="font-semibold">
+              {askedMe ? "Can you take this assignment?" : `Waiting on ${ask.to_name ?? "the presidency"} to take it`}
+            </span>
+            <span className="block text-muted">
+              {ask.from_id === user.id ? "You" : (ask.from_name ?? "Someone")} asked {ask.to_id ? (ask.to_id === user.id ? "you" : ask.to_name) : "the presidency"}
+              {ask.to_id ? "" : " (whoever says yes first takes it)"}.
+              {ask.note && <> &ldquo;{ask.note}&rdquo;</>}
+            </span>
+          </div>
+          {askedMe && (
+            <form action={answerAssignmentAsk} className="flex flex-wrap gap-2">
+              <input type="hidden" name="handoff_id" value={ask.id} />
+              <SubmitButton name="answer" value="yes">
+                Yes, I&apos;ll take it
+              </SubmitButton>
+              <SubmitButton name="answer" value="no" className="btn-secondary">
+                I can&apos;t
+              </SubmitButton>
+            </form>
+          )}
+          {ask.from_id === user.id && (
+            <form action={withdrawAssignmentAsk}>
+              <input type="hidden" name="handoff_id" value={ask.id} />
+              <SubmitButton className="btn-secondary btn-sm">Withdraw the request</SubmitButton>
+            </form>
+          )}
+        </div>
+      )}
+
+      {leader && !t.done && !ask && (
+        <details className="card mb-5">
+          <summary className="cursor-pointer font-medium">Ask someone else to take it</summary>
+          <form action={askToTakeAssignment} className="mt-3 space-y-3">
+            <input type="hidden" name="item_id" value={t.id} />
+            <select name="to" className="input" defaultValue="presidency" aria-label="Who to ask">
+              <option value="presidency">The whole presidency (first to say yes takes it)</option>
+              <optgroup label="Presidency">
+                {presidency.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.display_name}
+                  </option>
+                ))}
+              </optgroup>
+              {others.length > 0 && (
+                <optgroup label="Members">
+                  {others.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.display_name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+            <textarea name="note" rows={2} maxLength={500} className="input" placeholder="A note (optional): why, or anything they should know" />
+            <SubmitButton>Send request</SubmitButton>
+            <p className="hint">They get a notification and can say yes or no. If they say yes, the assignment becomes theirs and the presidency is told.</p>
+          </form>
+        </details>
+      )}
+
+      {mine && !t.done && (
+        <details className="card mb-5">
+          <summary className="cursor-pointer font-medium">I&apos;m unable to do this assignment</summary>
+          <form action={unableToDoAssignment} className="mt-3 space-y-3">
+            <input type="hidden" name="item_id" value={t.id} />
+            <textarea name="note" rows={3} maxLength={1000} className="input" placeholder="A note for the presidency (optional): what's changed, or anything they should know" />
+            <SubmitButton className="btn-secondary" confirm="Let the presidency know you can't do this?" pendingText="Sending…">
+              I&apos;m unable to do this
+            </SubmitButton>
+            <p className="hint">The presidency is notified (with your note), and they&apos;ll find someone else. It comes off your list.</p>
+          </form>
+        </details>
+      )}
 
       <h2 className="h2 mb-2">Progress</h2>
       {notes.length === 0 ? (

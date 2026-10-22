@@ -30,6 +30,7 @@ import { conductingSchedule, swapsWaitingOn } from "@/lib/conducting";
 import { runningChallengesFor, scoreboard } from "@/lib/challenges";
 import { ledOrgIds } from "@/lib/conversations";
 import { homeLayout, type HomeSection } from "@/lib/home-layout";
+import { handoffsWaitingOn } from "@/lib/assignment-handoffs";
 
 export default async function HomePage() {
   const user = await requireUser();
@@ -73,6 +74,8 @@ export default async function HomePage() {
     .map((o) => ({ org: o, c: conductingSchedule(o.id, currentLessonDate(tz), 1)[0] }))
     .filter(({ c }) => c && (c.name || c.conference));
   const conductAsks = swapsWaitingOn(user.id, today);
+  // Someone asking them (or their whole presidency) to take an assignment.
+  const takeAsks = handoffsWaitingOn(user.id);
   // A challenge their organization is in: the scores, and a nudge to log.
   const challenges = runningChallengesFor(user.ward_id, user.id, today).map((c) => ({ c, board: scoreboard(c.id) }));
 
@@ -395,6 +398,20 @@ export default async function HomePage() {
           <span>
             <span className="block font-semibold">Can you conduct on {formatDate(a.date, "short")}?</span>
             {a.from_name ?? "Someone"} asked. Tap to answer.
+          </span>
+          <span>›</span>
+        </Link>
+      ))}
+
+      {takeAsks.map((a) => (
+        <Link
+          key={a.id}
+          href={withOrg(`/assignments/${a.todo_id}`, a.org_id)}
+          className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent"
+        >
+          <span>
+            <span className="block font-semibold">Can you take this assignment?</span>
+            {a.title} · {a.from_name ?? "Someone"} asked{a.whole ? " the presidency" : ""}. Tap to answer.
           </span>
           <span>›</span>
         </Link>

@@ -1385,4 +1385,28 @@ CREATE INDEX challenge_entries_member ON challenge_entries(member_id);
     id: 67,
     sql: `ALTER TABLE members ADD COLUMN home_layout TEXT;`,
   },
+  {
+    // Asking someone else (or the whole presidency, to_id null) to take an assignment.
+    id: 68,
+    sql: `
+CREATE TABLE todo_handoffs (
+  id INTEGER PRIMARY KEY,
+  todo_id INTEGER NOT NULL REFERENCES todos(id) ON DELETE CASCADE,
+  from_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  to_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+  note TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending',
+  taken_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  decided_at TEXT
+);
+CREATE INDEX todo_handoffs_todo ON todo_handoffs(todo_id, status);
+CREATE INDEX todo_handoffs_to ON todo_handoffs(to_id, status);
+CREATE TABLE todo_handoff_declines (
+  handoff_id INTEGER NOT NULL REFERENCES todo_handoffs(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  PRIMARY KEY (handoff_id, member_id)
+);
+`,
+  },
 ];

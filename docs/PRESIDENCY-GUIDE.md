@@ -613,6 +613,10 @@ Tap an assignment to see its **progress notes**:
 
 Each assignment has two **Reminders** you choose (from 2 weeks before to the morning it's due, or none). They start as the day before and the morning it's due, sent from 8 AM (or the hour you set under Admin → Settings → Reminder times). They reach the person however they chose under Contact & notifications: app notification, plus email and/or text.
 
+**Asking someone else to take it:** on an assignment's page, anyone in the presidency can tap **Ask someone else to take it** and choose one person (presidency or member) or **the whole presidency**, with an optional note. They get a notification and a "Can you take this assignment?" card at the top of Home, with **Yes, I'll take it** and **I can't**. When someone says yes, the assignment becomes theirs and the presidency (and whoever had it) is told. When the whole presidency is asked, the first to say yes takes it; if everyone says no, whoever asked is told. Whoever asked can **Withdraw the request** until it's answered.
+
+**"I'm unable to do this assignment":** the person assigned can tap this on the assignment's page, with an optional note. The presidency (and whoever gave it) is notified with the note; the assignment comes off their list and shows as Unassigned, with their note in its progress, so you can assign it again or ask someone to take it.
+
 **Deleting an assignment:** anyone in the presidency can tap **Delete** on the assignment's page, or ✕ next to it under Admin → Assignments or under "Assignments you've given" on My assignments. It's gone for everyone, with its progress notes and reminders. (To keep a record instead, mark it done.)
 
 ## My assignments (every member)
