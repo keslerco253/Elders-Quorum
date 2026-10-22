@@ -20,6 +20,7 @@ export default function PrivacyPage() {
           Presidency planning: the presidency&apos;s meeting notes and agenda, and assignments they give (with progress notes from them and the person assigned). Meeting
           notes and the agenda are seen only by the presidency; you see assignments given to you and their notes, except notes the presidency keeps to itself.
         </li>
+        <li>Your own to-dos under My assignments: only you can see them.</li>
         <li>If you turn on notifications, a technical address for your device so it can receive them.</li>
         <li>
           If you sign up for a service project from a shared link without an account: your name, the mobile number or email you give, and an optional note. Only the organizers see them. We
@@ -59,6 +60,7 @@ export default function PrivacyPage() {
           Presidency meeting notes, agenda items and finished assignments: reviewed 3 months after the meeting (or after the assignment is done), and every 3 months after
           that, and deleted once they&apos;re no longer needed.
         </li>
+        <li>Your own to-dos: deleted 6 months after you mark them done, or any time you delete them.</li>
         <li>Your account: deleted if you don&apos;t sign in for 12 months, or any time you choose.</li>
       </ul>
       <h3>Your choices</h3>

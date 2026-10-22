@@ -45,7 +45,9 @@ describe("presidency planning and My assignments", () => {
 
   it("collects agenda items until a meeting where they're discussed is finished", () => {
     const a = addAgendaItem(1, "The Jones family: Brother Jones lost his job", { source: "Message from Pres to the presidency", addedBy: 1 });
-    addAgendaItem(1, "Ward social", { addedBy: 1 });
+    const social = addAgendaItem(1, "Ward social", { addedBy: 1 });
+    // Added on Oct 21 (the test shouldn't depend on today's date).
+    db().prepare("UPDATE agenda_items SET created_at = '2026-10-21 12:00:00' WHERE id = ?").run(social);
     const m = createMeeting(1, "2026-10-21", "", 1);
     db().prepare("UPDATE agenda_items SET discussed = 1 WHERE id = ?").run(a);
     finishMeeting(1, m, "2026-10-21");

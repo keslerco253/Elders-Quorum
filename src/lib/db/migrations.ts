@@ -1311,4 +1311,25 @@ ALTER TABLE todos ADD COLUMN reminder1_days INTEGER DEFAULT 1;
 ALTER TABLE todos ADD COLUMN reminder2_days INTEGER DEFAULT 0;
 `,
   },
+  {
+    // Members' own private to-dos (only they see them), with reminders by app
+    // notification and/or email (and text, for presidency members).
+    id: 65,
+    sql: `
+CREATE TABLE personal_todos (
+  id INTEGER PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  due_date TEXT,
+  reminder1_days INTEGER DEFAULT 1,
+  reminder2_days INTEGER DEFAULT 0,
+  channels TEXT NOT NULL DEFAULT 'push',
+  done INTEGER NOT NULL DEFAULT 0,
+  done_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX personal_todos_member ON personal_todos(member_id, done);
+`,
+  },
 ];

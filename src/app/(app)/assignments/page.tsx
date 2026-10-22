@@ -10,7 +10,7 @@ import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 
 export const metadata = { title: "My assignments" };
 
-const KIND_WORDS = { todo: "Assignment", teach: "Teaching", serve: "Service" } as const;
+const KIND_WORDS = { todo: "Assignment", mine: "My to-do", teach: "Teaching", serve: "Service" } as const;
 
 /** Everything on a member's plate: assignments from a presidency, lessons they teach, service they signed up for. */
 export default async function MyAssignmentsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -60,11 +60,16 @@ export default async function MyAssignmentsPage({ searchParams }: { searchParams
         back={{ href: "/more", label: "More" }}
         subtitle="What you've been asked to do, the lessons you're teaching, and the service you signed up for."
         actions={
-          assignOrg && (
-            <Link href={withOrg("/assignments/new", assignOrg)} className="btn-primary">
-              + New assignment
+          <div className="flex flex-wrap gap-2">
+            <Link href="/assignments/mine/new" className={assignOrg ? "btn-secondary" : "btn-primary"}>
+              + My to-do
             </Link>
-          )
+            {assignOrg && (
+              <Link href={withOrg("/assignments/new", assignOrg)} className="btn-primary">
+                + New assignment
+              </Link>
+            )}
+          </div>
         }
       />
       <Flash msg={sp.msg} />
@@ -104,7 +109,7 @@ export default async function MyAssignmentsPage({ searchParams }: { searchParams
           <div className="mt-6">
             <Section title="How this list works">
               <p className="text-sm text-muted">
-                📋 Assignments come from your presidency: tap one to add a progress note or mark it done. 📖 Lessons you&apos;re teaching show until Sunday; confirm them on the lesson.
+                📋 Assignments come from your presidency: tap one to add a progress note or mark it done. 📝 Your own to-dos are private: only you see them. 📖 Lessons you&apos;re teaching show until Sunday; confirm them on the lesson.
                 🛠️ Service you signed up for shows until its date.
               </p>
             </Section>

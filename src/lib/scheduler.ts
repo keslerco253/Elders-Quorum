@@ -12,7 +12,7 @@ import type { PushPayload } from "./push";
 import type { EventRow } from "./types";
 import { eventAudience } from "./events";
 import { daysBetween, dueForDate, dueForStart, ownSettings, type ReminderChannel } from "./reminder-prefs";
-import { hasFeature } from "./orgs";
+import { hasFeature, homeOf } from "./orgs";
 import { runRetention } from "./retention";
 import { extendAllSeries } from "./event-series";
 import { upcomingVisits, visitorIds, whenText } from "./planned-visits";
@@ -25,6 +25,7 @@ import { joinNames } from "./invite-text";
 import { withOrg } from "./org-cookie";
 import { recordsToReview } from "./meetings";
 import { fillRegularTeachers } from "./regular-teachers";
+import { todoChannels } from "./personal-todos";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
 interface OrgCtx {
@@ -388,6 +389,43 @@ function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 }
 
 /**
+ * Members' own to-dos: their reminders (days before it's due; 0 = the morning it's due),
+ * from 8 AM in their ward's time zone, only the ways they chose (texts only for
+ * presidency members).
+ */
+function personalTodoReminders(now: DateTime): DueNotification[] {
+  const rows = db()
+    .prepare(
+      `SELECT t.id, t.member_id, t.title, t.due_date, t.reminder1_days AS r1, t.reminder2_days AS r2, t.channels,
+         (SELECT w.timezone FROM ward_members wm JOIN wards w ON w.id = wm.ward_id WHERE wm.member_id = t.member_id ORDER BY w.id LIMIT 1) AS tz
+       FROM personal_todos t JOIN members m ON m.id = t.member_id
+       WHERE t.done = 0 AND t.due_date IS NOT NULL AND t.due_date >= date('now', '-1 day') AND t.due_date <= date('now', '+31 days') AND m.status = 'active'`,
+    )
+    .all() as { id: number; member_id: number; title: string; due_date: string; r1: number | null; r2: number | null; channels: string; tz: string | null }[];
+  const out: DueNotification[] = [];
+  for (const t of rows) {
+    const local = now.setZone(t.tz ?? "America/Boise");
+    if (local.hour < 8 || local.hour >= 20) continue;
+    const away = daysBetween(local.toISODate()!, t.due_date);
+    if (away < 0 || (away !== t.r1 && away !== t.r2)) continue;
+    const home = homeOf(t.member_id);
+    const who = home.orgId ? recipientById(t.member_id, home.orgId) : undefined;
+    if (!who) continue;
+    out.push({
+      key: `ptodo:${t.id}:${t.due_date}:${away}`,
+      recipients: [who],
+      payload: {
+        title: away === 0 ? "Your to-do is due today" : away === 1 ? "Your to-do is due tomorrow" : `Your to-do is due in ${away} days`,
+        body: `${t.title} (due ${formatDate(t.due_date, "short")})`,
+        url: `/assignments/mine/${t.id}`,
+      },
+      only: todoChannels(t.member_id, t.channels),
+    });
+  }
+  return out;
+}
+
+/**
  * Paid texting: two weeks before a ward's paid-through date the site owner is
  * reminded; the day after, its texting turns off and they're told.
  */
@@ -429,6 +467,7 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   for (const o of orgs) if (hasFeature(o, "lessons")) fillRegularTeachers(o.id, now.setZone(o.timezone).toISODate()!);
   return [
     ...textingPaidNotices(now),
+    ...personalTodoReminders(now),
     ...orgs.flatMap((o) => [
     ...(hasFeature(o, "lessons") ? lessonReminders(o, now) : []),
     ...(hasFeature(o, "lessons") ? myLessonReminders(o, now) : []),

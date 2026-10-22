@@ -3,6 +3,7 @@ import { db } from "./db";
 import { withOrg } from "./org-cookie";
 import { hasFeature, myOrgs } from "./orgs";
 import { formatDate } from "./time";
+import { personalTodos } from "./personal-todos";
 
 // Presidency assignments (the todos table), and a member's "My assignments": what the
 // presidency asked them to do, the lessons they're teaching and the service they signed up for.
@@ -98,7 +99,7 @@ export function todoNotes(todoId: number, includePrivate: boolean): TodoNote[] {
     .all(todoId) as TodoNote[];
 }
 
-export type MyItemKind = "todo" | "teach" | "serve";
+export type MyItemKind = "todo" | "mine" | "teach" | "serve";
 
 /** One line in My assignments. */
 export interface MyItem {
@@ -150,6 +151,25 @@ export function myAssignments(memberId: number, today: string, opts: { past?: bo
       flag: overdue ? { tone: "danger", text: "Overdue" } : t.due_date === today ? { tone: "warn", text: "Due today" } : t.status === "progress" ? { tone: "info", text: "In progress" } : undefined,
       done: !!t.done,
     });
+  }
+
+  // Their own private to-dos (never in a presidency's view of someone, opts.orgId).
+  if (!one) {
+    for (const t of personalTodos(memberId, past)) {
+      const overdue = !t.done && !!t.due_date && t.due_date < today;
+      items.push({
+        kind: "mine",
+        key: `mine:${t.id}`,
+        title: t.title,
+        date: t.due_date,
+        orgId: 0,
+        orgLabel: "",
+        href: `/assignments/mine/${t.id}`,
+        detail: t.done ? `Done ${t.done_at ? formatDate(t.done_at.slice(0, 10), "short") : ""}` : t.due_date ? `Due ${formatDate(t.due_date, "short")}` : "No due date",
+        flag: overdue ? { tone: "danger", text: "Overdue" } : t.due_date === today && !t.done ? { tone: "warn", text: "Due today" } : undefined,
+        done: !!t.done,
+      });
+    }
   }
 
   const lessonOrgs = new Set(orgs.filter((o) => hasFeature(o, "lessons") && inOrgs(o)).map((o) => o.id));
@@ -207,7 +227,7 @@ export function myAssignments(memberId: number, today: string, opts: { past?: bo
 /** For the home page: anything overdue, needing an answer, or in the next two weeks. */
 export function soonAssignments(memberId: number, today: string): MyItem[] {
   const until = DateTime.fromISO(today).plus({ days: 14 }).toISODate()!;
-  return myAssignments(memberId, today).filter((i) => i.flag?.tone === "danger" || i.flag?.text === "Please confirm" || (i.date !== null && i.date <= until) || (i.kind === "todo" && !i.date));
+  return myAssignments(memberId, today).filter((i) => i.flag?.tone === "danger" || i.flag?.text === "Please confirm" || (i.date !== null && i.date <= until) || ((i.kind === "todo" || i.kind === "mine") && !i.date));
 }
 
-export const KIND_ICONS: Record<MyItemKind, string> = { todo: "📋", teach: "📖", serve: "🛠️" };
+export const KIND_ICONS: Record<MyItemKind, string> = { todo: "📋", mine: "📝", teach: "📖", serve: "🛠️" };

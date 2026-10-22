@@ -45,6 +45,8 @@ export function runRetention() {
     run("member_messages", `DELETE FROM member_messages WHERE created_at < datetime('now', '-6 months')`);
     // The Reminders & alerts list (and messages' log entries) after 30 days.
     run("notification_log", `DELETE FROM notification_log WHERE created_at < datetime('now', '-30 days')`);
+    // Members' own to-dos: 6 months after they're done.
+    run("personal_todos", `DELETE FROM personal_todos WHERE done = 1 AND done_at < datetime('now', '-6 months')`);
     // Message history after a year.
     run("messages", `DELETE FROM messages WHERE created_at < datetime('now', '-365 days')`);
   })();

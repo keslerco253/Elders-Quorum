@@ -619,6 +619,12 @@ Presidency members can also give an assignment from **More → My assignments �
 **Assignments you've given** lists the open ones you gave others, with who has
 each and when it's due.
 
+**My own to-dos:** anyone can tap **+ My to-do** on My assignments to add a
+private to-do (title, details, due date and two reminders). Only they can see it;
+the presidency can't. Reminders come by app notification and/or email, whichever
+they tick. Presidency members can also choose a text. Tap it to edit, mark it
+done or delete it. Done to-dos are deleted after 6 months.
+
 **More → My assignments** brings together, for every organization a member is in:
 - 📋 assignments from a presidency, with Overdue and Due today tags;
 - 📖 lessons they're teaching, with *Please confirm* until they confirm;
