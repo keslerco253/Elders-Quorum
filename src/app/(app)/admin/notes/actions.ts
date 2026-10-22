@@ -35,7 +35,7 @@ export async function reviewNotes(fd: FormData) {
       title: "About your lesson notes",
       body: `Your notes for ${formatDate(lesson.date, "short")} weren't shared yet.${reason ? ` ${reason}` : ""} You can edit them on the lesson page.`,
       url: `/lessons/${lesson.id}#notes`,
-    });
+    }, { followUp: { what: `Lesson notes sent back for ${formatDate(lesson.date, "short")}`, url: `/admin/lessons/${lesson.id}` } });
   }
   revalidatePath("/admin/notes");
   go("Sent back to the teacher.");

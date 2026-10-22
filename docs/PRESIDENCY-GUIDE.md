@@ -66,7 +66,7 @@ badge goes straight there. Unread messages aren't in this number; they show on
 
 The Admin page has these sections:
 
-- **Waiting on you**, only when something is: Visit requests, Visit invitations
+- **Waiting on you**, only when something is: **Couldn't reach** (see **Did they get it?**), Visit requests, Visit invitations
   (a member asked for another time), Teacher notes to approve, Comments to
   approve, Access requests (old requests to join without a code; bishopric
   only), Event requests, Teaching volunteers, Teacher needed, Assignments not
@@ -395,6 +395,19 @@ text, or nothing.
   email and text (between 9 AM and 8 PM).
 - **Admin → Members** marks anyone the app **can't reach** and anyone who
   **turned off** your organization's notifications.
+
+**Couldn't reach (Waiting on you).** When something sent directly to a person
+reaches them by no means at all, it goes on **Admin → Couldn't reach**, which the
+whole presidency sees and which counts in **Waiting on you**. That covers
+assignment requests, "Can you take this assignment?", "Will you teach?", being
+assigned to teach or made a regular teacher, notes sent back, "Can you conduct?",
+visit invitations, replies to visit or event requests, and personal or private
+messages. A message to a group adds one item listing everyone it missed. Each item
+shows who, what it was about, why they couldn't be reached, and buttons to **Call**,
+**Text from my phone** or **Email** them if there's a number or address. Once
+someone has told them, tap **I told them**: it moves to **Recently handled** with
+your name, so the rest of the presidency knows. Sending the same thing again
+doesn't add a second item. Handled items are cleared after 30 days.
 
 A notification that arrives on a phone with notifications muted can't be
 detected, so "not opened yet" is the thing to watch, and for assignments,

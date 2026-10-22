@@ -138,7 +138,7 @@ export async function assignTeacher(fd: FormData) {
       title: `You're teaching in ${user.orgLabel}`,
       body: `Thank you for teaching on ${formatDate(lesson.date)}${lesson.title ? `: "${lesson.title}"` : ""}${lesson.speaker ? ` by ${lesson.speaker}` : ""}. You can post notes for everyone to read beforehand on the lesson page.`,
       url: `/lessons/${lesson.id}`,
-    });
+    }, { followUp: { what: `Assigned to teach on ${formatDate(lesson.date, "short")}`, url: `/admin/lessons/${lesson.id}` } });
   }
   refresh();
   go(`/admin/lessons/${lesson.id}`, teacher ? `${teacher.display_name} is assigned and has been notified.` : "Teacher removed.");
@@ -183,7 +183,7 @@ export async function saveRegular(fd: FormData) {
       title: `You're a regular teacher in ${user.orgLabel}`,
       body: `Thank you! You're teaching on the ${weeksText(t.all)} of each month. Your lessons show under My assignments, and you'll get a reminder the week before each one.`,
       url: "/assignments",
-    });
+    }, { followUp: { what: `Made a regular teacher (${weeksText(t.all)} of each month)`, url: "/admin/lessons" } });
   }
   for (const t of removed) {
     const who = recipientById(t.id, user.org_id);

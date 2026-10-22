@@ -1438,4 +1438,24 @@ ALTER TABLE todos ADD COLUMN flyer_name TEXT;
     id: 71,
     sql: `ALTER TABLE notification_log ADD COLUMN delivered TEXT;`,
   },
+  {
+    // Things a leader sent someone that reached them by no means at all (they turned
+    // everything off), for the presidency to tell them another way. member_id is null
+    // for an announcement's list of people it missed.
+    id: 72,
+    sql: `
+CREATE TABLE unreached (
+  id INTEGER PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+  what TEXT NOT NULL,
+  detail TEXT NOT NULL DEFAULT '',
+  url TEXT NOT NULL DEFAULT '/',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  done_at TEXT,
+  done_by INTEGER REFERENCES members(id) ON DELETE SET NULL
+);
+CREATE INDEX unreached_org ON unreached(org_id, done_at);
+`,
+  },
 ];

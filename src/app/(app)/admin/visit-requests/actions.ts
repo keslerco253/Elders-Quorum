@@ -34,7 +34,7 @@ export async function replyToVisitRequest(fd: FormData) {
   // Unread until they open Messages, so the red dot on More points them to it.
   db().prepare("INSERT INTO member_messages (org_id, member_id, direction, author_id, body) VALUES (?, ?, 'out', ?, ?)").run(user.org_id, r.member_id, user.id, `About your visit request: ${reply}`);
   const member = recipientById(r.member_id, user.org_id);
-  if (member) await notify([member], { title: "Your visit request", body: `${user.display_name}: ${reply}`, url: "/more/visit" });
+  if (member) await notify([member], { title: "Your visit request", body: `${user.display_name}: ${reply}`, url: "/more/visit" }, { followUp: { what: "Reply to their visit request", url: "/admin/visit-requests" } });
   go("Reply sent.");
 }
 

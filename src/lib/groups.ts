@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { audienceLabel, audienceMembers, notify, type Audience } from "./notify";
+import { audienceLabel, audienceMembers, noteUnreached, notify, type Audience } from "./notify";
 import type { CurrentUser, Org, Role } from "./types";
 import { leadersWord } from "./types";
 import { orgTakesMessages } from "./message-routing";
@@ -100,6 +100,16 @@ export async function sendToAudience(opts: {
     ...(opts.personal ? { personal: opts.personal } : {}),
   });
   d.prepare("UPDATE messages SET push_count = ?, email_count = ?, text_count = ? WHERE id = ?").run(result.push, result.email, result.text, messageId);
+  // Anyone it reached by no means goes on the presidency's "Couldn't reach" list, as one item.
+  const missed = (
+    d
+      .prepare(
+        `SELECT m.display_name AS name FROM notification_log n JOIN members m ON m.id = n.member_id
+         WHERE n.delivered = '' AND (n.url = ? OR n.url LIKE ? || '?%') ORDER BY m.display_name COLLATE NOCASE`,
+      )
+      .all(`/messages/a/${messageId}`, `/messages/a/${messageId}`) as { name: string }[]
+  ).map((r) => r.name);
+  if (missed.length) noteUnreached(opts.orgId, null, `Message: ${opts.title}`, "/messages?tab=sent", missed.join(", "));
   return { ...result, count: recipients.length, messageId };
 }
 

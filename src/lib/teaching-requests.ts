@@ -2,6 +2,7 @@ import { db } from "./db";
 import { audienceMembers, notify, recipientById } from "./notify";
 import { signToken, validToken } from "./signed-links";
 import { formatDate } from "./time";
+import { withOrg } from "./org-cookie";
 import { inOrgWard } from "./orgs";
 import { getOrg } from "./orgs";
 
@@ -79,7 +80,7 @@ export async function askToTeach(asker: { id: number; org_id: number; display_na
       { action: "accept", title: "Yes, I'll teach", url: askPath(r, "accept") },
       { action: "decline", title: "I can't", url: askPath(r, "decline") },
     ],
-  });
+  }, { followUp: { what: `Asked to teach on ${formatDate(r.lesson_date, "short")}`, url: withOrg(`/admin/lessons/${r.lesson_id}`, asker.org_id) } });
   return null;
 }
 

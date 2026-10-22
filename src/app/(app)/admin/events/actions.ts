@@ -261,7 +261,7 @@ export async function decideEventRequest(fd: FormData) {
     title: approve ? "Your event was approved" : "About your event request",
     body: approve ? `"${r.title}" (${when}) is on the ward calendar.${note ? `\n\n${note}` : ""}` : `"${r.title}" (${when}) wasn't added to the calendar.${note ? `\n\n${note}` : ""}`,
     url: eventId ? `/calendar/${eventId}` : "/calendar",
-  });
+  }, { followUp: { what: `Their event request was ${approve ? "approved" : "declined"}: ${r.title}` } });
   revalidatePath("/admin/event-requests");
   revalidatePath("/calendar", "layout");
   go(approve ? `/admin/events/${eventId}` : "/admin/event-requests", approve ? "Approved and added to the calendar. Adjust anything below if needed." : "Request declined.");

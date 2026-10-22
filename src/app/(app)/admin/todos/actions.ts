@@ -99,10 +99,10 @@ export async function saveTodo(fd: FormData) {
       body: `${title}${due ? ` (due ${dueText(due, dueTime)})` : ""}. From ${user.display_name}. Tap to accept or let them know you can't.`,
       url: withOrg(`/assignments/${todoId}`, user.org_id),
       ...(flyerFile ? { attachment: { file: flyerFile, name: flyerName ?? "Attachment" } } : {}),
-    })).reached > 0;
+    }, { followUp: { what: `Assignment request: ${title}` } })).reached > 0;
   }
   revalidatePath("/", "layout");
-  if (asking && !reached) go(back, `Saved, but ${assignee!.display_name} couldn't be reached (${unreachableWhy(assignee!.id)}). Please tell them in person or by phone.`);
+  if (asking && !reached) go(back, `Saved, but ${assignee!.display_name} couldn't be reached (${unreachableWhy(assignee!.id)}). Please tell them in person or by phone. It's on the presidency's Couldn't reach list until someone does.`);
   go(back, asking ? `Sent to ${assignee!.display_name} to accept. It shows as not accepted until they say yes.` : id ? "Assignment updated." : "Assignment added.");
 }
 

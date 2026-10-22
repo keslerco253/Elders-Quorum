@@ -121,7 +121,8 @@ app's number. Reply **HELP** for help.
 Contact & notifications), that they're allowed in your phone's settings, and that
 you haven't unticked the organization's notifications under My organizations. If
 notifications can't reach you, choose an email or text backup so you don't miss
-anything.
+anything. If nothing at all can reach you, your leaders are told, and may call or
+see you in person instead.
 
 ## Home
 

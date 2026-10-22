@@ -81,6 +81,13 @@ export default async function AdminPage() {
     : 0;
   const waiting: Tile[] = [
     {
+      href: "/admin/unreached",
+      label: "Couldn't reach",
+      desc: "Their notifications are off: tell them another way",
+      count: c.unreached,
+      show: p,
+    },
+    {
       href: "/admin/visit-requests",
       label: "Visit requests",
       desc: "Members asking for a visit",

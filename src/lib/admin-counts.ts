@@ -2,6 +2,7 @@ import { db } from "./db";
 import type { CurrentUser } from "./types";
 import { isAdmin, isPresidency } from "./permissions";
 import { hasFeature } from "./orgs";
+import { unreachedCount } from "./unreached";
 import { unreadReplies } from "./conversations";
 import { handlesBackup, messagesNeedingHome } from "./message-routing";
 
@@ -42,7 +43,7 @@ export function adminCounts(user: CurrentUser) {
   const w = user.org_id;
   const one = (sql: string) => (d.prepare(sql).get(w) as { n: number }).n;
   if (!isAdmin(user))
-    return { comments: 0, notes: 0, eventRequests: 0, access: 0, volunteers: 0, visitRequests: 0, replies: 0, teacherNeeded: 0, newTimes: 0, unassigned: 0, notAccepted: 0, total: 0, volunteersHref: "/admin/lessons", teacherNeededHref: "/admin/lessons", shortcut: "/admin" };
+    return { comments: 0, notes: 0, eventRequests: 0, access: 0, volunteers: 0, visitRequests: 0, replies: 0, teacherNeeded: 0, newTimes: 0, unassigned: 0, notAccepted: 0, unreached: 0, total: 0, volunteersHref: "/admin/lessons", teacherNeededHref: "/admin/lessons", shortcut: "/admin" };
   const comments = one("SELECT COUNT(*) AS n FROM comments c JOIN lessons l ON l.id = c.lesson_id WHERE l.org_id = ? AND c.status = 'pending'");
   const notes = one("SELECT COUNT(*) AS n FROM lesson_notes n JOIN lessons l ON l.id = n.lesson_id WHERE l.org_id = ? AND n.status = 'pending'");
   const eventRequests = one("SELECT COUNT(*) AS n FROM event_requests WHERE org_id = ? AND status = 'pending'");
@@ -61,6 +62,8 @@ export function adminCounts(user: CurrentUser) {
   const newTimes = isPresidency(user) ? one("SELECT COUNT(*) AS n FROM planned_visits WHERE org_id = ? AND invite_status = 'new_time'") : 0;
   // Open assignments no one has (never given to anyone, or the person was unable to do it).
   const unassigned = isPresidency(user) && hasFeature(user.org, "todos") ? one("SELECT COUNT(*) AS n FROM todos WHERE org_id = ? AND done = 0 AND assignee_id IS NULL") : 0;
+  // Things sent to someone that reached them by no means: tell them another way.
+  const unreached = isPresidency(user) ? unreachedCount(w) : 0;
   // Assignment requests the person hasn't accepted yet.
   const notAccepted = isPresidency(user) && hasFeature(user.org, "todos") ? one("SELECT COUNT(*) AS n FROM todos WHERE org_id = ? AND done = 0 AND assignee_id IS NOT NULL AND accept_status = 'pending'") : 0;
   const volunteersHref = lessonsNeedHref(volunteerList);
@@ -76,6 +79,7 @@ export function adminCounts(user: CurrentUser) {
     [newTimes, "/admin/visits"],
     [unassigned, "/admin/todos?show=unassigned"],
     [notAccepted, "/admin/todos?show=pending"],
+    [unreached, "/admin/unreached"],
   ].filter(([n]) => Number(n) > 0) as [number, string][];
   return {
     volunteersHref,
@@ -92,8 +96,9 @@ export function adminCounts(user: CurrentUser) {
     teacherNeeded,
     unassigned,
     notAccepted,
+    unreached,
     // Unread messages from members count on the Messages tab, not here.
-    total: comments + notes + eventRequests + access + volunteers + visitRequests + teacherNeeded + newTimes + unassigned + notAccepted,
+    total: comments + notes + eventRequests + access + volunteers + visitRequests + teacherNeeded + newTimes + unassigned + notAccepted + unreached,
   };
 }
 

@@ -27,7 +27,7 @@ export async function askConduct(fd: FormData) {
       body: `${user.display_name} asked if you can conduct ${user.orgLabel} on ${formatDate(date)}.${note.trim() ? ` "${note.trim().slice(0, 200)}"` : ""} Tap to answer.`,
       url: withOrg(`/conducting#ask-${res.id}`, user.org_id),
       linkLabel: "Answer",
-    });
+    }, { followUp: { what: `Asked to conduct on ${formatDate(date, "short")}` } });
   }
   revalidatePath("/", "layout");
   go(`Asked ${to?.display_name ?? "them"}. You'll be notified when they answer.`);

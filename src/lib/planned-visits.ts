@@ -147,7 +147,7 @@ export async function sendInvitation(plan: PlannedVisit, message: string, author
       linkLabel: "Reply to the invitation",
       textLink: "Reply here",
       asMember: true,
-    });
+    }, { followUp: { what: `Visit invitation for ${whenText(plan.date, plan.time)}`, url: "/admin/visits" } });
   }
 }
 

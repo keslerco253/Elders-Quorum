@@ -72,3 +72,30 @@ describe("events that run for months", () => {
     expect(ongoingText(e, "America/Boise", DateTime.fromISO("2027-04-01T12:00:00Z"))).toBe("Now through Jun 30");
   });
 });
+
+describe("the presidency's Couldn't reach list", () => {
+  it("lists direct sends that reached no one, once, and announcements as one item", async () => {
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'Pres', 'p@x.com', 'presidency'), (2, 1, 'H', 'Hojo Johnson', 'h@x.com', 'member'), (3, 1, 'N', 'Nora', NULL, 'member');
+      UPDATE members SET welcomed_at = datetime('now');
+      UPDATE members SET contact_pref = 'none' WHERE id = 2;
+    `);
+    const { unreachedItems, unreachedCount, markUnreachedDone } = await import("@/lib/unreached");
+    const ask = () => notify([recipientById(2, 1)!], { title: "Would you accept?", body: "x", url: "/assignments/9?org=1" }, { followUp: { what: "Assignment request: Bring bread" } });
+    await ask();
+    await ask(); // again: still one item
+    await notify([recipientById(1, 1)!], { title: "Hi", body: "x", url: "/x" }, { followUp: { what: "Reaches email" } });
+    expect(unreachedItems(1).map((u) => [u.name, u.what, u.why])).toEqual([["Hojo Johnson", "Assignment request: Bring bread", "they turned off email and text backups, and don't have app notifications on"]]);
+    await sendToAudience({ orgId: 1, senderId: 1, audience: "everyone", title: "Open house", body: "Tickets", tz: "America/Boise" });
+    const all = unreachedItems(1);
+    expect(all[0]).toMatchObject({ member_id: null, what: "Message: Open house", detail: "Hojo Johnson, Nora" });
+    expect(unreachedCount(1)).toBe(2);
+    const { createSession, userForSession } = await import("@/lib/auth-core");
+    const { adminCounts } = await import("@/lib/admin-counts");
+    expect(adminCounts(userForSession(createSession(1, "month").id)!).unreached).toBe(2);
+    expect(markUnreachedDone(1, all[0].id, 1)).toBe(true);
+    expect(unreachedCount(1)).toBe(1);
+    expect(unreachedItems(1, true)[0].done_by_name).toBe("Pres");
+  });
+});

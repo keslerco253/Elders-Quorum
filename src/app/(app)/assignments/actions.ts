@@ -79,7 +79,7 @@ export async function askToTakeAssignment(fd: FormData) {
     title: "Can you take this assignment?",
     body: `${user.display_name} asked${toId === null ? " the presidency" : ""}: ${t.title}${note.trim() ? ` (“${note.trim().slice(0, 200)}”)` : ""}`.slice(0, 300),
     url: withOrg(`/assignments/${t.id}`, t.org_id),
-  });
+  }, { followUp: { what: `Asked to take an assignment: ${t.title}` } });
   revalidatePath("/", "layout");
   back(t, toId === null ? "Asked the presidency. Whoever says yes first takes it." : "Asked. You'll be notified when they answer.");
 }

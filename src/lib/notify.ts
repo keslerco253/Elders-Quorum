@@ -96,7 +96,16 @@ function smsBody(wardName: string, payload: PushPayload, url: string) {
  * them, their backup choice (contact_pref) is used. Texts only go to members
  * who agreed to them themselves.
  */
-export async function notify(recipients: Recipient[], payload: PushPayload, opts: { fallback?: boolean; only?: ("push" | "text" | "email")[] } = {}) {
+export async function notify(
+  recipients: Recipient[],
+  payload: PushPayload,
+  opts: {
+    fallback?: boolean;
+    only?: ("push" | "text" | "email")[];
+    /** Something sent to this person directly (a request, a personal message): if nothing reaches them, the presidency is asked to tell them another way. */
+    followUp?: { what: string; url?: string };
+  } = {},
+) {
   const fallback = opts.fallback ?? true;
   let push = 0;
   let email = 0;
@@ -156,6 +165,7 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
     const record = () => {
       const ways = [push > before.push && "push", email > before.email && "email", text > before.text && "text"].filter(Boolean).join(",");
       d().prepare("UPDATE notification_log SET delivered = ? WHERE id = ?").run(ways, logId);
+      if (!ways && opts.followUp) noteUnreached(r.org_id, r.id, opts.followUp.what, opts.followUp.url ?? payload.url ?? "/");
     };
     const url = appUrl() + p.url;
     const canText = !!r.sms_consent_at && !!r.phone && canSendNotice(r.org_id);
@@ -230,4 +240,17 @@ function attachmentName(name: string, file: string) {
   const ext = file.slice(file.lastIndexOf("."));
   const base = name.replace(/[^\w .()-]/g, "").trim() || "Flyer";
   return base.toLowerCase().endsWith(ext.toLowerCase()) ? base : `${base}${ext}`;
+}
+
+/**
+ * Adds to the presidency's "Couldn't reach" list (Waiting on you): something sent to
+ * a person that reached them by no means. The same thing again just moves to the top.
+ */
+export function noteUnreached(orgId: number, memberId: number | null, what: string, url: string, detail = "") {
+  const d = db();
+  const open = memberId
+    ? (d.prepare("SELECT id FROM unreached WHERE org_id = ? AND member_id = ? AND url = ? AND done_at IS NULL").get(orgId, memberId, url) as { id: number } | undefined)
+    : undefined;
+  if (open) d.prepare("UPDATE unreached SET what = ?, detail = ?, created_at = datetime('now') WHERE id = ?").run(what.slice(0, 200), detail.slice(0, 1000), open.id);
+  else d.prepare("INSERT INTO unreached (org_id, member_id, what, detail, url) VALUES (?, ?, ?, ?, ?)").run(orgId, memberId, what.slice(0, 200), detail.slice(0, 1000), url);
 }

@@ -178,6 +178,7 @@ export async function sendAnswer(author: { id: number; org_id: number; display_n
         { title: `Private message from ${author.display_name}`, body: "Open the app to read it.", url, linkLabel: "Read it", tag: `answers-${author.org_id}`, asMember: true, message: true }
       : // A personal note: the notification shows who it's from; texts and emails are just the words, signed.
         { title: author.display_name, body: text, url, personal: { from: author.display_name }, tag: `answers-${author.org_id}`, asMember: true, message: true },
+    { followUp: { what: `${privately ? "Private message" : "Message"} from ${author.display_name}`, url: `/admin/replies/${memberId}${privately ? "?private=1" : ""}` } },
   );
   return true;
 }
