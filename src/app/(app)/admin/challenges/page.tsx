@@ -18,7 +18,7 @@ export default async function AdminChallengesPage({ searchParams }: { searchPara
       <PageHeader
         title="Challenges"
         back={{ href: "/admin", label: "Admin" }}
-        subtitle="Friendly competitions between organizations, like temple and family history work. Members see them under Plans and on Home, and log what they do there."
+        subtitle="Friendly competitions between organizations, like temple and family history work. Members see them under More → Challenges and on Home, and log what they do there."
         actions={
           <Link href="/admin/challenges/new" className="btn-primary">
             + New challenge
@@ -35,7 +35,7 @@ export default async function AdminChallengesPage({ searchParams }: { searchPara
             const board = scoreboard(c.id);
             return (
               <li key={c.id}>
-                <Link href={`/plans/challenges/${c.id}`} className="card block hover:bg-surface-2">
+                <Link href={`/challenges/${c.id}`} className="card block hover:bg-surface-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-semibold">🏆 {c.title}</span>
                     {status === "running" ? <Badge tone="success">On now</Badge> : status === "upcoming" ? <Badge tone="info">Starts {formatDate(c.starts_on, "short")}</Badge> : <Badge>Finished</Badge>}

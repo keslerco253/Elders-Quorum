@@ -163,7 +163,7 @@ export default async function HomePage() {
       ))}
 
       {challenges.map(({ c, board }) => (
-        <Link key={c.id} href={`/plans/challenges/${c.id}`} className="card mb-5 block hover:bg-surface-2">
+        <Link key={c.id} href={`/challenges/${c.id}`} className="card mb-5 block hover:bg-surface-2">
           <span className="block text-xs font-semibold tracking-wide text-accent uppercase">🏆 {c.title}</span>
           <span className="mt-1 block text-sm">
             {board.map((b, i) => (

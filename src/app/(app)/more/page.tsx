@@ -24,6 +24,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
   const newNotes = unreadNotifications(user.id);
   const links: { href: string; label: string; desc: string; count?: number }[] = [
     ...(hasFeature(user.org, "signups") ? [{ href: "/signups", label: "Service", desc: "Service projects, meals, rides and more" }] : []),
+    { href: "/challenges", label: "Challenges", desc: "Friendly competitions between organizations: who's ahead, and log what you did" },
     { href: "/assignments", label: "My assignments", desc: "What you've been asked to do, lessons you're teaching, service you signed up for" },
     { href: "/notifications", label: "Reminders & alerts", count: newNotes, desc: "Every reminder and alert the app sent you (messages are in Messages)" },
     { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },

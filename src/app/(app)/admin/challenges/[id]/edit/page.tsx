@@ -5,7 +5,7 @@ import { isPresidencyOf } from "@/lib/assignments";
 import { orgsInWard } from "@/lib/orgs";
 import { todayIn } from "@/lib/time";
 import { Flash, PageHeader } from "@/components/ui";
-import { ChallengeForm } from "@/app/(app)/plans/challenges/challenge-form";
+import { ChallengeForm } from "@/app/(app)/challenges/challenge-form";
 
 export const metadata = { title: "Edit challenge" };
 
@@ -15,13 +15,13 @@ export default async function EditChallengePage({ params, searchParams }: { para
   const sp = await searchParams;
   const c = getChallenge(user.ward_id, Number((await params).id));
   if (!c) notFound();
-  if (!c.org_id || !isPresidencyOf(user.id, c.org_id)) redirect(`/plans/challenges/${c.id}`);
+  if (!c.org_id || !isPresidencyOf(user.id, c.org_id)) redirect(`/challenges/${c.id}`);
   const orgs = orgsInWard(user.ward_id)
     .filter((o) => o.kind !== "ward")
     .map((o) => ({ id: o.id, name: o.name }));
   return (
     <>
-      <PageHeader title="Edit challenge" back={{ href: `/plans/challenges/${c.id}`, label: c.title }} />
+      <PageHeader title="Edit challenge" back={{ href: `/challenges/${c.id}`, label: c.title }} />
       <Flash msg={sp.msg} tone="warn" />
       <ChallengeForm
         orgs={orgs}

@@ -41,7 +41,7 @@ export async function editChallenge(fd: FormData) {
   const res = updateChallenge(user.ward_id, c.id, readInput(fd));
   if ("error" in res) go(`/admin/challenges/${c.id}/edit`, res.error);
   revalidatePath("/", "layout");
-  go(`/plans/challenges/${c.id}`, "Challenge updated.");
+  go(`/challenges/${c.id}`, "Challenge updated.");
 }
 
 /** A presidency starts a challenge; everyone on the teams is told. */
@@ -60,30 +60,30 @@ export async function newChallenge(fd: FormData) {
   await notify(recipients, {
     title: `Challenge: ${c.title}`,
     body: `${formatDate(c.starts_on, "short")} to ${formatDate(c.ends_on, "short")}. Log what you do and see who's ahead (team totals only).`,
-    url: `/plans/challenges/${c.id}`,
+    url: `/challenges/${c.id}`,
   });
   revalidatePath("/", "layout");
-  go(`/plans/challenges/${c.id}`, "The challenge is on! Everyone on the teams was told.");
+  go(`/challenges/${c.id}`, "The challenge is on! Everyone on the teams was told.");
 }
 
 /** Logs something a member did, for their team. */
 export async function logChallenge(fd: FormData) {
   const user = await requireUser();
   const c = getChallenge(user.ward_id, Number(fd.get("challenge_id")));
-  if (!c) redirect("/plans");
+  if (!c) redirect("/challenges");
   const error = logEntry(c, user.id, Number(fd.get("team_id")), Number(fd.get("item_id")), Number(fd.get("amount")), todayIn(user.ward.timezone));
-  revalidatePath(`/plans/challenges/${c.id}`);
+  revalidatePath(`/challenges/${c.id}`);
   revalidatePath("/");
-  go(`/plans/challenges/${c.id}`, error ?? "Logged. Thank you!");
+  go(`/challenges/${c.id}`, error ?? "Logged. Thank you!");
 }
 
 export async function deleteEntry(fd: FormData) {
   const user = await requireUser();
   const c = getChallenge(user.ward_id, Number(fd.get("challenge_id")));
-  if (!c) redirect("/plans");
+  if (!c) redirect("/challenges");
   deleteMyEntry(c, user.id, Number(fd.get("entry_id")), todayIn(user.ward.timezone));
-  revalidatePath(`/plans/challenges/${c.id}`);
-  go(`/plans/challenges/${c.id}`, "Removed.");
+  revalidatePath(`/challenges/${c.id}`);
+  go(`/challenges/${c.id}`, "Removed.");
 }
 
 /** The presidency that started it can delete it (and everything logged). */

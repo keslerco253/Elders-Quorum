@@ -2,9 +2,8 @@ import Link from "next/link";
 import { PlanIconView } from "@/components/plan-icons";
 import { requireUser } from "@/lib/auth";
 import { audienceText, canCreatePlans, listPlans, PLAN_BLURBS, planIcon } from "@/lib/plans";
-import { formatDate, formatDateTime, todayIn } from "@/lib/time";
-import { listChallenges, scoreboard, statusOf } from "@/lib/challenges";
-import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
+import { formatDateTime } from "@/lib/time";
+import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 
 export const metadata = { title: "Plans" };
 
@@ -12,9 +11,6 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
   const user = await requireUser();
   const sp = await searchParams;
   const plans = listPlans(user.ward_id, user.org);
-  // Friendly challenges between organizations: running and upcoming first.
-  const today = todayIn(user.ward.timezone);
-  const challenges = listChallenges(user.ward_id).sort((a, b) => Number(statusOf(a, today) === "finished") - Number(statusOf(b, today) === "finished"));
   return (
     <>
       <PageHeader
@@ -29,34 +25,6 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
         }
       />
       <Flash msg={sp.msg} />
-      {challenges.length > 0 && (
-        <div className="mb-6">
-          <Section title="Challenges">
-            {(
-              <ul className="space-y-2">
-                {challenges.slice(0, 6).map((c) => {
-                  const status = statusOf(c, today);
-                  const [first] = scoreboard(c.id);
-                  return (
-                    <li key={c.id}>
-                      <Link href={`/plans/challenges/${c.id}`} className="card flex items-center justify-between gap-3 hover:bg-surface-2">
-                        <span className="min-w-0">
-                          <span className="block font-semibold">🏆 {c.title}</span>
-                          <span className="text-sm text-muted">
-                            {status === "finished" ? `Ended ${formatDate(c.ends_on, "short")}` : status === "upcoming" ? `Starts ${formatDate(c.starts_on, "short")}` : `Until ${formatDate(c.ends_on, "short")}`}
-                            {first && first.points > 0 && ` · ${first.team.name} ${status === "finished" ? "won" : "leads"}`}
-                          </span>
-                        </span>
-                        {status === "running" ? <Badge tone="success">On now</Badge> : status === "upcoming" ? <Badge tone="info">Soon</Badge> : null}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Section>
-        </div>
-      )}
       {plans.length === 0 ? (
         <Empty>No plans yet.</Empty>
       ) : (

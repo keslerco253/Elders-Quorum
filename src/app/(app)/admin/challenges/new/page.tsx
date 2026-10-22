@@ -3,7 +3,7 @@ import { DEFAULT_ITEMS } from "@/lib/challenges";
 import { orgsInWard } from "@/lib/orgs";
 import { todayIn } from "@/lib/time";
 import { Flash, PageHeader } from "@/components/ui";
-import { ChallengeForm } from "@/app/(app)/plans/challenges/challenge-form";
+import { ChallengeForm } from "@/app/(app)/challenges/challenge-form";
 
 export const metadata = { title: "New challenge" };
 

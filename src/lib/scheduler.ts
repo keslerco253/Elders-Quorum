@@ -452,7 +452,7 @@ function challengeResults(now: DateTime): DueNotification[] {
       payload: {
         title: tied ? `${c.title}: it's a tie!` : `${c.title}: ${first.team.name} wins! 🏆`,
         body: `Final scores: ${board.map((b) => `${b.team.name} ${fmt(b.points)}`).join(", ")}. Thanks, everyone!`,
-        url: `/plans/challenges/${c.id}`,
+        url: `/challenges/${c.id}`,
       },
     });
   }

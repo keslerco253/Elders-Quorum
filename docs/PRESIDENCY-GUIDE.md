@@ -665,8 +665,8 @@ family history work.
   dates, choose the teams (each one or more organizations: one against one, two
   against two, and so on; an organization can be on only one team), and what
   counts and for how many points. Everyone on the teams gets a notification.
-- **Logging:** members on a team open the challenge (under Plans, or the card on
-  Home while it's on) and tap **+ Log it**: what they did and how many. They can
+- **Logging:** members on a team open the challenge (**More → Challenges**, or
+  the card on Home while it's on) and tap **+ Log it**: what they did and how many. They can
   remove their own entries while it's running.
 - **Scores:** each team's **total points**. Only team totals are shown: no one
   can see what anyone else logged.

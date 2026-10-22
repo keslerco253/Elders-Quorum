@@ -31,7 +31,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
 
   return (
     <>
-      <PageHeader title={c.title} back={{ href: "/plans", label: "Plans" }} subtitle={`${formatDate(c.starts_on, "short")} to ${formatDate(c.ends_on, "short")}`} />
+      <PageHeader title={c.title} back={{ href: "/challenges", label: "Challenges" }} subtitle={`${formatDate(c.starts_on, "short")} to ${formatDate(c.ends_on, "short")}`} />
       <Flash msg={sp.msg} />
       <div className="mb-4">
         {status === "running" ? <Badge tone="success">On now</Badge> : status === "upcoming" ? <Badge tone="info">Starts {formatDate(c.starts_on, "short")}</Badge> : <Badge>Finished</Badge>}
