@@ -109,7 +109,7 @@ export default async function PlanVisitPage({ searchParams }: { searchParams: Pr
               </label>
             ))}
           </div>
-          <p className="hint">They get a reminder the morning of the visit.</p>
+          <p className="hint">Everyone going gets a reminder before the visit, at the time set under Admin → Settings → Reminder times.</p>
         </fieldset>
         <div>
           <label className="label" htmlFor="note">

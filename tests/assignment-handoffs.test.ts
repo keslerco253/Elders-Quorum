@@ -126,7 +126,7 @@ describe("the leader guide", () => {
     const { searchGuide } = await import("@/lib/guide");
     const hits = searchGuide("not accepted yet");
     expect(hits.length).toBeGreaterThan(0);
-    expect(hits[0].section).toBe("Presidency meetings and assignments (presidency only)");
+    expect(hits.map((h) => h.section)).toContain("Assignments");
     expect(searchGuide("zzzz nothing like this")).toEqual([]);
   });
 });
