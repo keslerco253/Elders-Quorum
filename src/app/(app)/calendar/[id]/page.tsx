@@ -15,6 +15,7 @@ import { SubmitButton } from "@/components/client";
 import { FlyerView } from "@/components/flyer-view";
 import { rsvp } from "../actions";
 import { hasFeature, roleIn } from "@/lib/orgs";
+import { Linkify } from "@/components/linkify";
 import { meetingForEvent } from "@/lib/meetings";
 import { withOrg } from "@/lib/org-cookie";
 
@@ -87,7 +88,11 @@ export default async function EventPage({ params, searchParams }: { params: Prom
             </a>
           </div>
         )}
-        {e.description && <p className="whitespace-pre-wrap">{e.description}</p>}
+        {e.description && (
+          <p className="whitespace-pre-wrap break-words">
+            <Linkify text={e.description} />
+          </p>
+        )}
         {/* A scheduled presidency meeting: its agenda and notes. */}
         {(() => {
           const meeting = e.presidency_only ? meetingForEvent(e.id) : undefined;

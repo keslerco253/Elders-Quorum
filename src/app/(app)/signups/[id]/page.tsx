@@ -1,6 +1,7 @@
 import { hasFeature } from "@/lib/orgs";
 import { DateTime } from "luxon";
 import Link from "next/link";
+import { Linkify } from "@/components/linkify";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
@@ -67,7 +68,9 @@ export default async function SignupPage({
         </p>
       )}
       {s.description && (
-        <p className="card mb-4 whitespace-pre-wrap">{s.description}</p>
+        <p className="card mb-4 whitespace-pre-wrap break-words">
+          <Linkify text={s.description} />
+        </p>
       )}
       {s.flyer_file && <FlyerView file={s.flyer_file} name={s.flyer_name} />}
       <ul className="space-y-3">
