@@ -32,7 +32,7 @@ export async function newChallenge(fd: FormData) {
     teams: parse<{ name: string; orgIds: number[] }[]>(fd.get("teams"), []).map((t) => ({ name: String(t.name ?? ""), orgIds: (t.orgIds ?? []).map(Number) })),
     items: parse<{ label: string; points: number }[]>(fd.get("items"), []).map((i) => ({ label: String(i.label ?? ""), points: Number(i.points) })),
   });
-  if ("error" in res) go("/plans/challenges/new", res.error);
+  if ("error" in res) go("/admin/challenges/new", res.error);
   const c = getChallenge(user.ward_id, res.id)!;
   const recipients = challengeMemberIds(c.id)
     .filter((id) => id !== user.id)
@@ -74,8 +74,8 @@ export async function deleteEntry(fd: FormData) {
 export async function deleteChallenge(fd: FormData) {
   const user = await requireUser();
   const c = getChallenge(user.ward_id, Number(fd.get("challenge_id")));
-  if (!c || !c.org_id || !isPresidencyOf(user.id, c.org_id)) go("/plans", "Only the presidency that started it can delete it.");
+  if (!c || !c.org_id || !isPresidencyOf(user.id, c.org_id)) go("/admin/challenges", "Only the presidency that started it can delete it.");
   db().prepare("DELETE FROM challenges WHERE id = ?").run(c.id);
   revalidatePath("/", "layout");
-  go("/plans", "Challenge deleted.");
+  go("/admin/challenges", "Challenge deleted.");
 }

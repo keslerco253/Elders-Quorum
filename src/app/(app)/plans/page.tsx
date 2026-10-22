@@ -4,7 +4,6 @@ import { requireUser } from "@/lib/auth";
 import { audienceText, canCreatePlans, listPlans, PLAN_BLURBS, planIcon } from "@/lib/plans";
 import { formatDate, formatDateTime, todayIn } from "@/lib/time";
 import { listChallenges, scoreboard, statusOf } from "@/lib/challenges";
-import { isPresidency } from "@/lib/permissions";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 
 export const metadata = { title: "Plans" };
@@ -30,21 +29,10 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
         }
       />
       <Flash msg={sp.msg} />
-      {(challenges.length > 0 || isPresidency(user)) && (
+      {challenges.length > 0 && (
         <div className="mb-6">
-          <Section
-            title="Challenges"
-            actions={
-              isPresidency(user) && (
-                <Link href="/plans/challenges/new" className="link text-sm">
-                  + New challenge
-                </Link>
-              )
-            }
-          >
-            {challenges.length === 0 ? (
-              <p className="text-sm text-muted">A friendly competition between organizations, like temple and family history work. Start one with + New challenge.</p>
-            ) : (
+          <Section title="Challenges">
+            {(
               <ul className="space-y-2">
                 {challenges.slice(0, 6).map((c) => {
                   const status = statusOf(c, today);

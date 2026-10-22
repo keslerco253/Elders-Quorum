@@ -191,6 +191,11 @@ export default async function AdminPage() {
                 ]
               : []),
             {
+              href: "/admin/challenges",
+              label: "Challenges",
+              desc: "Friendly competitions between organizations",
+            },
+            {
               href: "/admin/members",
               label: "Members",
               desc: `People in ${user.orgLabel}, callings and access`,

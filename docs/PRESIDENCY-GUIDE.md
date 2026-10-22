@@ -656,15 +656,16 @@ Monday dinner...) and how many people it needs (type it or tap − and +). Tap
 per day with 1 person. Renaming a slot keeps the people signed up for it;
 removing it removes their sign-ups (you're asked first).
 
-## Challenges (Plans)
+## Challenges
 
 A friendly competition between organizations, e.g. who does more temple and
 family history work.
-- **Starting one (presidency):** Plans → **+ New challenge**. Give it a name and
+- **Starting one (presidency):** **Admin → Challenges → + New challenge**. That
+  page also lists every challenge in the ward with its scores. Give it a name and
   dates, choose the teams (each one or more organizations: one against one, two
   against two, and so on; an organization can be on only one team), and what
   counts and for how many points. Everyone on the teams gets a notification.
-- **Logging:** members on a team open the challenge (from Plans, or the card on
+- **Logging:** members on a team open the challenge (under Plans, or the card on
   Home while it's on) and tap **+ Log it**: what they did and how many. They can
   remove their own entries while it's running.
 - **Scores:** each team's **total points**. Only team totals are shown: no one
