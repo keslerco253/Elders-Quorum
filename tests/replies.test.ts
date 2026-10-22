@@ -163,8 +163,8 @@ describe("replies to the presidency", () => {
       "utf8",
     );
     expect(mail).toContain("Private message from Member Person");
-    // The one presidency member reads the whole message in the email (and only they get it).
-    expect(mail).toContain("Something confidential");
+    // The words stay in the app, in case someone else sees the inbox.
+    expect(mail).not.toContain("Something confidential");
 
     expect(
       conv.conversation(1, 2, { private: true, withId: 1 }).map((c) => c.body),
@@ -215,7 +215,7 @@ describe("replies to the presidency", () => {
     ).toBe(false);
   });
 
-  it("texts a leader the member's whole message, with a link to answer", async () => {
+  it("texts a leader a private message's sender, not its words, with a link to answer", async () => {
     d.exec(
       "UPDATE members SET phone = '+12085550199', contact_pref = 'text', sms_consent_at = datetime('now') WHERE id = 3",
     );
@@ -232,9 +232,10 @@ describe("replies to the presidency", () => {
       .readdirSync(path.join(dir, "outbox"))
       .find((f) => !before.has(f) && f.includes("sms-"))!;
     const text = fs.readFileSync(path.join(dir, "outbox", sms), "utf8");
-    // Short: who it's from, their words, and a short link to the conversation.
-    expect(text).toContain(`${long}\n\nMember Person (private)\n\nReply in app: `);
-    const link = text.match(/Reply in app: (\S+)/)![1];
+    // Private: who it's from and a short link, but not the words (someone else may see the phone).
+    expect(text).toContain("Private message from Member Person");
+    expect(text).not.toContain("Thanks for asking");
+    const link = text.match(/(\S+\/n\/\d+)/)![1];
     expect(link).toMatch(/\/n\/\d+$/);
     const { shortLinkTarget } = await import("@/lib/notification-log");
     const nid = Number(link.split("/").pop());
@@ -250,7 +251,10 @@ describe("replies to the presidency", () => {
     const thread = conv.conversation(1, 2, { private: true, withId: 3 });
     expect(thread[thread.length - 1]).toMatchObject({ direction: "out", body: "Happy to help. I'll call you tonight." });
     const toMember = fs.readdirSync(path.join(dir, "outbox")).find((f) => !beforeAnswer.has(f) && f.includes("12085550101"))!;
-    expect(fs.readFileSync(path.join(dir, "outbox", toMember), "utf8")).toContain("Happy to help. I'll call you tonight.\n\n- Counselor Person");
+    // A private answer: the member is told who it's from, but the words stay in the app.
+    const answerText = fs.readFileSync(path.join(dir, "outbox", toMember), "utf8");
+    expect(answerText).toContain("Private message from Counselor Person");
+    expect(answerText).not.toContain("call you tonight");
     // Replying to an older text (sent before this, or after other texts) still answers the
     // newest message a member sent them in the last few days.
     d.exec("UPDATE members SET text_reply_member_id = NULL WHERE id = 3");

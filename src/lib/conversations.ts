@@ -125,13 +125,12 @@ export async function receiveReply(member: { id: number; org_id: number; display
   // Leaders read the whole message in the notification, text or email; answering is in the app.
   if (to) {
     where = to.display_name;
+    // Private: the words stay in the app, in case someone else sees the phone or inbox.
     await notify([to], {
       title: `Private message from ${member.display_name}`,
-      textTitle: `${member.display_name} (private)`,
-      body: text,
+      body: "Open the app to read it. You can answer privately there, or by replying to this text.",
       url: `/admin/replies/${member.id}?private=1#end`,
-      fullText: true,
-      linkLabel: "Answer",
+      linkLabel: "Read it",
       replyTo: { memberId: member.id, private: true },
       tag: `conv-${member.org_id}-${member.id}-p`,
       message: true,
@@ -171,10 +170,14 @@ export async function sendAnswer(author: { id: number; org_id: number; display_n
   const org = getOrg(author.org_id);
   if (!text || !member || !org || !db().prepare("SELECT 1 FROM ward_members WHERE ward_id = ? AND member_id = ?").get(org.ward_id, memberId)) return false;
   db().prepare("INSERT INTO member_messages (org_id, member_id, direction, author_id, body, recipient_id) VALUES (?, ?, 'out', ?, ?, ?)").run(author.org_id, memberId, author.id, text, privately ? author.id : null);
+  const url = `/messages/thread/${privately ? author.id : "all"}?org=${author.org_id}#end`;
   await notify(
     [member],
-    // A personal note (private or not): the notification shows who it's from; texts and emails are just the words, signed.
-    { title: author.display_name, body: text, url: `/messages/thread/${privately ? author.id : "all"}?org=${author.org_id}#end`, personal: { from: author.display_name }, tag: `answers-${author.org_id}`, asMember: true, message: true },
+    privately
+      ? // Private: the words stay in the app, in case someone else sees the phone or inbox.
+        { title: `Private message from ${author.display_name}`, body: "Open the app to read it.", url, linkLabel: "Read it", tag: `answers-${author.org_id}`, asMember: true, message: true }
+      : // A personal note: the notification shows who it's from; texts and emails are just the words, signed.
+        { title: author.display_name, body: text, url, personal: { from: author.display_name }, tag: `answers-${author.org_id}`, asMember: true, message: true },
   );
   return true;
 }

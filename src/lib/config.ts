@@ -9,3 +9,11 @@ export function appUrl() {
 }
 
 export const isHttps = () => appUrl().startsWith("https://");
+
+/**
+ * Where people write with questions about the app (Privacy and Terms pages):
+ * CONTACT_EMAIL, or else the address the app sends email from.
+ */
+export function contactEmail() {
+  return (process.env.CONTACT_EMAIL || process.env.SMTP_USER || "villaseldersquorum@gmail.com").trim();
+}

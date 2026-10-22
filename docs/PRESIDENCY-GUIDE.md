@@ -485,17 +485,21 @@ bishopric. Messages are up to 1,000 characters.
 Send a personal message**, or use New message → One person. There's no subject.
 Their text or email is just your words, signed "- Your Name", with no ward header
 and no link. The rest of the presidency sees the conversation unless you choose
-**Private**.
+**Private** (then they're told only "Private message from (your name)" and read it
+in the app).
 
 **Private messages from members:** a member can choose **Only** one presidency
 member (for example the President). It shows only to that person, marked
 **Private**; the rest of the presidency can't see it. The notification, text and
-email say "Private message from (name)" and include the whole message. If the
+email say only "Private message from (name)", without the words, in case someone
+else sees the phone or inbox; open the app to read it. Your private answers reach
+the member the same way. If the
 member texts back after a private reply, their text stays private too. If that
 leader's account is deleted, their private conversations are deleted with it.
 
 **When a member writes to you,** your text, email and notification carry their
-whole message, so you can read it without opening the app. To answer, **just
+whole message, so you can read it without opening the app (except private
+messages, which say only who it's from). To answer, **just
 reply to that text**: it goes to the member (privately if theirs was private),
 signed with your name. Or answer in the app with the link. Replying to an
 **email** doesn't reach them; use the button in the email.
@@ -1220,6 +1224,7 @@ and the member list**).
 - **Start a ward for someone:** ward name, time zone, the bishop's (or clerk's) name
   and email, and texting (off for now, on, or none at all). **Add ward and email
   them** sends them a sign-in link.
+- **Contact email:** the Privacy and Terms pages list `CONTACT_EMAIL` (a server setting) for questions, or the address the app sends email from.
 - **Backup:** the app copies everything every night (the last 30 are kept).
   **Download a backup** gives one file with every ward, member and uploaded file;
   it holds private information, so keep it safe. **Restore a backup** (a .tar or

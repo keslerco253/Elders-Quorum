@@ -39,6 +39,7 @@ Unzip this version and run **UPDATE.bat** on the PC as usual. That adds
    | `SMTP_PASS` | same as now (the Gmail app password) |
    | `MAIL_FROM_NAME` | same as now |
    | `OWNER_EMAIL` | your email (the site owner: every ward, texting, backups) |
+   | `CONTACT_EMAIL` | optional: the email shown on the Privacy and Terms pages for questions (otherwise the sending address) |
    | `SETUP_CODE` | optional: a phrase for restoring a backup onto an empty server |
    | `TWILIO_ACCOUNT_SID` | same as now |
    | `TWILIO_AUTH_TOKEN` | same as now |
