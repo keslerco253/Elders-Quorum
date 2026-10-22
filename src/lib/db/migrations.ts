@@ -1432,4 +1432,10 @@ ALTER TABLE todos ADD COLUMN flyer_file TEXT;
 ALTER TABLE todos ADD COLUMN flyer_name TEXT;
 `,
   },
+  {
+    // How each notification reached the person ('push,email', or '' when nothing could),
+    // so leaders can see who wasn't reached.
+    id: 71,
+    sql: `ALTER TABLE notification_log ADD COLUMN delivered TEXT;`,
+  },
 ];

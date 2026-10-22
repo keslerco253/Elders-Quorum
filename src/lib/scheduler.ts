@@ -28,6 +28,7 @@ import { recordsToReview } from "./meetings";
 import { fillRegularTeachers } from "./regular-teachers";
 import { todoChannels } from "./personal-todos";
 import { challengeMemberIds, scoreboard } from "./challenges";
+import { lastDelivery } from "./delivery";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
 interface OrgCtx {
@@ -445,6 +446,41 @@ function personalTodoReminders(now: DateTime): DueNotification[] {
   return out;
 }
 
+/**
+ * An assignment request that's gone 2 days without being opened or answered is sent
+ * once more by email and text (an app notification may have been muted on the phone).
+ */
+function assignmentRequestFollowUps(now: DateTime): DueNotification[] {
+  const rows = db()
+    .prepare(
+      `SELECT t.id, t.org_id, t.title, t.asked_at, t.assignee_id, w.timezone FROM todos t JOIN orgs o ON o.id = t.org_id JOIN wards w ON w.id = o.ward_id
+       WHERE t.done = 0 AND t.accept_status = 'pending' AND t.assignee_id IS NOT NULL AND t.asked_at <= ? AND t.asked_at >= ?`,
+    )
+    .all(now.minus({ days: 2 }).toUTC().toFormat("yyyy-MM-dd HH:mm:ss"), now.minus({ days: 30 }).toUTC().toFormat("yyyy-MM-dd HH:mm:ss")) as {
+    id: number;
+    org_id: number;
+    title: string;
+    asked_at: string;
+    assignee_id: number;
+    timezone: string;
+  }[];
+  const out: DueNotification[] = [];
+  for (const t of rows) {
+    const hour = now.setZone(t.timezone).hour;
+    if (hour < 9 || hour >= 20) continue;
+    if (lastDelivery(t.assignee_id, `/assignments/${t.id}`)?.read_at) continue;
+    const who = recipientById(t.assignee_id, t.org_id);
+    if (!who) continue;
+    out.push({
+      key: `todo-ask-again:${t.id}:${t.asked_at}`,
+      recipients: [who],
+      payload: { title: "Still waiting: would you accept this assignment?", body: `${t.title}. Tap to accept or let your presidency know you can't.`, url: withOrg(`/assignments/${t.id}`, t.org_id) },
+      only: ["email", "text"],
+    });
+  }
+  return out;
+}
+
 /** The day after a challenge ends, everyone on its teams hears the final scores. */
 function challengeResults(now: DateTime): DueNotification[] {
   const out: DueNotification[] = [];
@@ -522,6 +558,7 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
     ...textingPaidNotices(now),
     ...personalTodoReminders(now),
     ...challengeResults(now),
+    ...assignmentRequestFollowUps(now),
     ...orgs.flatMap((o) => [
     ...(hasFeature(o, "lessons") ? lessonReminders(o, now) : []),
     ...(hasFeature(o, "lessons") ? myLessonReminders(o, now) : []),

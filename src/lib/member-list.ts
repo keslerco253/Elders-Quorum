@@ -2,14 +2,14 @@ import { db } from "./db";
 import { formatPhone } from "./contact";
 import { callingLabel, isCalling, roleLabel, type Member, type Org, type Role } from "./types";
 
-export type ListedMember = Member & { role: Role; calling: string | null };
+export type ListedMember = Member & { role: Role; calling: string | null; notify: number };
 
 /** Everyone who officially belongs to (or leads) an organization: leaders first, then by name. */
 export function orgMemberList(orgId: number, opts: { show?: "active" | "inactive"; q?: string } = {}): ListedMember[] {
   const q = (opts.q ?? "").trim();
   return db()
     .prepare(
-      `SELECT m.*, om.role, om.calling FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?
+      `SELECT m.*, om.role, om.calling, om.notify FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?
        WHERE m.status = ? AND (om.official = 1 OR om.role <> 'member')
        AND (? = '' OR m.display_name LIKE '%' || ? || '%')
        ORDER BY om.role = 'member', m.display_name COLLATE NOCASE`,

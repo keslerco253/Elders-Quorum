@@ -12,6 +12,7 @@ import { saveUpload } from "@/lib/uploads";
 import { addAgendaItem } from "@/lib/meetings";
 import { hasFeature } from "@/lib/orgs";
 import { audienceLabel } from "@/lib/notify";
+import { optedOutOf } from "@/lib/delivery";
 
 const LINKS = ["/", "/lessons", "/calendar", "/plans", "/signups"];
 
@@ -83,7 +84,7 @@ export async function composeMessage(fd: FormData) {
   const missed = count - reached;
   redirect(
     `/messages?tab=sent&msg=${encodeURIComponent(
-      `Sent to ${count}: ${push} by notification, ${email} by email, ${text} by text${missed > 0 ? `. ${missed} couldn't be reached (notifications off and no texts or emails chosen)` : ""}.${agenda ? " Added to the next presidency meeting's agenda." : ""}`,
+      `Sent to ${count}: ${push} by notification, ${email} by email, ${text} by text${missed > 0 ? `. ${missed} couldn't be reached (notifications off and no texts or emails chosen)` : ""}${audience === "everyone" && optedOutOf(orgId).length ? `. ${optedOutOf(orgId).length} turned off notifications from this organization and weren't sent it (see Sent)` : ""}.${agenda ? " Added to the next presidency meeting's agenda." : ""}`,
     )}`,
   );
 }

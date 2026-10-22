@@ -9,6 +9,8 @@ import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { acceptAssignmentRequest, addProgress, answerAssignmentAsk, askToTakeAssignment, declineAssignmentRequest, unableToDoAssignment, withdrawAssignmentAsk } from "../actions";
 import { FlyerView } from "@/components/flyer-view";
+import { db } from "@/lib/db";
+import { lastDelivery, reachableBy, unreachableWhy, waysText } from "@/lib/delivery";
 import { canAnswer, pendingHandoff } from "@/lib/assignment-handoffs";
 import { orgPresidency, orgRoster } from "@/lib/orgs";
 import { deleteTodo } from "../../admin/todos/actions";
@@ -33,6 +35,11 @@ export default async function AssignmentPage({ params, searchParams }: { params:
   const people = leader ? orgRoster(t.org_id).filter((p) => p.id !== user.id && p.id !== t.assignee_id) : [];
   const presidency = people.filter((p) => presidencyIds.includes(p.id));
   const others = people.filter((p) => !presidencyIds.includes(p.id));
+  // Opening it counts as seeing its notifications.
+  if (mine) db().prepare("UPDATE notification_log SET read_at = datetime('now') WHERE member_id = ? AND read_at IS NULL AND (url = ? OR url LIKE ? || '?%')").run(user.id, `/assignments/${t.id}`, `/assignments/${t.id}`);
+  // For the presidency: how the person was told, and whether they've seen it.
+  const told = leader && !mine && t.assignee_id ? lastDelivery(t.assignee_id, `/assignments/${t.id}`) : undefined;
+  const reachable = leader && !mine && t.assignee_id ? reachableBy(t.assignee_id, t.org_id) : [];
   const tone = t.done ? "success" : t.status === "progress" ? "info" : "neutral";
 
   return (
@@ -78,6 +85,19 @@ export default async function AssignmentPage({ params, searchParams }: { params:
             </>
           )}
         </div>
+        {leader && !mine && t.assignee_id && (
+          <div className="text-xs">
+            {told?.delivered === "" || (!told && !reachable.length) ? (
+              <span className="font-semibold text-danger">
+                ⚠ {t.assignee ?? "They"} couldn&apos;t be reached ({unreachableWhy(t.assignee_id)}). Please tell them in person or by phone.
+              </span>
+            ) : told ? (
+              <span className="text-muted">
+                {told.delivered ? `Told by ${waysText(told.delivered)}` : "Notified"} · {told.read_at ? `seen ${formatDateTime(told.read_at, tz, "LLL d, h:mm a")}` : "not opened in the app yet"}
+              </span>
+            ) : null}
+          </div>
+        )}
         {t.notes && (
           <p className="pt-1 whitespace-pre-wrap break-words">
             <Linkify text={t.notes} />

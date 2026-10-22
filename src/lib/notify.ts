@@ -151,6 +151,12 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
     );
     // ?org= opens it in the organization it's about.
     const p = { ...payload, url: withOrg(withSeen(payload.url ?? "/", logId), r.org_id) };
+    // How it reached them (counted from here), kept with the log entry.
+    const before = { push, email, text };
+    const record = () => {
+      const ways = [push > before.push && "push", email > before.email && "email", text > before.text && "text"].filter(Boolean).join(",");
+      d().prepare("UPDATE notification_log SET delivered = ? WHERE id = ?").run(ways, logId);
+    };
     const url = appUrl() + p.url;
     const canText = !!r.sms_consent_at && !!r.phone && canSendNotice(r.org_id);
     let got = false;
@@ -178,6 +184,7 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
         got = true;
       }
       if (got) reached++;
+      record();
       continue;
     }
     if ((await pushToMember(r.id, p)) > 0) {
@@ -201,6 +208,7 @@ export async function notify(recipients: Recipient[], payload: PushPayload, opts
       }
     }
     if (got) reached++;
+    record();
   }
   return { push, email, text, reached };
 }

@@ -11,6 +11,7 @@ import { leadersWord } from "@/lib/types";
 import { formatDateTime } from "@/lib/time";
 import { Empty, Flash, PageHeader } from "@/components/ui";
 import { memberComposeChoices, sentAnnouncements } from "@/lib/compose";
+import { messageReach } from "@/lib/delivery";
 
 export const metadata = { title: "Messages" };
 
@@ -88,6 +89,34 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                 <div className="text-xs text-muted">
                   {m.push_count} app · {m.email_count} email · {m.text_count} text
                 </div>
+                {(() => {
+                  const r = messageReach(m.id);
+                  if (!r.total) return null;
+                  return (
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-muted">
+                        Opened by {r.seen} of {r.total}
+                        {r.unreached.length > 0 && <span className="font-semibold text-danger"> · {r.unreached.length} couldn&apos;t be reached</span>}
+                        {r.optedOut.length > 0 && <span className="font-semibold text-warn"> · {r.optedOut.length} turned off notifications</span>}
+                      </summary>
+                      {r.optedOut.length > 0 && (
+                        <p className="mt-1">
+                          <strong className="text-warn">Not sent: they turned off notifications from {m.org_label}</strong> (under More → My organizations): {r.optedOut.join(", ")}
+                        </p>
+                      )}
+                      {r.unreached.length > 0 && (
+                        <p className="mt-1">
+                          <strong className="text-danger">Couldn&apos;t be reached</strong> (no app notifications, email or texts; tell them another way): {r.unreached.join(", ")}
+                        </p>
+                      )}
+                      {r.unseen.length > 0 && (
+                        <p className="mt-1 text-muted">
+                          <strong>Sent, not opened in the app yet</strong> (they may have read the email or text): {r.unseen.join(", ")}
+                        </p>
+                      )}
+                    </details>
+                  );
+                })()}
               </li>
             ))}
           </ul>

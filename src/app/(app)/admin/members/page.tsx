@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { orgMemberList } from "@/lib/member-list";
 import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
+import { reachableBy } from "@/lib/delivery";
 import { SubmitButton } from "@/components/client";
 import { isPresidency } from "@/lib/permissions";
 import { addMember } from "./actions";
@@ -106,6 +107,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                     {m.phone && <Badge>Phone</Badge>}
                     {m.email && <Badge>Email</Badge>}
                     {m.phone && !m.sms_consent_at && <Badge tone="warn">No texts</Badge>}
+                    {m.status === "active" && reachableBy(m.id, user.org_id).length === 0 && <Badge tone="danger">Can&apos;t be reached</Badge>}
+                    {m.role === "member" && !m.notify && <Badge tone="warn">Turned off {user.orgLabel} notifications</Badge>}
                     <span>{m.last_login_at ? `last signed in ${formatDateTime(m.last_login_at, user.ward.timezone, "LLL d")}` : "hasn't signed in yet"}</span>
                   </div>
                 </div>

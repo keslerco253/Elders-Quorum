@@ -8,6 +8,7 @@ import { notify, RECIPIENT_COLUMNS, type Recipient } from "@/lib/notify";
 import { todayIn } from "@/lib/time";
 import { dueText, getTodo, isPresidencyOf, setTodoStatus, type TodoStatus } from "@/lib/assignments";
 import { saveUpload } from "@/lib/uploads";
+import { unreachableWhy } from "@/lib/delivery";
 import { withOrg } from "@/lib/org-cookie";
 
 /** Back to the meeting the form was on, or the assignments list. */
@@ -91,15 +92,17 @@ export async function saveTodo(fd: FormData) {
         .run(user.org_id, title, notes, due, dueTime, assignee?.id ?? null, user.id, meeting?.id ?? null, r1, r2, flyerFile, flyerName, acceptStatus, asking ? 1 : 0).lastInsertRowid,
     );
   }
+  let reached = true;
   if (asking) {
-    await notify([assignee!], {
+    reached = (await notify([assignee!], {
       title: "Would you be willing to accept this assignment?",
       body: `${title}${due ? ` (due ${dueText(due, dueTime)})` : ""}. From ${user.display_name}. Tap to accept or let them know you can't.`,
       url: withOrg(`/assignments/${todoId}`, user.org_id),
       ...(flyerFile ? { attachment: { file: flyerFile, name: flyerName ?? "Attachment" } } : {}),
-    });
+    })).reached > 0;
   }
   revalidatePath("/", "layout");
+  if (asking && !reached) go(back, `Saved, but ${assignee!.display_name} couldn't be reached (${unreachableWhy(assignee!.id)}). Please tell them in person or by phone.`);
   go(back, asking ? `Sent to ${assignee!.display_name} to accept. It shows as not accepted until they say yes.` : id ? "Assignment updated." : "Assignment added.");
 }
 
