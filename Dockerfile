@@ -26,5 +26,6 @@ COPY --from=build /app/public ./public
 COPY --from=build /app/dist/seed.js ./seed.js
 # Shown in the app under Admin -> Leader guide.
 COPY --from=build /app/docs/PRESIDENCY-GUIDE.md ./docs/PRESIDENCY-GUIDE.md
+COPY --from=build /app/docs/MEMBER-GUIDE.md ./docs/MEMBER-GUIDE.md
 EXPOSE 3000
 CMD ["node", "server.js"]

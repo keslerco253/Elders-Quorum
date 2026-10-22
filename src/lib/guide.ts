@@ -3,7 +3,9 @@ import path from "path";
 import { marked } from "marked";
 import sanitizeHtml from "sanitize-html";
 
-const FILE = path.join(process.cwd(), "docs", "PRESIDENCY-GUIDE.md");
+/** The leader guide (docs/PRESIDENCY-GUIDE.md) and the member guide (docs/MEMBER-GUIDE.md). */
+export type GuideKind = "leader" | "member";
+export const guideFile = (kind: GuideKind) => path.join(process.cwd(), "docs", kind === "leader" ? "PRESIDENCY-GUIDE.md" : "MEMBER-GUIDE.md");
 
 const slug = (s: string) =>
   s
@@ -12,14 +14,14 @@ const slug = (s: string) =>
     .replace(/^-|-$/g, "");
 
 /**
- * The presidency guide (docs/PRESIDENCY-GUIDE.md) as a page, with a link to each
+ * A guide as a page, with a link to each
  * section, and to each subsection too (`anchors`, e.g. "Messages › Turning off
  * messages from members") for pointing at the exact part.
  */
-export function leaderGuide(): { html: string; sections: { id: string; title: string }[]; anchors: { id: string; title: string }[] } | null {
+export function loadGuide(kind: GuideKind): { html: string; sections: { id: string; title: string }[]; anchors: { id: string; title: string }[] } | null {
   let md: string;
   try {
-    md = fs.readFileSync(FILE, "utf8");
+    md = fs.readFileSync(guideFile(kind), "utf8");
   } catch {
     return null;
   }
@@ -82,12 +84,12 @@ const plain = (md: string) =>
  * Searches the guide: every paragraph or list item (and heading) containing all the
  * words searched for, with the section it's in. Up to 40.
  */
-export function searchGuide(query: string): GuideHit[] {
+export function searchGuide(query: string, kind: GuideKind = "leader"): GuideHit[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) return [];
   let md: string;
   try {
-    md = fs.readFileSync(FILE, "utf8");
+    md = fs.readFileSync(guideFile(kind), "utf8");
   } catch {
     return [];
   }
@@ -110,3 +112,5 @@ export function searchGuide(query: string): GuideHit[] {
   }
   return hits;
 }
+
+export const leaderGuide = () => loadGuide("leader");

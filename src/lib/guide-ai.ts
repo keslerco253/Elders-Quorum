@@ -1,14 +1,11 @@
 import "server-only";
 import fs from "fs";
-import path from "path";
 import Anthropic from "@anthropic-ai/sdk";
-import { leaderGuide } from "./guide";
+import { guideFile, loadGuide, type GuideKind } from "./guide";
 
 // "Ask the guide": a leader asks in their own words ("how do I turn off texting?")
 // and Claude answers from the leader guide, pointing to the sections to read.
 // Needs ANTHROPIC_API_KEY on the server; without it the guide's word search is used.
-
-const FILE = path.join(process.cwd(), "docs", "PRESIDENCY-GUIDE.md");
 
 export const askConfigured = () => !!process.env.ANTHROPIC_API_KEY;
 
@@ -18,25 +15,29 @@ export interface GuideAnswer {
   sections: { id: string; title: string }[];
 }
 
-const SYSTEM_INTRO = `You answer questions from church leaders (bishoprics and organization presidencies) about how to use My Ward Link, their ward's app. Answer only from the leader guide below.
+const WHO: Record<GuideKind, string> = {
+  leader: `You answer questions from church leaders (bishoprics and organization presidencies) about how to use My Ward Link, their ward's app. Answer only from the leader guide below.`,
+  member: `You answer questions from ward members about how to use My Ward Link, their ward's app. Answer only from the member guide below. It covers what members can see and do. If they ask about something only leaders can do (like sending announcements or changing ward settings), say that their ward or organization leaders handle it, without explaining leader tools.`,
+};
 
+const RULES = `
 - Start with one plain sentence that answers the question. If there are steps or several cases, follow with a short numbered or bulleted list (Markdown); no headings, no tables.
-- Put on-screen labels and paths in bold, like **Admin → Settings → Messages from members**, and say what happens. Keep it under about 150 words.
+- Put on-screen labels and paths in bold, like **More → Contact & notifications**, and say what happens. Keep it under about 150 words.
 - If the guide doesn't cover it, say so plainly and suggest the closest thing it does cover. Don't invent features or settings.
-- If it depends on who they are (site owner, ward administrator, presidency, member), say who can do it.
+- If it depends on who they are, say who can do it.
 - List in "sections" the parts of the guide (exact titles from the allowed list) that best explain the answer, most useful first, at most three. Prefer the most specific part (a subsection) over a whole section, and leave out parts that only mention the topic in passing.
 
-The leader guide:
+The guide:
 
 `;
 
-/** Answers a leader's question from the guide, or null when it can't (not set up, or the request failed). */
-export async function askGuide(question: string): Promise<GuideAnswer | null> {
+/** Answers a question from the chosen guide, or null when it can't (not set up, or the request failed). */
+export async function askGuide(question: string, kind: GuideKind = "leader"): Promise<GuideAnswer | null> {
   if (!askConfigured()) return null;
-  const guide = leaderGuide();
+  const guide = loadGuide(kind);
   let md: string;
   try {
-    md = fs.readFileSync(FILE, "utf8");
+    md = fs.readFileSync(guideFile(kind), "utf8");
   } catch {
     return null;
   }
@@ -66,7 +67,7 @@ export async function askGuide(question: string): Promise<GuideAnswer | null> {
         },
       },
       // The guide is the same for every question, so it's cached.
-      system: [{ type: "text", text: SYSTEM_INTRO + md, cache_control: { type: "ephemeral" } }],
+      system: [{ type: "text", text: `${WHO[kind]}\n\n${RULES}${md}`, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: question.slice(0, 500) }],
     });
     if (response.stop_reason === "refusal") return null;

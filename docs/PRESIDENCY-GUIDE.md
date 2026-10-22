@@ -16,6 +16,10 @@ leader can ask up to 40 questions an hour. Only the question you type (and this
 guide) is sent to Anthropic's Claude to write the answer, never anyone's
 information.
 
+**Members have their own guide** under **More → Help**, with the same Ask box. It
+covers only what members can see and do (no leader tools), so it's the place to
+point members with questions about the app. Leaders can open it too.
+
 ## Who can do what
 
 - **Members** use the app: Home, lessons, the calendar, service, plans,

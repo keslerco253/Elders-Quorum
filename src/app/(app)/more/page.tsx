@@ -33,6 +33,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
     { href: "/more/home", label: "Customize Home", desc: "Put your Home page sections in the order you like, or hide some" },
     { href: "/more/reminders", label: "My reminders", desc: "When and how you're reminded about lessons, events and service" },
     { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },
+    { href: "/more/help", label: "Help", desc: "How to use the app: ask a question or look it up" },
   ];
   return (
     <>
