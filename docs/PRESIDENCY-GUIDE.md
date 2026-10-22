@@ -804,6 +804,16 @@ lesson for each organization that has lessons, upcoming events (labeled with
 their organization), and service opportunities. Tapping one opens it in its
 organization.
 
+**Customize Home** (the link at the bottom of Home, or More → Customize Home)
+lets each member put the sections in their own order with ↑ / ↓ and hide ones
+they don't use: Your assignments, Conducting this Sunday, this Sunday's lesson,
+Coming up, Challenge, Ways to serve, Would you like a visit? and Church apps.
+It's saved to their account, so it's the same on their phone and computer, and
+**Reset to the usual order** puts it back. Things that need an answer (items
+waiting on you, "Will you teach?", "Can you conduct?", visit invitations,
+"Which organizations are you in?" and the notifications prompt) always stay at
+the top. New sections added later show up in their usual place.
+
 **Request a visit** asks members who they'd like to hear from (one of their
 organizations' presidencies, or the bishopric). If there's only one choice, it's
 picked for them. A member can have one open request with each.

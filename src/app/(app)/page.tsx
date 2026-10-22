@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { FlyerThumb } from "@/components/flyer-thumb";
 import { OrgLink } from "@/components/org-link";
 import { firstName } from "@/lib/names";
@@ -28,6 +29,7 @@ import { KIND_ICONS, soonAssignments } from "@/lib/assignments";
 import { conductingSchedule, swapsWaitingOn } from "@/lib/conducting";
 import { runningChallengesFor, scoreboard } from "@/lib/challenges";
 import { ledOrgIds } from "@/lib/conversations";
+import { homeLayout, type HomeSection } from "@/lib/home-layout";
 
 export default async function HomePage() {
   const user = await requireUser();
@@ -73,6 +75,263 @@ export default async function HomePage() {
   const conductAsks = swapsWaitingOn(user.id, today);
   // A challenge their organization is in: the scores, and a nudge to log.
   const challenges = runningChallengesFor(user.ward_id, user.id, today).map((c) => ({ c, board: scoreboard(c.id) }));
+
+  // Each Home section, shown in the order the member chose.
+  const conductingSection = (
+    <>
+      {conducting.map(({ org, c }) => (
+        <Link key={org.id} href={inOrg("/conducting", org.id)} className="card mb-5 flex items-center justify-between gap-3 hover:bg-surface-2">
+          <span className="min-w-0">
+            <span className="block text-xs font-semibold tracking-wide text-accent uppercase">
+              Conducting {c.date === today ? "today" : "this Sunday"}
+              {conducting.length > 1 ? ` · ${org.label}` : ""}
+            </span>
+            <span className="block font-semibold">
+              {c.conference ? `${c.conference}: no meeting` : c.memberId === user.id ? "You're conducting" : c.name}
+            </span>
+            {!c.conference && (
+              <span className="text-sm text-muted">
+                {c.insteadOf ? `Instead of ${c.insteadOf}` : c.calling}
+                {c.pending ? ` · asked ${c.pending.toId === user.id ? "you" : c.pending.toName} to take it` : ""}
+              </span>
+            )}
+          </span>
+          <span className="text-muted">›</span>
+        </Link>
+      ))}
+    </>
+  );
+  const assignmentsSection = (
+    <>
+      {assignments.length > 0 && (
+        <Section
+          title="Your assignments"
+          actions={
+            <Link href="/assignments" className="link text-sm">
+              See all
+            </Link>
+          }
+        >
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+            {assignments.slice(0, 4).map((i) => (
+              <li key={i.key}>
+                <OrgLink href={i.href} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
+                  <span className="text-lg" aria-hidden>
+                    {KIND_ICONS[i.kind]}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{i.title}</span>
+                    <span className="text-sm text-muted">{i.detail}</span>
+                  </span>
+                  {i.flag && <Badge tone={i.flag.tone}>{i.flag.text}</Badge>}
+                </OrgLink>
+              </li>
+            ))}
+          </ul>
+          {assignments.length > 4 && (
+            <Link href="/assignments" className="mt-2 block text-sm text-accent">
+              {assignments.length - 4} more ›
+            </Link>
+          )}
+        </Section>
+      )}
+    </>
+  );
+  const lessonsSection = (
+    <>
+      {lessonNexts.map(({ org, lesson: [next, ...later] }) => {
+        const nextHasNotes = !!(next && getNotes(next.id)?.published_body);
+        const many = lessonNexts.length > 1;
+        // Sunday School: the week's Come, Follow Me (a teacher only on the Sundays class meets).
+        const cfm = usesCfm(org);
+        return (
+          <Section
+            key={org.id}
+            title={`${many ? `${org.label}: ` : ""}${cfm ? "Come, Follow Me this week" : next && next.date === today ? "Today" : "This Sunday"}`}
+            actions={
+              <OrgLink href={inOrg("/lessons", org.id)} className="link text-sm">
+                All lessons
+              </OrgLink>
+            }
+          >
+            {next ? (
+              <OrgLink href={inOrg(`/lessons/${next.id}`, org.id)} className="card flex gap-4 hover:bg-surface-2">
+                <DateChip date={next.date} highlight />
+                <div className="min-w-0 flex-1">
+                  {conferenceLabel(next.kind) ? (
+                    <div className="font-semibold">
+                      {conferenceLabel(next.kind)}: no {org.label} lesson
+                    </div>
+                  ) : (
+                    <>
+                      <div className="font-semibold">{next.title || (cfm ? "Lesson to be announced" : next.topic ? "Topic to be announced" : "Talk to be announced")}</div>
+                      {next.speaker && <div className="text-sm text-muted">{next.speaker}</div>}
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                        {next.teacher_name ? (
+                          <span className="text-muted">Teacher: {next.teacher_name}</span>
+                        ) : cfm ? null : (
+                          <Badge tone="warn">Teacher needed</Badge>
+                        )}
+                        {nextHasNotes && <Badge tone="info">Teacher&apos;s notes posted</Badge>}
+                        {next.comment_count > 0 && <span className="text-muted">· {next.comment_count} comments</span>}
+                      </div>
+                      <div className="mt-3 text-sm font-semibold text-accent">Study and share your thoughts ›</div>
+                    </>
+                  )}
+                </div>
+              </OrgLink>
+            ) : (
+              <div className="card text-sm text-muted">No lesson posted yet.</div>
+            )}
+            {later.length > 0 && (
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {later.map((l) => (
+                  <OrgLink
+                    key={l.id}
+                    href={inOrg(`/lessons/${l.id}`, org.id)}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-sm hover:bg-surface-2"
+                  >
+                    <DateChip date={l.date} />
+                    <span className="min-w-0 flex-1 truncate">{conferenceLabel(l.kind) ?? (l.title || (cfm ? "Lesson to be announced" : l.topic ? "Topic to be announced" : "Talk to be announced"))}</span>
+                  </OrgLink>
+                ))}
+              </div>
+            )}
+          </Section>
+        );
+      })}
+    </>
+  );
+  const comingUpSection = (
+    <>
+      <Section
+        title="Coming up"
+        actions={
+          <Link href="/calendar" className="link text-sm">
+            Calendar
+          </Link>
+        }
+      >
+        {events.length === 0 ? (
+          <div className="card text-sm text-muted">
+            Nothing on the calendar in the next few weeks.
+          </div>
+        ) : (
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+            {events.map((e) => (
+              <li key={e.id}>
+                <Link
+                  href={`/calendar/${e.id}`}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2"
+                >
+                  {e.flyer_file && <FlyerThumb file={e.flyer_file} name={e.flyer_name} />}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{e.title}</div>
+                    <div className="text-sm text-muted">
+                      {formatDateTime(e.starts_at, tz)}
+                      {e.location && ` · ${e.location}`}
+                    </div>
+                    {eventOrgs && <div className="text-xs text-muted">{e.org_label}</div>}
+                  </div>
+                  {!!e.presidency_only && <Badge tone="warn">Leaders only</Badge>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+    </>
+  );
+  const challengeSection = (
+    <>
+      {/* A challenge their organization is in: below Coming up. */}
+      {challenges.map(({ c, board }) => (
+        <Link key={c.id} href={`/challenges/${c.id}`} className="card mb-5 block hover:bg-surface-2">
+          <span className="block text-xs font-semibold tracking-wide text-accent uppercase">🏆 {c.title}</span>
+          <span className="mt-1 block text-sm">
+            {board.map((b, i) => (
+              <span key={b.team.id}>
+                {i > 0 && " · "}
+                <strong>{b.team.name}</strong> {Number.isInteger(b.points) ? b.points : b.points.toFixed(1)}
+              </span>
+            ))}
+          </span>
+          <span className="mt-1 block text-sm font-semibold text-accent">Log what you did ›</span>
+        </Link>
+      ))}
+    </>
+  );
+  const serveSection = (
+    <>
+      {signups.length > 0 && (
+        <Section
+          title="Ways to serve"
+          actions={
+            <Link href="/signups" className="link text-sm">
+              All service
+            </Link>
+          }
+        >
+          <ul className="space-y-2">
+            {signups.map((s) => (
+              <li key={s.id}>
+                <OrgLink
+                  href={inOrg(`/signups/${s.id}`, s.org.id)}
+                  className="card flex items-center justify-between gap-3 hover:bg-surface-2"
+                >
+                  {s.flyer_file && <FlyerThumb file={s.flyer_file} name={s.flyer_name} />}
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">{s.title}</span>
+                    <span className="text-sm text-muted">
+                      {[s.date && formatDate(s.date, "short"), signupOrgs.length > 1 && s.org.label].filter(Boolean).join(" · ")}
+                    </span>
+                  </span>
+                  {s.taken < s.capacity ? (
+                    <Badge tone="info">{stillNeeded(s.capacity - s.taken)}</Badge>
+                  ) : (
+                    <Badge tone="success">Full</Badge>
+                  )}
+                </OrgLink>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+    </>
+  );
+  const visitSection = (
+    <>
+      {visitOrgs.length > 0 && (
+        <Link href="/more/visit" className="card mb-6 flex items-center justify-between gap-3 hover:bg-surface-2">
+          <span>
+            <span className="block font-medium">Would you like a visit?</span>
+            <span className="text-sm text-muted">
+              Ask {visitOrgs.length === 1 ? leadersPhrase(visitOrgs[0]) : "your leaders"} to come by, talk, or help.
+            </span>
+          </span>
+          <span className="text-muted">›</span>
+        </Link>
+      )}
+    </>
+  );
+  const churchAppsSection = (
+    <>
+      <Section title="Church apps">
+        <QuickLinks />
+      </Section>
+    </>
+  );
+  const blocks: Record<HomeSection, React.ReactNode> = {
+    assignments: assignmentsSection,
+    conducting: conductingSection,
+    lessons: lessonsSection,
+    coming_up: comingUpSection,
+    challenge: challengeSection,
+    serve: serveSection,
+    visit: visitSection,
+    church_apps: churchAppsSection,
+  };
+  const layout = homeLayout(user.id);
 
   return (
     <>
@@ -141,27 +400,6 @@ export default async function HomePage() {
         </Link>
       ))}
 
-      {conducting.map(({ org, c }) => (
-        <Link key={org.id} href={inOrg("/conducting", org.id)} className="card mb-5 flex items-center justify-between gap-3 hover:bg-surface-2">
-          <span className="min-w-0">
-            <span className="block text-xs font-semibold tracking-wide text-accent uppercase">
-              Conducting {c.date === today ? "today" : "this Sunday"}
-              {conducting.length > 1 ? ` · ${org.label}` : ""}
-            </span>
-            <span className="block font-semibold">
-              {c.conference ? `${c.conference}: no meeting` : c.memberId === user.id ? "You're conducting" : c.name}
-            </span>
-            {!c.conference && (
-              <span className="text-sm text-muted">
-                {c.insteadOf ? `Instead of ${c.insteadOf}` : c.calling}
-                {c.pending ? ` · asked ${c.pending.toId === user.id ? "you" : c.pending.toName} to take it` : ""}
-              </span>
-            )}
-          </span>
-          <span className="text-muted">›</span>
-        </Link>
-      ))}
-
       {chooseOrgs && (
         <Link href="/more/organizations" className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">
           <span>
@@ -176,204 +414,18 @@ export default async function HomePage() {
         <PushToggle compact />
       </div>
 
-      {assignments.length > 0 && (
-        <Section
-          title="Your assignments"
-          actions={
-            <Link href="/assignments" className="link text-sm">
-              See all
-            </Link>
-          }
-        >
-          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
-            {assignments.slice(0, 4).map((i) => (
-              <li key={i.key}>
-                <OrgLink href={i.href} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
-                  <span className="text-lg" aria-hidden>
-                    {KIND_ICONS[i.kind]}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{i.title}</span>
-                    <span className="text-sm text-muted">{i.detail}</span>
-                  </span>
-                  {i.flag && <Badge tone={i.flag.tone}>{i.flag.text}</Badge>}
-                </OrgLink>
-              </li>
-            ))}
-          </ul>
-          {assignments.length > 4 && (
-            <Link href="/assignments" className="mt-2 block text-sm text-accent">
-              {assignments.length - 4} more ›
-            </Link>
-          )}
-        </Section>
-      )}
+      {/* Their sections, in the order they chose (More → Customize Home). */}
+      {layout.order
+        .filter((k) => !layout.hidden.includes(k))
+        .map((k) => (
+          <Fragment key={k}>{blocks[k]}</Fragment>
+        ))}
 
-      {lessonNexts.map(({ org, lesson: [next, ...later] }) => {
-        const nextHasNotes = !!(next && getNotes(next.id)?.published_body);
-        const many = lessonNexts.length > 1;
-        // Sunday School: the week's Come, Follow Me (a teacher only on the Sundays class meets).
-        const cfm = usesCfm(org);
-        return (
-          <Section
-            key={org.id}
-            title={`${many ? `${org.label}: ` : ""}${cfm ? "Come, Follow Me this week" : next && next.date === today ? "Today" : "This Sunday"}`}
-            actions={
-              <OrgLink href={inOrg("/lessons", org.id)} className="link text-sm">
-                All lessons
-              </OrgLink>
-            }
-          >
-            {next ? (
-              <OrgLink href={inOrg(`/lessons/${next.id}`, org.id)} className="card flex gap-4 hover:bg-surface-2">
-                <DateChip date={next.date} highlight />
-                <div className="min-w-0 flex-1">
-                  {conferenceLabel(next.kind) ? (
-                    <div className="font-semibold">
-                      {conferenceLabel(next.kind)}: no {org.label} lesson
-                    </div>
-                  ) : (
-                    <>
-                      <div className="font-semibold">{next.title || (cfm ? "Lesson to be announced" : next.topic ? "Topic to be announced" : "Talk to be announced")}</div>
-                      {next.speaker && <div className="text-sm text-muted">{next.speaker}</div>}
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                        {next.teacher_name ? (
-                          <span className="text-muted">Teacher: {next.teacher_name}</span>
-                        ) : cfm ? null : (
-                          <Badge tone="warn">Teacher needed</Badge>
-                        )}
-                        {nextHasNotes && <Badge tone="info">Teacher&apos;s notes posted</Badge>}
-                        {next.comment_count > 0 && <span className="text-muted">· {next.comment_count} comments</span>}
-                      </div>
-                      <div className="mt-3 text-sm font-semibold text-accent">Study and share your thoughts ›</div>
-                    </>
-                  )}
-                </div>
-              </OrgLink>
-            ) : (
-              <div className="card text-sm text-muted">No lesson posted yet.</div>
-            )}
-            {later.length > 0 && (
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {later.map((l) => (
-                  <OrgLink
-                    key={l.id}
-                    href={inOrg(`/lessons/${l.id}`, org.id)}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-sm hover:bg-surface-2"
-                  >
-                    <DateChip date={l.date} />
-                    <span className="min-w-0 flex-1 truncate">{conferenceLabel(l.kind) ?? (l.title || (cfm ? "Lesson to be announced" : l.topic ? "Topic to be announced" : "Talk to be announced"))}</span>
-                  </OrgLink>
-                ))}
-              </div>
-            )}
-          </Section>
-        );
-      })}
-
-      <Section
-        title="Coming up"
-        actions={
-          <Link href="/calendar" className="link text-sm">
-            Calendar
-          </Link>
-        }
-      >
-        {events.length === 0 ? (
-          <div className="card text-sm text-muted">
-            Nothing on the calendar in the next few weeks.
-          </div>
-        ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
-            {events.map((e) => (
-              <li key={e.id}>
-                <Link
-                  href={`/calendar/${e.id}`}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2"
-                >
-                  {e.flyer_file && <FlyerThumb file={e.flyer_file} name={e.flyer_name} />}
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{e.title}</div>
-                    <div className="text-sm text-muted">
-                      {formatDateTime(e.starts_at, tz)}
-                      {e.location && ` · ${e.location}`}
-                    </div>
-                    {eventOrgs && <div className="text-xs text-muted">{e.org_label}</div>}
-                  </div>
-                  {!!e.presidency_only && <Badge tone="warn">Leaders only</Badge>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-
-      {/* A challenge their organization is in: below Coming up. */}
-      {challenges.map(({ c, board }) => (
-        <Link key={c.id} href={`/challenges/${c.id}`} className="card mb-5 block hover:bg-surface-2">
-          <span className="block text-xs font-semibold tracking-wide text-accent uppercase">🏆 {c.title}</span>
-          <span className="mt-1 block text-sm">
-            {board.map((b, i) => (
-              <span key={b.team.id}>
-                {i > 0 && " · "}
-                <strong>{b.team.name}</strong> {Number.isInteger(b.points) ? b.points : b.points.toFixed(1)}
-              </span>
-            ))}
-          </span>
-          <span className="mt-1 block text-sm font-semibold text-accent">Log what you did ›</span>
+      <p className="mt-2 text-center text-sm">
+        <Link href="/more/home" className="link">
+          Customize Home
         </Link>
-      ))}
-
-      {signups.length > 0 && (
-        <Section
-          title="Ways to serve"
-          actions={
-            <Link href="/signups" className="link text-sm">
-              All service
-            </Link>
-          }
-        >
-          <ul className="space-y-2">
-            {signups.map((s) => (
-              <li key={s.id}>
-                <OrgLink
-                  href={inOrg(`/signups/${s.id}`, s.org.id)}
-                  className="card flex items-center justify-between gap-3 hover:bg-surface-2"
-                >
-                  {s.flyer_file && <FlyerThumb file={s.flyer_file} name={s.flyer_name} />}
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-medium">{s.title}</span>
-                    <span className="text-sm text-muted">
-                      {[s.date && formatDate(s.date, "short"), signupOrgs.length > 1 && s.org.label].filter(Boolean).join(" · ")}
-                    </span>
-                  </span>
-                  {s.taken < s.capacity ? (
-                    <Badge tone="info">{stillNeeded(s.capacity - s.taken)}</Badge>
-                  ) : (
-                    <Badge tone="success">Full</Badge>
-                  )}
-                </OrgLink>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {visitOrgs.length > 0 && (
-        <Link href="/more/visit" className="card mb-6 flex items-center justify-between gap-3 hover:bg-surface-2">
-          <span>
-            <span className="block font-medium">Would you like a visit?</span>
-            <span className="text-sm text-muted">
-              Ask {visitOrgs.length === 1 ? leadersPhrase(visitOrgs[0]) : "your leaders"} to come by, talk, or help.
-            </span>
-          </span>
-          <span className="text-muted">›</span>
-        </Link>
-      )}
-
-      <Section title="Church apps">
-        <QuickLinks />
-      </Section>
+      </p>
     </>
   );
 }

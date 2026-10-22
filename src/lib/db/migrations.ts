@@ -1380,4 +1380,9 @@ CREATE INDEX challenge_entries_challenge ON challenge_entries(challenge_id, team
 CREATE INDEX challenge_entries_member ON challenge_entries(member_id);
 `,
   },
+  {
+    // The order of a member's Home page sections and which are hidden (JSON), or null for the usual.
+    id: 67,
+    sql: `ALTER TABLE members ADD COLUMN home_layout TEXT;`,
+  },
 ];

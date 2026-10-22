@@ -30,6 +30,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
     { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },
     { href: "/messages", label: "Messages", count: unread, desc: `Messages from ${user.orgLabel} and replies from its ${leadersWord(user.org)}` },
     ...(myOrgs(user.id).some((o) => hasFeature(o, "visits")) ? [{ href: "/more/visit", label: "Request a visit", desc: "Ask your leaders to come by, talk, or help" }] : []),
+    { href: "/more/home", label: "Customize Home", desc: "Put your Home page sections in the order you like, or hide some" },
     { href: "/more/reminders", label: "My reminders", desc: "When and how you're reminded about lessons, events and service" },
     { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },
   ];
