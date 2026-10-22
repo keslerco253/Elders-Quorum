@@ -162,21 +162,6 @@ export default async function HomePage() {
         </Link>
       ))}
 
-      {challenges.map(({ c, board }) => (
-        <Link key={c.id} href={`/challenges/${c.id}`} className="card mb-5 block hover:bg-surface-2">
-          <span className="block text-xs font-semibold tracking-wide text-accent uppercase">🏆 {c.title}</span>
-          <span className="mt-1 block text-sm">
-            {board.map((b, i) => (
-              <span key={b.team.id}>
-                {i > 0 && " · "}
-                <strong>{b.team.name}</strong> {Number.isInteger(b.points) ? b.points : b.points.toFixed(1)}
-              </span>
-            ))}
-          </span>
-          <span className="mt-1 block text-sm font-semibold text-accent">Log what you did ›</span>
-        </Link>
-      ))}
-
       {chooseOrgs && (
         <Link href="/more/organizations" className="mb-5 flex items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">
           <span>
@@ -322,6 +307,22 @@ export default async function HomePage() {
           </ul>
         )}
       </Section>
+
+      {/* A challenge their organization is in: below Coming up. */}
+      {challenges.map(({ c, board }) => (
+        <Link key={c.id} href={`/challenges/${c.id}`} className="card mb-5 block hover:bg-surface-2">
+          <span className="block text-xs font-semibold tracking-wide text-accent uppercase">🏆 {c.title}</span>
+          <span className="mt-1 block text-sm">
+            {board.map((b, i) => (
+              <span key={b.team.id}>
+                {i > 0 && " · "}
+                <strong>{b.team.name}</strong> {Number.isInteger(b.points) ? b.points : b.points.toFixed(1)}
+              </span>
+            ))}
+          </span>
+          <span className="mt-1 block text-sm font-semibold text-accent">Log what you did ›</span>
+        </Link>
+      ))}
 
       {signups.length > 0 && (
         <Section
