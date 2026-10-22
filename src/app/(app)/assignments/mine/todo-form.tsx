@@ -13,6 +13,13 @@ export function TodoForm({ todo, ways, hasEmail }: { todo?: PersonalTodo; ways: 
   return (
     <form action={savePersonal} className="card max-w-xl space-y-3">
       {todo && <input type="hidden" name="item_id" value={todo.id} />}
+      <p className="flex gap-2 rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">
+        <span aria-hidden>🔒</span>
+        <span>
+          <strong>This to-do is entirely private.</strong> The only one who can see it is you. No one else can see it in the app: not your presidency, the
+          bishopric, ward administrators or anyone else.
+        </span>
+      </p>
       <input name="title" required maxLength={200} className="input" placeholder="What do you want to get done?" defaultValue={todo?.title} />
       <input name="due_date" type="date" className="input" defaultValue={todo?.due_date ?? ""} aria-label="Due date" />
       <textarea name="notes" rows={3} className="input" placeholder="Details (optional)" defaultValue={todo?.notes} />
@@ -49,7 +56,7 @@ export function TodoForm({ todo, ways, hasEmail }: { todo?: PersonalTodo; ways: 
           Cancel
         </Link>
       </div>
-      <p className="hint">Only you can see your to-dos. Reminders go out from 8 AM, when it has a due date.</p>
+      <p className="hint">Reminders go out from 8 AM, when it has a due date, and only to you.</p>
     </form>
   );
 }

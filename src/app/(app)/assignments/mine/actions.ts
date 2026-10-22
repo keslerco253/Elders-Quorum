@@ -30,7 +30,7 @@ export async function savePersonal(fd: FormData) {
     channels: fd.getAll("channel").map(String),
   });
   revalidatePath("/", "layout");
-  go("/assignments", saved ? (id ? "To-do saved." : "To-do added. Only you can see it.") : "That to-do no longer exists.");
+  go("/assignments", saved ? (id ? "To-do saved." : "To-do added. It's private: only you can see it.") : "That to-do no longer exists.");
 }
 
 export async function donePersonal(fd: FormData) {

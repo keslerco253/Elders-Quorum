@@ -10,7 +10,7 @@ export default async function NewTodoPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   return (
     <>
-      <PageHeader title="New to-do" back={{ href: "/assignments", label: "My assignments" }} subtitle="Just for you: only you can see it." />
+      <PageHeader title="New to-do" back={{ href: "/assignments", label: "My assignments" }} subtitle="Private: only you can see it." />
       <Flash msg={sp.msg} tone="warn" />
       <TodoForm ways={personalChannels(user.id)} hasEmail={!!user.email} />
     </>

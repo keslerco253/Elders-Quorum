@@ -15,7 +15,7 @@ export default async function TodoPage({ params, searchParams }: { params: Promi
   if (!todo) notFound();
   return (
     <>
-      <PageHeader title={todo.done ? "Done" : "My to-do"} back={{ href: "/assignments", label: "My assignments" }} subtitle="Only you can see this." />
+      <PageHeader title={todo.done ? "Done" : "My to-do"} back={{ href: "/assignments", label: "My assignments" }} subtitle="Private: only you can see it." />
       <Flash msg={sp.msg} tone="warn" />
       <div className="mb-4 flex max-w-xl flex-wrap gap-2">
         <form action={donePersonal}>
