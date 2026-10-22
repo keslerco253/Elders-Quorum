@@ -6,7 +6,7 @@ import { dataOnVolume } from "@/lib/setup-code";
 import { monthlyLimit, phoneEnabled, phoneOnlyMembers, textCost, textsByMonth, textsThisMonth, twilioConfigured } from "@/lib/sms";
 import { DateTime } from "luxon";
 import { inboundUrl } from "@/lib/sms-inbound";
-import { emailConfigured } from "@/lib/mail";
+import { emailConfigured, mailStatus } from "@/lib/mail";
 import { appUrl } from "@/lib/config";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -55,6 +55,9 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
   const user = await requireUser();
   if (!user.is_site_owner) redirect("/");
   const sp = await searchParams;
+  const tz = user.ward.timezone;
+  // Whether email is getting out (sign-in codes depend on it).
+  const mail = mailStatus();
   // Texting cost, and when paid texting runs out.
   const rate = textCost();
   const money = (n: number) => `$${n.toFixed(2)}`;
@@ -336,6 +339,21 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
           <div className="flex flex-wrap items-center gap-2">
             Email: {emailConfigured() ? <Badge tone="success">Connected</Badge> : <Badge tone="warn">Not set up: emails are saved to data/outbox</Badge>}
           </div>
+          {emailConfigured() && (
+            <p className="text-muted">
+              Last email sent: {mail.lastSent ? formatDateTime(mail.lastSent, tz) : "none yet since this was added"}.
+              {mail.lastError && (!mail.lastSent || mail.lastError.at > mail.lastSent) && (
+                <span className="mt-1 block text-danger">
+                  The last email failed ({formatDateTime(mail.lastError.at, tz)}, to {mail.lastError.to}): {mail.lastError.error}
+                </span>
+              )}
+              {mail.lastError && mail.lastSent && mail.lastError.at < mail.lastSent && (
+                <span className="mt-1 block">
+                  Last failure: {formatDateTime(mail.lastError.at, tz)}, to {mail.lastError.to}: {mail.lastError.error}
+                </span>
+              )}
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             Texting:{" "}
             {twilioConfigured() ? (

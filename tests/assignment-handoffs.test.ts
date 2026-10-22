@@ -63,3 +63,21 @@ describe("handing off assignments", () => {
     expect(todoNotes(30, false).map((n) => n.body)).toEqual(["Unable to do this assignment: Moving out of state"]);
   });
 });
+
+describe("unassigned assignments wait on the presidency", () => {
+  it("counts open ones no one has", async () => {
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'Pres', 'p@x.com', 'presidency'), (4, 1, 'M', 'Sam', 'm@x.com', 'member');
+      INSERT INTO todos (id, ward_id, title, assignee_id, done) VALUES (30, 1, 'Has someone', 4, 0), (31, 1, 'No one', NULL, 0), (32, 1, 'Finished', NULL, 1);
+    `);
+    const { createSession, userForSession } = await import("@/lib/auth-core");
+    const { adminCounts } = await import("@/lib/admin-counts");
+    const count = (id: number) => adminCounts(userForSession(createSession(id, "month").id)!);
+    expect(count(1).unassigned).toBe(1);
+    unableToDo(30, 4, "");
+    expect(count(1).unassigned).toBe(2);
+    expect(count(1).total).toBeGreaterThanOrEqual(2);
+    expect(count(4).unassigned).toBe(0);
+  });
+});

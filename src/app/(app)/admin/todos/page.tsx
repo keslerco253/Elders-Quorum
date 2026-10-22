@@ -11,7 +11,7 @@ import { KIND_ICONS, myAssignments, orgTodos, STATUS_LABELS, type Todo } from "@
 
 export const metadata = { title: "Assignments" };
 
-const SHOW = { open: "Open", overdue: "Overdue", done: "Done", all: "All" } as const;
+const SHOW = { open: "Open", unassigned: "Unassigned", overdue: "Overdue", done: "Done", all: "All" } as const;
 type Show = keyof typeof SHOW;
 
 export default async function TodosPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
@@ -22,7 +22,7 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
   const show: Show = sp.show && sp.show in SHOW ? (sp.show as Show) : "open";
   const all = orgTodos(user.org_id, { assigneeId: who || undefined });
   const overdue = (t: Todo) => !t.done && !!t.due_date && t.due_date < today;
-  const todos = all.filter((t) => (show === "open" ? !t.done : show === "done" ? !!t.done : show === "overdue" ? overdue(t) : true));
+  const todos = all.filter((t) => (show === "open" ? !t.done : show === "unassigned" ? !t.done && !t.assignee_id : show === "done" ? !!t.done : show === "overdue" ? overdue(t) : true));
   const presidencyIds = orgPresidency(user.org_id).map((p) => p.id);
   const people = orgRoster(user.org_id, { includeId: who || undefined });
   const editing = sp.edit ? all.find((t) => t.id === Number(sp.edit)) : undefined;

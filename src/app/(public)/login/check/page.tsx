@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Flash } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { CodeInput } from "@/components/code-input";
-import { verifyCode } from "../../actions";
+import { requestLogin, verifyCode } from "../../actions";
 import { formatContact, parseContact } from "@/lib/contact";
 
 export const metadata = { title: "Enter your code" };
@@ -15,7 +15,7 @@ export default async function CheckPage({ searchParams }: { searchParams: Promis
     <div className="card">
       <h2 className="h2 mb-1">{byText ? "Check your texts" : "Check your email"}</h2>
       <p className="mb-4 text-sm text-muted">
-        {byText ? "We texted a 6-digit code to " : "We sent a sign-in link and a 6-digit code to "}
+        {sp.error?.startsWith("Your account is set up") ? "Your code goes to " : byText ? "We texted a 6-digit code to " : "We sent a sign-in link and a 6-digit code to "}
         <strong className="text-text">{c ? formatContact(c.kind, c.value) : sp.to}</strong>.{byText ? " Tap the code above the keyboard, or type it here." : " Tap the link, or type the code here."}
       </p>
       <Flash msg={sp.error} tone="danger" />
@@ -30,6 +30,19 @@ export default async function CheckPage({ searchParams }: { searchParams: Promis
         </div>
         <SubmitButton className="btn-primary w-full" pendingText="Checking…">
           Sign in
+        </SubmitButton>
+      </form>
+      {/* Didn't arrive: a fresh code (the newest one is the one that works). */}
+      <form action={requestLogin} className="mt-4 rounded-xl bg-surface-2 p-3 text-sm">
+        <input type="hidden" name="contact" value={sp.to ?? ""} />
+        {sp.next && <input type="hidden" name="next" value={sp.next} />}
+        <p className="mb-2 text-muted">
+          {byText
+            ? "Didn't get a text after a minute or two?"
+            : "Didn't get it after a minute or two? Check your spam or junk folder (and Promotions in Gmail)."}
+        </p>
+        <SubmitButton className="btn-secondary btn-sm" pendingText="Sending…">
+          Send a new code
         </SubmitButton>
       </form>
       {!byText && (

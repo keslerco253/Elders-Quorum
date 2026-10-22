@@ -55,6 +55,9 @@ function reviewLogin() {
   return c?.kind === "email" && /^\d{6}$/.test(code || "") ? { email: c.value, code } : null;
 }
 
+/** Your account was made, but the code didn't go out. */
+const NOT_SENT = "Your account is set up, but we couldn't send your code just now. Tap \"Send a new code\" below in a minute.";
+
 export async function requestLogin(formData: FormData) {
   const raw = String(formData.get("contact") || "");
   const remember = String(formData.get("remember") || "month");
@@ -188,9 +191,9 @@ export async function joinApp(formData: FormData) {
 
   if (c.kind === "phone") d.prepare("UPDATE members SET sms_consent_at = datetime('now') WHERE id = ?").run(memberId);
   const res = createLoginToken(memberId, "month");
-  if (res.ok) await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, c.kind, res.token, res.code);
+  const sent = res.ok && (await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, c.kind, res.token, res.code));
   // After signing in, they choose the organizations they belong to.
-  redirect("/login/check?" + q({ to: c.value }));
+  redirect("/login/check?" + q({ to: c.value, ...(sent ? {} : { error: NOT_SENT }) }));
 }
 
 /**
@@ -240,7 +243,7 @@ export async function startWard(formData: FormData) {
   });
   if (!first) await tellOwnerAboutNewWard(ward.id);
   const res = createLoginToken(memberId, "month");
-  if (res.ok) await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, c.kind, res.token, res.code);
-  redirect("/login/check?" + q({ to: c.value }));
+  const sent = res.ok && (await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, c.kind, res.token, res.code));
+  redirect("/login/check?" + q({ to: c.value, ...(sent ? {} : { error: NOT_SENT }) }));
 }
 

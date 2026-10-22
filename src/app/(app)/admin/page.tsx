@@ -133,6 +133,13 @@ export default async function AdminPage() {
       count: c.teacherNeeded,
       show: p,
     },
+    {
+      href: "/admin/todos?show=unassigned",
+      label: "Unassigned assignments",
+      desc: "No one has these (or the person was unable to do them)",
+      count: c.unassigned,
+      show: p && has("todos"),
+    },
   ];
   return (
     <>

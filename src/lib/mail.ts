@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import nodemailer, { type Transporter } from "nodemailer";
-import { DATA_DIR } from "./db";
+import { DATA_DIR, db } from "./db";
 
 export interface MailMessage {
   to: string;
@@ -51,11 +51,34 @@ export async function sendMail(msg: MailMessage): Promise<boolean> {
   try {
     const fromName = process.env.MAIL_FROM_NAME || "Elders Quorum";
     await t.sendMail({ from: `"${fromName}" <${process.env.SMTP_USER}>`, ...msg });
+    noteMail("mail_last_sent", new Date().toISOString());
     return true;
   } catch (err) {
     console.error("[mail] send failed", err);
+    noteMail("mail_last_error", JSON.stringify({ at: new Date().toISOString(), to: msg.to.replace(/^(.).*@/, "$1…@"), error: String((err as Error)?.message ?? err).slice(0, 300) }));
     return false;
   }
+}
+
+/** Remembers the last email sent and the last failure, for the site owner's page. */
+function noteMail(key: string, value: string) {
+  try {
+    db().prepare("INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(key, value);
+  } catch {
+    // Never let this stop an email.
+  }
+}
+
+/** When email last worked, and the last failure (when, to whom, the error). */
+export function mailStatus(): { lastSent: string | null; lastError: { at: string; to: string; error: string } | null } {
+  const get = (k: string) => (db().prepare("SELECT value FROM app_settings WHERE key = ?").get(k) as { value: string } | undefined)?.value ?? null;
+  let lastError = null;
+  try {
+    lastError = JSON.parse(get("mail_last_error") ?? "null");
+  } catch {
+    lastError = null;
+  }
+  return { lastSent: get("mail_last_sent"), lastError };
 }
 
 export function escapeHtml(s: string) {
