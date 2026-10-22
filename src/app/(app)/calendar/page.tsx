@@ -6,6 +6,7 @@ import { eventsBetween } from "@/lib/events";
 import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, formatTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
+import { hasFeature } from "@/lib/orgs";
 
 export const metadata = { title: "Calendar" };
 
@@ -60,7 +61,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 Add {user.orgLabel} event
               </Link>
             )}
-            {!admin && (
+            {!admin && hasFeature(user.org, "event_requests") && (
               <Link href="/calendar/request" className="btn-secondary">
                 Request an event
               </Link>

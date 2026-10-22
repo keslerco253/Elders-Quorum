@@ -1,3 +1,4 @@
+import { hasFeature } from "@/lib/orgs";
 import { DateTime } from "luxon";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -46,12 +47,11 @@ export default async function SignupPage({
             />
             {isAdmin(user) && (
               <>
-                <Link
-                  href={`/admin/shared/new?signup=${s.id}`}
-                  className="btn-secondary"
-                >
-                  Share publicly
-                </Link>
+                {hasFeature(user.org, "shared") && (
+                  <Link href={`/admin/shared/new?signup=${s.id}`} className="btn-secondary">
+                    Share publicly
+                  </Link>
+                )}
                 <Link href={`/admin/signups/${s.id}`} className="btn-secondary">
                   Edit
                 </Link>

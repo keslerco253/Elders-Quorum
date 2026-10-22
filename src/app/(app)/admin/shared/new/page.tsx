@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requirePresidency } from "@/lib/auth";
+import { requireFeature, requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSignup } from "@/lib/signups";
 import { getPlan } from "@/lib/plans";
@@ -13,6 +13,7 @@ export const metadata = { title: "Share publicly" };
 /** Making a public link and QR code for one picture/PDF, or one service opportunity. */
 export default async function NewSharePage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePresidency();
+  requireFeature(user, "shared");
   const sp = await searchParams;
   const signup = sp.signup ? getSignup(user.org_id, Number(sp.signup)) : undefined;
   const plan = sp.plan ? getPlan(user.ward_id, Number(sp.plan)) : undefined;

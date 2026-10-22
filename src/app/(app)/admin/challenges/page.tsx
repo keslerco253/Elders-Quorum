@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePresidency } from "@/lib/auth";
+import { requireFeature, requirePresidency } from "@/lib/auth";
 import { challengeTeams, listChallenges, scoreboard, statusOf } from "@/lib/challenges";
 import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
@@ -9,6 +9,7 @@ export const metadata = { title: "Challenges" };
 /** Friendly challenges between organizations: start one, and see every one in the ward. */
 export default async function AdminChallengesPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePresidency();
+  requireFeature(user, "challenges");
   const sp = await searchParams;
   const today = todayIn(user.ward.timezone);
   const challenges = listChallenges(user.ward_id).sort((a, b) => Number(statusOf(a, today) === "finished") - Number(statusOf(b, today) === "finished"));

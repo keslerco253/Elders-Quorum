@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePresidency } from "@/lib/auth";
+import { requireFeature, requirePresidency } from "@/lib/auth";
 import { conductingSchedule, presidencyWithCallings, swapsWaitingOn } from "@/lib/conducting";
 import { formatDate, todayIn } from "@/lib/time";
 import { leadersWord } from "@/lib/types";
@@ -11,6 +11,7 @@ export const metadata = { title: "Who's conducting" };
 
 export default async function ConductingPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePresidency();
+  requireFeature(user, "conducting");
   const sp = await searchParams;
   const today = todayIn(user.ward.timezone);
   const schedule = conductingSchedule(user.org_id, today, 13);

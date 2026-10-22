@@ -105,6 +105,7 @@ export default async function AdminPage() {
       label: "Comments to approve",
       desc: "Lesson comments and replies",
       count: c.comments,
+      show: has("comments"),
     },
     {
       href: "/admin/access",
@@ -118,6 +119,7 @@ export default async function AdminPage() {
       label: "Event requests",
       desc: "Suggested by members",
       count: c.eventRequests,
+      show: has("event_requests"),
     },
     {
       href: c.volunteersHref,
@@ -197,11 +199,24 @@ export default async function AdminPage() {
                   },
                 ]
               : []),
-            {
-              href: "/admin/challenges",
-              label: "Challenges",
-              desc: "Friendly competitions between organizations",
-            },
+            ...(has("conducting") && p
+              ? [
+                  {
+                    href: "/conducting",
+                    label: "Who's conducting",
+                    desc: "The rotation by calling, and asking someone to take a Sunday",
+                  },
+                ]
+              : []),
+            ...(has("challenges")
+              ? [
+                  {
+                    href: "/admin/challenges",
+                    label: "Challenges",
+                    desc: "Friendly competitions between organizations",
+                  },
+                ]
+              : []),
             {
               href: "/admin/members",
               label: "Members",
@@ -219,16 +234,24 @@ export default async function AdminPage() {
       <Section title="Setup">
         <Tiles
           tiles={[
-            {
-              href: "/admin/groups",
-              label: "Message groups",
-              desc: "Custom groups to send messages to",
-            },
-            {
-              href: "/admin/shared",
-              label: "Shared publicly",
-              desc: "Links and QR codes for flyers and sign-ups, open to anyone",
-            },
+            ...(has("groups")
+              ? [
+                  {
+                    href: "/admin/groups",
+                    label: "Message groups",
+                    desc: "Custom groups to send messages to",
+                  },
+                ]
+              : []),
+            ...(has("shared")
+              ? [
+                  {
+                    href: "/admin/shared",
+                    label: "Shared publicly",
+                    desc: "Links and QR codes for flyers and sign-ups, open to anyone",
+                  },
+                ]
+              : []),
             {
               href: "/admin/templates",
               label: "Message wording",

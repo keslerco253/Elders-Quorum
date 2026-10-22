@@ -43,7 +43,7 @@ export function composeChoices(viewerId: number): { orgs: OrgChoices[]; people: 
       aud("everyone", `Everyone in ${label}`),
       aud("presidency", `The ${leadersWord(org)}`),
       ...(hasFeature(org, "lessons") ? [aud("teachers", "Upcoming teachers (next 5 weeks)")] : []),
-      ...orgGroups(orgId)
+      ...(hasFeature(org, "groups") ? orgGroups(orgId) : [])
         .filter((g) => canSendTo(g, viewerId, "presidency"))
         .map((g) => aud(`group:${g.id}`, `Group: ${g.name}`)),
     ];
@@ -125,7 +125,7 @@ export function memberComposeChoices(memberId: number): MemberOrgChoices[] {
       choices.push({ value: `p:${o.id}:0`, label: `The whole ${leadersWord(o)}` });
       for (const c of contacts.filter((c) => canWritePrivately(o.id, memberId, c.id))) choices.push({ value: `p:${o.id}:${c.id}`, label: `Only ${contactLabel(c, o)} (private)` });
     }
-    for (const g of orgGroups(o.id).filter((g) => canSendTo(g, memberId, o.role))) choices.push({ value: `g:${o.id}:${g.id}`, label: `Group: ${g.name}` });
+    for (const g of (hasFeature(o, "groups") ? orgGroups(o.id) : []).filter((g) => canSendTo(g, memberId, o.role))) choices.push({ value: `g:${o.id}:${g.id}`, label: `Group: ${g.name}` });
     if (choices.length) out.push({ orgId: o.id, label: o.label, choices });
   }
   return out;

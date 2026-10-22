@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { challengeItems, challengeTeams, DEFAULT_ITEMS, getChallenge } from "@/lib/challenges";
 import { isPresidencyOf } from "@/lib/assignments";
-import { orgsInWard } from "@/lib/orgs";
+import { hasFeature, orgsInWard } from "@/lib/orgs";
 import { todayIn } from "@/lib/time";
 import { Flash, PageHeader } from "@/components/ui";
 import { ChallengeForm } from "@/app/(app)/challenges/challenge-form";
@@ -17,7 +17,7 @@ export default async function EditChallengePage({ params, searchParams }: { para
   if (!c) notFound();
   if (!c.org_id || !isPresidencyOf(user.id, c.org_id)) redirect(`/challenges/${c.id}`);
   const orgs = orgsInWard(user.ward_id)
-    .filter((o) => o.kind !== "ward")
+    .filter((o) => o.kind !== "ward" && hasFeature(o, "challenges"))
     .map((o) => ({ id: o.id, name: o.name }));
   return (
     <>

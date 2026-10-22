@@ -15,6 +15,7 @@ import { renderMarkdown } from "@/lib/markdown";
 import { askPath, pendingRequestsFor } from "@/lib/teaching-requests";
 import { moderateComment } from "../../admin/comments/actions";
 import { leadersWord } from "@/lib/types";
+import { hasFeature } from "@/lib/orgs";
 
 export const metadata = { title: "Lesson" };
 
@@ -206,6 +207,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
             )}
           </section>
 
+          {hasFeature(user.org, "comments") && (
           <section id="comments" className="scroll-mt-20">
             <h2 className="h2 mb-1">Study thoughts</h2>
             <p className="mb-4 text-sm text-muted">Share an insight or question from your study. Comments appear after a presidency member approves them.</p>
@@ -241,6 +243,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
               <SubmitButton pendingText="Sending…">Post comment</SubmitButton>
             </form>
           </section>
+          )}
         </>
       )}
     </>

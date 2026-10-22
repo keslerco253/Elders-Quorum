@@ -63,9 +63,16 @@ export interface Ward {
 /** Features an organization can hide when it doesn't use them. */
 export const FEATURES = {
   lessons: "Lessons and teachers",
+  comments: "Members' comments on lessons (study thoughts)",
   signups: "Service opportunities",
   visits: "Visits and visit requests",
   todos: "Assignments and presidency meetings",
+  conducting: "Who's conducting (presidency rotation)",
+  event_requests: "Event suggestions from members",
+  plans: "Plans",
+  groups: "Message groups",
+  challenges: "Challenges between organizations",
+  shared: "Public links and QR codes (flyers, sign-ups)",
 } as const;
 export type Feature = keyof typeof FEATURES;
 

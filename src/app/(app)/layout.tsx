@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         current={{ id: user.org_id, label: user.orgLabel, ward: user.ward.name }}
         ward={user.ward.name}
         targets={targets}
-        features={{ lessons: hasFeature(user.org, "lessons"), signups: hasFeature(user.org, "signups") }}
+        features={{ lessons: hasFeature(user.org, "lessons"), signups: hasFeature(user.org, "signups"), plans: hasFeature(user.org, "plans") }}
         // Leaders keep the Admin tab while looking at another organization; it shows where to switch.
         // Ward administrators, the site owner and the backup person have theirs there too.
         isAdmin={isAdmin(user) || ledOrgsAnywhere(user.id).length > 0 || hasAdminTab(user)}

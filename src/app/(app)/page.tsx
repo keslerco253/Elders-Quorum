@@ -70,10 +70,10 @@ export default async function HomePage() {
   // and anyone asking them to conduct.
   const led = ledOrgIds(user.id);
   const conducting = mine
-    .filter((o) => led.includes(o.id))
+    .filter((o) => led.includes(o.id) && hasFeature(o, "conducting"))
     .map((o) => ({ org: o, c: conductingSchedule(o.id, currentLessonDate(tz), 1)[0] }))
     .filter(({ c }) => c && (c.name || c.conference));
-  const conductAsks = swapsWaitingOn(user.id, today);
+  const conductAsks = swapsWaitingOn(user.id, today).filter((a) => mine.some((o) => o.id === a.org_id && hasFeature(o, "conducting")));
   // Someone asking them (or their whole presidency) to take an assignment.
   const takeAsks = handoffsWaitingOn(user.id);
   // A challenge their organization is in: the scores, and a nudge to log.

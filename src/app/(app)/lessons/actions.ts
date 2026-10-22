@@ -12,6 +12,7 @@ import { getNotes, publishNotes, submitNotes } from "@/lib/lesson-notes";
 import { announceNotes } from "@/lib/notes-notify";
 import { confirmTeaching, declineTeaching } from "@/lib/teaching";
 import { leadersWord } from "@/lib/types";
+import { hasFeature } from "@/lib/orgs";
 
 const back = (id: number, text: string, anchor = "") =>
   redirect(`/lessons/${id}?msg=${encodeURIComponent(text)}${anchor}`);
@@ -97,6 +98,7 @@ export async function addComment(fd: FormData) {
   const user = await requireUser();
   const lesson = getLesson(user.org_id, Number(fd.get("lesson_id")));
   if (!lesson) redirect("/lessons");
+  if (!hasFeature(user.org, "comments")) back(lesson.id, "Comments are turned off.");
   const body = String(fd.get("body") || "")
     .trim()
     .slice(0, 4000);

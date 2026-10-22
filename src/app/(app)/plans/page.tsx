@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PlanIconView } from "@/components/plan-icons";
 import { requireUser } from "@/lib/auth";
+import { hasFeature } from "@/lib/orgs";
 import { audienceText, canCreatePlans, listPlans, PLAN_BLURBS, planIcon } from "@/lib/plans";
 import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
@@ -10,6 +11,13 @@ export const metadata = { title: "Plans" };
 export default async function PlansPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
   const sp = await searchParams;
+  if (!hasFeature(user.org, "plans"))
+    return (
+      <>
+        <PageHeader title="Ward plans" />
+        <Empty>{user.orgLabel} doesn&apos;t use Plans.</Empty>
+      </>
+    );
   const plans = listPlans(user.ward_id, user.org);
   return (
     <>

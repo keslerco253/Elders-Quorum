@@ -793,6 +793,27 @@ you; each organization keeps its own wording.
 zone, join code, features and organizations, and starting another ward.
 Email, texting and backups are on the site owner's page.
 
+### What your organization uses
+
+**Admin → Settings → This organization** (presidency or bishopric) lists every
+optional part of the app. Turn off what you don't use and it's hidden from
+everyone in your organization (nothing is deleted; turning it back on brings it
+all back):
+
+- Lessons and teachers
+- Members' comments on lessons (study thoughts)
+- Service opportunities
+- Visits and visit requests
+- Assignments and presidency meetings
+- Who's conducting (presidency rotation)
+- Event suggestions from members
+- Plans (the Plans tab)
+- Message groups
+- Challenges between organizations (an organization that turns them off can't be put on a team)
+- Public links and QR codes (flyers, sign-ups)
+
+Messages from members and reminder times have their own sections on the same page.
+
 ### Reminder times
 
 **Admin → Settings → Reminder times** (presidency) sets when your

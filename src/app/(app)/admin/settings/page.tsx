@@ -40,7 +40,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 </label>
               ))}
             </div>
-            <p className="hint">Turned-off features are hidden from everyone in {user.orgLabel}. Nothing is deleted.</p>
+            <p className="hint">Turned-off features are hidden from everyone in {user.orgLabel}. Nothing is deleted, and turning one back on brings it all back. Messages from members and reminder times are below.</p>
           </fieldset>
           <SubmitButton>Save</SubmitButton>
         </form>

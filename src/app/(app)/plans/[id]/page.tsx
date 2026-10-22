@@ -1,3 +1,4 @@
+import { hasFeature } from "@/lib/orgs";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
@@ -72,7 +73,7 @@ export default async function PlanPage({ params, searchParams }: { params: Promi
           })()}
         </article>
       )}
-      {editor && isPresidency(user) && latest && (() => {
+      {editor && isPresidency(user) && latest && hasFeature(user.org, "shared") && (() => {
         const media = versionBlocks(latest).filter((b) => b.type === "image" || b.type === "pdf") as { file: string; name: string; caption: string }[];
         return (
             <details className="card mt-4 text-sm">

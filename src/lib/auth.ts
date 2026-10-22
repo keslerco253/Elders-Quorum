@@ -6,9 +6,9 @@ import { cache } from "react";
 import { isHttps } from "./config";
 import { createSession, deleteSession, userForSession, type Remember } from "./auth-core";
 import { isAdmin, isPresidency } from "./permissions";
-import type { CurrentUser } from "./types";
+import { FEATURES, type CurrentUser, type Feature } from "./types";
 import { ORG_COOKIE, parseOrgCookie } from "./org-cookie";
-import { ledOrgsAnywhere } from "./orgs";
+import { hasFeature, ledOrgsAnywhere } from "./orgs";
 
 const COOKIE = "eq_session";
 
@@ -79,4 +79,9 @@ export async function endSession() {
   const id = jar.get(COOKIE)?.value;
   if (id) deleteSession(id);
   jar.delete(COOKIE);
+}
+
+/** Leaders' pages for an optional feature: when it's turned off, go to Settings, which says so. */
+export function requireFeature(user: CurrentUser, f: Feature) {
+  if (!hasFeature(user.org, f)) redirect(`/admin/settings?msg=${encodeURIComponent(`"${FEATURES[f]}" is turned off for ${user.orgLabel}. Turn it on below to use it.`)}`);
 }

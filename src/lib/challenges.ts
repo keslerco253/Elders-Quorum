@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { hasFeature } from "./orgs";
 
 // Friendly challenges between organizations, e.g. temple and family history work.
 // Teams are one or more organizations. Members log what they did; everyone sees only
@@ -76,7 +77,11 @@ export interface ChallengeInput {
  * (each organization on only one team) and something that counts.
  */
 function checkInput(wardId: number, c: ChallengeInput): { error: string } | { teams: ChallengeInput["teams"]; items: ChallengeInput["items"] } {
-  const wardOrgs = new Set((db().prepare("SELECT id FROM orgs WHERE ward_id = ? AND active = 1").all(wardId) as { id: number }[]).map((o) => o.id));
+  const wardOrgs = new Set(
+    (db().prepare("SELECT id, hidden_features FROM orgs WHERE ward_id = ? AND active = 1").all(wardId) as { id: number; hidden_features: string }[])
+      .filter((o) => hasFeature(o, "challenges"))
+      .map((o) => o.id),
+  );
   const teams = c.teams.map((t) => ({ ...t, orgIds: [...new Set(t.orgIds)].filter((id) => wardOrgs.has(id)) })).filter((t) => t.orgIds.length);
   const items = c.items.map((i) => ({ ...i, label: i.label.trim().slice(0, 80) })).filter((i) => i.label && Number.isFinite(i.points) && i.points > 0);
   if (!c.title.trim()) return { error: "Give the challenge a name." };

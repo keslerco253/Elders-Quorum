@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { getEvent } from "@/lib/events";
 import { audienceMembers, notify } from "@/lib/notify";
 import { localInputToUtc } from "@/lib/time";
+import { hasFeature } from "@/lib/orgs";
 
 export async function rsvp(fd: FormData) {
   const user = await requireUser();
@@ -23,6 +24,7 @@ export async function rsvp(fd: FormData) {
 
 export async function requestEvent(fd: FormData) {
   const user = await requireUser();
+  if (!hasFeature(user.org, "event_requests")) redirect(`/calendar?msg=${encodeURIComponent("Event suggestions are turned off.")}`);
   const tz = user.ward.timezone;
   const title = String(fd.get("title") || "").trim();
   const start = localInputToUtc(String(fd.get("starts_at") || ""), tz);

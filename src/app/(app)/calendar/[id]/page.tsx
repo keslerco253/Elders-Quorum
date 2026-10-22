@@ -14,7 +14,7 @@ import { appUrl } from "@/lib/config";
 import { SubmitButton } from "@/components/client";
 import { FlyerView } from "@/components/flyer-view";
 import { rsvp } from "../actions";
-import { roleIn } from "@/lib/orgs";
+import { hasFeature, roleIn } from "@/lib/orgs";
 import { meetingForEvent } from "@/lib/meetings";
 import { withOrg } from "@/lib/org-cookie";
 
@@ -98,7 +98,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
           ) : null;
         })()}
         {e.flyer_file && <FlyerView file={e.flyer_file} name={e.flyer_name} className="" />}
-        {e.flyer_file && admin && e.org_id === user.org_id && (
+        {e.flyer_file && admin && e.org_id === user.org_id && hasFeature(user.org, "shared") && (
           <a href={`/admin/shared/new?${new URLSearchParams({ file: e.flyer_file, title: e.title })}`} className="btn-secondary btn-sm">
             Share flyer publicly (link and QR code)
           </a>

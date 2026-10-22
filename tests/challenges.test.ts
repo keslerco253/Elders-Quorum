@@ -25,6 +25,10 @@ describe("challenges between organizations", () => {
     expect(createChallenge(1, eq, 1, { ...base, teams: [{ name: "", orgIds: [eq] }] })).toEqual({ error: expect.stringMatching(/two teams/) });
     expect(createChallenge(1, eq, 1, { ...base, teams: [{ name: "", orgIds: [eq] }, { name: "", orgIds: [eq, rs] }] })).toEqual({ error: expect.stringMatching(/only one team/) });
     expect(createChallenge(1, eq, 1, { ...base, items: [], teams: [{ name: "", orgIds: [eq] }, { name: "", orgIds: [rs] }] })).toEqual({ error: expect.stringMatching(/at least one thing/) });
+    // An organization that turned Challenges off can't be on a team.
+    db().prepare("UPDATE orgs SET hidden_features = 'challenges' WHERE id = ?").run(rs);
+    expect(createChallenge(1, eq, 1, { ...base, teams: [{ name: "", orgIds: [eq] }, { name: "", orgIds: [rs] }] })).toEqual({ error: expect.stringMatching(/two teams/) });
+    db().prepare("UPDATE orgs SET hidden_features = '' WHERE id = ?").run(rs);
   });
 
   it("shows team totals only; each entry only to whoever logged it", () => {
