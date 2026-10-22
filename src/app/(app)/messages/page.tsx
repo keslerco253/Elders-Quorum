@@ -10,7 +10,7 @@ import { MemberInboxList, MemberSentList } from "./member-inbox-list";
 import { leadersWord } from "@/lib/types";
 import { formatDateTime } from "@/lib/time";
 import { Empty, Flash, PageHeader } from "@/components/ui";
-import { sentAnnouncements } from "@/lib/compose";
+import { memberComposeChoices, sentAnnouncements } from "@/lib/compose";
 
 export const metadata = { title: "Messages" };
 
@@ -125,9 +125,11 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         title="Messages"
         subtitle={leads ? `Your own messages, as a member: from your organizations and their leaders.` : `From your organizations, and your conversations with their ${leadersWord(user.org)}.`}
         actions={
-          <Link href={newHref} className="btn-primary">
-            ✎ New message
-          </Link>
+          memberComposeChoices(user.id).length > 0 && (
+            <Link href={newHref} className="btn-primary">
+              ✎ New message
+            </Link>
+          )
         }
       />
       {tabs}

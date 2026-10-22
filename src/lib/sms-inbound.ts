@@ -3,7 +3,8 @@ import { db } from "./db";
 import { appUrl } from "./config";
 import { normalizePhone } from "./contact";
 import { receiveReply, recentMessageFor, recentReplies, sendAnswer, threadForTextReply } from "./conversations";
-import { twilioConfigured } from "./sms";
+import { sendSms, twilioConfigured } from "./sms";
+import { closedText, orgTakesMessages } from "./message-routing";
 import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching";
 import { getOrg, getWard, homeOf, orgFullName, orgLabel } from "./orgs";
 import { allowHit } from "./rate-limit";
@@ -304,6 +305,12 @@ function orgsThatTextedLately(memberId: number): number[] {
 
 /** Saves a member's texted reply in an organization (privately, if they were in a private conversation there). */
 async function deliverTextReply(member: { id: number; display_name: string }, orgId: number, body: string) {
+  // Leaders who don't take messages through the app: it isn't passed on, and the member is told (once a day).
+  if (!orgTakesMessages(orgId, member.id)) {
+    const phone = (db().prepare("SELECT phone FROM members WHERE id = ?").get(member.id) as { phone: string | null } | undefined)?.phone;
+    if (phone && allowHit(`closed-reply:${member.id}:${orgId}`, 1, 24 * 60)) await sendSms(orgId, phone, `${closedText(getOrg(orgId)!)} Texts to this number aren't passed on.`, "notice");
+    return `Not passed on: ${orgLabel(getOrg(orgId)!)} doesn't take messages`;
+  }
   db().prepare("UPDATE members SET last_text_org_id = ? WHERE id = ?").run(orgId, member.id);
   const thread = threadForTextReply(member.id, orgId);
   const where = await receiveReply({ ...member, org_id: orgId }, body, "text", recentMessageFor(member.id, orgId), thread);

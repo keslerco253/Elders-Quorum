@@ -2,7 +2,7 @@ import { db } from "./db";
 import { audienceMembers, notify, recipientById } from "./notify";
 import { callingLabel, CALLINGS, type Calling, type Org } from "./types";
 import { getOrg, leadersPhrase, orgLabel } from "./orgs";
-import { backupReceivers, confirmToSender, orgReceivers } from "./message-routing";
+import { backupReceivers, confirmToSender, leaderTakesMessages, orgReceivers } from "./message-routing";
 
 // In each organization, a member can talk with the whole presidency
 // (recipient_id NULL) and, privately, with any one presidency member
@@ -110,7 +110,7 @@ function presidencyMember(orgId: number, id: number) {
 export async function receiveReply(member: { id: number; org_id: number; display_name: string }, body: string, via: "app" | "text", messageId: number | null, thread: Thread = { private: false }) {
   const text = body.trim().slice(0, MAX_BODY);
   if (!text) return "";
-  const to = thread.private ? presidencyMember(member.org_id, thread.withId) : undefined;
+  const to = thread.private && leaderTakesMessages(member.org_id, thread.withId) ? presidencyMember(member.org_id, thread.withId) : undefined;
   // A private message to someone no longer in the presidency goes to the whole presidency instead.
   const recipientId = to ? to.id : null;
   const presidency = to ? [to] : orgReceivers(member.org_id, member.id);

@@ -4,6 +4,7 @@ import { canSendTo, orgGroups } from "./groups";
 import { getOrg, getWard, hasFeature, myOrgs, orgLabel, orgRoster } from "./orgs";
 import { contactLabel, ledOrgIds, presidencyContacts } from "./conversations";
 import { leadersWord } from "./types";
+import { canWritePrivately, orgTakesMessages, wardTakesMessages } from "./message-routing";
 
 // What a leader can send from Messages → New message: an announcement to a whole
 // organization, its presidency, upcoming teachers or a message group, or a personal
@@ -116,11 +117,13 @@ export interface MemberOrgChoices {
 export function memberComposeChoices(memberId: number): MemberOrgChoices[] {
   const out: MemberOrgChoices[] = [];
   for (const o of myOrgs(memberId)) {
-    const contacts = presidencyContacts(o.id).filter((c) => c.id !== memberId);
+    // The ward (or this organization, or each leader) can turn members' messages off.
+    if (o.role === "member" && !wardTakesMessages(o.ward_id)) continue;
+    const contacts = orgTakesMessages(o.id, memberId) ? presidencyContacts(o.id).filter((c) => c.id !== memberId) : [];
     const choices: MemberChoice[] = [];
     if (contacts.length) {
       choices.push({ value: `p:${o.id}:0`, label: `The whole ${leadersWord(o)}` });
-      for (const c of contacts) choices.push({ value: `p:${o.id}:${c.id}`, label: `Only ${contactLabel(c, o)} (private)` });
+      for (const c of contacts.filter((c) => canWritePrivately(o.id, memberId, c.id))) choices.push({ value: `p:${o.id}:${c.id}`, label: `Only ${contactLabel(c, o)} (private)` });
     }
     for (const g of orgGroups(o.id).filter((g) => canSendTo(g, memberId, o.role))) choices.push({ value: `g:${o.id}:${g.id}`, label: `Group: ${g.name}` });
     if (choices.length) out.push({ orgId: o.id, label: o.label, choices });

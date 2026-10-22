@@ -12,6 +12,7 @@ import {
   setOrganizationActive,
   setOrganizationPresident,
   setReplyBackup,
+  setWardMemberMessages,
   startAnotherWard,
 } from "../admin/settings/actions";
 import { db } from "@/lib/db";
@@ -80,6 +81,22 @@ export default async function WardSettingsPage({ searchParams }: { searchParams:
             <p className="hint">Lesson reminders go out Sunday at 7:00 PM and Saturday at 8:00 AM in this time zone.</p>
           </div>
           <SubmitButton>Save</SubmitButton>
+        </form>
+      </Section>
+      <Section title="Messages from members">
+        <form action={setWardMemberMessages} className="card max-w-xl space-y-3 text-sm">
+          <label className="flex items-start gap-2">
+            <input type="checkbox" name="member_messages" className="mt-1" defaultChecked={!!user.ward.member_messages} />
+            <span>
+              <strong>Members can send messages to their leaders in the app</strong>
+              <span className="block text-muted">
+                Turn this off to use the app only to send information out: members won&apos;t see <strong>New message</strong>, can&apos;t reply to messages, and
+                texted replies aren&apos;t passed on (they&apos;re told once a day). Leaders can still message members and each other.
+              </span>
+            </span>
+          </label>
+          <p className="text-muted">Each presidency or bishopric, and each leader for themselves, can also turn this off under Admin → Settings.</p>
+          <SubmitButton className="btn-secondary btn-sm">Save</SubmitButton>
         </form>
       </Section>
       <Section title="Backup for members' messages">

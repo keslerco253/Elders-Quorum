@@ -5,8 +5,8 @@ import { deleteAccount } from "./accounts";
 export { ORG_COOKIE } from "./org-cookie";
 import { isCalling, STANDARD_ORGS, type Calling, type CurrentUser, type Feature, type Member, type Org, type OrgEntry, type Role, type Ward } from "./types";
 
-const WARD_COLUMNS = "id, name, timezone, join_code, sms_monthly_limit, created_by, texting_enabled, pending, stake, request_note, reply_backup_id, no_texting, texting_paid_through";
-const ORG_COLUMNS = "id, ward_id, name, kind, hidden_features, active";
+const WARD_COLUMNS = "id, name, timezone, join_code, sms_monthly_limit, created_by, texting_enabled, pending, stake, request_note, reply_backup_id, no_texting, texting_paid_through, member_messages";
+const ORG_COLUMNS = "id, ward_id, name, kind, hidden_features, active, member_messages";
 
 export function getWard(id: number): Ward | undefined {
   return db().prepare(`SELECT ${WARD_COLUMNS} FROM wards WHERE id = ?`).get(id) as Ward | undefined;
@@ -354,7 +354,7 @@ export interface MyOrg extends Org {
 export function myOrgs(memberId: number): MyOrg[] {
   const rows = db()
     .prepare(
-      `SELECT o.id, o.ward_id, o.name, o.kind, o.hidden_features, o.active, w.name AS ward_name, COALESCE(om.role, 'member') AS role
+      `SELECT o.id, o.ward_id, o.name, o.kind, o.hidden_features, o.active, o.member_messages, w.name AS ward_name, COALESCE(om.role, 'member') AS role
        FROM orgs o JOIN wards w ON w.id = o.ward_id
        JOIN ward_members wm ON wm.ward_id = o.ward_id AND wm.member_id = ?
        LEFT JOIN org_members om ON om.org_id = o.id AND om.member_id = wm.member_id

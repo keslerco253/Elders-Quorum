@@ -56,6 +56,8 @@ export interface Ward {
   no_texting: number;
   /** Texting is paid through this date (yyyy-mm-dd); it turns off after it. */
   texting_paid_through: string | null;
+  /** 0: members can't write to any leaders in the app (no New message for members). */
+  member_messages: number;
 }
 
 /** Features an organization can hide when it doesn't use them. */
@@ -76,6 +78,8 @@ export interface Org {
   hidden_features: string;
   /** Turned off organizations stay in Admin → Ward settings but are hidden everywhere else. */
   active: number;
+  /** 0: members can't write to its leaders (announcements only). */
+  member_messages: number;
 }
 
 /** Created with every ward; the bishopric turns off the ones the ward doesn't use. */

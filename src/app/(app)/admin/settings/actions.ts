@@ -174,6 +174,27 @@ export async function setReplyBackup(fd: FormData) {
   goWard(id ? "Saved. Messages that can't be delivered will go to them." : "Saved. Messages that can't be delivered will go to the bishopric.");
 }
 
+/** Whether members can write to any of the ward's leaders in the app (off: no New message for members). */
+export async function setWardMemberMessages(fd: FormData) {
+  const user = await requireWardAdmin();
+  const on = fd.get("member_messages") === "on";
+  db().prepare("UPDATE wards SET member_messages = ? WHERE id = ?").run(on ? 1 : 0, user.ward_id);
+  revalidatePath("/", "layout");
+  goWard(on ? "Saved. Members can write to their leaders (unless a presidency turned it off for itself)." : "Saved. Members can no longer send messages to any leaders in the app.");
+}
+
+/**
+ * Members' messages to this organization's leaders: on or off for the whole presidency
+ * (or bishopric), and on or off for just this leader.
+ */
+export async function saveMemberMessages(fd: FormData) {
+  const user = await requirePresidency();
+  db().prepare("UPDATE orgs SET member_messages = ? WHERE id = ?").run(fd.get("org_messages") === "on" ? 1 : 0, user.org_id);
+  db().prepare("UPDATE org_members SET member_messages = ? WHERE org_id = ? AND member_id = ?").run(fd.get("my_messages") === "on" ? 1 : 0, user.org_id, user.id);
+  revalidatePath("/", "layout");
+  go("Saved.");
+}
+
 /** Who the ward's administrators are (up to two). New ones are told where to find Ward settings. */
 export async function saveWardAdmins(fd: FormData) {
   const user = await requireWardAdmin();

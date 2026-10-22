@@ -22,7 +22,7 @@ export default async function NewMessagePage({ searchParams }: { searchParams: P
       <>
         <PageHeader title="New message" back={{ href: back, label: "Messages" }} subtitle="To your leaders, or a group you can send to. Replies show up in your Messages." />
         <Flash msg={sp.msg} tone="warn" />
-        {choices.length ? <MemberComposeForm orgs={choices} initial={valid.includes(sp.to ?? "") ? sp.to! : valid.includes(`p:${user.org_id}:0`) ? `p:${user.org_id}:0` : ""} /> : <Empty>There&apos;s no one to write to yet: your organization has no leaders set up.</Empty>}
+        {choices.length ? <MemberComposeForm orgs={choices} initial={valid.includes(sp.to ?? "") ? sp.to! : valid.includes(`p:${user.org_id}:0`) ? `p:${user.org_id}:0` : ""} /> : <Empty>There&apos;s no one to write to here: your leaders don&apos;t take messages through the app, or none are set up yet. Messages they send still show up in Messages.</Empty>}
       </>
     );
   }

@@ -10,11 +10,50 @@ import type { CurrentUser } from "./types";
 // reached the wrong place; and a member who texted gets an app notification
 // saying where their message went.
 
-/** The presidency who'd get a member's message to this organization (never the sender). */
+/** The presidency who'd get a member's message to this organization (never the sender, nor anyone who turned member messages off). */
 export function orgReceivers(orgId: number, senderId: number): Recipient[] {
   const org = getOrg(orgId);
   if (!org?.active) return [];
-  return audienceMembers(orgId, "presidency").filter((r) => r.id !== senderId);
+  return audienceMembers(orgId, "presidency").filter((r) => r.id !== senderId && leaderTakesMessages(orgId, r.id));
+}
+
+/** Whether this leader takes members' messages (each can turn it off for themselves). */
+export function leaderTakesMessages(orgId: number, leaderId: number): boolean {
+  const row = db().prepare("SELECT member_messages FROM org_members WHERE org_id = ? AND member_id = ? AND role = 'presidency'").get(orgId, leaderId) as { member_messages: number } | undefined;
+  return !!row?.member_messages;
+}
+
+/** Whether the ward lets members write to leaders at all (its ward administrators or bishopric can turn it off). */
+export function wardTakesMessages(wardId: number): boolean {
+  return !!getWard(wardId)?.member_messages;
+}
+
+/** Whether this person leads the organization (its leaders can always write to each other). */
+const leads = (orgId: number, memberId: number) => !!db().prepare("SELECT 1 FROM org_members WHERE org_id = ? AND member_id = ? AND role IN ('presidency', 'admin')").get(orgId, memberId);
+
+/**
+ * Whether this member can write to an organization's leaders: not when the ward turned
+ * member messages off, its presidency (or bishopric) did, or every one of them did for
+ * themselves. (One with no presidency yet still takes them: the backup person passes them on.)
+ */
+export function orgTakesMessages(orgId: number, memberId: number): boolean {
+  const org = getOrg(orgId);
+  if (!org) return false;
+  if (leads(orgId, memberId)) return true;
+  if (!wardTakesMessages(org.ward_id) || !org.member_messages) return false;
+  const leaders = audienceMembers(orgId, "presidency").filter((r) => r.id !== memberId);
+  return !leaders.length || leaders.some((r) => leaderTakesMessages(orgId, r.id));
+}
+
+/** Whether this member can write privately to this one leader. */
+export function canWritePrivately(orgId: number, memberId: number, leaderId: number): boolean {
+  return orgTakesMessages(orgId, memberId) && (leads(orgId, memberId) || leaderTakesMessages(orgId, leaderId));
+}
+
+/** What a member is told when they can't write to an organization's leaders. */
+export function closedText(org: { kind: string; name: string }): string {
+  const who = org.kind === "ward" ? "The bishopric doesn't" : `The ${org.name} presidency doesn't`;
+  return `${who} take messages through the app. Please contact them in person or another way.`;
 }
 
 /** The ward's backup person, or (if none is set) the bishopric. */

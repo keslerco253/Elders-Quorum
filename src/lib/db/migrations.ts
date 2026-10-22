@@ -1409,4 +1409,15 @@ CREATE TABLE todo_handoff_declines (
 );
 `,
   },
+  {
+    // Members writing to leaders can be turned off for the whole ward (wards), a
+    // presidency or bishopric (orgs) or by each leader for themselves (org_members),
+    // e.g. when leaders only want to send information out.
+    id: 69,
+    sql: `
+ALTER TABLE wards ADD COLUMN member_messages INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE orgs ADD COLUMN member_messages INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE org_members ADD COLUMN member_messages INTEGER NOT NULL DEFAULT 1;
+`,
+  },
 ];

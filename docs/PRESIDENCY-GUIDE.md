@@ -308,6 +308,26 @@ message to this group**, which opens the same screen as Messages → New message
 To send a flyer with an announcement, use **Attach a flyer** (a PDF or picture): it shows full size when members open the message, with a small preview in their inbox, comes attached to the email, and texts get a link to see it. Members get a notification, or a text or email as they chose. Everything you
 send to a group shows under Messages → **Sent**.
 
+### Turning off messages from members
+
+For leaders who only want to send information out, members writing to leaders
+can be turned off at three levels:
+
+- **The whole ward:** Admin → Ward settings → **Messages from members**
+  (ward administrators). Members no longer see **New message** at all.
+- **One presidency or bishopric:** Admin → Settings → **Members can write to
+  the presidency** (anyone in that presidency or bishopric).
+- **Just you:** Admin → Settings → **Members can message me**. Members can't
+  write to you privately, and you aren't notified of their messages to the
+  presidency (you can still read them in the Inbox). If everyone in a
+  presidency turns this off, members can't write to it at all.
+
+When it's off, there's no reply box, and messages and emails say they're for
+information only. A texted reply isn't passed on; the member is told so by text
+at most once a day. Leaders can still message members and each other, and visit
+requests are a separate feature (turn off **Visits and visit requests** in
+Settings).
+
 ## Members joining
 
 The app never uses Church records. Members join themselves, or the presidency adds them by hand:

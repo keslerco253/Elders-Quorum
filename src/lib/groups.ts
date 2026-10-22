@@ -2,6 +2,7 @@ import { db } from "./db";
 import { audienceLabel, audienceMembers, notify, type Audience } from "./notify";
 import type { CurrentUser, Org, Role } from "./types";
 import { leadersWord } from "./types";
+import { orgTakesMessages } from "./message-routing";
 
 export interface Group {
   id: number;
@@ -92,10 +93,15 @@ export async function sendToAudience(opts: {
     message: true,
     ...(opts.flyer ? { attachment: opts.flyer, textBody: `${opts.body} (Flyer attached; open the link to see it.)` } : {}),
     // Replying to the email itself wouldn't reach the leaders (it goes to the app's mailbox).
-    linkLabel: "Reply in the app",
-    emailNote: "To reply, use the button below or text back. Replies to this email aren't seen by your leaders.",
+    // When they don't take messages through the app, it's for information only.
+    ...(opts.personal || orgTakesMessagesFromMembers(opts.orgId)
+      ? { linkLabel: "Reply in the app", emailNote: "To reply, use the button below or text back. Replies to this email aren't seen by your leaders." }
+      : { linkLabel: "Open in the app", emailNote: "This message is for your information. Replies to it aren't received." }),
     ...(opts.personal ? { personal: opts.personal } : {}),
   });
   d.prepare("UPDATE messages SET push_count = ?, email_count = ?, text_count = ? WHERE id = ?").run(result.push, result.email, result.text, messageId);
   return { ...result, count: recipients.length, messageId };
 }
+
+/** Whether members can write back to this organization's leaders (for the wording of its messages). */
+const orgTakesMessagesFromMembers = (orgId: number) => orgTakesMessages(orgId, 0);

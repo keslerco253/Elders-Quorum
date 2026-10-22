@@ -12,6 +12,7 @@ import { ChatBox } from "@/components/chat-box";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { sendInThread } from "../../actions";
+import { orgTakesMessages } from "@/lib/message-routing";
 
 export const metadata = { title: "Message" };
 
@@ -43,7 +44,7 @@ export default async function AnnouncementPage({ params, searchParams }: { param
           </Link>
         )}
       </article>
-      {!mine && (
+      {!mine && orgTakesMessages(a.org_id, user.id) && (
         <>
           <Flash msg={sp.msg} tone="warn" />
           <form action={sendInThread} className="card space-y-3">

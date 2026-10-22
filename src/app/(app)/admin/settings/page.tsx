@@ -2,7 +2,9 @@ import Link from "next/link";
 import { requirePresidency } from "@/lib/auth";
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { saveOrgSettings } from "./actions";
+import { saveMemberMessages, saveOrgSettings } from "./actions";
+import { db } from "@/lib/db";
+import { leadersWord } from "@/lib/types";
 import { ReminderTimes } from "./reminder-times";
 import { hasFeature } from "@/lib/orgs";
 import { FEATURES, type Feature } from "@/lib/types";
@@ -14,6 +16,7 @@ export const metadata = { title: "Settings" };
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePresidency();
   const sp = await searchParams;
+  const myMessages = !!(db().prepare("SELECT member_messages FROM org_members WHERE org_id = ? AND member_id = ?").get(user.org_id, user.id) as { member_messages: number } | undefined)?.member_messages;
   return (
     <>
       <PageHeader title="Settings" back={{ href: "/admin", label: "Admin" }} />
@@ -44,6 +47,33 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         {!user.wardAdmin && (
           <p className="mt-3 max-w-xl text-sm text-muted">The ward&apos;s join code, time zone and list of organizations are managed by its ward administrators.</p>
         )}
+      </Section>
+      <Section title="Messages from members">
+        <form action={saveMemberMessages} className="card max-w-xl space-y-3 text-sm">
+          {!user.ward.member_messages && (
+            <p className="rounded-lg bg-warn-soft px-3 py-2 text-warn">Members&apos; messages are turned off for the whole ward (Ward settings), so these don&apos;t apply right now.</p>
+          )}
+          <label className="flex items-start gap-2">
+            <input type="checkbox" name="org_messages" className="mt-1" defaultChecked={!!user.org.member_messages} />
+            <span>
+              <strong>Members can write to the {leadersWord(user.org)}</strong>
+              <span className="block text-muted">
+                Off: {user.orgLabel} only sends information out. Members can&apos;t start a message to the {leadersWord(user.org)} or reply, and texted replies aren&apos;t passed on.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2">
+            <input type="checkbox" name="my_messages" className="mt-1" defaultChecked={myMessages} />
+            <span>
+              <strong>Members can message me</strong>
+              <span className="block text-muted">
+                Off: members can&apos;t write to you privately, and you aren&apos;t notified of their messages to the {leadersWord(user.org)} (you can still read them in the Inbox).
+                If everyone in the {leadersWord(user.org)} turns this off, members can&apos;t write to the {leadersWord(user.org)} at all.
+              </span>
+            </span>
+          </label>
+          <SubmitButton className="btn-secondary btn-sm">Save</SubmitButton>
+        </form>
       </Section>
       <ReminderTimes org={user.org} />
       {user.wardAdmin && (

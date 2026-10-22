@@ -12,6 +12,7 @@ import { LiveRefresh } from "@/components/live-refresh";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { sendInThread } from "../../actions";
+import { canWritePrivately, closedText, orgTakesMessages } from "@/lib/message-routing";
 
 export const metadata = { title: "Conversation" };
 
@@ -67,6 +68,11 @@ export default async function MemberThreadPage({ params, searchParams }: { param
       <div id="end" className="scroll-mt-20" />
       <LiveRefresh seconds={15} />
       <Flash msg={sp.msg} tone="warn" />
+      {!(withId ? canWritePrivately(orgId, user.id, withId) : orgTakesMessages(orgId, user.id)) ? (
+        <p className="card text-sm text-muted">
+          {orgTakesMessages(orgId, user.id) ? `${firstName(name!)} doesn't take messages through the app. You can write to the whole ${leaders} instead.` : closedText(org)}
+        </p>
+      ) : (
       <form action={sendInThread} className="card space-y-3">
         <input type="hidden" name="org_id" value={orgId} />
         <input type="hidden" name="with" value={withId ?? 0} />
@@ -86,6 +92,7 @@ export default async function MemberThreadPage({ params, searchParams }: { param
           <SubmitButton pendingText="Sending…">Send</SubmitButton>
         </div>
       </form>
+      )}
     </>
   );
 }

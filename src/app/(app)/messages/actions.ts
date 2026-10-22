@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { ledOrgIds, receiveReply, recentReplies } from "@/lib/conversations";
 import { canSendTo, getGroup, memberGroupSendsToday, sendToAudience } from "@/lib/groups";
-import { getWard, myOrgs } from "@/lib/orgs";
+import { getOrg, getWard, myOrgs } from "@/lib/orgs";
+import { canWritePrivately, closedText, orgTakesMessages, wardTakesMessages } from "@/lib/message-routing";
 import type { CurrentUser } from "@/lib/types";
 
 const threadUrl = (orgId: number, withId: number, msg?: string) => `/messages/thread/${withId || "all"}?org=${orgId}${msg ? `&msg=${encodeURIComponent(msg)}` : ""}#end`;
@@ -13,6 +14,8 @@ const threadUrl = (orgId: number, withId: number, msg?: string) => `/messages/th
 /** A member writes to an organization's leaders: all of them, or one privately. */
 async function writeToLeaders(user: CurrentUser, orgId: number, withId: number, body: string, messageId: number | null, back: (msg: string) => never) {
   if (!myOrgs(user.id).some((o) => o.id === orgId)) back("You can't write to that organization.");
+  if (!orgTakesMessages(orgId, user.id)) back(closedText(getOrg(orgId)!));
+  if (withId && !canWritePrivately(orgId, user.id, withId)) back("They don't take messages through the app. You can write to the whole presidency instead.");
   if (!body) back("Write a message first.");
   if (recentReplies(user.id) >= 20) back("You've sent a lot of messages in the last hour. Please try again a little later.");
   await receiveReply({ id: user.id, org_id: orgId, display_name: user.display_name }, body, "app", messageId, withId ? { private: true, withId } : { private: false });
@@ -45,6 +48,7 @@ export async function memberCompose(fd: FormData) {
   const membership = myOrgs(user.id).find((o) => o.id === orgId);
   const g = membership ? getGroup(Number(id), orgId) : undefined;
   if (!g || !canSendTo(g, user.id, membership!.role)) back("You can't send to that group.");
+  if (membership!.role === "member" && !wardTakesMessages(membership!.ward_id)) back("Your ward doesn't take messages from members through the app.");
   if (!body) back("Write a message first.");
   if (memberGroupSendsToday(user.id) >= 10) back("You've sent a lot of group messages today. Please try again tomorrow.");
   const tz = getWard(membership!.ward_id)?.timezone ?? user.ward.timezone;
