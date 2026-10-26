@@ -1,15 +1,11 @@
 import Link from "next/link";
 import { SubmitButton } from "@/components/client";
-import { SIGNUP_REMINDER_OPTIONS } from "@/lib/signups";
-import type { PersonalTodo } from "@/lib/personal-todos";
-import type { ReminderChannel } from "@/lib/reminder-prefs";
+import { MAX_TODO_REMINDERS, MAX_TODO_TEXTS, STARTING_TODO_REMINDERS, TODO_WHEN, todoReminders, type PersonalTodo } from "@/lib/personal-todos";
 import { savePersonal } from "./actions";
+import { TodoReminders } from "./todo-reminders";
 
-const WAYS: Record<ReminderChannel, string> = { push: "App notification", email: "Email", text: "Text message" };
-
-/** A member's own to-do: title, details, due date, two reminders and how they come. */
-export function TodoForm({ todo, ways, hasEmail }: { todo?: PersonalTodo; ways: ReminderChannel[]; hasEmail: boolean }) {
-  const chosen = (todo?.channels ?? "push").split(",");
+/** A member's own to-do: title, details, due date and time, and its reminders. */
+export function TodoForm({ todo, canText, textReady }: { todo?: PersonalTodo; canText: boolean; textReady: boolean }) {
   return (
     <form action={savePersonal} className="card max-w-xl space-y-3">
       {todo && <input type="hidden" name="item_id" value={todo.id} />}
@@ -21,42 +17,26 @@ export function TodoForm({ todo, ways, hasEmail }: { todo?: PersonalTodo; ways: 
         </span>
       </p>
       <input name="title" required maxLength={200} className="input" placeholder="What do you want to get done?" defaultValue={todo?.title} />
-      <input name="due_date" type="date" className="input" defaultValue={todo?.due_date ?? ""} aria-label="Due date" />
-      <textarea name="notes" rows={3} className="input" placeholder="Details (optional)" defaultValue={todo?.notes} />
-      <div className="grid gap-3 sm:grid-cols-2">
-        {(["reminder1_days", "reminder2_days"] as const).map((field, i) => (
-          <div key={field}>
-            <label className="label" htmlFor={field}>
-              {i === 0 ? "Reminder" : "Second reminder"}
-            </label>
-            <select id={field} name={field} className="input" defaultValue={String((todo ? todo[field] : i === 0 ? 1 : 0) ?? "")}>
-              {SIGNUP_REMINDER_OPTIONS.map(([v, label]) => (
-                <option key={label} value={v ?? ""}>
-                  {v === 0 ? "The morning it's due" : label}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
+      <div className="flex gap-2">
+        <input name="due_date" type="date" className="input min-w-0 flex-1" defaultValue={todo?.due_date ?? ""} aria-label="Due date" />
+        <input name="due_time" type="time" className="input w-36" defaultValue={todo?.due_time ?? ""} aria-label="Time (optional)" title="Time (optional)" />
       </div>
-      <fieldset>
-        <legend className="label">Remind me by</legend>
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          {ways.map((w) => (
-            <label key={w} className={`flex items-center gap-2 text-sm ${w === "email" && !hasEmail ? "opacity-50" : ""}`}>
-              <input type="checkbox" name="channel" value={w} defaultChecked={chosen.includes(w)} disabled={w === "email" && !hasEmail} /> {WAYS[w]}
-            </label>
-          ))}
-        </div>
-        {!hasEmail && <p className="hint">To get them by email, add your email under More → Contact &amp; notifications.</p>}
-      </fieldset>
+      <textarea name="notes" rows={3} className="input" placeholder="Details (optional)" defaultValue={todo?.notes} />
+      <TodoReminders
+        options={TODO_WHEN}
+        initial={todo ? todoReminders(todo) : STARTING_TODO_REMINDERS}
+        canText={canText}
+        textReady={textReady}
+        max={MAX_TODO_REMINDERS}
+        maxTexts={MAX_TODO_TEXTS}
+      />
       <div className="flex gap-2">
         <SubmitButton>{todo ? "Save" : "Add to-do"}</SubmitButton>
         <Link href="/assignments" className="btn-secondary">
           Cancel
         </Link>
       </div>
-      <p className="hint">Reminders go out from 8 AM, when it has a due date, and only to you.</p>
+      <p className="hint">Reminders go only to you, and only when it has a due date. Without a time, they count from 9 AM that day.</p>
     </form>
   );
 }

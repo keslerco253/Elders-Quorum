@@ -230,8 +230,8 @@ ward):
     before, or none (starts at 1 hour). Changing it updates meetings already
     scheduled.
 
-  Event reminders are set on each event. Members' private to-do reminders
-  always go from 8 AM.
+  Event reminders are set on each event, and private to-do reminders on each
+  to-do.
 - **Texting** (when texting is set up): how many reminder and message texts the
   ward sent this month, out of its limit. Only the site owner changes the limit
   or turns texting on or off.
@@ -383,8 +383,8 @@ aren't there; they're in **Messages**.
 **Late reminders:** the app checks every minute. A lesson reminder or a
 member's own reminder that was missed (the server was down) still goes out up
 to 6 hours late, never twice; an event reminder more than 6 hours late is
-skipped. Service, assignment and to-do reminders go out between the morning hour
-and 8 PM that day.
+skipped, and so is a private to-do reminder. Service and assignment reminders go
+out between the morning hour and 8 PM that day.
 
 ### Did they get it?
 
@@ -951,9 +951,16 @@ anything overdue, needing an answer, or in the next two weeks. Presidency member
 also see **+ New assignment** and **Assignments you've given** (open ones they gave
 others).
 
-**My own to-dos:** **+ My to-do**: a private to-do (title, details, due date and
-two reminders). Only they can see it; the presidency can't. Reminders come by app
-notification and/or email (presidency members can also choose text), from 8 AM.
+**My own to-dos:** **+ My to-do**: a private to-do with a title, details, a due
+date and optional time, and its **Reminders**. Only they can see it; the presidency
+can't.
+- **+ Add a reminder** (up to 10): each is **When it's due**, 15 or 30 minutes,
+  1, 2 or 3 hours, 1 or 2 days, or 1 or 2 weeks before. Without a time, they count
+  from 9 AM on the due date.
+- Members' reminders come as app notifications (or email if notifications are off).
+  Presidency members can tick **Text** on up to 3 of them; the rest come as app
+  notifications.
+
 Tap it to edit, mark done or delete. Done to-dos are deleted after 6 months.
 
 ## Presidency meetings

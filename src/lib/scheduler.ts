@@ -26,7 +26,8 @@ import { joinNames } from "./invite-text";
 import { withOrg } from "./org-cookie";
 import { recordsToReview } from "./meetings";
 import { fillRegularTeachers } from "./regular-teachers";
-import { todoChannels } from "./personal-todos";
+import { canTextTodos, dueAtUtc, todoReminders as personalReminders, TODO_WHEN } from "./personal-todos";
+import { dueText } from "./assignments";
 import { challengeMemberIds, scoreboard } from "./challenges";
 import { lastDelivery } from "./delivery";
 
@@ -410,38 +411,42 @@ function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 }
 
 /**
- * Members' own to-dos: their reminders (days before it's due; 0 = the morning it's due),
- * from 8 AM in their ward's time zone, only the ways they chose (texts only for
- * presidency members).
+ * Members' own to-dos: each reminder some time before it's due (its time, or 9 AM),
+ * by app notification (email if those are off), or by text for the ones a presidency
+ * member chose.
  */
 function personalTodoReminders(now: DateTime): DueNotification[] {
   const rows = db()
     .prepare(
-      `SELECT t.id, t.member_id, t.title, t.due_date, t.reminder1_days AS r1, t.reminder2_days AS r2, t.channels,
+      `SELECT t.id, t.member_id, t.title, t.due_date, t.due_time, t.reminders,
          (SELECT w.timezone FROM ward_members wm JOIN wards w ON w.id = wm.ward_id WHERE wm.member_id = t.member_id ORDER BY w.id LIMIT 1) AS tz
        FROM personal_todos t JOIN members m ON m.id = t.member_id
-       WHERE t.done = 0 AND t.due_date IS NOT NULL AND t.due_date >= date('now', '-1 day') AND t.due_date <= date('now', '+31 days') AND m.status = 'active'`,
+       WHERE t.done = 0 AND t.due_date IS NOT NULL AND t.due_date >= date('now', '-1 day') AND t.due_date <= date('now', '+16 days') AND m.status = 'active'`,
     )
-    .all() as { id: number; member_id: number; title: string; due_date: string; r1: number | null; r2: number | null; channels: string; tz: string | null }[];
+    .all() as { id: number; member_id: number; title: string; due_date: string; due_time: string | null; reminders: string; tz: string | null }[];
   const out: DueNotification[] = [];
   for (const t of rows) {
-    const local = now.setZone(t.tz ?? "America/Boise");
-    if (local.hour < 8 || local.hour >= 20) continue;
-    const away = daysBetween(local.toISODate()!, t.due_date);
-    if (away < 0 || (away !== t.r1 && away !== t.r2)) continue;
-    const home = homeOf(t.member_id);
-    const who = home.orgId ? recipientById(t.member_id, home.orgId) : undefined;
-    if (!who) continue;
-    out.push({
-      key: `ptodo:${t.id}:${t.due_date}:${away}`,
-      recipients: [who],
-      payload: {
-        title: away === 0 ? "Your to-do is due today" : away === 1 ? "Your to-do is due tomorrow" : `Your to-do is due in ${away} days`,
-        body: `${t.title} (due ${formatDate(t.due_date, "short")})`,
-        url: `/assignments/mine/${t.id}`,
-      },
-      only: todoChannels(t.member_id, t.channels),
-    });
+    const due = dueAtUtc(t, t.tz ?? "America/Boise");
+    if (!due) continue;
+    for (const r of personalReminders(t)) {
+      if (!dueForStart(r.when, due, now)) continue;
+      const home = homeOf(t.member_id);
+      const who = home.orgId ? recipientById(t.member_id, home.orgId) : undefined;
+      if (!who) continue;
+      // Texts only for presidency members (as saved); otherwise an app notification.
+      const text = r.text && canTextTodos(t.member_id);
+      const label = TODO_WHEN.find(([k]) => k === r.when)?.[1] ?? "";
+      out.push({
+        key: `ptodo:${t.id}:${t.due_date}T${t.due_time ?? ""}:${r.when}`,
+        recipients: [who],
+        payload: {
+          title: r.when === "m:0" ? "Your to-do is due now" : `Your to-do is due in ${label.replace(/ before$/, "")}`,
+          body: `${t.title} (due ${dueText(t.due_date, t.due_time)})`,
+          url: `/assignments/mine/${t.id}`,
+        },
+        only: text ? ["text"] : ["push"],
+      });
+    }
   }
   return out;
 }

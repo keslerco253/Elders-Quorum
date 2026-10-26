@@ -182,7 +182,7 @@ export function myAssignments(memberId: number, today: string, opts: { past?: bo
         orgId: 0,
         orgLabel: "",
         href: `/assignments/mine/${t.id}`,
-        detail: t.done ? `Done ${t.done_at ? formatDate(t.done_at.slice(0, 10), "short") : ""}` : t.due_date ? `Due ${formatDate(t.due_date, "short")}` : "No due date",
+        detail: t.done ? `Done ${t.done_at ? formatDate(t.done_at.slice(0, 10), "short") : ""}` : t.due_date ? `Due ${dueText(t.due_date, t.due_time)}` : "No due date",
         flag: overdue ? { tone: "danger", text: "Overdue" } : t.due_date === today && !t.done ? { tone: "warn", text: "Due today" } : undefined,
         done: !!t.done,
       });

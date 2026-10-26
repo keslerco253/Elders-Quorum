@@ -258,9 +258,11 @@ it comes off your list. If you're asked "Can you take this assignment?", answer
 **Yes, I'll take it** or **I can't**.
 
 **Your own to-dos:** tap **+ My to-do** for a private to-do with a title, details,
-due date and up to two reminders (by app notification and/or email). **Only you can
-see it**: no one else, not even your leaders. Tap it to edit, mark it done or
-delete it. Done to-dos are deleted after 6 months.
+a due date and time, and reminders. **Only you can see it**: no one else, not even
+your leaders. Tap **+ Add a reminder** for each one you want: when it's due, or 15
+minutes to 2 weeks before. Without a time, they count from 9 AM that day. They come
+as app notifications (or by email if notifications are off). Tap a to-do to edit
+it, mark it done or delete it. Done to-dos are deleted after 6 months.
 
 ## Visits
 

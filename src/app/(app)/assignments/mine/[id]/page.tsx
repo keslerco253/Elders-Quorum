@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { getPersonalTodo, personalChannels } from "@/lib/personal-todos";
+import { canTextTodos, getPersonalTodo } from "@/lib/personal-todos";
+import { memberCanText } from "../../../more/reminders/can-text";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TodoForm } from "../todo-form";
@@ -32,7 +33,7 @@ export default async function TodoPage({ params, searchParams }: { params: Promi
           </SubmitButton>
         </form>
       </div>
-      <TodoForm key={todo.id} todo={todo} ways={personalChannels(user.id)} hasEmail={!!user.email} />
+      <TodoForm key={todo.id} todo={todo} canText={canTextTodos(user.id)} textReady={memberCanText(user)} />
     </>
   );
 }

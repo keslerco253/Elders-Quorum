@@ -16,18 +16,15 @@ export async function savePersonal(fd: FormData) {
   const title = String(fd.get("title") || "").trim().slice(0, 200);
   if (!title) go(id ? `/assignments/mine/${id}` : "/assignments/mine/new", "Give your to-do a title.");
   const due = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("due_date"))) ? String(fd.get("due_date")) : null;
-  const days = (name: string) => {
-    const v = String(fd.get(name) ?? "");
-    const n = Number(v);
-    return v !== "" && Number.isInteger(n) && n >= 0 && n <= 30 ? n : null;
-  };
+  const time = /^\d{2}:\d{2}$/.test(String(fd.get("due_time"))) ? String(fd.get("due_time")) : null;
+  // Each reminder row: its time ("when") and whether it's a text (text_<row>).
+  const reminders = fd.getAll("when").map((w, i) => ({ when: String(w), text: fd.get(`text_${i}`) === "on" }));
   const saved = savePersonalTodo(user.id, id, {
     title,
     notes: String(fd.get("notes") || "").trim().slice(0, 2000),
     due_date: due,
-    reminder1_days: days("reminder1_days"),
-    reminder2_days: days("reminder2_days"),
-    channels: fd.getAll("channel").map(String),
+    due_time: time,
+    reminders,
   });
   revalidatePath("/", "layout");
   go("/assignments", saved ? (id ? "To-do saved." : "To-do added. It's private: only you can see it.") : "That to-do no longer exists.");

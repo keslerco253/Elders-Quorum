@@ -1458,4 +1458,20 @@ CREATE TABLE unreached (
 CREATE INDEX unreached_org ON unreached(org_id, done_at);
 `,
   },
+  {
+    // Private to-dos get a time of day and any number of reminders, each a number of
+    // minutes before it's due (or at 9 AM without a time), and whether it's a text:
+    // reminders = [{"when":"m:60","text":0}, ...]. The old two "days before"
+    // reminders carry over.
+    id: 73,
+    sql: `
+ALTER TABLE personal_todos ADD COLUMN due_time TEXT;
+ALTER TABLE personal_todos ADD COLUMN reminders TEXT NOT NULL DEFAULT '[]';
+UPDATE personal_todos SET reminders = (
+  SELECT json_group_array(json_object('when', 'm:' || (r.d * 1440), 'text', CASE WHEN instr(personal_todos.channels, 'text') > 0 THEN 1 ELSE 0 END))
+  FROM (SELECT personal_todos.reminder1_days AS d WHERE personal_todos.reminder1_days IS NOT NULL
+        UNION ALL SELECT personal_todos.reminder2_days WHERE personal_todos.reminder2_days IS NOT NULL) r
+);
+`,
+  },
 ];
