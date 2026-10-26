@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { deletePersonalTodo, savePersonalTodo, setPersonalTodoDone } from "@/lib/personal-todos";
+import { deletePersonalTodo, remindersFromForm, savePersonalTodo, setPersonalTodoDone } from "@/lib/personal-todos";
 
 function go(path: string, text: string): never {
   redirect(`${path}?msg=${encodeURIComponent(text)}`);
@@ -17,8 +17,7 @@ export async function savePersonal(fd: FormData) {
   if (!title) go(id ? `/assignments/mine/${id}` : "/assignments/mine/new", "Give your to-do a title.");
   const due = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("due_date"))) ? String(fd.get("due_date")) : null;
   const time = /^\d{2}:\d{2}$/.test(String(fd.get("due_time"))) ? String(fd.get("due_time")) : null;
-  // Each reminder row: its time ("when") and whether it's a text (text_<row>).
-  const reminders = fd.getAll("when").map((w, i) => ({ when: String(w), text: fd.get(`text_${i}`) === "on" }));
+  const reminders = remindersFromForm(fd);
   const saved = savePersonalTodo(user.id, id, {
     title,
     notes: String(fd.get("notes") || "").trim().slice(0, 2000),

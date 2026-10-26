@@ -1585,4 +1585,25 @@ ALTER TABLE ward_members ADD COLUMN reviewed_by INTEGER REFERENCES members(id) O
 UPDATE ward_members SET reviewed_at = created_at;
 `,
   },
+  {
+    // A member's own events on their calendar (only they see them), with reminders like
+    // their private to-dos: [{"when":"m:60","push":1,"text":0,"email":0}, ...].
+    id: 81,
+    sql: `
+CREATE TABLE personal_events (
+  id INTEGER PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  location TEXT NOT NULL DEFAULT '',
+  date TEXT NOT NULL,
+  start_time TEXT NOT NULL,
+  end_time TEXT,
+  timezone TEXT NOT NULL,
+  reminders TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX personal_events_member ON personal_events(member_id, date);
+`,
+  },
 ];

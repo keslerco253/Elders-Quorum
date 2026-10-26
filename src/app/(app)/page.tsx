@@ -25,6 +25,7 @@ import { invitePath, pendingInvitesFor, whenText } from "@/lib/planned-visits";
 import { hasFeature, leadersPhrase, myOrgs } from "@/lib/orgs";
 import { withOrg } from "@/lib/org-cookie";
 import { usesCfm } from "@/lib/cfm";
+import { eventHref, personalEventsBetween } from "@/lib/personal-events";
 import { assignmentRequestsFor, dueText, KIND_ICONS, myAssignments, soonAssignments } from "@/lib/assignments";
 import { conductingSchedule, swapsWaitingOn } from "@/lib/conducting";
 import { runningChallengesFor, scoreboard } from "@/lib/challenges";
@@ -45,7 +46,11 @@ export default async function HomePage() {
   const lessonOrgs = mine.filter((o) => hasFeature(o, "lessons"));
   const lessonNexts = lessonOrgs.map((o) => ({ org: o, lesson: upcomingLessons(o.id, currentLessonDate(tz), lessonOrgs.length > 1 ? 1 : 3) }));
   const now = DateTime.now();
-  const events = eventsBetween(user.id, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!, { joinedOnly: true });
+  // With their own events (only they see them).
+  const events = [
+    ...eventsBetween(user.id, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!, { joinedOnly: true }),
+    ...personalEventsBetween(user.id, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!),
+  ];
   // Coming up: events and everything with a date on their plate (assignments, to-dos,
   // lessons they're teaching, service they signed up for), in order. Something due on a
   // date with no time comes after that day's events (a lesson, at 9 AM).
@@ -61,7 +66,7 @@ export default async function HomePage() {
   ]
     .sort((a, b) => a.at.localeCompare(b.at))
     .slice(0, 8);
-  const eventOrgs = new Set([...events.map((e) => e.org_id), ...dated.map((i) => i.orgId).filter(Boolean)]).size > 1;
+  const eventOrgs = new Set([...events.filter((e) => !e.personal_event_id).map((e) => e.org_id), ...dated.map((i) => i.orgId).filter(Boolean)]).size > 1;
   const signupOrgs = mine.filter((o) => hasFeature(o, "signups"));
   const signups = signupOrgs
     .flatMap((o) => listSignups(o.id, false, today).map((s) => ({ ...s, org: o })))
@@ -256,7 +261,7 @@ export default async function HomePage() {
               ) : e ? (
               <li key={e.id}>
                 <Link
-                  href={e.invited_meeting_id ? `/meetings/${e.invited_meeting_id}` : `/calendar/${e.id}`}
+                  href={eventHref(e)}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2"
                 >
                   {e.flyer_file && <FlyerThumb file={e.flyer_file} name={e.flyer_name} />}
@@ -266,9 +271,15 @@ export default async function HomePage() {
                       {isOngoing(e) ? ongoingText(e, tz) : formatDateTime(e.starts_at, tz)}
                       {e.location && ` · ${e.location}`}
                     </div>
-                    {eventOrgs && <div className="text-xs text-muted">{e.org_label}</div>}
+                    {eventOrgs && !e.personal_event_id && <div className="text-xs text-muted">{e.org_label}</div>}
                   </div>
-                  {e.invited_meeting_id ? <Badge tone="info">Invited</Badge> : !!e.presidency_only && <Badge tone="warn">Leaders only</Badge>}
+                  {e.personal_event_id ? (
+                    <Badge tone="success">🔒 Only you</Badge>
+                  ) : e.invited_meeting_id ? (
+                    <Badge tone="info">Invited</Badge>
+                  ) : (
+                    !!e.presidency_only && <Badge tone="warn">Leaders only</Badge>
+                  )}
                 </Link>
               </li>
               ) : null,

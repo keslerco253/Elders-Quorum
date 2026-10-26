@@ -224,6 +224,13 @@ add a reason), or text back **TEACH** or **CANT**.
 - **An event's page:** the time, place (tap for a map), details, flyer, **Add to
   Google Calendar**, **Add to Apple / Outlook calendar** and **Share**.
 - **RSVP:** if asked, tap **Going**, **Maybe** or **Can't go**.
+- **Your own events:** tap **+ My event** (or pick a day, then **+ My event this
+  day**) to put something of yours on your calendar, like an appointment: title,
+  date, **Starts**, **Ends** (optional), where and notes. **Only you can see it**
+  (marked **🔒 Only you**), on your calendar and Home. Add reminders the same way
+  as on your to-dos (when it starts, or 15 minutes to 2 weeks before, by **App**
+  and/or **Email**), then tap **Add to my calendar**. Tap it later to change or
+  delete it. It's deleted 30 days after its date.
 - **Meetings you're invited to** (like an activities committee): you get an
   invitation, and the meeting shows on your calendar and Home's Coming up marked
   **Invited**. Open it to see when and where, the agenda, who's giving the
@@ -306,8 +313,10 @@ a due date and time, and reminders. **Only you can see it**: no one else, not ev
 your leaders. Tap **+ Add a reminder** for each one you want: when it's due, or 15
 minutes to 2 weeks before. A new to-do starts with reminders 1 day and 1 hour
 before; change them or remove one with ✕, then tap **Add to-do**. Without a time,
-they count from 9 AM that day. They come as app notifications (or by email if
-notifications are off). Tap a to-do to edit it, mark it done (**✓ Mark done**;
+they count from 9 AM that day. Under each reminder, tick how it comes: **App** (a
+notification on your phone or computer) and/or **Email**. With neither ticked it
+comes as an app notification (or by email if notifications are off). No email
+box? Add an email under More → Contact & notifications. Tap a to-do to edit it, mark it done (**✓ Mark done**;
 **Not done yet** undoes it) or delete it. Done to-dos are deleted after 6 months.
 
 ## Visits

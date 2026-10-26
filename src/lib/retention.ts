@@ -51,6 +51,8 @@ export function runRetention() {
       .run().changes;
     // Members' own to-dos: 6 months after they're done.
     run("personal_todos", `DELETE FROM personal_todos WHERE done = 1 AND done_at < datetime('now', '-6 months')`);
+    // A member's own calendar events: 30 days after their date.
+    run("personal_events", `DELETE FROM personal_events WHERE date < date('now', '-30 days')`);
     // "Couldn't reach" items 30 days after someone handled them; unhandled ones after 6 months.
     run("unreached", `DELETE FROM unreached WHERE (done_at IS NOT NULL AND done_at < datetime('now', '-30 days')) OR created_at < datetime('now', '-6 months')`);
     // Message history after a year.

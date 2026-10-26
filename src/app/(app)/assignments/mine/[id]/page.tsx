@@ -33,7 +33,7 @@ export default async function TodoPage({ params, searchParams }: { params: Promi
           </SubmitButton>
         </form>
       </div>
-      <TodoForm key={todo.id} todo={todo} canText={canTextTodos(user.id)} textReady={memberCanText(user)} />
+      <TodoForm key={todo.id} todo={todo} canText={canTextTodos(user.id)} textReady={memberCanText(user)} canEmail={!!user.email} />
     </>
   );
 }

@@ -836,6 +836,15 @@ organization, who's invited, the date and time, location, flyer, **Add to Google
 Calendar**, **Add to Apple / Outlook calendar**, **Share** (a link that needs
 signing in) and the RSVP buttons.
 
+**Personal events:** anyone can tap **+ My event** on the Calendar (or **+ My event
+this day** on a picked day) to add their own event: title, date, **Starts**,
+**Ends** (optional; an hour without one), where and notes, with **Reminders** set
+the same way as on private to-dos (When it starts, or 15 minutes to 2 weeks
+before; App and Email for everyone, Text for presidency members, up to 3). Only
+they see it, marked **🔒 Only you**, on their calendar (under Everything) and
+Home's Coming up; no leader can. Tap it to change or delete it. They're deleted
+30 days after their date.
+
 **Subscribe:** on **Calendar → Subscribe**, members add a calendar to **Apple
 Calendar**, **Google Calendar** or Outlook (**Copy link**, then Add calendar →
 Subscribe from web) once. It holds ward events and events of the organizations
@@ -1018,9 +1027,11 @@ can't.
 - **+ Add a reminder** (up to 10): each is **When it's due**, 15 or 30 minutes,
   1, 2 or 3 hours, 1 or 2 days, or 1 or 2 weeks before. Without a time, they count
   from 9 AM on the due date.
-- Members' reminders come as app notifications (or email if notifications are off).
-  Presidency members can tick **Text** on up to 3 of them; the rest come as app
-  notifications.
+- Each reminder has boxes for how it comes: **App** (ticked to start) and
+  **Email** for everyone, and **Text** for presidency members only (up to 3 per
+  to-do, once they've agreed to texts). One left with nothing ticked comes as an
+  app notification (or email if notifications are off). A regular member never
+  gets these by text.
 
 Tap it to edit, mark done or delete. Done to-dos are deleted after 6 months.
 

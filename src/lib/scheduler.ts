@@ -26,7 +26,8 @@ import { joinNames } from "./invite-text";
 import { withOrg } from "./org-cookie";
 import { recordsToReview } from "./meetings";
 import { fillRegularTeachers } from "./regular-teachers";
-import { canTextTodos, dueAtUtc, todoReminders as personalReminders, TODO_WHEN } from "./personal-todos";
+import { PERSONAL_EVENT_WHEN, personalEventTimes, type PersonalEvent } from "./personal-events";
+import { canTextTodos, dueAtUtc, reminderWays, todoReminders as personalReminders, TODO_WHEN, type TodoReminder } from "./personal-todos";
 import { dueText } from "./assignments";
 import { challengeMemberIds, challengeTeams, scoreboard } from "./challenges";
 import { lastDelivery } from "./delivery";
@@ -459,8 +460,6 @@ function personalTodoReminders(now: DateTime): DueNotification[] {
       if (!dueForStart(r.when, due, now)) continue;
       const who = home ? recipientById(t.member_id, home.id) : undefined;
       if (!who) continue;
-      // Texts only for presidency members (as saved); otherwise an app notification.
-      const text = r.text && canTextTodos(t.member_id);
       const label = TODO_WHEN.find(([k]) => k === r.when)?.[1] ?? "";
       out.push({
         key: `ptodo:${t.id}:${t.due_date}T${t.due_time ?? ""}:${r.when}`,
@@ -470,11 +469,49 @@ function personalTodoReminders(now: DateTime): DueNotification[] {
           body: `${t.title} (due ${dueText(t.due_date, t.due_time)})`,
           url: `/assignments/mine/${t.id}`,
         },
-        only: text ? ["text"] : ["push"],
+        only: personalWays(r, t.member_id),
       });
     }
   }
   return out;
+}
+
+/** Members' own calendar events: each reminder some time before it starts, the ways they chose. */
+function personalEventReminders(now: DateTime): DueNotification[] {
+  const rows = db()
+    .prepare(
+      `SELECT e.* FROM personal_events e JOIN members m ON m.id = e.member_id
+       WHERE e.date >= date(?, '-1 day') AND e.date <= date(?, '+16 days') AND m.status = 'active'`,
+    )
+    .all(now.toISODate(), now.toISODate()) as PersonalEvent[];
+  const out: DueNotification[] = [];
+  for (const e of rows) {
+    const { starts } = personalEventTimes(e);
+    for (const r of personalReminders(e)) {
+      if (!dueForStart(r.when, starts, now)) continue;
+      const home = pickOrg(e.member_id);
+      const who = home ? recipientById(e.member_id, home.id) : undefined;
+      if (!who) continue;
+      const label = PERSONAL_EVENT_WHEN.find(([k]) => k === r.when)?.[1] ?? "";
+      out.push({
+        key: `pevent:${e.id}:${e.date}T${e.start_time}:${r.when}`,
+        recipients: [who],
+        payload: {
+          title: r.when === "m:0" ? `Starting now: ${e.title}` : `${e.title} starts in ${label.replace(/ before$/, "")}`,
+          body: `${formatDateTime(starts, e.timezone)}${e.location ? ` · ${e.location}` : ""}`,
+          url: `/calendar/mine/${e.id}`,
+        },
+        only: personalWays(r, e.member_id),
+      });
+    }
+  }
+  return out;
+}
+
+/** How one of a member's own reminders comes: the ways they ticked (texts only while they lead somewhere). */
+function personalWays(r: TodoReminder, memberId: number): ReminderChannel[] {
+  const ways = reminderWays(r).filter((w) => w !== "text" || canTextTodos(memberId));
+  return ways.length ? ways : ["push"];
 }
 
 /**
@@ -595,6 +632,7 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
   return [
     ...textingPaidNotices(now),
     ...personalTodoReminders(now),
+    ...personalEventReminders(now),
     ...challengeResults(now),
     ...assignmentRequestFollowUps(now),
     ...orgs.flatMap((o) => [

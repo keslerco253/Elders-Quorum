@@ -13,7 +13,7 @@ export default async function NewTodoPage({ searchParams }: { searchParams: Prom
     <>
       <PageHeader title="New to-do" back={{ href: "/assignments", label: "My assignments" }} subtitle="Private: only you can see it." />
       <Flash msg={sp.msg} tone="warn" />
-      <TodoForm canText={canTextTodos(user.id)} textReady={memberCanText(user)} />
+      <TodoForm canText={canTextTodos(user.id)} textReady={memberCanText(user)} canEmail={!!user.email} />
     </>
   );
 }

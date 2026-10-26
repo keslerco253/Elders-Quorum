@@ -7,6 +7,8 @@ import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, formatTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { hasFeature } from "@/lib/orgs";
+import { eventHref, personalEventsBetween } from "@/lib/personal-events";
+import type { EventRow } from "@/lib/types";
 
 export const metadata = { title: "Calendar" };
 
@@ -23,7 +25,12 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const gridEnd = month.endOf("month").plus({ days: 6 - (month.endOf("month").weekday % 7) }).endOf("day");
   // One ward calendar; ?o= shows one organization's events.
   const only = user.orgs.find((o) => o.id === Number(sp.o));
-  const events = eventsBetween(user.id, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!, { wardId: user.ward_id, orgIds: only ? [only.id] : undefined });
+  // With the member's own events (only they see them) when showing everything.
+  const events = [
+    ...eventsBetween(user.id, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!, { wardId: user.ward_id, orgIds: only ? [only.id] : undefined }),
+    ...(only ? [] : personalEventsBetween(user.id, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!)),
+  ].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const chip = (e: EventRow) => (e.personal_event_id ? "bg-success-soft text-success" : e.presidency_only ? "bg-warn-soft text-warn" : "bg-accent-soft text-accent");
   const keep = (extra: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries({ o: only ? String(only.id) : undefined, ...extra })) if (v) p.set(k, v);
@@ -62,6 +69,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         title="Calendar"
         actions={
           <>
+            <Link href="/calendar/mine/new" className="btn-secondary">
+              + My event
+            </Link>
             <RemindersLink kind="events" />
             <Link href="/calendar/subscribe" className="btn-secondary">
               Subscribe
@@ -119,7 +129,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <ul className="mb-2 space-y-1">
             {ongoingThisMonth.map((e) => (
               <li key={e.id}>
-                <Link href={`/calendar/${e.id}`} className="flex flex-wrap items-baseline gap-x-2 rounded-lg bg-accent-soft px-3 py-1.5 text-xs text-accent hover:opacity-90">
+                <Link href={eventHref(e)} className="flex flex-wrap items-baseline gap-x-2 rounded-lg bg-accent-soft px-3 py-1.5 text-xs text-accent hover:opacity-90">
                   <span className="font-semibold">Going on: {e.title}</span>
                   <span>{spanText(e, tz)}</span>
                 </Link>
@@ -146,7 +156,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 <div className={`pointer-events-none relative mb-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs ${today ? "bg-primary font-bold text-primary-text" : picked ? "font-bold text-accent ring-2 ring-accent" : inMonth ? "" : "text-muted"}`}>{d.day}</div>
                 <div className="relative hidden space-y-0.5 sm:block">
                   {list.slice(0, 3).map((e) => (
-                    <Link key={e.id} href={`/calendar/${e.id}`} className={`block truncate rounded px-1 text-[11px] ${e.presidency_only ? "bg-warn-soft text-warn" : "bg-accent-soft text-accent"}`}>
+                    <Link key={e.id} href={eventHref(e)} className={`block truncate rounded px-1 text-[11px] ${chip(e)}`}>
                       {formatTime(e.starts_at, tz)} {e.title}
                     </Link>
                   ))}
@@ -154,7 +164,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 </div>
                 <div className="pointer-events-none relative flex flex-wrap gap-0.5 sm:hidden">
                   {list.map((e) => (
-                    <span key={e.id} className={`h-1.5 w-1.5 rounded-full ${e.presidency_only ? "bg-warn" : "bg-accent"}`} />
+                    <span key={e.id} className={`h-1.5 w-1.5 rounded-full ${e.personal_event_id ? "bg-success" : e.presidency_only ? "bg-warn" : "bg-accent"}`} />
                   ))}
                 </div>
               </div>
@@ -166,7 +176,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       <div id="day" className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="h2">{selected ? selected.toFormat("cccc, LLLL d") : month.hasSame(now, "month") ? "Coming up this month" : `Events in ${month.toFormat("LLLL")}`}</h2>
         {selected && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/calendar/mine/new?date=${selected.toISODate()}`} className="btn-secondary btn-sm">
+              + My event this day
+            </Link>
             {admin && (
               <Link href={`/admin/events/new?date=${selected.toISODate()}`} className="btn-secondary btn-sm">
                 Add event on this day
@@ -184,11 +197,18 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         <ul className="space-y-2">
           {list.map((e) => (
             <li key={e.id}>
-              <Link href={`/calendar/${e.id}`} className="card flex items-center gap-3 hover:bg-surface-2">
+              <Link href={eventHref(e)} className="card flex items-center gap-3 hover:bg-surface-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 font-semibold">
-                    {e.title} {e.invited_meeting_id ? <Badge tone="info">Invited</Badge> : e.presidency_only ? <Badge tone="warn">Leaders only</Badge> : null}
-                    {showOrg && <Badge>{e.org_label}</Badge>}
+                    {e.title}{" "}
+                    {e.personal_event_id ? (
+                      <Badge tone="success">🔒 Only you</Badge>
+                    ) : e.invited_meeting_id ? (
+                      <Badge tone="info">Invited</Badge>
+                    ) : e.presidency_only ? (
+                      <Badge tone="warn">Leaders only</Badge>
+                    ) : null}
+                    {showOrg && !e.personal_event_id && <Badge>{e.org_label}</Badge>}
                   </div>
                   <div className="text-sm text-muted">
                     {isOngoing(e) ? spanText(e, tz) : selected ? `${formatTime(e.starts_at, tz)} – ${formatTime(e.ends_at, tz)}` : formatDateTime(e.starts_at, tz)}

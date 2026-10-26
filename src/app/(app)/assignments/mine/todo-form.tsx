@@ -2,10 +2,10 @@ import Link from "next/link";
 import { SubmitButton } from "@/components/client";
 import { MAX_TODO_REMINDERS, MAX_TODO_TEXTS, STARTING_TODO_REMINDERS, TODO_WHEN, todoReminders, type PersonalTodo } from "@/lib/personal-todos";
 import { savePersonal } from "./actions";
-import { TodoReminders } from "./todo-reminders";
+import { PersonalReminders } from "@/components/personal-reminders";
 
 /** A member's own to-do: title, details, due date and time, and its reminders. */
-export function TodoForm({ todo, canText, textReady }: { todo?: PersonalTodo; canText: boolean; textReady: boolean }) {
+export function TodoForm({ todo, canText, textReady, canEmail }: { todo?: PersonalTodo; canText: boolean; textReady: boolean; canEmail: boolean }) {
   return (
     <form action={savePersonal} className="card max-w-xl space-y-3">
       {todo && <input type="hidden" name="item_id" value={todo.id} />}
@@ -22,11 +22,12 @@ export function TodoForm({ todo, canText, textReady }: { todo?: PersonalTodo; ca
         <input name="due_time" type="time" className="input w-36" defaultValue={todo?.due_time ?? ""} aria-label="Time (optional)" title="Time (optional)" />
       </div>
       <textarea name="notes" rows={3} className="input" placeholder="Details (optional)" defaultValue={todo?.notes} />
-      <TodoReminders
+      <PersonalReminders
         options={TODO_WHEN}
         initial={todo ? todoReminders(todo) : STARTING_TODO_REMINDERS}
         canText={canText}
         textReady={textReady}
+        canEmail={canEmail}
         max={MAX_TODO_REMINDERS}
         maxTexts={MAX_TODO_TEXTS}
       />

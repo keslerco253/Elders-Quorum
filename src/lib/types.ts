@@ -184,6 +184,8 @@ export interface EventRow {
   announced_to?: string | null;
   /** A meeting the presidency invited people to (filled in by the calendar queries). */
   invited_meeting_id?: number | null;
+  /** A member's own event (only they see it), shown on their calendar like the others. */
+  personal_event_id?: number;
 }
 
 export type Calling = "bishop" | "president" | "first_counselor" | "second_counselor" | "executive_secretary" | "ward_clerk" | "secretary" | "assistant_secretary" | "stake_high_council";
