@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { RECORDS } from "@/lib/handbook";
 import { requirePresidency } from "@/lib/auth";
 import { recordsToReview, type ReviewRecord } from "@/lib/meetings";
 import { formatDate, todayIn } from "@/lib/time";
@@ -26,6 +28,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
         subtitle="The handbook asks leaders to keep notes only as long as they're needed. For each one: is it still current? Keep it 3 more months, or delete it."
       />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[RECORDS]} />
       {records.length === 0 ? (
         <Empty>Nothing to review. Meeting notes and finished assignments come up here 3 months after the meeting or when they were done.</Empty>
       ) : (

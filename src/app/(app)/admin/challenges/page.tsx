@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { TEMPLE_FAMILY_HISTORY } from "@/lib/handbook";
 import { requireFeature, requirePresidency } from "@/lib/auth";
 import { challengeTeams, listChallenges, scoreboard, statusOf } from "@/lib/challenges";
 import { formatDate, todayIn } from "@/lib/time";
@@ -27,6 +29,7 @@ export default async function AdminChallengesPage({ searchParams }: { searchPara
         }
       />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[TEMPLE_FAMILY_HISTORY]} />
       {challenges.length === 0 ? (
         <Empty>No challenges yet. Start one with + New challenge.</Empty>
       ) : (

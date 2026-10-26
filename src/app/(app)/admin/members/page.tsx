@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { CALLINGS } from "@/lib/handbook";
 import { requireAdmin } from "@/lib/auth";
 import { orgMemberList } from "@/lib/member-list";
 import { formatDateTime } from "@/lib/time";
@@ -40,6 +42,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         }
       />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[CALLINGS]} />
       <p className="mb-4 rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent">
         {user.org.kind === "ward"
           ? "Everyone who joined the ward with its join code"

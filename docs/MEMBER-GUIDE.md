@@ -52,6 +52,9 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   yours uses them.
 - **A red dot on More** means unread Reminders & alerts. Unread messages show on
   **Messages**.
+- **📘 General Handbook links:** some pages (Lessons, Service, Request a visit) have
+  a small **General Handbook** link that opens that chapter of the Church's
+  General Handbook in your browser (or Gospel Library).
 - **Can't find something?** Your organization may not use it (for example Plans
   or Service). Ask your leaders.
 

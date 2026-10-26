@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { TEACHING, orgChapter } from "@/lib/handbook";
 import { requireAdmin } from "@/lib/auth";
 import {
   markGeneralConferences,
@@ -63,6 +65,7 @@ export default async function AdminLessonsPage({
         }
       />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[TEACHING, user.org.name.trim().toLowerCase() === "sunday school" ? orgChapter(user.org) : undefined]} />
       {needs.length > 0 && (
         <div id="needs" className="mb-6 scroll-mt-20">
           <h2 className="h2 mb-2">Waiting on you</h2>

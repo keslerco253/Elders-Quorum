@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { NEW_MEMBERS } from "@/lib/handbook";
 import { requireUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/permissions";
@@ -22,6 +24,7 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
     <>
       <PageHeader title="Invite members" back={isAdmin(user) ? { href: "/admin", label: "Admin" } : { href: "/ward-settings", label: "Ward settings" }} subtitle="Use this in a ward meeting or class: everyone scans the code with their phone camera and joins in about a minute." />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[NEW_MEMBERS]} />
       {!code ? (
         <Empty>
           <p className="mb-3">There&apos;s no join code yet.</p>

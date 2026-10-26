@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { TEMPORAL_NEEDS } from "@/lib/handbook";
 import { RemindersLink } from "@/components/reminders-link";
 import { FlyerThumb } from "@/components/flyer-thumb";
 import { requireUser } from "@/lib/auth";
@@ -42,6 +44,7 @@ export default async function SignupsPage({ searchParams }: { searchParams: Prom
         }
       />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[TEMPORAL_NEEDS]} />
       {list.length === 0 ? (
         <Empty>No service opportunities right now.</Empty>
       ) : (

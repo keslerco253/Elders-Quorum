@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { INTERVIEWS, MINISTERING } from "@/lib/handbook";
 import { DateTime } from "luxon";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -51,6 +53,7 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
         }
       />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[MINISTERING, INTERVIEWS]} />
       {(() => {
         const invites = openInvitations(user.org_id, memberId);
         if (!invites.length) return null;

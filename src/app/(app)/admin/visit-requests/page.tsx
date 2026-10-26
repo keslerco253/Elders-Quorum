@@ -1,4 +1,6 @@
 import { requirePresidency } from "@/lib/auth";
+import { HandbookLinks } from "@/components/handbook-link";
+import { INTERVIEWS, MINISTERING } from "@/lib/handbook";
 import { firstName } from "@/lib/names";
 import { formatPhone } from "@/lib/contact";
 import { formatDateTime } from "@/lib/time";
@@ -38,6 +40,7 @@ export default async function VisitRequestsPage({
         subtitle="Members asking the presidency for a visit. Only the presidency can see these."
       />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[MINISTERING, INTERVIEWS]} />
       {active.length === 0 ? (
         <Empty>No visit requests right now.</Empty>
       ) : (

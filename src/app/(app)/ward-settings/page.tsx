@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { BISHOPRIC, MEETINGS } from "@/lib/handbook";
 import { requireWardAdmin } from "@/lib/auth";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -45,6 +47,7 @@ export default async function WardSettingsPage({ searchParams }: { searchParams:
     <>
       <PageHeader title="Ward settings" back={{ href: "/admin", label: "Admin" }} subtitle={`${user.ward.name}: its organizations, join code and settings.`} />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[BISHOPRIC, MEETINGS]} />
       <Section title="Ward administrators">
         <form action={saveWardAdmins} className="card max-w-xl space-y-3 text-sm">
           <p>

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { CALLINGS } from "@/lib/handbook";
 import { requirePresidency } from "@/lib/auth";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -48,6 +50,7 @@ export default async function CallingsPage({ searchParams }: { searchParams: Pro
         subtitle={`Callings in ${user.orgLabel} beyond the ${leadersWord(user.org)}, like a teacher or an activities committee. Someone can hold more than one.`}
       />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[CALLINGS]} />
       <p className="hint mb-4">
         {user.org.kind === "ward" ? "Bishopric callings" : "Presidency callings (president, counselors, secretary and assistant secretary)"} are set on each person&apos;s page:{" "}
         <Link href="/admin/members" className="link">

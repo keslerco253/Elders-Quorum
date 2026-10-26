@@ -15,3 +15,16 @@ export function HandbookLink({ chapter, className = "" }: { chapter: HandbookCha
     </a>
   );
 }
+
+/** One or more handbook links in a row, under a page's header. */
+export function HandbookLinks({ chapters }: { chapters: (HandbookChapter | undefined)[] }) {
+  const list = chapters.filter((c): c is HandbookChapter => !!c);
+  if (!list.length) return null;
+  return (
+    <div className="mb-4 flex flex-wrap gap-2">
+      {list.map((c) => (
+        <HandbookLink key={c.number} chapter={c} />
+      ))}
+    </div>
+  );
+}

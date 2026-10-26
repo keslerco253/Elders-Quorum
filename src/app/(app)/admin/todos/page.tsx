@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { orgChapter } from "@/lib/handbook";
 import { requirePresidency } from "@/lib/auth";
 import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
@@ -91,6 +93,7 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
         }
       />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[orgChapter(user.org)]} />
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <div>
           <form className="mb-3 flex flex-wrap items-center gap-2">

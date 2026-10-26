@@ -1,4 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
+import { HandbookLinks } from "@/components/handbook-link";
+import { ACTIVITIES } from "@/lib/handbook";
 import { Flash, PageHeader } from "@/components/ui";
 import { EventForm } from "../event-form";
 import { announceChoices, inviteChoicesFor, wardPeople } from "@/lib/announce";
@@ -15,6 +17,7 @@ export default async function NewEventPage({ searchParams }: { searchParams: Pro
     <>
       <PageHeader title="Add event" back={{ href: "/calendar", label: "Calendar" }} />
       <Flash msg={sp.msg} tone="danger" />
+      <HandbookLinks chapters={[ACTIVITIES]} />
       <EventForm announceTo={announceTo} inviteChoices={invites} people={wardPeople(user.ward_id)} tz={user.ward.timezone} date={/^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date : undefined} />
     </>
   );

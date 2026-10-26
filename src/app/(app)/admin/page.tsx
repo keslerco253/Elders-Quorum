@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { orgChapter } from "@/lib/handbook";
 import { requireAdminTab } from "@/lib/auth";
 import { adminCounts, passOnCount } from "@/lib/admin-counts";
 import { isAdmin, isPresidency } from "@/lib/permissions";
@@ -178,6 +180,7 @@ export default async function AdminPage() {
             : `Admin tools for ${user.orgLabel}`
         }
       />
+      <HandbookLinks chapters={[orgChapter(user.org)]} />
       {waiting.some((t) => t.count && t.show !== false) && (
         <Section title="Waiting on you">
           <Tiles tiles={waiting.filter((t) => t.count)} />

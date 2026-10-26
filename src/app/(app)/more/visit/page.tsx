@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { MINISTERING } from "@/lib/handbook";
 import { requireUser } from "@/lib/auth";
 import { formatPhone } from "@/lib/contact";
 import { formatDateTime } from "@/lib/time";
@@ -34,6 +36,7 @@ export default async function VisitRequestPage({ searchParams }: { searchParams:
     <>
       <PageHeader title="Request a visit" back={{ href: "/more", label: "More" }} subtitle={`Would you like ${orgs.length === 1 ? leadersPhrase(orgs[0]) : "your leaders"} to come by, talk, or help? Let us know and we'll reach out.`} />
       <Flash msg={sp.msg} tone={sp.ok ? "success" : "warn"} />
+      <HandbookLinks chapters={[MINISTERING]} />
 
       {actives.map((active) => (
         <div key={active.id} className="card mb-5 space-y-2">

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { MEETINGS } from "@/lib/handbook";
 import { requireFeature, requirePresidency } from "@/lib/auth";
 import { conductingSchedule, presidencyWithCallings, swapsWaitingOn } from "@/lib/conducting";
 import { formatDate, todayIn } from "@/lib/time";
@@ -28,6 +30,7 @@ export default async function ConductingPage({ searchParams }: { searchParams: P
         subtitle={`By month: ${user.org.kind === "ward" ? "the bishop" : "the president"} January, April, July and October; the first counselor February, May, August and November; the second counselor March, June, September and December.`}
       />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[MEETINGS]} />
       {waiting.map((s) => (
         <div key={s.id} id={`ask-${s.id}`} className="card mb-5 scroll-mt-20 space-y-3 border-accent">
           <div>

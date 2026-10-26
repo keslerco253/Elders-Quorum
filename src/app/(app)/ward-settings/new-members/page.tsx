@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HandbookLinks } from "@/components/handbook-link";
+import { NEW_MEMBERS } from "@/lib/handbook";
 import { requireWardAdmin } from "@/lib/auth";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -36,6 +38,7 @@ export default async function NewMembersPage({ searchParams }: { searchParams: P
         subtitle={`Everyone who joined ${user.ward.name} in the last ${NEW_MEMBER_DAYS} days. Tap Looks good for each person who belongs. If someone doesn't, Remove from ward takes them out of the ward and its organizations (and deletes their account if they're in no other ward; they could join again with the code). If the join code was shared too widely, make a new one under Ward settings.`}
       />
       <Flash msg={sp.msg} />
+      <HandbookLinks chapters={[NEW_MEMBERS]} />
       <div className="mb-5 flex gap-1 rounded-xl bg-surface-2 p-1">
         {[
           [false, "/ward-settings/new-members", `To review${toReview ? ` (${toReview})` : ""}`],
