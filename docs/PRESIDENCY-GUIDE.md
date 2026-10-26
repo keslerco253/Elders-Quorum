@@ -68,7 +68,7 @@ Relief Society, 10 Aaronic Priesthood, 11 Young Women, 12 Primary, 13 Sunday
 School, 7 The Bishopric for the ward); Presidency meetings adds 29 Meetings in the
 Church; Records to review 33; Home visits and Visit requests 21 and 31; Members
 and Callings 30; Who's conducting 29; Manage lessons 17 (and 13 for Sunday
-School); Add event 20; Service 22; Challenges 25; Invite members and New members
+School); Add event 20; Service 22; Invite members and New members
 23; Ward settings 7 and 29. Members see 17 on Lessons, 22 on Service and 21 on
 Request a visit.
 

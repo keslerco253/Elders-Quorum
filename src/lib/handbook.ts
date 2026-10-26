@@ -16,7 +16,6 @@ export const ACTIVITIES: HandbookChapter = { number: 20, title: "Activities" };
 export const MINISTERING: HandbookChapter = { number: 21, title: "Ministering" };
 export const TEMPORAL_NEEDS: HandbookChapter = { number: 22, title: "Providing for Temporal Needs and Building Self-Reliance" };
 export const NEW_MEMBERS: HandbookChapter = { number: 23, title: "Sharing the Gospel and Strengthening New and Returning Members" };
-export const TEMPLE_FAMILY_HISTORY: HandbookChapter = { number: 25, title: "Temple and Family History" };
 export const MEETINGS: HandbookChapter = { number: 29, title: "Meetings in the Church" };
 export const CALLINGS: HandbookChapter = { number: 30, title: "Callings in the Church" };
 export const INTERVIEWS: HandbookChapter = { number: 31, title: "Interviews and Other Meetings with Members" };
