@@ -49,4 +49,23 @@ describe("members' own calendar events", () => {
     expect(ics).toContain("CLASS:PRIVATE");
     expect(ics).toContain(`/calendar/mine/${id}`);
   });
+
+  it("are in the subscribed calendar only if the member chose them", async () => {
+    savePersonalEvent(2, null, { ...base, date: DateTime.utc().plus({ days: 3 }).toISODate()!, reminders: [] });
+    const { feedPath } = await import("@/lib/events");
+    const { GET } = await import("@/app/feed/[member]/[token]/route");
+    const { db } = await import("@/lib/db");
+    const feed = async () => {
+      const m = db().prepare("SELECT id, feed_version FROM members WHERE id = 2").get() as { id: number; feed_version: number };
+      const token = feedPath(m).split("/").pop()!;
+      return (await GET(new Request("http://x"), { params: Promise.resolve({ member: "2", token }) })).text();
+    };
+    expect(await feed()).toContain("SUMMARY:Dentist");
+    db().prepare("UPDATE members SET feed_contents = 'ward' WHERE id = 2").run();
+    expect(await feed()).not.toContain("SUMMARY:Dentist");
+    db().prepare("UPDATE members SET feed_contents = 'personal' WHERE id = 2").run();
+    const only = await feed();
+    expect(only).toContain("SUMMARY:Dentist");
+    expect(only).toContain("X-WR-CALNAME:My events");
+  });
 });

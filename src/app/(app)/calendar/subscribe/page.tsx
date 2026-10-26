@@ -5,7 +5,8 @@ import { isAdmin } from "@/lib/permissions";
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { CopyButton } from "@/components/copy-button";
-import { resetFeedLink, saveCalendarAlerts } from "./actions";
+import { resetFeedLink, saveCalendarAlerts, saveFeedContents } from "./actions";
+import { FEED_CONTENTS } from "@/lib/types";
 
 export const metadata = { title: "Subscribe to the calendar" };
 
@@ -60,9 +61,26 @@ export default async function SubscribePage({ searchParams }: { searchParams: Pr
       <PageHeader
         title="Subscribe to the calendar"
         back={{ href: "/calendar", label: "Calendar" }}
-        subtitle={`Ward events and those of your organizations show up in your own calendar app and stays up to date: new events appear and changes or cancellations update by themselves.${isAdmin(user) ? " Yours includes presidency-only events." : ""}`}
+        subtitle={`Ward events and those of your organizations, your own events, or both show up in your own calendar app and stay up to date: new events appear and changes or cancellations update by themselves. Change what's included here anytime.${isAdmin(user) ? " Yours includes presidency-only events." : ""}`}
       />
       <Flash msg={sp.msg} tone={sp.ok ? "success" : "warn"} />
+      <form id="contents" action={saveFeedContents} className="card mb-3 scroll-mt-20 space-y-3">
+        <div className="font-semibold">What&apos;s in your calendar</div>
+        <div className="space-y-2">
+          {FEED_CONTENTS.map(([value, label, hint]) => (
+            <label key={value} className="flex items-start gap-2 text-sm">
+              <input type="radio" name="contents" value={value} defaultChecked={(user.feed_contents ?? "both") === value} className="mt-1" />
+              <span>
+                <span className="font-medium">{label}</span>
+                <span className="block text-muted">{hint}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <SubmitButton className="btn-primary btn-sm" pendingText="Saving…">
+          Save
+        </SubmitButton>
+      </form>
       <form id="reminders" action={saveCalendarAlerts} className="card mb-3 scroll-mt-20 space-y-3">
         <div>
           <div className="font-semibold">Reminders on your calendar events</div>
@@ -102,8 +120,8 @@ export default async function SubscribePage({ searchParams }: { searchParams: Pr
         <ul className="card list-disc space-y-1 pl-8 text-sm text-muted">
           <li>Calendar apps check for changes on their own schedule (Apple usually every hour or so, Google a few times a day), so a brand-new event may take a while to appear.</li>
           <li>To stop, delete the &quot;{user.ward.name}&quot; calendar in your calendar app.</li>
-          <li>It includes your own events (+ My event), which only you see.</li>
-          <li>This link is just for you (it has your own events too). If you shared it by mistake, reset it below.</li>
+          <li>Changing what&apos;s in your calendar above keeps the same link: your calendar app shows the change the next time it checks.</li>
+          <li>This link is just for you (it can have your own events too). If you shared it by mistake, reset it below.</li>
         </ul>
         <form action={resetFeedLink} className="mt-3">
           <SubmitButton className="btn-secondary btn-sm" confirm="Make a new link? Calendars using the old one stop updating." pendingText="Resetting…">

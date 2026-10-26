@@ -851,8 +851,10 @@ Calendar**, **Google Calendar** or Outlook (**Copy link**, then Add calendar →
 Subscribe from web) once. It holds ward events and events of the organizations
 they belong to, in every ward they're in, and stays up to date (calendar apps
 check every hour or a few times a day). Leaders' calendars include their
-leaders-only events, and each member's own events (+ My event). Each link is
-private; **Reset my link** cancels an old one.
+leaders-only events, and each member's own events (+ My event). Under **What's in
+your calendar** each member chooses **Both** (the default), **Ward and
+organization events** or **My own events**, and can change it anytime (same
+link). Each link is private; **Reset my link** cancels an old one.
 Members choose up to two reminders (15 minutes to 1 week; default 1 hour) put on
 every event. On iPhone they must turn off **Remove Alerts** when subscribing;
 Google Calendar ignores them. To stop, delete the calendar in the calendar app.

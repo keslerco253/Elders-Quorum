@@ -247,8 +247,11 @@ add a reason), or text back **TEACH** or **CANT**.
   so set reminders there, and it checks for new events only a few times a day). On
   iPhone, turn off **Remove Alerts** when subscribing. To stop, delete the calendar
   in your calendar app. Your link is just for you: if you shared it by mistake, tap
-  **Reset my link** (calendars using the old link stop updating). It includes your
-  own events too, so keep it to yourself.
+  **Reset my link** (calendars using the old link stop updating). Under **What's
+  in your calendar**, choose **Both** (the usual), **Ward and organization
+  events** or **My own events**, and tap **Save**. Change it anytime; the same link
+  keeps working and your calendar app shows the change the next time it checks.
+  Keep the link to yourself if it has your own events.
 - **Suggest an event:** **Request an event** on the Calendar (if your organization
   takes suggestions): what it is, when, where and details. You're told when it's
   approved or declined.

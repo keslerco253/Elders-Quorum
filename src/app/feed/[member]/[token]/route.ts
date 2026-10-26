@@ -18,8 +18,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ member:
   const now = DateTime.utc();
   const from = now.minus({ days: 60 }).toISO()!;
   const to = now.plus({ years: 1 }).toISO()!;
-  const events = [...eventsBetween(member.id, from, to, { joinedOnly: true }), ...personalEventsBetween(member.id, from, to)];
-  const name = wards.length === 1 ? wards[0].name : "My Ward Link";
+  // Ward and organization events, their own events, or both (their choice on Subscribe).
+  const which = member.feed_contents ?? "both";
+  const events = [
+    ...(which !== "personal" ? eventsBetween(member.id, from, to, { joinedOnly: true }) : []),
+    ...(which !== "ward" ? personalEventsBetween(member.id, from, to) : []),
+  ];
+  const name = which === "personal" ? "My events" : wards.length === 1 ? wards[0].name : "My Ward Link";
   return new Response(icsFeed(events, name, wards[0]?.timezone ?? "America/Boise", parseAlerts(member.calendar_alerts)), {
     headers: {
       "content-type": "text/calendar; charset=utf-8",

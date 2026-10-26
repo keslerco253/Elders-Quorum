@@ -26,6 +26,8 @@ export interface Member {
   last_org_at: number;
   /** Minutes-before reminders for their calendar, e.g. "1440,60" ("" for none). */
   calendar_alerts: string;
+  /** What their subscribed calendar holds. */
+  feed_contents: FeedContents;
   /** Bumped to cancel the member's old calendar subscription link. */
   feed_version: number;
   /** Send every notification by email / text too, not just when push misses. */
@@ -158,6 +160,13 @@ export interface Comment {
   status: "pending" | "approved" | "rejected";
   created_at: string;
 }
+
+export type FeedContents = "both" | "ward" | "personal";
+export const FEED_CONTENTS: [FeedContents, string, string][] = [
+  ["both", "Both", "Ward and organization events, and your own events"],
+  ["ward", "Ward and organization events", "Events from your ward and organizations only"],
+  ["personal", "My own events", "Only the events you add with + My event"],
+];
 
 export interface EventRow {
   id: number;

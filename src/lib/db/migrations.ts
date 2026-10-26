@@ -1606,4 +1606,12 @@ CREATE TABLE personal_events (
 CREATE INDEX personal_events_member ON personal_events(member_id, date);
 `,
   },
+  {
+    // What a member's subscribed calendar holds: ward and organization events, their
+    // own events, or both.
+    id: 82,
+    sql: `
+ALTER TABLE members ADD COLUMN feed_contents TEXT NOT NULL DEFAULT 'both' CHECK (feed_contents IN ('both','ward','personal'));
+`,
+  },
 ];
