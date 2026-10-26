@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { localInputToUtc, formatDateTime } from "@/lib/time";
+import { formatDateTime, localInputToUtc } from "@/lib/time";
+import { allDayRange, eventWhenText } from "@/lib/events";
 import { notify, recipientById } from "@/lib/notify";
 import { announceRecipients, notifiedNote, readTargets } from "@/lib/announce";
 import { renderTemplate } from "@/lib/templates";
@@ -29,8 +30,13 @@ function readInvited(fd: FormData, user: { org_id: number; ward_id: number; org:
 }
 
 function readEvent(fd: FormData, tz: string) {
-  const start = localInputToUtc(String(fd.get("starts_at") || ""), tz);
-  const end = localInputToUtc(String(fd.get("ends_at") || ""), tz);
+  // All day: from midnight of the date to 11:59 PM of the last day (the same day without one).
+  const allDay = fd.get("all_day") === "on" ? 1 : 0;
+  const day = (k: string) => (/^\d{4}-\d{2}-\d{2}$/.test(String(fd.get(k))) ? String(fd.get(k)) : null);
+  const firstDay = day("start_date");
+  const range = allDay && firstDay ? allDayRange(firstDay, day("end_date"), tz) : null;
+  const start = allDay ? (range?.start ?? null) : localInputToUtc(String(fd.get("starts_at") || ""), tz);
+  const end = allDay ? (range?.end ?? null) : localInputToUtc(String(fd.get("ends_at") || ""), tz);
   const reminder = String(fd.get("reminder_minutes") || "");
   const reminder2 = String(fd.get("reminder2_minutes") || "");
   return {
@@ -39,6 +45,7 @@ function readEvent(fd: FormData, tz: string) {
     location: String(fd.get("location") || "").trim(),
     start,
     end,
+    allDay,
     presidencyOnly: fd.get("presidency_only") === "on" ? 1 : 0,
     rsvp: fd.get("rsvp_enabled") === "on" ? 1 : 0,
     reminder: reminder ? Number(reminder) : null,
@@ -73,6 +80,7 @@ function seriesInput(user: { id: number; org_id: number }, e: ReturnType<typeof 
     duration_minutes: Math.round(endLocal.diff(startLocal, "minutes").minutes),
     until_date: r.until,
     max_count: r.count,
+    all_day: e.allDay,
     title: e.title,
     description: e.description,
     location: e.location,
@@ -96,7 +104,7 @@ export async function saveEvent(fd: FormData) {
   const e = readEvent(fd, tz);
   e.invited = readInvited(fd, user);
   const back = id ? `/admin/events/${id}` : "/admin/events/new";
-  if (!e.title || !e.start || !e.end) go(back, "Please give a title, start and end.");
+  if (!e.title || !e.start || !e.end) go(back, e.allDay ? "Please give a title and a date." : "Please give a title, start and end.");
   if (e.end! < e.start!) go(back, "The end must be after the start.");
   const startLocal = DateTime.fromISO(e.start!, { zone: "utc" }).setZone(tz);
   const endLocal = DateTime.fromISO(e.end!, { zone: "utc" }).setZone(tz);
@@ -121,9 +129,9 @@ export async function saveEvent(fd: FormData) {
   const update = (eventId: number) =>
     d
       .prepare(
-        "UPDATE events SET title = ?, description = ?, location = ?, starts_at = ?, ends_at = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ?, reminder2_minutes = ?, flyer_file = ?, flyer_name = ?, invited = ? WHERE id = ? AND org_id = ?",
+        "UPDATE events SET title = ?, description = ?, location = ?, starts_at = ?, ends_at = ?, all_day = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ?, reminder2_minutes = ?, flyer_file = ?, flyer_name = ?, invited = ? WHERE id = ? AND org_id = ?",
       )
-      .run(e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, e.invited, eventId, user.org_id);
+      .run(e.title, e.description, e.location, e.start, e.end, e.allDay, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, e.invited, eventId, user.org_id);
   let eventId = id;
   let note = "Event saved.";
 
@@ -138,9 +146,9 @@ export async function saveEvent(fd: FormData) {
       eventId = Number(
         d
           .prepare(
-            "INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, reminder2_minutes, flyer_file, flyer_name, created_by, invited) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO events (org_id, title, description, location, starts_at, ends_at, all_day, presidency_only, rsvp_enabled, reminder_minutes, reminder2_minutes, flyer_file, flyer_name, created_by, invited) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           )
-          .run(user.org_id, e.title, e.description, e.location, e.start, e.end, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, user.id, e.invited).lastInsertRowid,
+          .run(user.org_id, e.title, e.description, e.location, e.start, e.end, e.allDay, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, user.id, e.invited).lastInsertRowid,
       );
     }
   } else {
@@ -160,8 +168,8 @@ export async function saveEvent(fd: FormData) {
       if (sameShape) {
         // Same dates and times: update the details on this and later dates, keeping RSVPs.
         d.transaction(() => {
-          const details = [e.title, e.description, e.location, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, e.invited];
-          const SET = "title = ?, description = ?, location = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ?, reminder2_minutes = ?, flyer_file = ?, flyer_name = ?, invited = ?";
+          const details = [e.title, e.description, e.location, e.allDay, e.presidencyOnly, e.rsvp, e.reminder, e.reminder2, e.flyerFile, e.flyerName, e.invited];
+          const SET = "title = ?, description = ?, location = ?, all_day = ?, presidency_only = ?, rsvp_enabled = ?, reminder_minutes = ?, reminder2_minutes = ?, flyer_file = ?, flyer_name = ?, invited = ?";
           d.prepare(`UPDATE events SET ${SET} WHERE series_id = ? AND starts_at >= ?`).run(...details, series.id, existing.starts_at);
           d.prepare(`UPDATE event_series SET ${SET} WHERE id = ?`).run(...details, series.id);
         })();
@@ -206,7 +214,7 @@ export async function saveEvent(fd: FormData) {
       event: { org_id: user.org_id, invited: e.invited, presidency_only: e.presidencyOnly },
     });
     await notify(people, {
-      ...renderTemplate(user.org_id, id ? "event_updated" : "event_new", { event: e.title, date_time: formatDateTime(e.start!, tz), location: e.location }),
+      ...renderTemplate(user.org_id, id ? "event_updated" : "event_new", { event: e.title, date_time: eventWhenText({ starts_at: e.start!, ends_at: e.end!, all_day: e.allDay }, tz), location: e.location }),
       url: `/calendar/${eventId}`,
     });
     if (targets.length) db().prepare("UPDATE events SET announced_to = ? WHERE id = ?").run(targets.join(","), eventId);

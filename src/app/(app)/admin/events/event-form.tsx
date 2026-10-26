@@ -1,5 +1,6 @@
 import { REMINDER_OPTIONS } from "@/lib/events";
 import { utcToLocalInput } from "@/lib/time";
+import { EventTimeFields } from "@/components/event-time-fields";
 import type { EventRow } from "@/lib/types";
 import type { SeriesRow } from "@/lib/event-series";
 import { RepeatFields } from "@/components/repeat-fields";
@@ -69,36 +70,13 @@ export function EventForm({
           defaultValue={e?.title}
         />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="label" htmlFor="starts_at">
-            Starts
-          </label>
-          <input
-            id="starts_at"
-            name="starts_at"
-            type="datetime-local"
-            required
-            className="input"
-            defaultValue={startValue}
-          />
-        </div>
-        <div>
-          <label className="label" htmlFor="ends_at">
-            Ends
-          </label>
-          <input
-            id="ends_at"
-            name="ends_at"
-            type="datetime-local"
-            required
-            className="input"
-            defaultValue={
-              e ? utcToLocalInput(e.ends_at, tz) : date && `${date}T20:00`
-            }
-          />
-        </div>
-        <p className="hint sm:col-span-2">
+      <div className="space-y-2">
+        <EventTimeFields
+          allDay={!!e?.all_day}
+          start={startValue}
+          end={e ? utcToLocalInput(e.ends_at, tz) : date ? `${date}T20:00` : ""}
+        />
+        <p className="hint">
           Something that runs for days or months, like a temple open house? Set it to end on the last day. It shows as &ldquo;going on&rdquo; at the top of
           the calendar each month and as &ldquo;Now through …&rdquo; on members&apos; home pages, instead of on one day.
         </p>

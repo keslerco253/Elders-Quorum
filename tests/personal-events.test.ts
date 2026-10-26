@@ -17,7 +17,7 @@ describe("members' own calendar events", () => {
     `);
   });
 
-  const base = { title: "Dentist", notes: "", location: "Main St", date: "2026-11-05", start_time: "15:00", end_time: null, timezone: "America/Boise" };
+  const base = { title: "Dentist", notes: "", location: "Main St", date: "2026-11-05", start_time: "15:00", end_time: null, all_day: false, timezone: "America/Boise" };
 
   it("are only theirs, show on their calendar, and last an hour without an end", () => {
     const id = savePersonalEvent(2, null, { ...base, reminders: [] })!;

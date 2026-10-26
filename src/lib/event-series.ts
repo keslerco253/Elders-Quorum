@@ -16,6 +16,8 @@ export interface SeriesRow {
   start_date: string;
   start_time: string;
   duration_minutes: number;
+  /** All day (from midnight, a day or more less a minute). */
+  all_day?: number;
   until_date: string | null;
   max_count: number | null;
   title: string;
@@ -56,7 +58,7 @@ export function extendSeries(s: SeriesRow, today = DateTime.now().setZone(tzOf(s
   if (from > to) return 0;
   const d = db();
   const ins = d.prepare(
-    "INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, reminder2_minutes, flyer_file, flyer_name, created_by, series_id, invited) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, rsvp_enabled, reminder_minutes, reminder2_minutes, flyer_file, flyer_name, created_by, series_id, invited, all_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const dates = occurrenceDates(recurrenceOf(s), from, to);
   d.transaction(() => {
@@ -78,6 +80,7 @@ export function extendSeries(s: SeriesRow, today = DateTime.now().setZone(tzOf(s
         s.created_by,
         s.id,
         s.invited ?? "",
+        s.all_day ?? 0,
       );
     }
     d.prepare("UPDATE event_series SET generated_until = ? WHERE id = ?").run(to, s.id);
@@ -91,8 +94,8 @@ export function createSeries(input: SeriesInput, firstEventId?: number): number 
   const id = Number(
     d
       .prepare(
-        `INSERT INTO event_series (org_id, pattern, start_date, start_time, duration_minutes, until_date, max_count, title, description, location, presidency_only, rsvp_enabled, reminder_minutes, reminder2_minutes, flyer_file, flyer_name, created_by, generated_until, invited)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO event_series (org_id, pattern, start_date, start_time, duration_minutes, until_date, max_count, title, description, location, presidency_only, rsvp_enabled, reminder_minutes, reminder2_minutes, flyer_file, flyer_name, created_by, generated_until, invited, all_day)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.org_id,
@@ -114,6 +117,7 @@ export function createSeries(input: SeriesInput, firstEventId?: number): number 
         input.created_by,
         firstEventId ? input.start_date : null,
         input.invited ?? "",
+        input.all_day ?? 0,
       ).lastInsertRowid,
   );
   if (firstEventId) d.prepare("UPDATE events SET series_id = ? WHERE id = ?").run(id, firstEventId);

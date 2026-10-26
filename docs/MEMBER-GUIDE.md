@@ -224,12 +224,14 @@ add a reason), or text back **TEACH** or **CANT**.
 - **Calendar** shows a month of events from your ward and organizations. Use the
   chips at the top to see one organization. Tap a day to see its events. Events that
   last weeks or months show as **Going on: …** at the top.
-- **An event's page:** the time, place (tap for a map), details, flyer, **Add to
+- **An event's page:** the time (or "All day"), place (tap for a map), details, flyer, **Add to
   Google Calendar**, **Add to Apple / Outlook calendar** and **Share**.
 - **RSVP:** if asked, tap **Going**, **Maybe** or **Can't go**.
 - **Your own events:** tap **+ My event** (or pick a day, then **+ My event this
   day**) to put something of yours on your calendar, like an appointment: title,
-  date, **Starts**, **Ends** (optional), where and notes. **Only you can see it**
+  date, **Starts**, **Ends** (optional), where and notes. For something with no
+  time (a birthday, a day off), tick **All day** instead; its reminders count from
+  9 AM that day. **Only you can see it**
   (marked **🔒 Only you**), on your calendar and Home. Add reminders the same way
   as on your to-dos (when it starts, or 15 minutes to 2 weeks before, by **App**
   and/or **Email**), then tap **Add to my calendar**. Tap it later to change or

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { RemindersLink } from "@/components/reminders-link";
 import { DateTime } from "luxon";
 import { requireUser } from "@/lib/auth";
-import { eventsBetween, isOngoing, spanText } from "@/lib/events";
+import { allDayText, eventsBetween, isOngoing, spanText } from "@/lib/events";
 import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, formatTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
@@ -157,7 +157,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 <div className="relative hidden space-y-0.5 sm:block">
                   {list.slice(0, 3).map((e) => (
                     <Link key={e.id} href={eventHref(e)} className={`block truncate rounded px-1 text-[11px] ${chip(e)}`}>
-                      {formatTime(e.starts_at, tz)} {e.title}
+                      {e.all_day ? "" : `${formatTime(e.starts_at, tz)} `}
+                      {e.title}
                     </Link>
                   ))}
                   {list.length > 3 && <div className="pointer-events-none px-1 text-[10px] text-muted">+{list.length - 3} more</div>}
@@ -211,7 +212,15 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                     {showOrg && !e.personal_event_id && <Badge>{e.org_label}</Badge>}
                   </div>
                   <div className="text-sm text-muted">
-                    {isOngoing(e) ? spanText(e, tz) : selected ? `${formatTime(e.starts_at, tz)} – ${formatTime(e.ends_at, tz)}` : formatDateTime(e.starts_at, tz)}
+                    {isOngoing(e)
+                      ? spanText(e, tz)
+                      : e.all_day
+                        ? selected
+                          ? "All day"
+                          : allDayText(e, tz)
+                        : selected
+                          ? `${formatTime(e.starts_at, tz)} – ${formatTime(e.ends_at, tz)}`
+                          : formatDateTime(e.starts_at, tz)}
                     {e.location && ` · ${e.location}`}
                   </div>
                 </div>

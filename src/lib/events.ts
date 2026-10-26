@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { formatDateTime } from "./time";
 import { signToken, validToken } from "./signed-links";
 import { db } from "./db";
 import { appUrl } from "./config";
@@ -77,11 +78,18 @@ export function getOrgEvent(user: CurrentUser, id: number): EventRow | undefined
 
 const gcal = (iso: string) => DateTime.fromISO(iso, { zone: "utc" }).toFormat("yyyyLLdd'T'HHmmss'Z'");
 
-export function googleCalendarUrl(e: EventRow) {
+/** An all-day event's dates as calendars want them: the first day, and the day after the last. */
+const icsDays = (e: Pick<EventRow, "starts_at" | "ends_at">, tz: string) => {
+  const { first, last } = allDayDates(e, tz);
+  return { start: first.replace(/-/g, ""), end: DateTime.fromISO(last).plus({ days: 1 }).toFormat("yyyyLLdd") };
+};
+
+export function googleCalendarUrl(e: EventRow, tz = "America/Boise") {
+  const days = e.all_day ? icsDays(e, tz) : null;
   const p = new URLSearchParams({
     action: "TEMPLATE",
     text: e.title,
-    dates: `${gcal(e.starts_at)}/${gcal(e.ends_at)}`,
+    dates: days ? `${days.start}/${days.end}` : `${gcal(e.starts_at)}/${gcal(e.ends_at)}`,
     details: [e.description, `${appUrl()}/calendar/${e.id}`].filter(Boolean).join("\n\n"),
     location: e.location,
   });
@@ -130,18 +138,24 @@ export function parseAlerts(value: string | null | undefined): number[] {
 }
 
 function alarmLines(e: EventRow, minutes: number[]) {
-  return minutes.flatMap((m) => ["BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsEscape(e.title)}`, `TRIGGER:-PT${m}M`, "END:VALARM"]);
+  // An all-day event's alerts count back from 9 AM on its day, not midnight.
+  const trigger = (m: number) => {
+    const offset = e.all_day ? 540 - m : -m;
+    return offset < 0 ? `TRIGGER:-PT${-offset}M` : `TRIGGER:PT${offset}M`;
+  };
+  return minutes.flatMap((m) => ["BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsEscape(e.title)}`, trigger(m), "END:VALARM"]);
 }
 
-function veventLines(e: EventRow, host: string, stamp: string, alerts: number[] = []) {
+function veventLines(e: EventRow, host: string, stamp: string, alerts: number[] = [], tz = "America/Boise") {
+  const days = e.all_day ? icsDays(e, tz) : null;
   // A member's own event (only in their feed) has its own id and page, and is private.
   const link = `${appUrl()}${e.personal_event_id ? `/calendar/mine/${e.personal_event_id}` : e.invited_meeting_id ? `/meetings/${e.invited_meeting_id}` : `/calendar/${e.id}`}`;
   return [
     "BEGIN:VEVENT",
     e.personal_event_id ? `UID:personal-${e.personal_event_id}@${host}` : `UID:event-${e.id}@${host}`,
     `DTSTAMP:${stamp}`,
-    `DTSTART:${gcal(e.starts_at)}`,
-    `DTEND:${gcal(e.ends_at)}`,
+    days ? `DTSTART;VALUE=DATE:${days.start}` : `DTSTART:${gcal(e.starts_at)}`,
+    days ? `DTEND;VALUE=DATE:${days.end}` : `DTEND:${gcal(e.ends_at)}`,
     `SUMMARY:${icsEscape(e.title)}`,
     e.location && `LOCATION:${icsEscape(e.location)}`,
     `DESCRIPTION:${icsEscape([e.description, link].filter(Boolean).join("\n\n"))}`,
@@ -154,8 +168,8 @@ function veventLines(e: EventRow, host: string, stamp: string, alerts: number[] 
 
 const HEADER = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Elders Quorum App//EN", "CALSCALE:GREGORIAN"];
 
-export function icsFor(e: EventRow, alerts: number[] = [], host = new URL(appUrl()).host) {
-  const lines = [...HEADER, "METHOD:PUBLISH", ...veventLines(e, host, gcal(DateTime.utc().toISO()!), alerts), "END:VCALENDAR"];
+export function icsFor(e: EventRow, alerts: number[] = [], host = new URL(appUrl()).host, tz = "America/Boise") {
+  const lines = [...HEADER, "METHOD:PUBLISH", ...veventLines(e, host, gcal(DateTime.utc().toISO()!), alerts, tz), "END:VCALENDAR"];
   return lines.map(fold).join("\r\n") + "\r\n";
 }
 
@@ -169,7 +183,7 @@ export function icsFeed(events: EventRow[], calendarName: string, tz: string, al
     // Ask calendar apps to check for changes every hour (they may check less often).
     "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
     "X-PUBLISHED-TTL:PT1H",
-    ...events.flatMap((e) => veventLines(e, host, stamp, alerts)),
+    ...events.flatMap((e) => veventLines(e, host, stamp, alerts, tz)),
     "END:VCALENDAR",
   ];
   return lines.map(fold).join("\r\n") + "\r\n";
@@ -241,4 +255,40 @@ export function spanText(e: { starts_at: string; ends_at: string }, tz: string):
 export function ongoingText(e: { starts_at: string; ends_at: string }, tz: string, now: DateTime = DateTime.now()): string {
   const started = DateTime.fromISO(e.starts_at, { zone: "utc" }) <= now;
   return started ? `Now through ${DateTime.fromISO(e.ends_at, { zone: "utc" }).setZone(tz).toFormat("LLL d")}` : spanText(e, tz);
+}
+
+// All-day events: from midnight to 11:59 PM of their days in the ward's time zone.
+
+/** Midnight of the first day to 11:59 PM of the last (the same day without one), in UTC. */
+export function allDayRange(startDate: string, endDate: string | null, tz: string): { start: string; end: string } {
+  const first = DateTime.fromISO(startDate, { zone: tz }).startOf("day");
+  const lastDay = endDate && endDate > startDate ? endDate : startDate;
+  const last = DateTime.fromISO(lastDay, { zone: tz }).set({ hour: 23, minute: 59, second: 0, millisecond: 0 });
+  return { start: first.toUTC().toISO({ suppressMilliseconds: true })!, end: last.toUTC().toISO({ suppressMilliseconds: true })! };
+}
+
+/** An all-day event's first and last dates (local). */
+export function allDayDates(e: Pick<EventRow, "starts_at" | "ends_at">, tz: string): { first: string; last: string } {
+  return {
+    first: DateTime.fromISO(e.starts_at, { zone: "utc" }).setZone(tz).toISODate()!,
+    last: DateTime.fromISO(e.ends_at, { zone: "utc" }).setZone(tz).toISODate()!,
+  };
+}
+
+/** "Thu, Nov 5 · All day", or "Thu, Nov 5 – Sat, Nov 7" for more than one day. */
+export function allDayText(e: Pick<EventRow, "starts_at" | "ends_at">, tz: string): string {
+  const { first, last } = allDayDates(e, tz);
+  const f = (d: string) => DateTime.fromISO(d, { zone: tz }).toFormat("ccc, LLL d");
+  return first === last ? `${f(first)} · All day` : `${f(first)} – ${f(last)}`;
+}
+
+/** When an event's own and members' reminders count back from: its start, or 9 AM on an all-day event's first day. */
+export function reminderAnchor(e: Pick<EventRow, "starts_at" | "all_day">, tz: string): string {
+  if (!e.all_day) return e.starts_at;
+  return DateTime.fromISO(e.starts_at, { zone: "utc" }).setZone(tz).set({ hour: 9, minute: 0, second: 0 }).toUTC().toISO({ suppressMilliseconds: true })!;
+}
+
+/** The time line for an event in lists and messages: its date and time, or the all-day text. */
+export function eventWhenText(e: Pick<EventRow, "starts_at" | "ends_at" | "all_day">, tz: string): string {
+  return e.all_day ? allDayText(e, tz) : formatDateTime(e.starts_at, tz);
 }

@@ -24,16 +24,11 @@ export function RepeatFields({
   const [pattern, setPattern] = useState(defaultPattern);
   const [end, setEnd] = useState(defaultEnd);
 
+  // The event's first date, as the Starts or Date field says it (see EventTimeFields).
   useEffect(() => {
-    const input = document.getElementById("starts_at") as HTMLInputElement | null;
-    if (!input) return;
-    const update = () => setStart(input.value.slice(0, 10));
-    input.addEventListener("input", update);
-    input.addEventListener("change", update);
-    return () => {
-      input.removeEventListener("input", update);
-      input.removeEventListener("change", update);
-    };
+    const update = (e: Event) => setStart(String((e as CustomEvent<string>).detail).slice(0, 10));
+    window.addEventListener("event-start-date", update);
+    return () => window.removeEventListener("event-start-date", update);
   }, []);
 
   const options = patternOptions(start);

@@ -1614,4 +1614,14 @@ CREATE INDEX personal_events_member ON personal_events(member_id, date);
 ALTER TABLE members ADD COLUMN feed_contents TEXT NOT NULL DEFAULT 'both' CHECK (feed_contents IN ('both','ward','personal'));
 `,
   },
+  {
+    // All-day events (no start time): stored from midnight to 11:59 PM of their days
+    // in the ward's time zone, shown as "All day", with reminders counted from 9 AM.
+    id: 83,
+    sql: `
+ALTER TABLE events ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE event_series ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE personal_events ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];

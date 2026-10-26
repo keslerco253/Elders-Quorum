@@ -20,7 +20,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   // Still checks the member may see the event (presidency-only events stay private).
   const e = getEvent(user.id, id);
   if (!e) return new Response("Not found", { status: 404 });
-  return new Response(icsFor(e, parseAlerts(user.calendar_alerts)), {
+  // In the event's ward's time zone (for an all-day event's dates).
+  const tz = (db().prepare("SELECT w.timezone FROM orgs o JOIN wards w ON w.id = o.ward_id WHERE o.id = ?").get(e.org_id) as { timezone: string } | undefined)?.timezone;
+  return new Response(icsFor(e, parseAlerts(user.calendar_alerts), undefined, tz), {
     headers: {
       "content-type": "text/calendar; charset=utf-8",
       // iPhones and iPads only offer "Add to Calendar" when the file is shown, not downloaded.

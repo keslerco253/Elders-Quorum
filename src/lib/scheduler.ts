@@ -11,7 +11,7 @@ import { formatDate, formatDateTime, sundays } from "./time";
 import { reminderSettings, type LessonWhen } from "./reminder-settings";
 import type { PushPayload } from "./push";
 import type { EventRow } from "./types";
-import { eventAudience } from "./events";
+import { eventAudience, eventWhenText, reminderAnchor } from "./events";
 import { daysBetween, dueForDate, dueForStart, ownSettings, whenLabel, type ReminderChannel } from "./reminder-prefs";
 import { getOrg, getWard, hasFeature, homeOf, pickOrg } from "./orgs";
 import { runRetention } from "./retention";
@@ -26,7 +26,7 @@ import { joinNames } from "./invite-text";
 import { withOrg } from "./org-cookie";
 import { recordsToReview } from "./meetings";
 import { fillRegularTeachers } from "./regular-teachers";
-import { PERSONAL_EVENT_WHEN, personalEventTimes, type PersonalEvent } from "./personal-events";
+import { PERSONAL_EVENT_WHEN, personalEventTimes, personalReminderAnchor, type PersonalEvent } from "./personal-events";
 import { canTextTodos, dueAtUtc, reminderWays, todoReminders as personalReminders, TODO_WHEN, type TodoReminder } from "./personal-todos";
 import { dueText } from "./assignments";
 import { challengeMemberIds, challengeTeams, scoreboard } from "./challenges";
@@ -196,14 +196,14 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   for (const e of events) {
     const audience = eventAudience(e);
     const payload: PushPayload = {
-      ...renderTemplate(org.id, "event_reminder", { event: e.title, date_time: formatDateTime(e.starts_at, org.timezone), location: e.location }),
+      ...renderTemplate(org.id, "event_reminder", { event: e.title, date_time: eventWhenText(e, org.timezone), location: e.location }),
       url: `/calendar/${e.id}`,
     };
     for (const m of audience) {
       const mine = own.get(m.id);
       if (mine?.mode !== "custom") continue;
       for (const r of mine.reminders) {
-        if (dueForStart(r.when, e.starts_at, now)) out.push({ key: `event-mine:${e.id}:${e.starts_at}:${m.id}:${r.when}:${r.channels.join("+")}`, recipients: [m], payload, only: r.channels });
+        if (dueForStart(r.when, reminderAnchor(e, org.timezone), now)) out.push({ key: `event-mine:${e.id}:${e.starts_at}:${m.id}:${r.when}:${r.channels.join("+")}`, recipients: [m], payload, only: r.channels });
       }
     }
     // An event can have two reminders (e.g. a week before and a day before).
@@ -212,7 +212,8 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       [e.reminder2_minutes, "event2"],
     ] as const) {
       if (minutes === null || minutes === undefined) continue;
-      const remindAt = DateTime.fromISO(e.starts_at, { zone: "utc" }).minus({ minutes });
+      // (An all-day event's count from 9 AM that day.)
+      const remindAt = DateTime.fromISO(reminderAnchor(e, org.timezone), { zone: "utc" }).minus({ minutes });
       // Send once the reminder time passes, but skip it if we're more than 6 hours late.
       if (remindAt > now || now.diff(remindAt, "hours").hours > 6) continue;
       out.push({
@@ -487,8 +488,9 @@ function personalEventReminders(now: DateTime): DueNotification[] {
   const out: DueNotification[] = [];
   for (const e of rows) {
     const { starts } = personalEventTimes(e);
+    const anchor = personalReminderAnchor(e);
     for (const r of personalReminders(e)) {
-      if (!dueForStart(r.when, starts, now)) continue;
+      if (!dueForStart(r.when, anchor, now)) continue;
       const home = pickOrg(e.member_id);
       const who = home ? recipientById(e.member_id, home.id) : undefined;
       if (!who) continue;
@@ -498,7 +500,7 @@ function personalEventReminders(now: DateTime): DueNotification[] {
         recipients: [who],
         payload: {
           title: r.when === "m:0" ? `Starting now: ${e.title}` : `${e.title} starts in ${label.replace(/ before$/, "")}`,
-          body: `${formatDateTime(starts, e.timezone)}${e.location ? ` · ${e.location}` : ""}`,
+          body: `${e.all_day ? `${formatDate(e.date, "short")} · All day` : formatDateTime(starts, e.timezone)}${e.location ? ` · ${e.location}` : ""}`,
           url: `/calendar/mine/${e.id}`,
         },
         only: personalWays(r, e.member_id),

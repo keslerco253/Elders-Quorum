@@ -15,16 +15,18 @@ export async function savePersonalEventAction(fd: FormData) {
   const back = (text: string): never => redirect(`${id ? `/calendar/mine/${id}` : "/calendar/mine/new"}?msg=${encodeURIComponent(text)}`);
   const title = String(fd.get("title") || "").trim().slice(0, 200);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("date"))) ? String(fd.get("date")) : null;
-  const start = time(fd.get("start_time"));
+  const allDay = fd.get("all_day") === "on";
+  const start = allDay ? "00:00" : time(fd.get("start_time"));
   if (!title) return back("Give your event a title.");
-  if (!date || !start) return back("Choose its date and start time.");
+  if (!date || !start) return back(allDay ? "Choose its date." : "Choose its date and start time.");
   const saved = savePersonalEvent(user.id, id, {
     title,
     notes: String(fd.get("notes") || "").trim().slice(0, 2000),
     location: String(fd.get("location") || "").trim().slice(0, 200),
     date,
     start_time: start,
-    end_time: time(fd.get("end_time")),
+    end_time: allDay ? null : time(fd.get("end_time")),
+    all_day: allDay,
     timezone: user.ward.timezone,
     reminders: remindersFromForm(fd),
   });

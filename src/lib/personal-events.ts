@@ -17,6 +17,8 @@ export interface PersonalEvent {
   date: string;
   start_time: string;
   end_time: string | null;
+  /** No times: the whole day (start_time is stored as 00:00). */
+  all_day: number;
   timezone: string;
   /** JSON, as for private to-dos (see todoReminders). */
   reminders: string;
@@ -32,12 +34,21 @@ export const STARTING_EVENT_REMINDERS: TodoReminder[] = [
 
 const iso = (d: DateTime) => d.toUTC().toISO({ suppressMilliseconds: true })!;
 
-/** When it starts and ends, in UTC (an hour long without an end, or an end before the start). */
-export function personalEventTimes(e: Pick<PersonalEvent, "date" | "start_time" | "end_time" | "timezone">): { starts: string; ends: string } {
+/** When it starts and ends, in UTC (an hour long without an end, or an end before the start; all day: midnight to 11:59 PM). */
+export function personalEventTimes(e: Pick<PersonalEvent, "date" | "start_time" | "end_time" | "timezone" | "all_day">): { starts: string; ends: string } {
+  if (e.all_day) {
+    const day = DateTime.fromISO(e.date, { zone: e.timezone });
+    return { starts: iso(day.startOf("day")), ends: iso(day.set({ hour: 23, minute: 59 })) };
+  }
   const start = DateTime.fromISO(`${e.date}T${e.start_time}`, { zone: e.timezone });
   let end = e.end_time ? DateTime.fromISO(`${e.date}T${e.end_time}`, { zone: e.timezone }) : start.plus({ hours: 1 });
   if (!end.isValid || end <= start) end = start.plus({ hours: 1 });
   return { starts: iso(start), ends: iso(end) };
+}
+
+/** When its reminders count back from: its start, or 9 AM on an all-day event's day. */
+export function personalReminderAnchor(e: PersonalEvent): string {
+  return e.all_day ? iso(DateTime.fromISO(`${e.date}T09:00`, { zone: e.timezone })) : personalEventTimes(e).starts;
 }
 
 export function getPersonalEvent(memberId: number, id: number): PersonalEvent | undefined {
@@ -48,20 +59,20 @@ export function getPersonalEvent(memberId: number, id: number): PersonalEvent | 
 export function savePersonalEvent(
   memberId: number,
   id: number | null,
-  e: { title: string; notes: string; location: string; date: string; start_time: string; end_time: string | null; timezone: string; reminders: TodoReminder[] },
+  e: { title: string; notes: string; location: string; date: string; start_time: string; end_time: string | null; all_day: boolean; timezone: string; reminders: TodoReminder[] },
 ): number | null {
   const reminders = storeReminders(memberId, e.reminders);
   const d = db();
-  const values = [e.title, e.notes, e.location, e.date, e.start_time, e.end_time, e.timezone, reminders];
+  const values = [e.title, e.notes, e.location, e.date, e.all_day ? "00:00" : e.start_time, e.all_day ? null : e.end_time, e.all_day ? 1 : 0, e.timezone, reminders];
   if (id) {
     const changed = d
-      .prepare("UPDATE personal_events SET title = ?, notes = ?, location = ?, date = ?, start_time = ?, end_time = ?, timezone = ?, reminders = ? WHERE id = ? AND member_id = ?")
+      .prepare("UPDATE personal_events SET title = ?, notes = ?, location = ?, date = ?, start_time = ?, end_time = ?, all_day = ?, timezone = ?, reminders = ? WHERE id = ? AND member_id = ?")
       .run(...values, id, memberId).changes;
     return changed ? id : null;
   }
   return Number(
     d
-      .prepare("INSERT INTO personal_events (member_id, title, notes, location, date, start_time, end_time, timezone, reminders) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .prepare("INSERT INTO personal_events (member_id, title, notes, location, date, start_time, end_time, all_day, timezone, reminders) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .run(memberId, ...values).lastInsertRowid,
   );
 }
@@ -83,6 +94,7 @@ export function personalEventsBetween(memberId: number, fromUtc: string, toUtc: 
     .map(({ e, starts, ends }) => ({
       id: -e.id,
       personal_event_id: e.id,
+      all_day: e.all_day,
       org_id: 0,
       title: e.title,
       description: e.notes,

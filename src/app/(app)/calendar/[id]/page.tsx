@@ -76,7 +76,11 @@ export default async function EventPage({ params, searchParams }: { params: Prom
         <div>
           <div className="font-semibold">{isOngoing(e) ? spanText(e, tz) : formatDateTime(e.starts_at, tz, "cccc, LLLL d, yyyy")}</div>
           <div className="text-muted">
-            {formatTime(e.starts_at, tz)} – {sameDay ? formatTime(e.ends_at, tz) : formatDateTime(e.ends_at, tz)}
+            {e.all_day
+              ? sameDay
+                ? "All day"
+                : `All day, through ${formatDateTime(e.ends_at, tz, "cccc, LLLL d")}`
+              : `${formatTime(e.starts_at, tz)} – ${sameDay ? formatTime(e.ends_at, tz) : formatDateTime(e.ends_at, tz)}`}
           </div>
           {series && <div className="mt-1 text-sm text-muted">↻ {describeRecurrence(recurrenceOf(series))}</div>}
         </div>
@@ -115,7 +119,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
           </a>
         )}
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-          <a href={googleCalendarUrl(e)} target="_blank" rel="noreferrer" className="btn-primary">
+          <a href={googleCalendarUrl(e, tz)} target="_blank" rel="noreferrer" className="btn-primary">
             Add to Google Calendar
           </a>
           <a href={icsPath(e.id, user.id)} className="btn-secondary">

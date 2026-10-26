@@ -795,6 +795,11 @@ Members can delete their own. Turn comments off entirely in Settings.
 **Add event on this day**.
 - **Title**, **Starts**, **Ends**, **Location** (members can tap it for a map)
   and **Details** (links can be tapped).
+- **All day:** tick it for something with no start time (a food drive, a
+  holiday): choose the **Date** and, for more than one day, the **Last day**. It
+  shows as "All day" on the calendar and Home, goes into calendar apps as an
+  all-day event, and its reminders count back from 9 AM that day (so "1 day
+  before" comes at 9 AM the day before).
 - **Leaders only:** hidden from members; only this organization's leaders see it
   and get its notifications.
 - **Reminder** (default the day before) and an optional **second reminder**:
@@ -849,7 +854,7 @@ signing in) and the RSVP buttons.
 
 **Personal events:** anyone can tap **+ My event** on the Calendar (or **+ My event
 this day** on a picked day) to add their own event: title, date, **Starts**,
-**Ends** (optional; an hour without one), where and notes, with **Reminders** set
+**Ends** (optional; an hour without one) or **All day**, where and notes, with **Reminders** set
 the same way as on private to-dos (When it starts, or 15 minutes to 2 weeks
 before; App and Email for everyone, Text for presidency members, up to 3). Only
 they see it, marked **🔒 Only you**, on their calendar (under Everything),
