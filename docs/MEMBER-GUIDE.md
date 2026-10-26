@@ -101,6 +101,12 @@ use texting, it says "Your ward uses email".
 - **To keep notifications on screen on iPhone:** Settings → Notifications → (the
   app) → Banner Style → Persistent.
 
+**Links in texts open the browser instead of the app?** If you have the phone app,
+the link should open it. If it opens the browser and asks you to sign in, tap
+**Open the app** at the top of the sign-in page (or sign in there; you'll land on
+the right page either way). On iPhone you can also press and hold the link and
+choose **Open in My Ward Link**; iPhone then remembers to use the app.
+
 **My reminders** (**More → My reminders**, or 🔔 **My reminders** on the Lessons,
 Calendar and Service pages): for **Lessons**, **Events** and **Service**
 separately, choose:
@@ -141,8 +147,11 @@ the ward:
   weeks.
 - **This Sunday's lesson** for each organization (Sunday School's is "Come,
   Follow Me this week").
-- **Coming up:** events in the next 45 days. Something lasting weeks or months
-  (like a temple open house) shows as "Now through …".
+- **Coming up:** events in the next 45 days mixed in date order with your own
+  dated assignments: to-dos, lessons you're teaching and service you signed up
+  for. Something lasting weeks or months (like a temple open house) shows as "Now
+  through …". If you'd rather see Your assignments lower down, move it with
+  Customize Home.
 - **Challenge**, **Ways to serve**, **Would you like a visit?** and **Church apps**.
 
 **Customize Home** (the link at the bottom, or More → Customize Home): move

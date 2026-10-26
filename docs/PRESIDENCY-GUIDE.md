@@ -437,6 +437,11 @@ whether they've accepted.
   **No texting at all:** nothing is texted, not even codes.
 - **What texts look like:** notices read "(Ward Organization): Title. Text",
   shortened to 280 characters, with a short link that opens the right page.
+  With the phone app installed the link opens the app; in a phone's browser
+  someone not signed in sees **Open the app** on the sign-in page, and signing
+  in there still lands on the right page. (Opening links straight in the app
+  needs `APPLE_TEAM_ID` and `ANDROID_CERT_SHA256` set on the server; see
+  docs/MOBILE-APP.md.)
   Personal messages and visit reminders are just your words, signed "- Name".
 - **STOP:** a member who texts STOP (or STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT)
   gets no more texts: their consent is withdrawn and their backup becomes email
@@ -1152,8 +1157,10 @@ Home greets them by name with the date, then:
   organizations are you in?" (new members); and **Turn on notifications**.
 - **Then their sections:** Your assignments, Conducting this Sunday (presidency),
   This Sunday's lesson for each organization (Sunday School's is "Come, Follow Me
-  this week"), Coming up (the next 45 days, up to 6 events from their
-  organizations and the ward; long events as "Now through …"), Challenge, Ways to
+  this week"), Coming up (the next 45 days, up to 8 items in date order:
+  events from their organizations and the ward mixed with their own dated
+  assignments, to-dos, Sundays they teach and service they signed up for; long
+  events as "Now through …"), Challenge, Ways to
   serve (up to 4 open opportunities), Would you like a visit?, and Church apps. A
   section with nothing in it doesn't show.
 

@@ -116,6 +116,8 @@ export interface MyItem {
   title: string;
   /** Due date, lesson date or service date (null when there's none). */
   date: string | null;
+  /** Time of day on that date (HH:MM), when there is one. */
+  time?: string | null;
   orgId: number;
   orgLabel: string;
   href: string;
@@ -152,6 +154,7 @@ export function myAssignments(memberId: number, today: string, opts: { past?: bo
       key: `todo:${t.id}`,
       title: t.title,
       date: t.due_date,
+      time: t.due_time,
       orgId: t.org_id,
       orgLabel: label.get(t.org_id) ?? "",
       href: link(`/assignments/${t.id}`, t.org_id),
@@ -179,6 +182,7 @@ export function myAssignments(memberId: number, today: string, opts: { past?: bo
         key: `mine:${t.id}`,
         title: t.title,
         date: t.due_date,
+        time: t.due_time,
         orgId: 0,
         orgLabel: "",
         href: `/assignments/mine/${t.id}`,
@@ -215,12 +219,12 @@ export function myAssignments(memberId: number, today: string, opts: { past?: bo
   const serveOrgs = new Set(orgs.filter((o) => hasFeature(o, "signups") && inOrgs(o)).map((o) => o.id));
   const serving = db()
     .prepare(
-      `SELECT s.id, s.org_id, s.title, s.date, group_concat(sl.label, ', ') AS slots FROM signup_entries e
+      `SELECT s.id, s.org_id, s.title, s.date, s.time, group_concat(sl.label, ', ') AS slots FROM signup_entries e
        JOIN signup_slots sl ON sl.id = e.slot_id JOIN signups s ON s.id = sl.signup_id
        WHERE e.member_id = ? AND ${past ? "s.date < ?" : "(s.date >= ? OR s.date IS NULL)"}
        GROUP BY s.id ORDER BY s.date ${past ? "DESC LIMIT 20" : ""}`,
     )
-    .all(memberId, today) as { id: number; org_id: number; title: string; date: string | null; slots: string }[];
+    .all(memberId, today) as { id: number; org_id: number; title: string; date: string | null; time: string | null; slots: string }[];
   for (const s of serving) {
     if (!serveOrgs.has(s.org_id)) continue;
     items.push({
@@ -228,6 +232,7 @@ export function myAssignments(memberId: number, today: string, opts: { past?: bo
       key: `serve:${s.id}`,
       title: s.title,
       date: s.date,
+      time: s.time,
       orgId: s.org_id,
       orgLabel: label.get(s.org_id) ?? "",
       href: link(`/signups/${s.id}`, s.org_id),

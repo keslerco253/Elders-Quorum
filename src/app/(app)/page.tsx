@@ -25,7 +25,7 @@ import { invitePath, pendingInvitesFor, whenText } from "@/lib/planned-visits";
 import { hasFeature, leadersPhrase, myOrgs } from "@/lib/orgs";
 import { withOrg } from "@/lib/org-cookie";
 import { usesCfm } from "@/lib/cfm";
-import { assignmentRequestsFor, dueText, KIND_ICONS, soonAssignments } from "@/lib/assignments";
+import { assignmentRequestsFor, dueText, KIND_ICONS, myAssignments, soonAssignments } from "@/lib/assignments";
 import { conductingSchedule, swapsWaitingOn } from "@/lib/conducting";
 import { runningChallengesFor, scoreboard } from "@/lib/challenges";
 import { ledOrgIds } from "@/lib/conversations";
@@ -45,8 +45,23 @@ export default async function HomePage() {
   const lessonOrgs = mine.filter((o) => hasFeature(o, "lessons"));
   const lessonNexts = lessonOrgs.map((o) => ({ org: o, lesson: upcomingLessons(o.id, currentLessonDate(tz), lessonOrgs.length > 1 ? 1 : 3) }));
   const now = DateTime.now();
-  const events = eventsBetween(user.id, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!, { joinedOnly: true }).slice(0, 6);
-  const eventOrgs = new Set(events.map((e) => e.org_id)).size > 1;
+  const events = eventsBetween(user.id, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!, { joinedOnly: true });
+  // Coming up: events and everything with a date on their plate (assignments, to-dos,
+  // lessons they're teaching, service they signed up for), in order. Something due on a
+  // date with no time comes after that day's events (a lesson, at 9 AM).
+  const until = now.setZone(tz).plus({ days: 45 }).toISODate()!;
+  const dated = myAssignments(user.id, today).filter((i) => !i.done && i.date && i.date >= today && i.date <= until);
+  const upcoming = [
+    ...events.map((e) => ({ at: e.starts_at, event: e, item: undefined })),
+    ...dated.map((i) => ({
+      at: DateTime.fromISO(`${i.date}T${i.time ?? (i.kind === "teach" ? "09:00" : "23:59")}`, { zone: tz }).toUTC().toISO()!,
+      event: undefined,
+      item: i,
+    })),
+  ]
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .slice(0, 8);
+  const eventOrgs = new Set([...events.map((e) => e.org_id), ...dated.map((i) => i.orgId).filter(Boolean)]).size > 1;
   const signupOrgs = mine.filter((o) => hasFeature(o, "signups"));
   const signups = signupOrgs
     .flatMap((o) => listSignups(o.id, false, today).map((s) => ({ ...s, org: o })))
@@ -217,13 +232,28 @@ export default async function HomePage() {
           </Link>
         }
       >
-        {events.length === 0 ? (
+        {upcoming.length === 0 ? (
           <div className="card text-sm text-muted">
-            Nothing on the calendar in the next few weeks.
+            Nothing coming up in the next few weeks.
           </div>
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
-            {events.map((e) => (
+            {upcoming.map(({ event: e, item: i }) =>
+              i ? (
+                <li key={i.key}>
+                  <OrgLink href={i.href} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
+                    <span className="text-lg" aria-hidden>
+                      {KIND_ICONS[i.kind]}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{i.title}</span>
+                      <span className="block text-sm text-muted">{i.detail}</span>
+                      {eventOrgs && i.orgLabel && <span className="block text-xs text-muted">{i.orgLabel}</span>}
+                    </span>
+                    {i.flag && <Badge tone={i.flag.tone}>{i.flag.text}</Badge>}
+                  </OrgLink>
+                </li>
+              ) : e ? (
               <li key={e.id}>
                 <Link
                   href={`/calendar/${e.id}`}
@@ -241,7 +271,8 @@ export default async function HomePage() {
                   {!!e.presidency_only && <Badge tone="warn">Leaders only</Badge>}
                 </Link>
               </li>
-            ))}
+              ) : null,
+            )}
           </ul>
         )}
       </Section>

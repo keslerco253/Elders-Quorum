@@ -7,6 +7,7 @@ import { Flash } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { requestLogin } from "../actions";
 import { phoneOptInVisible } from "@/lib/sms";
+import { OpenInApp } from "@/components/open-in-app";
 
 export const metadata = { title: "Sign in" };
 
@@ -18,6 +19,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const phone = phoneOptInVisible();
   return (
     <div className="card">
+      <OpenInApp path={sp.next || "/"} />
       <h2 className="h2 mb-1">Sign in</h2>
       <p className="mb-4 text-sm text-muted">{phone ? "We'll text or email you a sign-in code." : "We'll email you a sign-in link and code."} No password needed.</p>
       <Flash msg={sp.error} tone="danger" />
