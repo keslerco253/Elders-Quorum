@@ -8,6 +8,8 @@ import { MEETING_MINUTES, reminderSettings } from "@/lib/reminder-settings";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AgendaList } from "./agenda-list";
+import { HandbookLink } from "@/components/handbook-link";
+import { orgChapter } from "@/lib/handbook";
 import { addAgenda, newMeeting, saveMeetingRole, saveVideoLink, startVideo } from "./actions";
 import { RoleSelect } from "./role-select";
 
@@ -19,6 +21,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const tz = user.ward.timezone;
   const today = todayIn(tz);
   const agenda = pendingAgenda(user.org_id);
+  // The handbook chapter for this organization's leaders (presidency meetings are in it).
+  const chapter = orgChapter(user.org);
   const meetings = orgMeetings(user.org_id);
   const review = recordsToReview(user.org_id, today).length;
   const video = videoLink(user.org_id);
@@ -87,6 +91,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         }
       />
       <Flash msg={sp.msg} />
+      {chapter && <HandbookLink chapter={chapter} className="mb-4" />}
       {review > 0 && (
         <Link href="/admin/meetings/review" className="mb-5 flex items-center justify-between rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
           {review} record{review === 1 ? "" : "s"} to review: keep only what&apos;s still needed <span>›</span>

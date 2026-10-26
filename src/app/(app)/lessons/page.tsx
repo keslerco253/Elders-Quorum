@@ -6,6 +6,8 @@ import { pastLessons, upcomingLessons } from "@/lib/lessons";
 import { currentLessonDate, todayIn } from "@/lib/time";
 import { isAdmin } from "@/lib/permissions";
 import { Badge, Empty, PageHeader } from "@/components/ui";
+import { HandbookLink } from "@/components/handbook-link";
+import { TEACHING } from "@/lib/handbook";
 import { conferenceLabel, DateChip } from "@/components/lesson-bits";
 
 export const metadata = { title: "Lessons" };
@@ -36,6 +38,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
           </>
         }
       />
+      <HandbookLink chapter={TEACHING} className="mb-4" />
       <div className="mb-4 flex gap-2 text-sm">
         <Link href="/lessons" className={`rounded-full px-3 py-1 font-medium ${!past ? "bg-primary text-primary-text" : "bg-surface-2 text-muted"}`}>
           Upcoming
