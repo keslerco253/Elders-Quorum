@@ -31,7 +31,8 @@ export interface TodoReminder {
 export const MAX_TODO_REMINDERS = 10;
 export const MAX_TODO_TEXTS = 3;
 /** When a reminder can be: at the due time, or the same choices as event reminders. */
-export const TODO_WHEN: [string, string][] = [["m:0", "When it's due"], ...WHEN_OPTIONS.events];
+// "3 days before" too: to-dos made before reminders were chosen this way could have it.
+export const TODO_WHEN: [string, string][] = [["m:0", "When it's due"], ...WHEN_OPTIONS.events.flatMap((o): [string, string][] => (o[0] === "m:2880" ? [o, ["m:4320", "3 days before"]] : [o]))];
 /** What a new to-do starts with. */
 export const STARTING_TODO_REMINDERS: TodoReminder[] = [
   { when: "m:1440", text: false },

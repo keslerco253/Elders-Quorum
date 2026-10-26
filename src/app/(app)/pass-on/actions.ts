@@ -10,7 +10,8 @@ import { forwardMessage, handlesBackup } from "@/lib/message-routing";
 export async function forwardMemberMessage(fd: FormData) {
   const user = await requireUser();
   const back = String(fd.get("back") || "/pass-on");
-  const safeBack = back.startsWith("/") && !back.startsWith("//") ? back : "/pass-on";
+  // A page on this site only (not "//other" or "/\\other", which browsers treat as another site).
+  const safeBack = /^\/(?!\/)[^\s\\]*$/.test(back) ? back : "/pass-on";
   const where = await forwardMessage(user, Number(fd.get("message_id")), String(fd.get("target") || ""));
   revalidatePath("/", "layout");
   redirect(`${safeBack}${safeBack.includes("?") ? "&" : "?"}msg=${encodeURIComponent(where ? `Forwarded to ${where}. They've been notified, and the member's next texted reply goes to them.` : "That couldn't be forwarded.")}`);

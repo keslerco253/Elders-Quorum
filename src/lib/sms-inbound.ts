@@ -142,9 +142,10 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   const word = body.toUpperCase().replace(/[^A-Z]/g, "");
   const optOut = (params.OptOutType || "").toUpperCase();
   if (optOut === "STOP" || STOP_WORDS.includes(word)) {
-    db().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END WHERE id = ? AND contact_pref IN ('text','both')").run(member.id);
+    // Everyone on that number (it ends texts to the phone, not one account).
+    db().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END WHERE phone = ? AND contact_pref IN ('text','both')").run(from);
     // Replying STOP withdraws their consent; they can agree again under Contact & notifications.
-    db().prepare("UPDATE members SET always_text = 0, sms_consent_at = NULL WHERE id = ?").run(member.id);
+    db().prepare("UPDATE members SET always_text = 0, sms_consent_at = NULL WHERE phone = ?").run(from);
     guestOptOut(from);
     return "opted_out";
   }

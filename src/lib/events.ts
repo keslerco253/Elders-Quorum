@@ -93,7 +93,8 @@ export function isAppleMobile(ua: string | null) {
   return !!ua && /iPhone|iPad|iPod/.test(ua);
 }
 
-const icsEscape = (s: string) => s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+// (Line breaks typed in a form arrive as \r\n; a bare \r would break the line in some calendar apps.)
+const icsEscape = (s: string) => s.replace(/\r\n?/g, "\n").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
 
 /** Folds long lines to 75 octets as the iCalendar spec requires. */
 function fold(line: string) {
@@ -102,6 +103,8 @@ function fold(line: string) {
   while (Buffer.byteLength(rest) > 75) {
     let n = 75;
     while (Buffer.byteLength(rest.slice(0, n)) > 75) n--;
+    // Never between the two halves of an emoji.
+    if (/[\ud800-\udbff]/.test(rest[n - 1])) n--;
     out.push(rest.slice(0, n));
     rest = " " + rest.slice(n);
   }
@@ -197,11 +200,14 @@ export function invitedOrgIds(e: Pick<EventRow, "invited" | "org_id">, wardOrgId
  * event), plus everyone in the organizations it invited.
  */
 export function eventAudience(e: Pick<EventRow, "org_id" | "invited" | "presidency_only"> & { id?: number }, opts: { invitedOnly?: boolean } = {}): Recipient[] {
-  // A meeting people were invited to: those who haven't said they can't come.
-  const meeting = e.presidency_only && e.id ? (db().prepare("SELECT id FROM meetings WHERE event_id = ? AND kind = 'invited'").get(e.id) as { id: number } | undefined) : undefined;
+  // A meeting people were invited to: those who haven't said they can't come, and
+  // whoever scheduled it.
+  const meeting = e.presidency_only && e.id ? (db().prepare("SELECT id, created_by FROM meetings WHERE event_id = ? AND kind = 'invited'").get(e.id) as { id: number; created_by: number | null } | undefined) : undefined;
   if (meeting) {
     if (opts.invitedOnly) return [];
     const ids = (db().prepare("SELECT member_id FROM meeting_invitees WHERE meeting_id = ? AND (response IS NULL OR response = 'yes')").all(meeting.id) as { member_id: number }[]).map((r) => r.member_id);
+    const declined = !!db().prepare("SELECT 1 FROM meeting_invitees WHERE meeting_id = ? AND member_id = ? AND response = 'no'").get(meeting.id, meeting.created_by ?? 0);
+    if (meeting.created_by && !declined && !ids.includes(meeting.created_by)) ids.push(meeting.created_by);
     return ids.map((id) => recipientById(id, e.org_id)).filter((r): r is Recipient => !!r);
   }
   if (e.presidency_only) return opts.invitedOnly ? [] : audienceMembers(e.org_id, "admins");

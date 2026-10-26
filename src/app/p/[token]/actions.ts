@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { getShare } from "@/lib/public-shares";
-import { confirmGuest, sendGuestConfirmation, slotTaken, startGuestSignup } from "@/lib/guest-signups";
+import { cancelGuest, confirmGuest, sendGuestConfirmation, slotTaken, startGuestSignup } from "@/lib/guest-signups";
 import { parseContact } from "@/lib/contact";
 import { allowHit, clientIp } from "@/lib/rate-limit";
 import { orgHasNoTexting, phoneEnabled } from "@/lib/sms";
@@ -43,13 +43,21 @@ export async function guestSignUp(fd: FormData) {
 
 export async function guestConfirm(fd: FormData) {
   const token = String(fd.get("token") || "");
+  const share = getShare(token);
+  if (!share || share.kind !== "signup" || !share.signup_id) redirect(`/p/${token}`);
   const id = Number(fd.get("guest_id"));
-  const result = confirmGuest(id, String(fd.get("code") || ""));
-  if (result === "ok") {
-    await sendGuestConfirmation(id, token);
-    redirect(`/p/${token}?done=1#signup`);
-  }
+  const result = confirmGuest(id, String(fd.get("code") || ""), share.signup_id);
+  // The confirmation goes once, when the code is first right.
+  if (result === "ok") await sendGuestConfirmation(id, share.token);
+  if (result === "ok" || result === "already") redirect(`/p/${share.token}?done=1#signup`);
   const msg =
     result === "wrong" ? "That code didn't work. Check it and try again." : result === "full" ? "Sorry, that spot filled up before you confirmed. Please choose another." : "That code has expired. Please sign up again.";
   redirect(`/p/${token}?${q(result === "wrong" ? { confirm: String(id), via: String(fd.get("via") || ""), error: msg } : { error: msg })}#signup`);
+}
+
+/** A guest cancels from the link they were sent (its id and secret are the proof). */
+export async function cancelGuestSignup(fd: FormData) {
+  const token = String(fd.get("token") || "");
+  const done = cancelGuest(Number(fd.get("g")), String(fd.get("t") || ""));
+  redirect(`/p/${encodeURIComponent(token)}/cancel?${done ? "done=1" : `g=0&t=`}`);
 }

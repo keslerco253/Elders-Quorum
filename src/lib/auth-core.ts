@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { DateTime } from "luxon";
 import { db } from "./db";
 import type { CurrentUser, Member } from "./types";
-import { currentUserFor, getOrg, inWard } from "./orgs";
+import { addToWard, currentUserFor, getOrg, inWard } from "./orgs";
 import { parseContact } from "./contact";
 
 export const REMEMBER_OPTIONS = {
@@ -69,15 +69,38 @@ interface TokenRow {
   id: number;
   member_id: number;
   remember: Remember;
+  sent_via: "email" | "phone" | null;
   attempts: number;
   expires_at: string;
   used_at: string | null;
 }
 
-function consume(row: TokenRow | undefined): { memberId: number; remember: Remember } | null {
+function consume(row: TokenRow | undefined): { memberId: number; remember: Remember; sentVia: TokenRow["sent_via"] } | null {
   if (!row || row.used_at || row.expires_at < nowIso()) return null;
   db().prepare("UPDATE login_tokens SET used_at = ? WHERE id = ?").run(nowIso(), row.id);
-  return { memberId: row.member_id, remember: row.remember };
+  confirmJoin(row.member_id, row.sent_via);
+  return { memberId: row.member_id, remember: row.remember, sentVia: row.sent_via };
+}
+
+/**
+ * What joining waited on until they proved the number or email is theirs: agreeing to
+ * ward texts (only once a code sent by text is used), and joining the ward with an
+ * account they already had.
+ */
+function confirmJoin(memberId: number, sentVia: TokenRow["sent_via"]) {
+  const d = db();
+  const m = d.prepare("SELECT text_consent_pending, pending_join_ward FROM members WHERE id = ?").get(memberId) as { text_consent_pending: number; pending_join_ward: number | null } | undefined;
+  if (!m) return;
+  if (m.text_consent_pending && sentVia === "phone") d.prepare("UPDATE members SET sms_consent_at = coalesce(sms_consent_at, datetime('now')), text_consent_pending = 0 WHERE id = ?").run(memberId);
+  if (m.pending_join_ward) {
+    if (d.prepare("SELECT 1 FROM wards WHERE id = ?").get(m.pending_join_ward)) addToWard(memberId, m.pending_join_ward);
+    d.prepare("UPDATE members SET pending_join_ward = NULL WHERE id = ?").run(memberId);
+  }
+}
+
+/** Notes how a sign-in code was sent (by email or text). */
+export function markCodeSent(token: string, via: "email" | "phone") {
+  db().prepare("UPDATE login_tokens SET sent_via = ? WHERE token_hash = ?").run(via, sha256(token));
 }
 
 export function redeemToken(token: string) {

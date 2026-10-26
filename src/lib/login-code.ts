@@ -4,6 +4,7 @@ import { codeTextFooter, sendSms, SMS_DISCLOSURE } from "./sms";
 import type { ContactKind } from "./contact";
 import type { Member } from "./types";
 import { homeOf } from "./orgs";
+import { markCodeSent } from "./auth-core";
 
 /** Sends a sign-in code to the phone number or email the member typed. */
 export async function sendLoginCode(member: Member, via: ContactKind, token: string, code: string) {
@@ -13,13 +14,15 @@ export async function sendLoginCode(member: Member, via: ContactKind, token: str
     // After joining with a phone number, the first text confirms the opt-in with the full disclosure.
     // Someone the presidency added hasn't agreed to texts yet, so they just get the code they asked for.
     const body =
-      member.sms_consent_at && !member.last_login_at
+      (member.sms_consent_at || (member as Member & { text_consent_pending?: number }).text_consent_pending) && !member.last_login_at
         ? `${appName}: ${code} is your sign-in code (expires in 20 minutes). You're signed up for ward texts. ${SMS_DISCLOSURE}`
         : `${code} is your ${appName} sign-in code. It expires in 20 minutes. Reply STOP to opt out.`;
     const res = await sendSms(home.orgId, member.phone, body + codeTextFooter(code), "code");
+    if (res === "sent") markCodeSent(token, "phone");
     return res === "sent";
   }
   if (!member.email) return false;
+  markCodeSent(token, "email");
   const link = `${appUrl()}/auth/verify?token=${encodeURIComponent(token)}`;
   const text = `Hi ${member.display_name},\n\nTap the button below to sign in to ${appName}.\n\nOr enter this code in the app: ${code}\n\nThe link and code expire in 20 minutes. If you didn't ask to sign in, you can ignore this email.`;
   return sendMail({

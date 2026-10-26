@@ -13,7 +13,7 @@ import type { PushPayload } from "./push";
 import type { EventRow } from "./types";
 import { eventAudience } from "./events";
 import { daysBetween, dueForDate, dueForStart, ownSettings, whenLabel, type ReminderChannel } from "./reminder-prefs";
-import { hasFeature, homeOf } from "./orgs";
+import { getOrg, getWard, hasFeature, homeOf, pickOrg } from "./orgs";
 import { runRetention } from "./retention";
 import { extendAllSeries } from "./event-series";
 import { upcomingVisits, visitorIds, whenText } from "./planned-visits";
@@ -28,7 +28,7 @@ import { recordsToReview } from "./meetings";
 import { fillRegularTeachers } from "./regular-teachers";
 import { canTextTodos, dueAtUtc, todoReminders as personalReminders, TODO_WHEN } from "./personal-todos";
 import { dueText } from "./assignments";
-import { challengeMemberIds, scoreboard } from "./challenges";
+import { challengeMemberIds, challengeTeams, scoreboard } from "./challenges";
 import { lastDelivery } from "./delivery";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
@@ -450,12 +450,14 @@ function personalTodoReminders(now: DateTime): DueNotification[] {
     .all() as { id: number; member_id: number; title: string; due_date: string; due_time: string | null; reminders: string; tz: string | null }[];
   const out: DueNotification[] = [];
   for (const t of rows) {
-    const due = dueAtUtc(t, t.tz ?? "America/Boise");
+    // In the time zone of the ward they're sent from (the same organization as the link).
+    const home = pickOrg(t.member_id);
+    const tz = (home && getWard(home.ward_id)?.timezone) || t.tz || "America/Boise";
+    const due = dueAtUtc(t, tz);
     if (!due) continue;
     for (const r of personalReminders(t)) {
       if (!dueForStart(r.when, due, now)) continue;
-      const home = homeOf(t.member_id);
-      const who = home.orgId ? recipientById(t.member_id, home.orgId) : undefined;
+      const who = home ? recipientById(t.member_id, home.id) : undefined;
       if (!who) continue;
       // Texts only for presidency members (as saved); otherwise an app notification.
       const text = r.text && canTextTodos(t.member_id);
@@ -483,7 +485,7 @@ function assignmentRequestFollowUps(now: DateTime): DueNotification[] {
   const rows = db()
     .prepare(
       `SELECT t.id, t.org_id, t.title, t.asked_at, t.assignee_id, w.timezone FROM todos t JOIN orgs o ON o.id = t.org_id JOIN wards w ON w.id = o.ward_id
-       WHERE t.done = 0 AND t.accept_status = 'pending' AND t.assignee_id IS NOT NULL AND t.asked_at <= ? AND t.asked_at >= ?`,
+       WHERE t.done = 0 AND t.accept_status = 'pending' AND t.assignee_id IS NOT NULL AND t.asked_at <= ? AND t.asked_at >= ? AND o.active = 1`,
     )
     .all(now.minus({ days: 2 }).toUTC().toFormat("yyyy-MM-dd HH:mm:ss"), now.minus({ days: 30 }).toUTC().toFormat("yyyy-MM-dd HH:mm:ss")) as {
     id: number;
@@ -499,7 +501,10 @@ function assignmentRequestFollowUps(now: DateTime): DueNotification[] {
     if (hour < 9 || hour >= 20) continue;
     if (lastDelivery(t.assignee_id, `/assignments/${t.id}`)?.read_at) continue;
     const who = recipientById(t.assignee_id, t.org_id);
-    if (!who) continue;
+    const org = getOrg(t.org_id);
+    if (!who || !org || !hasFeature(org, "todos")) continue;
+    // Not to someone who turned off everything but app notifications.
+    if (who.contact_pref === "none") continue;
     out.push({
       key: `todo-ask-again:${t.id}:${t.asked_at}`,
       recipients: [who],
@@ -523,10 +528,14 @@ function challengeResults(now: DateTime): DueNotification[] {
     const [first, second] = board;
     if (!first) continue;
     const tied = !!second && second.points === first.points;
+    // Each person through an organization in the challenge (so the link opens in its ward).
+    const teamOrgs = challengeTeams(c.id).flatMap((t) => t.orgIds);
     const recipients = challengeMemberIds(c.id)
       .map((id) => {
-        const home = homeOf(id);
-        return home.orgId ? recipientById(id, home.orgId) : undefined;
+        const via = db()
+          .prepare(`SELECT org_id FROM org_members WHERE member_id = ? AND org_id IN (${teamOrgs.map(Number).join(",") || "0"}) ORDER BY official DESC LIMIT 1`)
+          .get(id) as { org_id: number } | undefined;
+        return via ? recipientById(id, via.org_id) : undefined;
       })
       .filter((r): r is Recipient => !!r);
     const fmt = (n: number) => (Number.isInteger(n) ? n : n.toFixed(1));

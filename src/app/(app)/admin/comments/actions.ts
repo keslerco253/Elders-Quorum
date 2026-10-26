@@ -7,7 +7,7 @@ import { requireAdmin } from "@/lib/auth";
 
 function safeReturn(v: FormDataEntryValue | null) {
   const s = String(v || "/admin/comments");
-  return s.startsWith("/") && !s.startsWith("//") ? s : "/admin/comments";
+  return /^\/(?!\/)[^\s\\]*$/.test(s) ? s : "/admin/comments";
 }
 
 export async function moderateComment(fd: FormData) {

@@ -99,7 +99,8 @@ export async function answerRequest(requestId: number, memberId: number, accept:
   d.transaction(() => {
     d.prepare("UPDATE teaching_requests SET status = ?, reason = ?, responded_at = datetime('now') WHERE id = ?").run(accept ? "accepted" : "declined", accept ? "" : why, r.id);
     if (accept) {
-      d.prepare("UPDATE lessons SET teacher_id = ?, teacher_confirmed_at = datetime('now') WHERE id = ?").run(memberId, r.lesson_id);
+      // Asked by hand, so not the regular teacher's: changing the rotation leaves them.
+      d.prepare("UPDATE lessons SET teacher_id = ?, teacher_confirmed_at = datetime('now'), teacher_auto = 0 WHERE id = ?").run(memberId, r.lesson_id);
       // Anyone else asked for this lesson no longer needs to answer.
       d.prepare("UPDATE teaching_requests SET status = 'cancelled' WHERE lesson_id = ? AND status = 'pending' AND id != ?").run(r.lesson_id, r.id);
     }

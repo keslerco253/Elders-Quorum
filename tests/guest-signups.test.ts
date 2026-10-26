@@ -33,13 +33,16 @@ describe("signing up from a public link, without an account", () => {
     const id = (await g.startGuestSignup({ slotId: slot, name: "John Smith", contact: "john@test.local", kind: "email", note: "", textConsent: false }))!;
     expect(g.slotTaken(slot)).toBe(0);
     const code = lastTo("john@test.local").match(/is: (\d{6})/)![1];
-    expect(g.confirmGuest(id, "000000" === code ? "111111" : "000000")).toBe("wrong");
-    expect(g.confirmGuest(id, code)).toBe("ok");
+    expect(g.confirmGuest(id, "000000" === code ? "111111" : "000000", signup)).toBe("wrong");
+    expect(g.confirmGuest(id, code, signup)).toBe("ok");
+    // Confirming again sends nothing more, and another sign-up's link doesn't count.
+    expect(g.confirmGuest(id, code, signup)).toBe("already");
+    expect(g.confirmGuest(id, code, signup + 1)).toBe("expired");
     expect(g.slotTaken(slot)).toBe(1);
     expect(g.guestShortName("John Smith")).toBe("John S.");
     // The spot is full now: another guest can't confirm into it.
     const other = (await g.startGuestSignup({ slotId: slot, name: "Ann Lee", contact: "ann@test.local", kind: "email", note: "", textConsent: false }))!;
-    expect(g.confirmGuest(other, lastTo("ann@test.local").match(/is: (\d{6})/)![1])).toBe("full");
+    expect(g.confirmGuest(other, lastTo("ann@test.local").match(/is: (\d{6})/)![1], signup)).toBe("full");
     await g.sendGuestConfirmation(id, token);
     expect(lastTo("john@test.local")).toContain(`/p/${token}/cancel?g=${id}`);
     const cancelToken = (d.prepare("SELECT cancel_token FROM signup_guests WHERE id = ?").get(id) as { cancel_token: string }).cancel_token;
@@ -61,7 +64,7 @@ describe("signing up from a public link, without an account", () => {
 
   it("is reminded on the opportunity's reminder days, by email when they didn't agree to texts", async () => {
     const id = (await g.startGuestSignup({ slotId: slot, name: "John Smith", contact: "john@test.local", kind: "email", note: "", textConsent: false }))!;
-    g.confirmGuest(id, lastTo("john@test.local").match(/is: (\d{6})/)![1]);
+    g.confirmGuest(id, lastTo("john@test.local").match(/is: (\d{6})/)![1], signup);
     // A day before (the default second reminder), at 9 AM in Boise.
     const due = g.guestRemindersDue(new Date("2030-10-29T15:00:00Z"));
     expect(due.map((r) => [r.when, r.texts])).toEqual([["tomorrow", false]]);

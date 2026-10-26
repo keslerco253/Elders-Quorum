@@ -115,11 +115,15 @@ export async function forwardMessage(user: CurrentUser, messageId: number, targe
   const d = db();
   const msg = d
     .prepare("SELECT c.*, o.ward_id FROM member_messages c JOIN orgs o ON o.id = c.org_id WHERE c.id = ? AND c.direction = 'in'")
-    .get(messageId) as { id: number; org_id: number; member_id: number; body: string; via: "app" | "text"; ward_id: number; needs_home: number } | undefined;
+    .get(messageId) as
+    | { id: number; org_id: number; member_id: number; body: string; via: "app" | "text"; ward_id: number; needs_home: number; recipient_id: number | null }
+    | undefined;
   if (!msg || msg.ward_id !== user.ward_id) return null;
-  // Its organization's leaders, the backup person, or the bishopric.
+  // A message written privately to one leader is only theirs to pass on.
+  if (msg.recipient_id && msg.recipient_id !== user.id) return null;
+  // Its organization's leaders; or, for one that needs a home (Pass it on), the backup person or the bishopric.
   const leadsIt = !!d.prepare("SELECT 1 FROM org_members WHERE org_id = ? AND member_id = ? AND role = 'presidency'").get(msg.org_id, user.id);
-  if (!leadsIt && !handlesBackup(user)) return null;
+  if (!leadsIt && !(msg.needs_home && handlesBackup(user))) return null;
   const m = target.match(/^(org|leader):(\d+)(?::(\d+))?$/);
   if (!m) return null;
   const toOrg = getOrg(Number(m[2]));

@@ -109,10 +109,8 @@ export function saveRegularTeachers(orgId: number, byWeek: (number | null)[], to
         removeTeacherNotes(l.id, l.teacher_id);
         d.prepare("UPDATE lessons SET teacher_id = NULL, teacher_confirmed_at = NULL, teacher_auto = 0, regular_done = 0 WHERE id = ?").run(l.id);
       }
-      // Lessons left open earlier (no regular teacher then) can be filled now.
-      for (const l of d.prepare("SELECT id, date FROM lessons WHERE org_id = ? AND date >= ? AND teacher_id IS NULL AND regular_done = 1").all(orgId, today) as { id: number; date: string }[]) {
-        if (weekOfMonth(l.date) === week && !d.prepare("SELECT 1 FROM lesson_declines WHERE lesson_id = ?").get(l.id)) d.prepare("UPDATE lessons SET regular_done = 0 WHERE id = ?").run(l.id);
-      }
+      // (Lessons left open because that Sunday had no regular teacher were never marked
+      // filled, so they're filled below; ones a leader cleared by hand stay open.)
     });
   })();
   const filled = fillRegularTeachers(orgId, today);
@@ -138,4 +136,17 @@ export async function tellRegularTeachers(orgId: number, orgLabel: string, chang
     const who = recipientById(t.id, orgId);
     if (who) await notify([who], { title: `${orgLabel} teaching schedule`, body: `You're no longer the regular teacher on the ${weeksText(t.weeks)}. Thank you for teaching!`, url: "/assignments" });
   }
+}
+
+/**
+ * Someone who left the organization (or was taken out) stops being a regular teacher:
+ * their Sundays open up and the upcoming lessons they were put on automatically open
+ * for the next regular teacher. Returns the changes (no one is notified).
+ */
+export function dropRegularTeacher(orgId: number, memberId: number, today: string = new Date().toISOString().slice(0, 10)) {
+  const byWeek = WEEKS.map((w) => {
+    const who = regularTeachers(orgId).find((r) => r.week === w)?.member_id ?? null;
+    return who === memberId ? null : who;
+  });
+  return saveRegularTeachers(orgId, byWeek, today);
 }

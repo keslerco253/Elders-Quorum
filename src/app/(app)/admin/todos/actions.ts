@@ -10,6 +10,7 @@ import { dueText, getTodo, isPresidencyOf, setTodoStatus, type TodoStatus } from
 import { saveUpload } from "@/lib/uploads";
 import { unreachableWhy } from "@/lib/delivery";
 import { withOrg } from "@/lib/org-cookie";
+import { cancelPendingHandoffs } from "@/lib/assignment-handoffs";
 
 /** Back to the meeting the form was on, or the assignments list. */
 function backTo(fd: FormData): string {
@@ -82,6 +83,8 @@ export async function saveTodo(fd: FormData) {
            accept_status = ?, asked_at = CASE WHEN ? THEN datetime('now') ELSE asked_at END WHERE id = ?`,
       )
       .run(title, notes, due, dueTime, assignee?.id ?? null, r1, r2, flyerFile, flyerName, acceptStatus, asking ? 1 : 0, id);
+    // Given to someone else by hand: an ask to take it no longer applies.
+    if ((assignee?.id ?? null) !== previousAssignee) cancelPendingHandoffs(id);
   } else {
     todoId = Number(
       db()

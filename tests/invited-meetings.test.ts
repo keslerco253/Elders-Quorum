@@ -54,7 +54,8 @@ describe("meetings the presidency invites people to", () => {
     respondToMeeting(id, 3, "no");
     const eventId = getMeeting(1, id)!.event_id!;
     const ev = db().prepare("SELECT * FROM events WHERE id = ?").get(eventId) as Parameters<typeof eventAudience>[0];
-    expect(eventAudience(ev).map((r) => r.id)).toEqual([2]);
+    // Sam, and Pres who scheduled it (Ned said no).
+    expect(eventAudience(ev).map((r) => r.id)).toEqual([2, 1]);
     expect(getEvent(2, eventId)?.invited_meeting_id).toBe(id);
     expect(getEvent(1, eventId)?.location).toBe("Church");
     db().prepare("DELETE FROM meeting_invitees WHERE member_id = 3").run();
@@ -78,6 +79,9 @@ describe("meetings the presidency invites people to", () => {
     const a = addAgendaItem(1, "Ministring", { addedBy: 1 });
     saveAgendaNotes(1, a, "Bring the list", { body: "Ministering", beforehand: true });
     expect(pendingAgenda(1).map((x) => [x.body, x.notes, x.discussed])).toEqual([["Ministering", "Bring the list", 0]]);
+    // Rewording it in the meeting with the same notes doesn't tick it; new notes do.
+    saveAgendaNotes(1, a, "Bring the list", { body: "Ministering assignments" });
+    expect(pendingAgenda(1)[0].discussed).toBe(0);
     saveAgendaNotes(1, a, "Decided to swap two companionships");
     expect(pendingAgenda(1)[0].discussed).toBe(1);
   });

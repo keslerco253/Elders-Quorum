@@ -143,7 +143,8 @@ export async function notify(
         .prepare("UPDATE members SET last_text_org_id = ?, text_reply_member_id = ?, text_reply_private = ?, text_as_member = ? WHERE id = ?")
         .run(r.org_id, payload.replyTo?.memberId ?? null, payload.replyTo?.private ? 1 : 0, payload.asMember ? 1 : 0, r.id);
     // They replied STOP: stop texting them; use email if they have one.
-    if (res === "opted_out") d().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END, always_text = 0 WHERE id = ?").run(r.id);
+    if (res === "opted_out")
+      d().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END, always_text = 0, sms_consent_at = NULL WHERE id = ?").run(r.id);
     return res === "sent";
   };
 
@@ -189,7 +190,8 @@ export async function notify(
         push++;
         got = true;
       }
-      if (!got && !opts.only.includes("email") && (await sendEmail(r, url))) {
+      // (Not to someone who turned off everything but app notifications.)
+      if (!got && !opts.only.includes("email") && r.contact_pref !== "none" && (await sendEmail(r, url))) {
         email++;
         got = true;
       }

@@ -165,16 +165,17 @@ export function attendeeChoices(orgId: number): { id: number; name: string; call
 }
 
 /**
- * An agenda item's wording and notes. Notes taken in the meeting count it as discussed;
- * notes written ahead of time (beforehand) don't.
+ * An agenda item's wording and notes. New notes taken in the meeting count it as
+ * discussed; notes written ahead of time (beforehand), or saved unchanged, don't.
  */
 export function saveAgendaNotes(orgId: number, itemId: number, notes: string, opts: { body?: string; beforehand?: boolean } = {}) {
   const text = notes.trim().slice(0, 4000);
   const body = opts.body?.trim().slice(0, 2000);
   const d = db();
   if (body) d.prepare("UPDATE agenda_items SET body = ? WHERE id = ? AND org_id = ?").run(body, itemId, orgId);
+  // Only new notes taken in the meeting tick it (not rewording an item, or notes written beforehand).
   if (opts.beforehand) d.prepare("UPDATE agenda_items SET notes = ? WHERE id = ? AND org_id = ?").run(text, itemId, orgId);
-  else d.prepare("UPDATE agenda_items SET notes = ?, discussed = CASE WHEN ? <> '' THEN 1 ELSE discussed END WHERE id = ? AND org_id = ?").run(text, text, itemId, orgId);
+  else d.prepare("UPDATE agenda_items SET discussed = CASE WHEN ? <> '' AND ? <> notes THEN 1 ELSE discussed END, notes = ? WHERE id = ? AND org_id = ?").run(text, text, text, itemId, orgId);
 }
 
 export interface AgendaItem {

@@ -94,11 +94,18 @@ export async function startGuestSignup(g: { slotId: number; name: string; contac
   return id;
 }
 
-/** Checks the code (5 tries, 30 minutes). On success the spot is theirs if one is still open. */
-export function confirmGuest(id: number, code: string): "ok" | "wrong" | "full" | "expired" {
+/**
+ * Checks the code (5 tries, 30 minutes). On success the spot is theirs if one is still
+ * open. "already": confirmed before (nothing is sent again). Only a guest of the given
+ * sign-up (the public link's) counts.
+ */
+export function confirmGuest(id: number, code: string, signupId: number): "ok" | "already" | "wrong" | "full" | "expired" {
   const d = db();
-  const g = d.prepare("SELECT * FROM signup_guests WHERE id = ?").get(id) as (Guest & { code_hash: string; attempts: number; created_at: string }) | undefined;
-  if (!g || g.confirmed_at) return g?.confirmed_at ? "ok" : "expired";
+  const g = d
+    .prepare("SELECT g.* FROM signup_guests g JOIN signup_slots sl ON sl.id = g.slot_id WHERE g.id = ? AND sl.signup_id = ?")
+    .get(id, signupId) as (Guest & { code_hash: string; attempts: number; created_at: string }) | undefined;
+  if (!g) return "expired";
+  if (g.confirmed_at) return "already";
   if (g.attempts >= 5 || Date.parse(g.created_at.replace(" ", "T") + "Z") < Date.now() - 30 * 60_000) return "expired";
   if (sha256(`guest:${id}:${code.replace(/\D/g, "")}`) !== g.code_hash) {
     d.prepare("UPDATE signup_guests SET attempts = attempts + 1 WHERE id = ?").run(id);
@@ -125,6 +132,14 @@ export async function sendGuestConfirmation(id: number, token: string) {
     const text = `Hi ${g.name},\n\nYou're signed up for ${what}. Thank you!\n\nCan't make it after all? Cancel here: ${cancel}`;
     await sendMail({ to: g.contact, subject: `You're signed up: ${s.title}`, text, html: emailHtml(`You're signed up`, text, { url: cancel, label: "Can't make it? Cancel" }) });
   }
+}
+
+/** The guest a cancel link is for (its id and secret), if they're still signed up. */
+export function guestForCancel(id: number, cancelToken: string): (Guest & { title: string; slot_label: string }) | undefined {
+  if (!cancelToken) return undefined;
+  const g = db().prepare("SELECT * FROM signup_guests WHERE id = ? AND cancel_token = ?").get(id, cancelToken) as Guest | undefined;
+  const s = g && signupFor(g.slot_id);
+  return g && s ? { ...g, title: s.title, slot_label: s.slot_label } : undefined;
 }
 
 export function cancelGuest(id: number, cancelToken: string): boolean {

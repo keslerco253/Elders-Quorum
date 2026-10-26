@@ -1557,4 +1557,22 @@ CREATE TABLE meeting_invitees (
 CREATE INDEX meeting_invitees_member ON meeting_invitees(member_id);
 `,
   },
+  {
+    // Where each sign-in code was sent ("email" or "phone"), so only a code that went
+    // to someone's email marks that email as theirs.
+    id: 78,
+    sql: `
+ALTER TABLE login_tokens ADD COLUMN sent_via TEXT;
+`,
+  },
+  {
+    // Joining is confirmed by the sign-in code: agreeing to ward texts counts once a code
+    // texted to that number is used, and an existing account joins the ward then (so
+    // someone else can't sign a stranger's number up, or add their account to a ward).
+    id: 79,
+    sql: `
+ALTER TABLE members ADD COLUMN text_consent_pending INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE members ADD COLUMN pending_join_ward INTEGER REFERENCES wards(id) ON DELETE SET NULL;
+`,
+  },
 ];

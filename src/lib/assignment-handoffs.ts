@@ -33,7 +33,7 @@ export function pendingHandoff(todoId: number): Handoff | undefined {
 
 /** Whether this person can answer an ask: the one asked, or (for the whole presidency) anyone in it except whoever asked and whoever has it. */
 export function canAnswer(h: Handoff, t: Todo, memberId: number): boolean {
-  if (h.status !== "pending") return false;
+  if (h.status !== "pending" || t.done) return false;
   if (h.to_id) return h.to_id === memberId;
   if (memberId === h.from_id || memberId === t.assignee_id || !isPresidencyOf(memberId, t.org_id)) return false;
   return !db().prepare("SELECT 1 FROM todo_handoff_declines WHERE handoff_id = ? AND member_id = ?").get(h.id, memberId);
@@ -134,4 +134,9 @@ export function unableToDo(todoId: number, memberId: number, note: string, what 
     d.prepare("INSERT INTO todo_notes (todo_id, author_id, body, private) VALUES (?, ?, ?, 0)").run(todoId, memberId, body);
   })();
   return t;
+}
+
+/** An unanswered ask no longer applies (the assignment went to someone else, or it's done). */
+export function cancelPendingHandoffs(todoId: number) {
+  db().prepare("UPDATE todo_handoffs SET status = 'cancelled', decided_at = datetime('now') WHERE todo_id = ? AND status = 'pending'").run(todoId);
 }

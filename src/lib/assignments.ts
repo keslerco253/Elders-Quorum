@@ -86,6 +86,8 @@ export function setTodoStatus(id: number, status: TodoStatus, today: string) {
          review_at = CASE WHEN ? = 1 THEN ? END WHERE id = ?`,
     )
     .run(status, done, done, done, reviewDate(today), id);
+  // Nobody can still be asked to take a finished assignment.
+  if (done) db().prepare("UPDATE todo_handoffs SET status = 'cancelled', decided_at = datetime('now') WHERE todo_id = ? AND status = 'pending'").run(id);
 }
 
 export interface TodoNote {

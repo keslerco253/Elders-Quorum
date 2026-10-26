@@ -38,7 +38,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: { "/admin/guide": ["./docs/PRESIDENCY-GUIDE.md"], "/more/help": ["./docs/MEMBER-GUIDE.md"] },
   experimental: {
     serverActions: {
-      bodySizeLimit: "12mb",
+      // Room for a 15 MB flyer or attachment plus the rest of the form.
+      bodySizeLimit: "16mb",
       allowedOrigins: ["*.ts.net", ...(publicHost ? [publicHost] : [])],
     },
   },

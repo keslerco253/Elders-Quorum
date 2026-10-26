@@ -66,9 +66,13 @@ describe("added callings", () => {
     expect(db().prepare("SELECT * FROM regular_teachers").all()).toEqual([]);
   });
 
-  it("drops their callings when they leave the organization", () => {
+  it("drops their callings and teaching Sundays when they leave the organization", () => {
     give(2, 2);
+    give(1, 2);
+    setTeacherWeeks(1, 2, [1], "2026-10-21");
+    expect((db().prepare("SELECT teacher_id FROM lessons WHERE date = '2026-11-01'").get() as { teacher_id: number }).teacher_id).toBe(2);
     removeFromOrg(2, 1);
     expect(callingNamesByMember(1).get(2)).toBeUndefined();
+    expect(db().prepare("SELECT * FROM regular_teachers").all()).toEqual([]);
   });
 });

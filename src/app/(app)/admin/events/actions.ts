@@ -167,9 +167,16 @@ export async function saveEvent(fd: FormData) {
         })();
         note = "Saved for this and all future dates.";
       } else if (repeat) {
-        // New time or pattern: end the old series here and start a new one from this date.
-        endSeriesBefore(series, existing.starts_at, exLocal.minus({ days: 1 }).toISODate()!);
-        const seriesId = createSeries(seriesInput(user, e, startLocal, endLocal, repeat));
+        // New time or pattern: end the old series here (or at the new first date, if
+        // that's earlier) and start a new one from this date. "10 times" still means 10
+        // in all: the dates already held count toward it.
+        const startUtc = startLocal.toUTC().toISO({ suppressMilliseconds: true })!;
+        const endFrom = startUtc < existing.starts_at ? startUtc : existing.starts_at;
+        const held = (d.prepare("SELECT COUNT(*) AS n FROM events WHERE series_id = ? AND starts_at < ?").get(series.id, endFrom) as { n: number }).n;
+        const count = repeat.count && repeat.count === series.max_count ? Math.max(1, repeat.count - held) : repeat.count;
+        const lastDate = (startLocal < exLocal ? startLocal : exLocal).minus({ days: 1 }).toISODate()!;
+        endSeriesBefore(series, endFrom, lastDate);
+        const seriesId = createSeries(seriesInput(user, e, startLocal, endLocal, { ...repeat, count }));
         eventId = firstEventOf(seriesId) ?? null;
         note = "Saved for this and all future dates.";
         if (!eventId) go("/calendar", "No dates matched that pattern.");

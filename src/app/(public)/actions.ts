@@ -108,8 +108,8 @@ export async function verifyCode(formData: FormData) {
     }
   }
   const result = redeemCode(to, code);
-  // A code that went to their email proves the email is theirs.
-  if (result && parseContact(to)?.kind === "email") db().prepare("UPDATE members SET email_verified_at = datetime('now') WHERE id = ?").run(result.memberId);
+  // A code that went to their email proves the email is theirs (not one sent by text).
+  if (result && result.sentVia === "email" && parseContact(to)?.kind === "email") db().prepare("UPDATE members SET email_verified_at = datetime('now') WHERE id = ?").run(result.memberId);
   if (!result) {
     allowHit(`badcode:${where}`, 30, 60);
     redirect("/login/check?" + q({ to, next, error: "That code didn't work. Check the newest code and try again." }));
@@ -177,8 +177,10 @@ export async function joinApp(formData: FormData) {
   const pref = c.kind === "phone" ? "text" : "email";
   let memberId: number;
   // The join form's checkbox covers what the app keeps and, for a phone number, consent to texts.
+  // Nothing changes on an account until the code proves it's theirs: someone who
+  // already has one joins the ward when they sign in (and keeps their name and choices).
   if (existing) {
-    d.prepare("UPDATE members SET name = ?, display_name = ?, status = 'active', request_note = NULL, welcomed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(name, name, existing.id);
+    d.prepare("UPDATE members SET pending_join_ward = ? WHERE id = ?").run(ward.id, existing.id);
     memberId = existing.id;
   } else {
     memberId = Number(
@@ -186,11 +188,11 @@ export async function joinApp(formData: FormData) {
         .prepare(`INSERT INTO members (name, display_name, ${c.kind}, contact_pref, status, source, welcomed_at) VALUES (?, ?, ?, ?, 'active', 'request', datetime('now'))`)
         .run(name, name, c.value, pref).lastInsertRowid,
     );
+    addToWard(memberId, ward.id);
+    everythingByDefault(memberId, c.kind);
   }
-  addToWard(memberId, ward.id);
-
-  if (c.kind === "phone") d.prepare("UPDATE members SET sms_consent_at = datetime('now') WHERE id = ?").run(memberId);
-  everythingByDefault(memberId, c.kind);
+  // They agreed to texts; it counts once the code texted to this number is used.
+  if (c.kind === "phone") d.prepare("UPDATE members SET text_consent_pending = 1 WHERE id = ? AND sms_consent_at IS NULL").run(memberId);
   const res = createLoginToken(memberId, "month");
   const sent = res.ok && (await sendLoginCode(d.prepare("SELECT * FROM members WHERE id = ?").get(memberId) as Member, c.kind, res.token, res.code));
   // After signing in, they choose the organizations they belong to.
@@ -228,7 +230,8 @@ export async function startWard(formData: FormData) {
       .prepare(`INSERT INTO members (name, display_name, ${c.kind}, contact_pref, status, source, welcomed_at) VALUES (?, ?, ?, ?, 'active', 'request', datetime('now'))`)
       .run(name, name, c.value, c.kind === "phone" ? "text" : "email").lastInsertRowid,
   );
-  if (c.kind === "phone") d.prepare("UPDATE members SET sms_consent_at = datetime('now') WHERE id = ?").run(memberId);
+  // Agreeing to texts counts once the code texted to this number is used.
+  if (c.kind === "phone") d.prepare("UPDATE members SET text_consent_pending = 1 WHERE id = ?").run(memberId);
   everythingByDefault(memberId, c.kind);
   // The first ward on a brand-new server is the site owner's: its texting is on.
   const first = !(d.prepare("SELECT 1 FROM wards").get());

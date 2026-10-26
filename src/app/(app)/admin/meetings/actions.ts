@@ -144,11 +144,14 @@ export async function reviewAction(fd: FormData) {
 export async function agendaFromMessage(fd: FormData) {
   const user = await requirePresidency();
   const msg = db()
-    .prepare("SELECT mm.id, mm.org_id, mm.member_id, mm.body, mm.created_at, m.display_name FROM member_messages mm JOIN members m ON m.id = mm.member_id WHERE mm.id = ? AND mm.direction = 'in'")
-    .get(Number(fd.get("message_id"))) as { id: number; org_id: number; member_id: number; body: string; created_at: string; display_name: string } | undefined;
+    .prepare(
+      "SELECT mm.id, mm.org_id, mm.member_id, mm.body, mm.created_at, mm.recipient_id, m.display_name FROM member_messages mm JOIN members m ON m.id = mm.member_id WHERE mm.id = ? AND mm.direction = 'in'",
+    )
+    .get(Number(fd.get("message_id"))) as { id: number; org_id: number; member_id: number; body: string; created_at: string; recipient_id: number | null; display_name: string } | undefined;
   const back = String(fd.get("back") || "/messages");
-  const safeBack = back.startsWith("/admin/replies/") ? back : "/messages";
-  if (!msg || !ledOrgIds(user.id).includes(msg.org_id)) go(safeBack, "That message can't be added.");
+  const safeBack = /^\/admin\/replies\/[\w?=&%-]*$/.test(back) ? back : "/messages";
+  // A message written privately to one leader goes on the agenda only if they put it there.
+  if (!msg || !ledOrgIds(user.id).includes(msg.org_id) || (msg.recipient_id && msg.recipient_id !== user.id)) go(safeBack, "That message can't be added.");
   addAgendaItem(msg.org_id, msg.body, { source: `Message from ${msg.display_name}, ${formatDate(msg.created_at.slice(0, 10), "short")}`, link: `/admin/replies/${msg.member_id}`, addedBy: user.id });
   revalidatePath("/admin", "layout");
   go(safeBack, "Added to the next presidency meeting's agenda.");

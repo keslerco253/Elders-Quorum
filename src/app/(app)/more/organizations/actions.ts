@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { addToWard } from "@/lib/orgs";
+import { leftOrg, removeFromOrg } from "@/lib/accounts";
 import { wardByJoinCode } from "@/lib/wards";
 
 function go(text: string, ok = true): never {
@@ -30,8 +31,10 @@ export async function saveMyOrganizations(fd: FormData) {
           `INSERT INTO org_members (org_id, member_id, official, notify) VALUES (?, ?, ?, ?)
            ON CONFLICT(org_id, member_id) DO UPDATE SET official = excluded.official, notify = excluded.notify`,
         ).run(o.id, user.id, official ? 1 : 0, notify ? 1 : 0);
+        // No longer in it (only hearing from it): out of its callings and teaching.
+        if (!official && o.role === "member") leftOrg(user.id, o.id);
       } else {
-        d.prepare("DELETE FROM org_members WHERE org_id = ? AND member_id = ?").run(o.id, user.id);
+        removeFromOrg(user.id, o.id);
       }
     }
   })();
