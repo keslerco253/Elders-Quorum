@@ -207,6 +207,12 @@ add a reason), or text back **TEACH** or **CANT**.
 - **An event's page:** the time, place (tap for a map), details, flyer, **Add to
   Google Calendar**, **Add to Apple / Outlook calendar** and **Share**.
 - **RSVP:** if asked, tap **Going**, **Maybe** or **Can't go**.
+- **Meetings you're invited to** (like an activities committee): you get an
+  invitation, and the meeting shows on your calendar and Home's Coming up marked
+  **Invited**. Open it to see when and where, the agenda, who's giving the
+  prayers and spiritual thought, and who's invited, and tap **I'll be there** or
+  **I can't come**. You get a reminder before it starts unless you said you can't
+  come.
 - **Subscribe:** **Calendar → Subscribe** adds your ward's calendar to Apple
   Calendar, Google Calendar or Outlook once; events then appear and stay up to date
   on their own. Choose up to two reminders for every event. On iPhone, turn off

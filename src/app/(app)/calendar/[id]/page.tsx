@@ -71,7 +71,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
         <div className="flex flex-wrap gap-2">
           <Badge>{e.org_label}</Badge>
           {invitedText && <Badge tone="info">With {invitedText}</Badge>}
-          {e.presidency_only ? <Badge tone="warn">Leaders only: hidden from members</Badge> : null}
+          {e.invited_meeting_id ? <Badge tone="info">For the people invited</Badge> : e.presidency_only ? <Badge tone="warn">Leaders only: hidden from members</Badge> : null}
         </div>
         <div>
           <div className="font-semibold">{isOngoing(e) ? spanText(e, tz) : formatDateTime(e.starts_at, tz, "cccc, LLLL d, yyyy")}</div>
@@ -93,9 +93,15 @@ export default async function EventPage({ params, searchParams }: { params: Prom
             <Linkify text={e.description} />
           </p>
         )}
+        {/* A meeting someone was invited to: its agenda, and their answer. */}
+        {e.invited_meeting_id && (
+          <Link href={`/meetings/${e.invited_meeting_id}`} className="btn-primary btn-sm">
+            See the agenda and answer
+          </Link>
+        )}
         {/* A scheduled presidency meeting: its agenda and notes. */}
         {(() => {
-          const meeting = e.presidency_only ? meetingForEvent(e.id) : undefined;
+          const meeting = e.presidency_only && !e.invited_meeting_id ? meetingForEvent(e.id) : undefined;
           return meeting && roleIn(user.id, e.org_id) === "presidency" ? (
             <Link href={withOrg(`/admin/meetings/${meeting.id}`, e.org_id)} className="btn-primary btn-sm">
               Open the agenda and notes

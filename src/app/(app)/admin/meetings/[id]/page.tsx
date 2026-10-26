@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePresidency } from "@/lib/auth";
-import { attendeeChoices, getMeeting, MEETING_ROLES, meetingAgenda, meetingName, pendingAgenda, videoKind, videoLink } from "@/lib/meetings";
+import { attendeeChoices, getMeeting, inviteGroups, MEETING_ROLES, meetingInvitees, meetingAgenda, meetingName, pendingAgenda, videoKind, videoLink } from "@/lib/meetings";
 import { DateTime } from "luxon";
 import { Linkify } from "@/components/linkify";
 import { orgTodos, STATUS_LABELS } from "@/lib/assignments";
@@ -11,7 +11,7 @@ import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AssignmentForm } from "@/components/assignment-form";
 import { AgendaList } from "../agenda-list";
-import { addAgenda, deleteMeeting, finish, saveMeeting, saveMeetingRole, startVideo } from "../actions";
+import { addAgenda, deleteMeeting, finish, inviteToMeetingAction, saveMeeting, saveMeetingRole, startVideo, uninviteAction } from "../actions";
 import { RoleSelect } from "../role-select";
 
 export const metadata = { title: "Presidency meeting" };
@@ -24,12 +24,21 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const tz = user.ward.timezone;
   const today = todayIn(tz);
   const held = !!m.held_at;
-  // Before it's finished the meeting works from the waiting agenda; after, from what was filed with it.
-  const filed = meetingAgenda(m.id);
-  const waiting = held ? [] : pendingAgenda(user.org_id);
+  // A meeting people were invited to has its own agenda from the start.
+  const invited = m.kind === "invited";
+  const own = invited ? meetingAgenda(m.id) : [];
+  // Before it's finished a presidency meeting works from the waiting agenda; after, from what was filed with it.
+  const filed = invited ? [] : meetingAgenda(m.id);
+  const waiting = held || invited ? [] : pendingAgenda(user.org_id);
   const presidency = orgPresidency(user.org_id);
-  // The presidency and anyone with a calling here (secretaries, a high councilor).
-  const choices = attendeeChoices(user.org_id);
+  const invitees = invited ? meetingInvitees(m.id) : [];
+  const roster = invited ? orgRoster(user.org_id).filter((p) => !invitees.some((i) => i.member_id === p.id)) : [];
+  // The presidency and anyone with a calling here (secretaries, a high councilor); for
+  // an invited meeting, the people invited first.
+  const leaders = attendeeChoices(user.org_id);
+  const choices = invited
+    ? [...invitees.map((i) => ({ id: i.member_id, name: i.display_name, calling: null })), ...leaders.filter((p) => p.id > 0 && !invitees.some((i) => i.display_name === p.name))]
+    : leaders;
   const attending = m.attendees.split(",").map((s) => s.trim()).filter(Boolean);
   const others = attending.filter((n) => !choices.some((p) => p.name === n));
   const names = choices.filter((p) => p.id > 0).map((p) => p.name);
@@ -37,12 +46,13 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
     <RoleSelect key={role[0]} action={saveMeetingRole} meetingId={m.id} role={role[0]} label={role[1]} value={m[role[0]]} names={names} />
   );
   // The record: what was noted on each agenda item.
-  const noted = [...filed, ...waiting].filter((a) => a.notes);
+  const noted = [...own, ...filed, ...waiting].filter((a) => a.notes);
   const time = m.time ? DateTime.fromFormat(m.time, "HH:mm").toFormat("h:mm a") : null;
   const todos = orgTodos(user.org_id, { meetingId: m.id });
-  const from = sp.assign ? [...waiting, ...filed].find((a) => a.id === Number(sp.assign)) : undefined;
+  const from = sp.assign ? [...own, ...waiting, ...filed].find((a) => a.id === Number(sp.assign)) : undefined;
   const back = `/admin/meetings/${m.id}`;
-  const video = held ? null : videoLink(user.org_id);
+  // The presidency's own video link, for its own meetings.
+  const video = held || invited ? null : videoLink(user.org_id);
 
   return (
     <>
@@ -52,7 +62,9 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
         subtitle={
           held
             ? `Finished. ${m.review_at ? `Up for review ${formatDate(m.review_at, "short")}.` : ""}`
-            : m.date > today
+            : invited
+              ? `${m.location ? `${m.location}. ` : ""}For the people invited: they see the agenda and the prayers, not the notes.`
+              : m.date > today
               ? "Scheduled. Add to the agenda anytime; in the meeting, tap an item to take notes on it."
               : "Tap an agenda item to take notes on it; tick what was discussed, then finish the meeting."
         }
@@ -70,13 +82,73 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
       )}
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
+          {invited && (
+            <div id="invite" className="card scroll-mt-20 space-y-3">
+              <h2 className="h2">Invited ({invitees.length})</h2>
+              {invitees.length === 0 ? (
+                <p className="text-sm text-muted">No one yet. Invite people by calling or by name; they&apos;re notified right away.</p>
+              ) : (
+                <ul className="divide-y divide-border rounded-lg border border-border text-sm">
+                  {invitees.map((i) => (
+                    <li key={i.member_id} className="flex items-center gap-2 px-3 py-1.5">
+                      <span className="mr-auto">{i.display_name}</span>
+                      {i.response === "yes" ? <Badge tone="success">Coming</Badge> : i.response === "no" ? <Badge tone="danger">Can&apos;t come</Badge> : <Badge>No answer</Badge>}
+                      <form action={uninviteAction}>
+                        <input type="hidden" name="meeting_id" value={m.id} />
+                        <input type="hidden" name="member_id" value={i.member_id} />
+                        <SubmitButton className="btn-secondary btn-sm" confirm={`Take ${i.display_name} off the invitation list?`} pendingText="…">
+                          ✕
+                        </SubmitButton>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {!held && (
+                <>
+                  <form action={inviteToMeetingAction} className="flex gap-2">
+                    <input type="hidden" name="meeting_id" value={m.id} />
+                    <select name="group" className="input flex-1" required defaultValue="" aria-label="Invite by calling">
+                      <option value="" disabled>
+                        Invite by calling…
+                      </option>
+                      {inviteGroups(user.org_id).map((g) => (
+                        <option key={g.key} value={g.key}>
+                          {g.label} ({g.ids.length})
+                        </option>
+                      ))}
+                    </select>
+                    <SubmitButton className="btn-secondary">Invite</SubmitButton>
+                  </form>
+                  {roster.length > 0 && (
+                    <form action={inviteToMeetingAction} className="flex gap-2">
+                      <input type="hidden" name="meeting_id" value={m.id} />
+                      <select name="member_id" className="input flex-1" required defaultValue="" aria-label="Invite a person">
+                        <option value="" disabled>
+                          Invite by name…
+                        </option>
+                        {roster.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.display_name}
+                          </option>
+                        ))}
+                      </select>
+                      <SubmitButton className="btn-secondary">Invite</SubmitButton>
+                    </form>
+                  )}
+                  <p className="hint">They get an invitation, can answer whether they&apos;ll come, and see it on their calendar and Home with a reminder before it starts.</p>
+                </>
+              )}
+            </div>
+          )}
           <div id="agenda" className="scroll-mt-20" />
           <Section title="Agenda">
             <div className="mb-3 space-y-2">{MEETING_ROLES.slice(0, 2).map(roleSelect)}</div>
-            {waiting.length + filed.length === 0 ? (
+            {own.length + waiting.length + filed.length === 0 ? (
               <Empty>Nothing on the agenda.</Empty>
             ) : (
               <div className="space-y-3">
+                {own.length > 0 && <AgendaList items={own} tz={tz} meetingId={m.id} canEdit={!held} />}
                 {filed.length > 0 && <AgendaList items={filed} tz={tz} meetingId={m.id} canEdit={false} />}
                 {waiting.length > 0 && <AgendaList items={waiting} tz={tz} meetingId={m.id} canEdit />}
               </div>
@@ -91,10 +163,14 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                 </form>
                 <form action={finish} className="mt-4">
                   <input type="hidden" name="meeting_id" value={m.id} />
-                  <SubmitButton className="btn-primary" confirm="Finish the meeting? Ticked items are filed with it; the rest wait for the next meeting." pendingText="Finishing…">
+                  <SubmitButton
+                    className="btn-primary"
+                    confirm={invited ? "Finish the meeting?" : "Finish the meeting? Ticked items are filed with it; the rest wait for the next meeting."}
+                    pendingText="Finishing…"
+                  >
                     Finish meeting
                   </SubmitButton>
-                  <p className="hint mt-1">Ticked items are filed with this meeting. Anything not ticked stays on the agenda for next time.</p>
+                  {!invited && <p className="hint mt-1">Ticked items are filed with this meeting. Anything not ticked stays on the agenda for next time.</p>}
                 </form>
               </>
             )}
@@ -106,7 +182,8 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
             <div className="grid grid-cols-2 gap-3">
               <input name="date" type="date" required defaultValue={m.date} className="input" aria-label="Date" />
               <input name="time" type="time" defaultValue={m.time ?? ""} className="input" aria-label="Time" />
-              <input name="title" maxLength={120} defaultValue={m.title} className="input col-span-2" placeholder="Title (optional)" />
+              <input name="title" maxLength={120} defaultValue={m.title} required={invited} className="input col-span-2" placeholder={invited ? "Title" : "Title (optional)"} />
+              {invited && <input name="location" maxLength={200} defaultValue={m.location} className="input col-span-2" placeholder="Where (optional)" />}
             </div>
             <fieldset>
               <legend className="label">Who was there</legend>

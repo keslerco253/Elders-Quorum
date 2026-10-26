@@ -256,7 +256,7 @@ export default async function HomePage() {
               ) : e ? (
               <li key={e.id}>
                 <Link
-                  href={`/calendar/${e.id}`}
+                  href={e.invited_meeting_id ? `/meetings/${e.invited_meeting_id}` : `/calendar/${e.id}`}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2"
                 >
                   {e.flyer_file && <FlyerThumb file={e.flyer_file} name={e.flyer_name} />}
@@ -268,7 +268,7 @@ export default async function HomePage() {
                     </div>
                     {eventOrgs && <div className="text-xs text-muted">{e.org_label}</div>}
                   </div>
-                  {!!e.presidency_only && <Badge tone="warn">Leaders only</Badge>}
+                  {e.invited_meeting_id ? <Badge tone="info">Invited</Badge> : !!e.presidency_only && <Badge tone="warn">Leaders only</Badge>}
                 </Link>
               </li>
               ) : null,

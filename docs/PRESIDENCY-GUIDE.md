@@ -1013,6 +1013,10 @@ place. Only the presidency (or bishopric) sees it.
   New items go to the bottom; put them in order with **↑ / ↓** (one place) or
   **⤒** (straight to the top); the page stays where you are. Take one off
   with ✕.
+- **Get ready before the meeting:** tap an item to change its wording or add
+  notes to bring (**Edit or add notes → Save**). Notes added ahead of time don't
+  mark it discussed. **Open meeting ›** (next to the agenda's title) opens the
+  next scheduled presidency meeting.
 - **Prayers and spiritual thought:** above the agenda, choose the **Opening
   prayer** and **Spiritual thought**, and below it the **Closing prayer**, each
   from the presidency (and secretaries). It's saved as soon as you pick, for the
@@ -1024,6 +1028,26 @@ place. Only the presidency (or bishopric) sees it.
   The calendar event opens its agenda and notes. Changing the meeting's date or
   time moves the event; deleting the meeting removes it. Meetings are listed under
   **Coming up** and **Past meetings** (Today, Scheduled, Not finished, Review).
+- **Other meetings** (an activities committee, a teachers' council…): under
+  **Schedule a meeting**, choose **Another meeting: invite people to it**, give
+  it a title, date, time and (optionally) where. Its page opens next:
+  - **Invite by calling** (the presidency, each calling such as Secretary,
+    Teacher or Activities Committee, or everyone in the organization) or **Invite
+    by name**. Each person gets an invitation ("You're invited: …") right away;
+    anyone who can't be reached shows under Couldn't reach. ✕ takes someone off
+    the list.
+  - The list shows each answer: **Coming**, **Can't come** or **No answer**.
+  - It has its own agenda (add, reorder, edit and take notes the same way) and
+    its own **Opening prayer**, **Spiritual thought** and **Closing prayer**,
+    chosen from the people invited and the presidency. Items aren't carried over
+    to the presidency's agenda.
+  - The people invited see it on their calendar and Home's Coming up (marked
+    **Invited**), with the meeting reminder before it starts (unless they said
+    they can't come). Their page shows when and where, the agenda and the prayer
+    assignments (not the notes), who's invited, and **I'll be there** / **I
+    can't come**.
+  - Notes, who was there, assignments and Finish meeting work as for the
+    presidency's meetings. Only the presidency manages it.
 - **In the meeting:**
   - Tap an agenda item to take notes on it. An item with notes counts as
     discussed, and its notes show under **Notes → From the agenda**. *Other notes*

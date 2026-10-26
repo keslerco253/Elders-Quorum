@@ -8,6 +8,8 @@ import { CALLINGS, callingLabel, isCalling, leadersWord } from "./types";
 
 // Presidency meetings: notes, who came, and the agenda. Agenda items wait (meeting_id
 // NULL) until a meeting where they were discussed is finished; the rest carry over.
+// Other meetings ("invited") are scheduled by the presidency for the people they
+// invite; their agenda belongs to them from the start.
 
 export interface Meeting {
   id: number;
@@ -27,7 +29,12 @@ export interface Meeting {
   opening_prayer: string;
   spiritual_thought: string;
   closing_prayer: string;
+  /** The presidency's own meeting, or one for the people invited. */
+  kind: MeetingKind;
+  location: string;
 }
+
+export type MeetingKind = "presidency" | "invited";
 
 /** Who gave the prayers and the thought: kept as names on the meeting's record. */
 export const MEETING_ROLES = [
@@ -60,17 +67,31 @@ export function getMeeting(orgId: number, id: number): Meeting | undefined {
   return db().prepare("SELECT * FROM meetings WHERE id = ? AND org_id = ?").get(id, orgId) as Meeting | undefined;
 }
 
-export function orgMeetings(orgId: number): (Meeting & { item_count: number; todo_count: number })[] {
+export type ListedMeeting = Meeting & { item_count: number; todo_count: number; invited_count: number; coming_count: number };
+
+export function orgMeetings(orgId: number): ListedMeeting[] {
   return db()
     .prepare(
-      `SELECT m.*, (SELECT COUNT(*) FROM agenda_items a WHERE a.meeting_id = m.id) AS item_count, (SELECT COUNT(*) FROM todos t WHERE t.meeting_id = m.id) AS todo_count
+      `SELECT m.*, (SELECT COUNT(*) FROM agenda_items a WHERE a.meeting_id = m.id) AS item_count, (SELECT COUNT(*) FROM todos t WHERE t.meeting_id = m.id) AS todo_count,
+         (SELECT COUNT(*) FROM meeting_invitees i WHERE i.meeting_id = m.id) AS invited_count,
+         (SELECT COUNT(*) FROM meeting_invitees i WHERE i.meeting_id = m.id AND i.response = 'yes') AS coming_count
        FROM meetings m WHERE m.org_id = ? ORDER BY m.date DESC, m.id DESC LIMIT 100`,
     )
-    .all(orgId) as (Meeting & { item_count: number; todo_count: number })[];
+    .all(orgId) as ListedMeeting[];
 }
 
-export function createMeeting(orgId: number, date: string, title: string, createdBy: number, opts: { time?: string | null; tz?: string } = {}): number {
-  const id = Number(db().prepare("INSERT INTO meetings (org_id, date, time, title, created_by) VALUES (?, ?, ?, ?, ?)").run(orgId, date, opts.time ?? null, title, createdBy).lastInsertRowid);
+export function createMeeting(
+  orgId: number,
+  date: string,
+  title: string,
+  createdBy: number,
+  opts: { time?: string | null; tz?: string; kind?: MeetingKind; location?: string } = {},
+): number {
+  const id = Number(
+    db()
+      .prepare("INSERT INTO meetings (org_id, date, time, title, created_by, kind, location) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .run(orgId, date, opts.time ?? null, title, createdBy, opts.kind ?? "presidency", (opts.location ?? "").trim().slice(0, 200)).lastInsertRowid,
+  );
   if (opts.time && opts.tz) syncMeetingEvent(orgId, id, opts.tz, createdBy);
   return id;
 }
@@ -78,7 +99,8 @@ export function createMeeting(orgId: number, date: string, title: string, create
 /**
  * Keeps a scheduled meeting's calendar event in step: a presidency-only event (on
  * the presidency's Coming up list, with a reminder an hour before) at its date and
- * time, or none when it has no time.
+ * time, or none when it has no time. For an invited meeting the people invited see
+ * it too (on their calendar and Coming up, with the same reminder).
  */
 export function syncMeetingEvent(orgId: number, meetingId: number, tz: string, by: number | null) {
   const d = db();
@@ -92,13 +114,14 @@ export function syncMeetingEvent(orgId: number, meetingId: number, tz: string, b
   }
   const ends = DateTime.fromISO(starts).plus({ hours: 1 }).toUTC().toISO({ suppressMilliseconds: true })!;
   const title = meetingName(orgId, m);
-  const description = "The agenda and notes are under Admin → Presidency meetings.";
+  const description = m.kind === "invited" ? "For the people invited. Open it for the agenda, and to say whether you can come." : "The agenda and notes are under Admin → Presidency meetings.";
   const exists = m.event_id && d.prepare("SELECT 1 FROM events WHERE id = ? AND org_id = ?").get(m.event_id, orgId);
-  if (exists) d.prepare("UPDATE events SET title = ?, starts_at = ?, ends_at = ?, reminder_minutes = ? WHERE id = ?").run(title, starts, ends, reminderSettings(orgId).meetingMinutes || null, m.event_id);
+  if (exists)
+    d.prepare("UPDATE events SET title = ?, location = ?, starts_at = ?, ends_at = ?, reminder_minutes = ? WHERE id = ?").run(title, m.location, starts, ends, reminderSettings(orgId).meetingMinutes || null, m.event_id);
   else {
     const id = d
-      .prepare("INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, reminder_minutes, created_by) VALUES (?, ?, ?, '', ?, ?, 1, ?, ?)")
-      .run(orgId, title, description, starts, ends, reminderSettings(orgId).meetingMinutes || null, by).lastInsertRowid;
+      .prepare("INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, reminder_minutes, created_by) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)")
+      .run(orgId, title, description, m.location, starts, ends, reminderSettings(orgId).meetingMinutes || null, by).lastInsertRowid;
     d.prepare("UPDATE meetings SET event_id = ? WHERE id = ?").run(Number(id), m.id);
   }
 }
@@ -141,10 +164,17 @@ export function attendeeChoices(orgId: number): { id: number; name: string; call
     .map((r) => ({ id: r.id, name: r.name, calling: r.role === "open" ? null : org && isCalling(r.calling) ? callingLabel(r.calling, org) : null }));
 }
 
-/** Notes on one agenda item, taken in the meeting; an item with notes counts as discussed. */
-export function saveAgendaNotes(orgId: number, itemId: number, notes: string) {
+/**
+ * An agenda item's wording and notes. Notes taken in the meeting count it as discussed;
+ * notes written ahead of time (beforehand) don't.
+ */
+export function saveAgendaNotes(orgId: number, itemId: number, notes: string, opts: { body?: string; beforehand?: boolean } = {}) {
   const text = notes.trim().slice(0, 4000);
-  db().prepare("UPDATE agenda_items SET notes = ?, discussed = CASE WHEN ? <> '' THEN 1 ELSE discussed END WHERE id = ? AND org_id = ?").run(text, text, itemId, orgId);
+  const body = opts.body?.trim().slice(0, 2000);
+  const d = db();
+  if (body) d.prepare("UPDATE agenda_items SET body = ? WHERE id = ? AND org_id = ?").run(body, itemId, orgId);
+  if (opts.beforehand) d.prepare("UPDATE agenda_items SET notes = ? WHERE id = ? AND org_id = ?").run(text, itemId, orgId);
+  else d.prepare("UPDATE agenda_items SET notes = ?, discussed = CASE WHEN ? <> '' THEN 1 ELSE discussed END WHERE id = ? AND org_id = ?").run(text, text, itemId, orgId);
 }
 
 export interface AgendaItem {
@@ -172,9 +202,11 @@ export function meetingAgenda(meetingId: number): AgendaItem[] {
   return db().prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.meeting_id = ? ORDER BY a.position, a.id`).all(meetingId) as AgendaItem[];
 }
 
-/** Moves a waiting agenda item up (-1) or down (1) one place, or to the top. */
+/** Moves an agenda item up (-1) or down (1) one place, or to the top, within its agenda. */
 export function moveAgendaItem(orgId: number, itemId: number, dir: -1 | 1 | "top") {
-  const ids = pendingAgenda(orgId).map((a) => a.id);
+  const item = db().prepare("SELECT meeting_id FROM agenda_items WHERE id = ? AND org_id = ?").get(itemId, orgId) as { meeting_id: number | null } | undefined;
+  if (!item) return;
+  const ids = (item.meeting_id ? meetingAgenda(item.meeting_id) : pendingAgenda(orgId)).map((a) => a.id);
   const i = ids.indexOf(itemId);
   if (i < 0) return;
   if (dir === "top") ids.unshift(...ids.splice(i, 1));
@@ -189,14 +221,16 @@ export function moveAgendaItem(orgId: number, itemId: number, dir: -1 | 1 | "top
 }
 
 /** Puts something on the next presidency meeting's agenda. */
-export function addAgendaItem(orgId: number, body: string, opts: { source?: string; link?: string | null; addedBy: number }): number {
+export function addAgendaItem(orgId: number, body: string, opts: { source?: string; link?: string | null; addedBy: number; meetingId?: number }): number {
+  // An invited meeting's agenda is its own; the presidency's waits for the next meeting.
+  const meetingId = opts.meetingId ?? null;
   return Number(
     db()
       .prepare(
-        `INSERT INTO agenda_items (org_id, body, source, link, added_by, position)
-         VALUES (?, ?, ?, ?, ?, (SELECT coalesce(max(position), 0) + 1 FROM agenda_items WHERE org_id = ? AND meeting_id IS NULL))`,
+        `INSERT INTO agenda_items (org_id, body, source, link, added_by, meeting_id, position)
+         VALUES (?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position), 0) + 1 FROM agenda_items WHERE org_id = ? AND meeting_id IS ?))`,
       )
-      .run(orgId, body.trim().slice(0, 2000), (opts.source ?? "").slice(0, 200), opts.link ?? null, opts.addedBy, orgId).lastInsertRowid,
+      .run(orgId, body.trim().slice(0, 2000), (opts.source ?? "").slice(0, 200), opts.link ?? null, opts.addedBy, meetingId, orgId, meetingId).lastInsertRowid,
   );
 }
 
@@ -207,8 +241,8 @@ export function addAgendaItem(orgId: number, body: string, opts: { source?: stri
 export function finishMeeting(orgId: number, meetingId: number, today: string) {
   const d = db();
   d.transaction(() => {
-    d.prepare("UPDATE agenda_items SET meeting_id = ? WHERE org_id = ? AND meeting_id IS NULL AND discussed = 1").run(meetingId, orgId);
     const m = getMeeting(orgId, meetingId);
+    if (m?.kind !== "invited") d.prepare("UPDATE agenda_items SET meeting_id = ? WHERE org_id = ? AND meeting_id IS NULL AND discussed = 1").run(meetingId, orgId);
     d.prepare("UPDATE meetings SET held_at = coalesce(held_at, datetime('now')), review_at = ?, updated_at = datetime('now') WHERE id = ?").run(reviewDate(m && m.date > today ? m.date : today), meetingId);
   })();
 }
@@ -281,4 +315,74 @@ export function videoLink(orgId: number): string | null {
 
 export function setVideoLink(orgId: number, link: string | null) {
   db().prepare("UPDATE orgs SET video_link = ? WHERE id = ?").run(link, orgId);
+}
+
+// Invited meetings: who's invited, and whether they'll come.
+
+export interface Invitee {
+  member_id: number;
+  display_name: string;
+  response: "yes" | "no" | null;
+}
+
+export function meetingInvitees(meetingId: number): Invitee[] {
+  return db()
+    .prepare(
+      `SELECT i.member_id, m.display_name, i.response FROM meeting_invitees i JOIN members m ON m.id = i.member_id
+       WHERE i.meeting_id = ? ORDER BY m.display_name COLLATE NOCASE`,
+    )
+    .all(meetingId) as Invitee[];
+}
+
+/** Invites people; returns the ones newly invited (to tell them). */
+export function inviteToMeeting(meetingId: number, memberIds: number[]): number[] {
+  const ins = db().prepare("INSERT OR IGNORE INTO meeting_invitees (meeting_id, member_id) VALUES (?, ?)");
+  return [...new Set(memberIds)].filter((id) => ins.run(meetingId, id).changes > 0);
+}
+
+export function uninviteFromMeeting(meetingId: number, memberId: number) {
+  db().prepare("DELETE FROM meeting_invitees WHERE meeting_id = ? AND member_id = ?").run(meetingId, memberId);
+}
+
+export function respondToMeeting(meetingId: number, memberId: number, response: "yes" | "no"): boolean {
+  return (
+    db().prepare("UPDATE meeting_invitees SET response = ?, responded_at = datetime('now') WHERE meeting_id = ? AND member_id = ?").run(response, meetingId, memberId).changes > 0
+  );
+}
+
+/** An invited meeting, for someone invited to it. */
+export function invitedMeeting(memberId: number, meetingId: number): (Meeting & { response: Invitee["response"] }) | undefined {
+  return db()
+    .prepare("SELECT mt.*, i.response FROM meetings mt JOIN meeting_invitees i ON i.meeting_id = mt.id AND i.member_id = ? WHERE mt.id = ? AND mt.kind = 'invited'")
+    .get(memberId, meetingId) as (Meeting & { response: Invitee["response"] }) | undefined;
+}
+
+/**
+ * Who can be invited at once: the presidency, each calling (the presidency's, and
+ * callings the organization added) with the people holding it, and everyone.
+ */
+export function inviteGroups(orgId: number): { key: string; label: string; ids: number[] }[] {
+  const org = getOrg(orgId);
+  if (!org) return [];
+  const d = db();
+  const roster = d
+    .prepare(
+      `SELECT m.id, om.role, om.calling FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?
+       WHERE m.status = 'active' AND (om.official = 1 OR om.role <> 'member')`,
+    )
+    .all(orgId) as { id: number; role: string; calling: string | null }[];
+  const groups = [{ key: "presidency", label: `The ${leadersWord(org)}`, ids: roster.filter((r) => r.role === "presidency").map((r) => r.id) }];
+  for (const c of CALLINGS[org.kind]) {
+    const ids = roster.filter((r) => r.calling === c).map((r) => r.id);
+    if (ids.length) groups.push({ key: `calling:${c}`, label: callingLabel(c, org), ids });
+  }
+  const added = d
+    .prepare("SELECT c.id, c.name, mc.member_id FROM org_callings c JOIN member_callings mc ON mc.calling_id = c.id WHERE c.org_id = ? ORDER BY c.name COLLATE NOCASE")
+    .all(orgId) as { id: number; name: string; member_id: number }[];
+  for (const c of [...new Map(added.map((a) => [a.id, a.name]))]) {
+    const ids = added.filter((a) => a.id === c[0] && roster.some((r) => r.id === a.member_id)).map((a) => a.member_id);
+    if (ids.length) groups.push({ key: `added:${c[0]}`, label: c[1], ids });
+  }
+  groups.push({ key: "everyone", label: `Everyone in ${org.kind === "ward" ? "the ward" : org.name}`, ids: roster.map((r) => r.id) });
+  return groups;
 }

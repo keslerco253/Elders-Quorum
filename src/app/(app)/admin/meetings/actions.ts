@@ -4,15 +4,19 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { addAgendaItem, cleanVideoLink, isMeetingRole, moveAgendaItem, setMeetingRole, createMeeting, deleteMeetingRecord, finishMeeting, getMeeting, reviewRecord, saveAgendaNotes, setVideoLink, syncMeetingEvent, videoKind, videoLink, type ReviewRecord } from "@/lib/meetings";
-import { audienceMembers, notify } from "@/lib/notify";
+import { addAgendaItem, cleanVideoLink, inviteGroups, inviteToMeeting, uninviteFromMeeting, isMeetingRole, moveAgendaItem, setMeetingRole, createMeeting, deleteMeetingRecord, finishMeeting, getMeeting, reviewRecord, saveAgendaNotes, setVideoLink, syncMeetingEvent, videoKind, videoLink, type ReviewRecord } from "@/lib/meetings";
+import { audienceMembers, notify, recipientById, type Recipient } from "@/lib/notify";
+import { orgRoster } from "@/lib/orgs";
+import { DateTime } from "luxon";
 import { withOrg } from "@/lib/org-cookie";
 import { leadersWord } from "@/lib/types";
 import { ledOrgIds } from "@/lib/conversations";
 import { formatDate, todayIn } from "@/lib/time";
 
+/** Back to a page with a message (before any #section, so the message shows). */
 function go(path: string, text: string): never {
-  redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);
+  const [page, hash] = path.split("#");
+  redirect(`${page}${page.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}${hash ? `#${hash}` : ""}`);
 }
 
 const meetingPath = (fd: FormData) => {
@@ -24,7 +28,8 @@ export async function addAgenda(fd: FormData) {
   const user = await requirePresidency();
   const body = String(fd.get("body") || "").trim();
   if (!body) go(`${meetingPath(fd)}#agenda`, "Write the agenda item first.");
-  addAgendaItem(user.org_id, body, { addedBy: user.id });
+  const m = getMeeting(user.org_id, Number(fd.get("meeting_id")));
+  addAgendaItem(user.org_id, body, { addedBy: user.id, meetingId: m?.kind === "invited" ? m.id : undefined });
   revalidatePath("/admin", "layout");
   go(`${meetingPath(fd)}#agenda`, "Added to the agenda.");
 }
@@ -59,28 +64,33 @@ export async function toggleDiscussed(fd: FormData) {
   const user = await requirePresidency();
   db().prepare("UPDATE agenda_items SET discussed = ? WHERE id = ? AND org_id = ?").run(fd.get("discussed") === "1" ? 1 : 0, Number(fd.get("item_id")), user.org_id);
   revalidatePath("/admin/meetings", "layout");
-  redirect(`${meetingPath(fd)}#agenda`);
 }
 
 const timeOf = (fd: FormData) => (/^\d{2}:\d{2}$/.test(String(fd.get("time"))) ? String(fd.get("time")) : null);
 
-/** Schedules a meeting: it goes on the presidency's calendar and Coming up list. */
+/**
+ * Schedules a meeting: it goes on the presidency's calendar and Coming up list. Another
+ * meeting (not the presidency's own) opens next, to invite people to it.
+ */
 export async function newMeeting(fd: FormData) {
   const user = await requirePresidency();
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("date"))) ? String(fd.get("date")) : todayIn(user.ward.timezone);
   const time = timeOf(fd);
-  createMeeting(user.org_id, date, String(fd.get("title") || "").trim().slice(0, 120), user.id, { time, tz: user.ward.timezone });
+  const title = String(fd.get("title") || "").trim().slice(0, 120);
+  const invited = fd.get("kind") === "invited";
+  if (invited && !title) go("/admin/meetings", "Give the meeting a title (for example, Activities committee).");
+  const id = createMeeting(user.org_id, date, title, user.id, { time, tz: user.ward.timezone, kind: invited ? "invited" : "presidency", location: String(fd.get("location") || "") });
   revalidatePath("/", "layout");
+  if (invited) go(`/admin/meetings/${id}#invite`, `${title} scheduled for ${formatDate(date, "short")}. Now invite people to it.`);
   go("/admin/meetings", time ? `Meeting scheduled for ${formatDate(date, "short")}. It's on the ${leadersWord(user.org)}'s calendar and Coming up list.` : `Meeting added for ${formatDate(date, "short")}.`);
 }
 
-/** Notes on one agenda item, from the meeting. */
+/** An agenda item's wording and notes: ahead of time, or in the meeting. Saved in place. */
 export async function saveItemNotes(fd: FormData) {
   const user = await requirePresidency();
   const itemId = Number(fd.get("item_id"));
-  saveAgendaNotes(user.org_id, itemId, String(fd.get("notes") || ""));
+  saveAgendaNotes(user.org_id, itemId, String(fd.get("notes") || ""), { body: fd.has("body") ? String(fd.get("body")) : undefined, beforehand: fd.get("beforehand") === "1" });
   revalidatePath("/admin/meetings", "layout");
-  redirect(`${meetingPath(fd)}#item-${itemId}`);
 }
 
 export async function saveMeeting(fd: FormData) {
@@ -94,10 +104,12 @@ export async function saveMeeting(fd: FormData) {
     .join(", ")
     .slice(0, 500);
   const time = fd.has("time") ? timeOf(fd) : m.time;
+  const title = String(fd.get("title") || "").trim().slice(0, 120) || (m.kind === "invited" ? m.title : "");
+  const location = fd.has("location") ? String(fd.get("location") || "").trim().slice(0, 200) : m.location;
   db()
-    .prepare("UPDATE meetings SET date = ?, time = ?, title = ?, attendees = ?, notes = ?, updated_at = datetime('now') WHERE id = ?")
-    .run(date, time, String(fd.get("title") || "").trim().slice(0, 120), attendees, String(fd.get("notes") ?? m.notes).slice(0, 20000), m.id);
-  if (date !== m.date || time !== m.time || String(fd.get("title") || "").trim() !== m.title) syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
+    .prepare("UPDATE meetings SET date = ?, time = ?, title = ?, location = ?, attendees = ?, notes = ?, updated_at = datetime('now') WHERE id = ?")
+    .run(date, time, title, location, attendees, String(fd.get("notes") ?? m.notes).slice(0, 20000), m.id);
+  if (date !== m.date || time !== m.time || title !== m.title || location !== m.location) syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
   revalidatePath("/", "layout");
   go(`/admin/meetings/${m.id}`, "Notes saved.");
 }
@@ -108,7 +120,7 @@ export async function finish(fd: FormData) {
   if (!m) go("/admin/meetings", "That meeting no longer exists.");
   finishMeeting(user.org_id, m.id, todayIn(user.ward.timezone));
   revalidatePath("/admin", "layout");
-  go(`/admin/meetings/${m.id}`, "Meeting finished. Items not discussed wait for the next meeting.");
+  go(`/admin/meetings/${m.id}`, m.kind === "invited" ? "Meeting finished." : "Meeting finished. Items not discussed wait for the next meeting.");
 }
 
 export async function deleteMeeting(fd: FormData) {
@@ -171,4 +183,39 @@ export async function startVideo(fd: FormData) {
     });
   }
   redirect(link);
+}
+
+/** Invites a group (the presidency, a calling, everyone) or one person, and tells them. */
+export async function inviteToMeetingAction(fd: FormData) {
+  const user = await requirePresidency();
+  const m = getMeeting(user.org_id, Number(fd.get("meeting_id")));
+  if (!m || m.kind !== "invited") go("/admin/meetings", "That meeting no longer exists.");
+  const back = `/admin/meetings/${m.id}#invite`;
+  const group = inviteGroups(user.org_id).find((g) => g.key === fd.get("group"));
+  const person = Number(fd.get("member_id"));
+  const ids = group ? group.ids : orgRoster(user.org_id).some((p) => p.id === person) ? [person] : [];
+  if (!ids.length) go(back, "Choose who to invite.");
+  const added = inviteToMeeting(m.id, ids);
+  if (!added.length) go(back, "They're already invited.");
+  const when = `${formatDate(m.date, "short")}${m.time ? ` at ${DateTime.fromFormat(m.time, "HH:mm").toFormat("h:mm a")}` : ""}`;
+  await notify(
+    added.map((id) => recipientById(id, user.org_id)).filter((r): r is Recipient => !!r),
+    {
+      title: `You're invited: ${m.title}`,
+      body: `${when}${m.location ? ` · ${m.location}` : ""}. Tap to see the agenda and let us know if you can come.`,
+      url: `/meetings/${m.id}`,
+    },
+    { followUp: { what: `Invited to ${m.title} (${when})`, url: `/admin/meetings/${m.id}` } },
+  );
+  revalidatePath("/", "layout");
+  go(back, `${added.length} ${added.length === 1 ? "person" : "people"} invited and notified.`);
+}
+
+export async function uninviteAction(fd: FormData) {
+  const user = await requirePresidency();
+  const m = getMeeting(user.org_id, Number(fd.get("meeting_id")));
+  if (!m) go("/admin/meetings", "That meeting no longer exists.");
+  uninviteFromMeeting(m.id, Number(fd.get("member_id")));
+  revalidatePath("/", "layout");
+  go(`/admin/meetings/${m.id}#invite`, "Taken off the invitation list.");
 }

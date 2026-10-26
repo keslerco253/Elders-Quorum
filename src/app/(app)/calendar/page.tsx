@@ -187,7 +187,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
               <Link href={`/calendar/${e.id}`} className="card flex items-center gap-3 hover:bg-surface-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 font-semibold">
-                    {e.title} {e.presidency_only ? <Badge tone="warn">Leaders only</Badge> : null}
+                    {e.title} {e.invited_meeting_id ? <Badge tone="info">Invited</Badge> : e.presidency_only ? <Badge tone="warn">Leaders only</Badge> : null}
                     {showOrg && <Badge>{e.org_label}</Badge>}
                   </div>
                   <div className="text-sm text-muted">

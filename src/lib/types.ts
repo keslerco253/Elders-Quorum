@@ -182,6 +182,8 @@ export interface EventRow {
   invited: string;
   /** Who it was last announced to ("everyone", "group:3"...), if it was. */
   announced_to?: string | null;
+  /** A meeting the presidency invited people to (filled in by the calendar queries). */
+  invited_meeting_id?: number | null;
 }
 
 export type Calling = "bishop" | "president" | "first_counselor" | "second_counselor" | "executive_secretary" | "ward_clerk" | "secretary" | "assistant_secretary" | "stake_high_council";

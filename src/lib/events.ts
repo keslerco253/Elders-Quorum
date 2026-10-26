@@ -4,7 +4,7 @@ import { db } from "./db";
 import { appUrl } from "./config";
 import { isAdmin } from "./permissions";
 import type { CurrentUser, EventRow } from "./types";
-import { audienceMembers, type Recipient } from "./notify";
+import { audienceMembers, recipientById, type Recipient } from "./notify";
 
 export const REMINDER_OPTIONS: [number | null, string][] = [
   [null, "No reminder"],
@@ -16,9 +16,12 @@ export const REMINDER_OPTIONS: [number | null, string][] = [
   [20160, "2 weeks before"],
 ];
 
-// Leaders-only events show only to that organization's presidency and admins.
-const VISIBLE = `(e.presidency_only = 0 OR EXISTS (SELECT 1 FROM org_members x WHERE x.org_id = e.org_id AND x.member_id = @viewer AND x.role <> 'member'))`;
-const EVENT_COLUMNS = "e.*, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS org_label, o.kind AS org_kind";
+// Leaders-only events show only to that organization's presidency and admins, and a
+// meeting the presidency invited people to, to those people too.
+const VISIBLE = `(e.presidency_only = 0 OR EXISTS (SELECT 1 FROM org_members x WHERE x.org_id = e.org_id AND x.member_id = @viewer AND x.role <> 'member')
+  OR EXISTS (SELECT 1 FROM meetings mt JOIN meeting_invitees mi ON mi.meeting_id = mt.id WHERE mt.event_id = e.id AND mt.kind = 'invited' AND mi.member_id = @viewer))`;
+const EVENT_COLUMNS = `e.*, CASE WHEN o.kind = 'ward' THEN w.name ELSE o.name END AS org_label, o.kind AS org_kind,
+  (SELECT mt.id FROM meetings mt WHERE mt.event_id = e.id AND mt.kind = 'invited') AS invited_meeting_id`;
 const EVENT_FROM = "events e JOIN orgs o ON o.id = e.org_id JOIN wards w ON w.id = o.ward_id";
 
 /**
@@ -193,7 +196,14 @@ export function invitedOrgIds(e: Pick<EventRow, "invited" | "org_id">, wardOrgId
  * Who an event is for: its organization (or just its leaders, for a leaders-only
  * event), plus everyone in the organizations it invited.
  */
-export function eventAudience(e: Pick<EventRow, "org_id" | "invited" | "presidency_only">, opts: { invitedOnly?: boolean } = {}): Recipient[] {
+export function eventAudience(e: Pick<EventRow, "org_id" | "invited" | "presidency_only"> & { id?: number }, opts: { invitedOnly?: boolean } = {}): Recipient[] {
+  // A meeting people were invited to: those who haven't said they can't come.
+  const meeting = e.presidency_only && e.id ? (db().prepare("SELECT id FROM meetings WHERE event_id = ? AND kind = 'invited'").get(e.id) as { id: number } | undefined) : undefined;
+  if (meeting) {
+    if (opts.invitedOnly) return [];
+    const ids = (db().prepare("SELECT member_id FROM meeting_invitees WHERE meeting_id = ? AND (response IS NULL OR response = 'yes')").all(meeting.id) as { member_id: number }[]).map((r) => r.member_id);
+    return ids.map((id) => recipientById(id, e.org_id)).filter((r): r is Recipient => !!r);
+  }
   if (e.presidency_only) return opts.invitedOnly ? [] : audienceMembers(e.org_id, "admins");
   const wardOrg = db().prepare("SELECT w.id FROM orgs o JOIN orgs w ON w.ward_id = o.ward_id AND w.kind = 'ward' WHERE o.id = ?").get(e.org_id) as { id: number } | undefined;
   const orgs = invitedOrgIds(e, wardOrg?.id ?? 0);

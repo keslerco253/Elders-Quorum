@@ -28,7 +28,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const upcoming = meetings.filter((m) => !m.held_at && m.date >= today).reverse();
   const past = meetings.filter((m) => !upcoming.includes(m));
   // The opening prayer, thought and closing prayer are chosen for the next meeting.
-  const next = upcoming[0];
+  const next = upcoming.find((m) => m.kind === "presidency");
   const names = attendeeChoices(user.org_id)
     .filter((p) => p.id > 0)
     .map((p) => p.name);
@@ -49,7 +49,11 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                 {m.title && ` · ${m.title}`}
               </span>
               <span className="text-sm text-muted">
-                {[m.attendees, meetingRolesText(m), m.item_count && `${m.item_count} agenda item${m.item_count === 1 ? "" : "s"}`, m.todo_count && `${m.todo_count} assignment${m.todo_count === 1 ? "" : "s"}`]
+                {[
+                  m.kind === "invited" && `${m.invited_count} invited${m.invited_count && !m.held_at ? `, ${m.coming_count} coming` : ""}`,
+                  m.attendees,
+                  meetingRolesText(m),
+                  m.item_count && `${m.item_count} agenda item${m.item_count === 1 ? "" : "s"}`, m.todo_count && `${m.todo_count} assignment${m.todo_count === 1 ? "" : "s"}`]
                   .filter(Boolean)
                   .join(" · ") || (m.held_at ? "No notes" : "Tap to open the agenda")}
               </span>
@@ -90,14 +94,21 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
       )}
       <form action={newMeeting} className="card mb-6 space-y-3">
         <h2 className="h2">Schedule a meeting</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_2fr_auto]">
+        <select name="kind" className="input" aria-label="Which meeting" defaultValue="presidency">
+          <option value="presidency">{roleLabel("presidency", user.org)} meeting</option>
+          <option value="invited">Another meeting: invite people to it</option>
+        </select>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_2fr]">
           <input name="date" type="date" required defaultValue={today} min={today} className="input" aria-label="Date" />
           <input name="time" type="time" required defaultValue={lastTime} className="input" aria-label="Time" />
-          <input name="title" maxLength={120} className="input col-span-2 sm:col-span-1" placeholder="Title (optional)" />
+          <input name="title" maxLength={120} className="input col-span-2 sm:col-span-1" placeholder="Title (needed for another meeting)" />
+          <input name="location" maxLength={200} className="input col-span-2 sm:col-span-2" placeholder="Where (optional)" />
           <SubmitButton className="btn-primary col-span-2 sm:col-span-1">Schedule</SubmitButton>
         </div>
         <p className="hint">
-          It goes on the {leadersWord(user.org)}&apos;s calendar and their Coming up list on Home, {reminderText} (change it under Settings → Reminder times). Only the {leadersWord(user.org)} sees it.
+          A {leadersWord(user.org)} meeting goes on the {leadersWord(user.org)}&apos;s calendar and their Coming up list on Home, {reminderText} (change it under Settings → Reminder times). Only the{" "}
+          {leadersWord(user.org)} sees it. Another meeting (an activities committee, a teachers&apos; council…) opens next so you can invite people by calling or by name: they&apos;re
+          notified, can say whether they&apos;ll come, and see it on their calendar and Home.
         </p>
       </form>
       {upcoming.length > 0 && (
@@ -108,7 +119,16 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <div>
           <div id="agenda" className="scroll-mt-20" />
-          <Section title={`Agenda for the next meeting${agenda.length ? ` (${agenda.length})` : ""}`}>
+          <Section
+            title={`Agenda for the next meeting${agenda.length ? ` (${agenda.length})` : ""}`}
+            actions={
+              next && (
+                <Link href={`/admin/meetings/${next.id}`} className="btn-primary btn-sm">
+                  Open meeting ›
+                </Link>
+              )
+            }
+          >
             {next ? (
               <div className="mb-3 space-y-2">
                 <p className="text-xs text-muted">
@@ -127,7 +147,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
               <SubmitButton className="btn-secondary">Add</SubmitButton>
             </form>
             <p className="hint mt-2">
-              Use ⤒ (to the top) and ↑ / ↓ to put it in order. Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message. In
+              Tap an item to change it or add notes before the meeting. Use ⤒ (to the top) and ↑ / ↓ to put it in order. Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message. In
               the meeting, open it and tap an item to take notes on it.
             </p>
           </Section>

@@ -1538,4 +1538,23 @@ ALTER TABLE meetings ADD COLUMN spiritual_thought TEXT NOT NULL DEFAULT '';
 ALTER TABLE meetings ADD COLUMN closing_prayer TEXT NOT NULL DEFAULT '';
 `,
   },
+  {
+    // Meetings besides the presidency's own: the presidency schedules one and invites
+    // people (by calling or by name), who can answer whether they'll come. Its agenda
+    // belongs to it from the start (agenda_items.meeting_id).
+    id: 77,
+    sql: `
+ALTER TABLE meetings ADD COLUMN kind TEXT NOT NULL DEFAULT 'presidency' CHECK (kind IN ('presidency','invited'));
+ALTER TABLE meetings ADD COLUMN location TEXT NOT NULL DEFAULT '';
+CREATE TABLE meeting_invitees (
+  meeting_id INTEGER NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  response TEXT CHECK (response IN ('yes','no')),
+  invited_at TEXT NOT NULL DEFAULT (datetime('now')),
+  responded_at TEXT,
+  PRIMARY KEY (meeting_id, member_id)
+);
+CREATE INDEX meeting_invitees_member ON meeting_invitees(member_id);
+`,
+  },
 ];
