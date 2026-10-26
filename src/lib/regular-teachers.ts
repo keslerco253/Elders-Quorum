@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { removeTeacherNotes } from "./lesson-notes";
+import { notify, recipientById } from "./notify";
 
 // Regular teachers: "Brother Smith teaches every 3rd Sunday". Each of the 1st-4th Sundays
 // of the month has at most one (so two people never share a Sunday); someone can have
@@ -120,4 +121,21 @@ export function saveRegularTeachers(orgId: number, byWeek: (number | null)[], to
   const added = [...new Set(after.values())].map((id) => ({ id, weeks: weeksOf(after, id), all: [...after].filter(([, who]) => who === id).map(([w]) => w) })).filter((t) => t.weeks.length);
   const removed = [...new Set(before.values())].map((id) => ({ id, weeks: weeksOf(before, id).filter((w) => after.get(w) !== id) })).filter((t) => t.weeks.length);
   return { added, removed, filled, changed: changedWeeks.length };
+}
+
+/** Tells the teachers added or taken off by saveRegularTeachers. */
+export async function tellRegularTeachers(orgId: number, orgLabel: string, changes: { added: { id: number; all: number[] }[]; removed: { id: number; weeks: number[] }[] }, url = "/admin/lessons") {
+  for (const t of changes.added) {
+    const who = recipientById(t.id, orgId);
+    if (!who) continue;
+    await notify([who], {
+      title: `You're a regular teacher in ${orgLabel}`,
+      body: `Thank you! You're teaching on the ${weeksText(t.all)} of each month. Your lessons show under My assignments, and you'll get a reminder the week before each one.`,
+      url: "/assignments",
+    }, { followUp: { what: `Made a regular teacher (${weeksText(t.all)} of each month)`, url } });
+  }
+  for (const t of changes.removed) {
+    const who = recipientById(t.id, orgId);
+    if (who) await notify([who], { title: `${orgLabel} teaching schedule`, body: `You're no longer the regular teacher on the ${weeksText(t.weeks)}. Thank you for teaching!`, url: "/assignments" });
+  }
 }

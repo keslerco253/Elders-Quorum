@@ -112,7 +112,7 @@ export default async function MyAssignmentsPage({ searchParams }: { searchParams
             <Section title="How this list works">
               <p className="text-sm text-muted">
                 📋 Assignments come from your presidency: tap one to add a progress note or mark it done. 📝 Your own to-dos are entirely private: only you can see them, no one else. 📖 Lessons you&apos;re teaching show until Sunday; confirm them on the lesson.
-                🛠️ Service you signed up for shows until its date.
+                ❤️ Service you signed up for shows until its date.
               </p>
             </Section>
           </div>

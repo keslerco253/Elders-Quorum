@@ -192,7 +192,8 @@ export default async function AdminLessonsPage({
           <p className="text-sm text-muted">
             Someone who teaches the same Sunday each month is put on those lessons
             automatically. One teacher per Sunday; a teacher can have more than one
-            (for example the 2nd and 4th).
+            (for example the 2nd and 4th). You can also set these on a teaching calling
+            under <Link href="/admin/callings" className="link">Admin → Callings</Link>.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             {WEEKS.map((w) => (

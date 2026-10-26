@@ -13,7 +13,7 @@ import { formatDate, sundays, todayIn } from "@/lib/time";
 import type { LessonKind, Member } from "@/lib/types";
 import { wardMember } from "@/lib/orgs";
 import { refillCfmLesson } from "@/lib/cfm";
-import { fillRegularTeachers, saveRegularTeachers, weeksText } from "@/lib/regular-teachers";
+import { fillRegularTeachers, saveRegularTeachers, tellRegularTeachers, weeksText } from "@/lib/regular-teachers";
 import { orgRoster } from "@/lib/orgs";
 
 const KINDS: LessonKind[] = ["talk", "general_conference", "stake_conference"];
@@ -176,19 +176,7 @@ export async function saveRegular(fd: FormData) {
     return id && roster.has(id) ? id : null;
   });
   const { added, removed, filled, changed } = saveRegularTeachers(user.org_id, byWeek, todayIn(user.ward.timezone));
-  for (const t of added) {
-    const who = recipientById(t.id, user.org_id);
-    if (!who) continue;
-    await notify([who], {
-      title: `You're a regular teacher in ${user.orgLabel}`,
-      body: `Thank you! You're teaching on the ${weeksText(t.all)} of each month. Your lessons show under My assignments, and you'll get a reminder the week before each one.`,
-      url: "/assignments",
-    }, { followUp: { what: `Made a regular teacher (${weeksText(t.all)} of each month)`, url: "/admin/lessons" } });
-  }
-  for (const t of removed) {
-    const who = recipientById(t.id, user.org_id);
-    if (who) await notify([who], { title: `${user.orgLabel} teaching schedule`, body: `You're no longer the regular teacher on the ${weeksText(t.weeks)}. Thank you for teaching!`, url: "/assignments" });
-  }
+  await tellRegularTeachers(user.org_id, user.orgLabel, { added, removed });
   refresh();
   go("/admin/lessons", changed ? `Regular teachers saved.${filled ? ` ${filled} upcoming lesson${filled === 1 ? "" : "s"} filled.` : ""}${added.length + removed.length ? " Teachers added or changed were notified." : ""}` : "No changes.");
 }

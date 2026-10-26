@@ -70,6 +70,8 @@ export async function updateMember(fd: FormData) {
     const calling = role !== "member" && isCalling(raw) && CALLINGS[user.org.kind].includes(raw) ? raw : null;
     if (calling === "president" || calling === "bishop") db().prepare("UPDATE org_members SET calling = NULL WHERE org_id = ? AND calling = ? AND member_id != ?").run(user.org_id, calling, id);
     if (role !== "member" || m.in_org) addToOrg(id, user.org_id, { role, calling });
+    // Access set by hand is no longer the access an added calling gave.
+    if (role !== m.role) db().prepare("UPDATE org_members SET leader_by_calling = 0 WHERE org_id = ? AND member_id = ?").run(user.org_id, id);
   }
   revalidatePath("/admin/members");
   go(`/admin/members/${id}`, "Saved.");

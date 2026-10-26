@@ -50,6 +50,7 @@ export function onlyLeaderOf(memberId: number, wardId?: number): number[] {
 /** Takes a member out of one organization (they stay in the ward). */
 export function removeFromOrg(memberId: number, orgId: number) {
   db().prepare("DELETE FROM org_members WHERE org_id = ? AND member_id = ?").run(orgId, memberId);
+  db().prepare("DELETE FROM member_callings WHERE member_id = ? AND calling_id IN (SELECT id FROM org_callings WHERE org_id = ?)").run(memberId, orgId);
 }
 
 /**
@@ -59,6 +60,7 @@ export function removeFromOrg(memberId: number, orgId: number) {
 export function removeFromWard(memberId: number, wardId: number): boolean {
   const d = db();
   d.prepare("DELETE FROM org_members WHERE member_id = ? AND org_id IN (SELECT id FROM orgs WHERE ward_id = ?)").run(memberId, wardId);
+  d.prepare("DELETE FROM member_callings WHERE member_id = ? AND calling_id IN (SELECT c.id FROM org_callings c JOIN orgs o ON o.id = c.org_id WHERE o.ward_id = ?)").run(memberId, wardId);
   d.prepare("DELETE FROM ward_members WHERE member_id = ? AND ward_id = ?").run(memberId, wardId);
   if (d.prepare("SELECT 1 FROM ward_members WHERE member_id = ?").get(memberId)) return false;
   deleteAccount(memberId);

@@ -236,6 +236,15 @@ export default async function AdminPage() {
               label: "Members",
               desc: `People in ${user.orgLabel}, callings and access`,
             },
+            ...(p
+              ? [
+                  {
+                    href: "/admin/callings",
+                    label: "Callings",
+                    desc: "Add callings like a teacher or activities committee, and who holds them",
+                  },
+                ]
+              : []),
             {
               href: "/admin/invite",
               label: "Invite members",

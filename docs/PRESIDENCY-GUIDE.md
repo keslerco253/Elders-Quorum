@@ -37,7 +37,9 @@ point members with questions about the app. Leaders can open it too.
   Counselor in the Bishopric, Second Counselor in the Bishopric, Executive
   Secretary and Ward Clerk. Only one President (or Bishop) at a time: choosing a
   new one clears it from the previous person. Callings decide who conducts each
-  month and are shown to members choosing who to write to.
+  month and are shown to members choosing who to write to. Other callings
+  (Teacher, Activities Committee…) are added under **Admin → Callings** (see
+  **Callings (teacher, activities committee and others)**).
 - **Ward administrators** (up to two per ward) manage the whole ward under
   **Admin → Ward settings**: its name, time zone, join code, organizations, the
   backup person for members' messages, members' messages ward-wide, and starting
@@ -74,7 +76,7 @@ The Admin page has these sections:
 - **Presidency** (or **Bishopric**): Presidency meetings (with how many items
   are on the next agenda and records to review), Assignments (open and
   overdue), Home visits (upcoming visits and open invitations), Visit requests,
-  Who's conducting, Challenges, Members and Invite members. Tiles for features
+  Who's conducting, Challenges, Members, Callings and Invite members. Tiles for features
   your organization turned off don't show.
 - **Ward**: Pass it on (only when something is waiting), Ward settings (ward
   administrators) and Site owner (site owner).
@@ -302,6 +304,31 @@ them within leadership. For addresses, use Member Tools.
 - **Remove from (organization):** they stay in the ward and can choose the
   organization again themselves.
 - You can't turn off or remove the only presidency member of an organization.
+
+### Callings (teacher, activities committee and others)
+
+The presidency's own callings (president, counselors, secretary, assistant
+secretary; bishopric callings at the ward) are set on a member's page with
+**Access level** and **Calling**. Any other calling your organization has is
+added under **Admin → Callings** (presidency only):
+- **Add a calling:** type its name (suggestions include Teacher, Activities
+  Committee, Activities Coordinator, Ministering Coordinator) and tick what it
+  does:
+  - **Teaches lessons:** for each person in it, tick the **1st–4th Sunday**
+    they teach and **Save Sundays**. It's the same as Regular teachers under
+    Manage lessons: they're put on those lessons, told once, and reminded. One
+    teacher per Sunday, so ticking a Sunday someone else has (shown in
+    parentheses) moves it. 5th Sundays are filled in each time.
+  - **Gives Leadership access:** while they hold it they can use the Admin tools
+    like the presidency. Releasing them (or removing the calling) takes it back,
+    unless you set their access by hand on their page.
+- **Add a person** to a calling from the organization's members; someone can
+  hold several callings. **Release** takes them out (a teacher's Sundays open
+  up).
+- **Rename or change this calling**, or **Remove this calling** (everyone in it
+  is released).
+- Added callings show as badges by the person's name in Admin → Members and on
+  their page. They leave a calling when they leave the organization.
 
 ## How members are notified
 
@@ -658,7 +685,8 @@ organization they're in.
 
 ## Teachers
 
-- **Regular teachers** (Lessons → Manage lessons → *Regular teachers*):
+- **Regular teachers** (Lessons → Manage lessons → *Regular teachers*, or on a
+  teaching calling under **Admin → Callings**; both are the same schedule):
   - Choose who teaches the 1st, 2nd, 3rd and 4th Sunday of each month. They're
     put on those lessons automatically, including Sundays added later.
   - Each Sunday has one teacher; one person can have more than one (for example
@@ -949,7 +977,7 @@ Finished assignments come up for review 3 months after they're done (see
   progress);
 - 📝 their own private to-dos;
 - 📖 lessons they're teaching (Please confirm until they do; shown until Sunday);
-- 🛠️ service they signed up for, with their slot (shown until its date).
+- ❤️ service they signed up for, with their slot (shown until its date).
 
 Tabs: **Coming up** and **Done and past**. Home's **Your assignments** card shows
 anything overdue, needing an answer, or in the next two weeks. Presidency members

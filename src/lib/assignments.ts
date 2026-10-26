@@ -252,7 +252,7 @@ export function soonAssignments(memberId: number, today: string): MyItem[] {
   return myAssignments(memberId, today).filter((i) => i.flag?.tone === "danger" || i.flag?.text === "Please confirm" || i.flag?.text === "Please respond" || (i.date !== null && i.date <= until) || ((i.kind === "todo" || i.kind === "mine") && !i.date));
 }
 
-export const KIND_ICONS: Record<MyItemKind, string> = { todo: "📋", mine: "📝", teach: "📖", serve: "🛠️" };
+export const KIND_ICONS: Record<MyItemKind, string> = { todo: "📋", mine: "📝", teach: "📖", serve: "❤️" };
 
 /** "Thu, Oct 30" or "Thu, Oct 30 at 7:00 PM". */
 export function dueText(date: string, time: string | null): string {

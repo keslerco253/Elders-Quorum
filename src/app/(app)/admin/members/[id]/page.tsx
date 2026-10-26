@@ -15,6 +15,7 @@ import { emailInvite, removeMember, setMemberOrgs, updateMember } from "../actio
 import { inviteLink, inviteText } from "@/lib/invite";
 import { phoneEnabled, phoneOptInVisible } from "@/lib/sms";
 import { CopyButton } from "@/components/copy-button";
+import { callingNamesByMember } from "@/lib/org-callings";
 
 export const metadata = { title: "Member" };
 
@@ -25,6 +26,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   const m = orgMemberView(user.org_id, Number(id));
   if (!m || (m.status !== "active" && m.status !== "inactive")) notFound();
   const presidency = isPresidency(user);
+  const addedCallings = callingNamesByMember(user.org_id).get(m.id) ?? [];
   // Name and contact are theirs once they sign in (or if they lead, or are in another ward).
   const locked = !leaderCanEditContact(m.id, user.ward_id);
   const lastVisit = presidency ? (db().prepare("SELECT date FROM visits WHERE member_id = ? AND org_id = ? ORDER BY date DESC LIMIT 1").get(m.id, user.org_id) as { date: string } | undefined) : undefined;
@@ -54,6 +56,11 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
         subtitle={
           <span className="flex flex-wrap items-center gap-2">
             <Badge tone="info">{m.calling ? callingLabel(m.calling, user.org) : m.in_org ? roleLabel(m.role, user.org) : `Not in ${user.orgLabel}`}</Badge>
+            {addedCallings.map((c) => (
+              <Badge key={c} tone="info">
+                {c}
+              </Badge>
+            ))}
             {otherOrgs.map((o) => (
               <Badge key={o.id}>{o.name}</Badge>
             ))}
@@ -173,6 +180,13 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   <p className="hint">Shown next to their name. Members can message presidency members privately.</p>
                 </div>
               )}
+              <p className="hint sm:col-span-2">
+                Other callings, like a teacher or activities committee:{" "}
+                <Link href="/admin/callings" className="link">
+                  Admin → Callings
+                </Link>
+                .
+              </p>
             </div>
           )}
           <SubmitButton>Save</SubmitButton>

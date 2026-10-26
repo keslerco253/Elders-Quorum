@@ -7,6 +7,7 @@ import { reachableBy } from "@/lib/delivery";
 import { SubmitButton } from "@/components/client";
 import { isPresidency } from "@/lib/permissions";
 import { addMember } from "./actions";
+import { callingNamesByMember } from "@/lib/org-callings";
 import { callingLabel, isCalling, leadersWord, roleLabel } from "@/lib/types";
 
 export const metadata = { title: "Members" };
@@ -17,6 +18,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   const show = sp.show === "inactive" ? "inactive" : "active";
   const q = (sp.q ?? "").trim();
   const members = orgMemberList(user.org_id, { show, q });
+  const added = callingNamesByMember(user.org_id);
 
   return (
     <>
@@ -102,6 +104,9 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{m.display_name}</span>
                     {m.role !== "member" && <Badge tone="info">{isCalling(m.calling) ? callingLabel(m.calling, user.org) : roleLabel(m.role, user.org)}</Badge>}
+                    {added.get(m.id)?.map((c) => (
+                      <Badge key={c}>{c}</Badge>
+                    ))}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
                     {m.phone && <Badge>Phone</Badge>}

@@ -1474,4 +1474,29 @@ UPDATE personal_todos SET reminders = (
 );
 `,
   },
+  {
+    // Callings an organization adds itself (Activities Committee, Teacher…), beyond
+    // the presidency callings. A person can hold several. "leader" ones give Leadership
+    // access while held (leader_by_calling marks access given that way, so it's taken
+    // back with the calling); "teaches" ones set which Sundays the person teaches.
+    id: 74,
+    sql: `
+CREATE TABLE org_callings (
+  id INTEGER PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  leader INTEGER NOT NULL DEFAULT 0,
+  teaches INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX org_callings_org ON org_callings(org_id);
+CREATE TABLE member_callings (
+  calling_id INTEGER NOT NULL REFERENCES org_callings(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (calling_id, member_id)
+);
+ALTER TABLE org_members ADD COLUMN leader_by_calling INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];
