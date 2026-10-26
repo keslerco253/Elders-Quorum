@@ -108,16 +108,21 @@ the right page either way). On iPhone you can also press and hold the link and
 choose **Open in My Ward Link**; iPhone then remembers to use the app.
 
 **My reminders** (**More → My reminders**, or 🔔 **My reminders** on the Lessons,
-Calendar and Service pages): for **Lessons**, **Events** and **Service**
-separately, choose:
+Calendar, Service and My assignments pages): for **Lessons**, **Events**,
+**Service** and **Assignments** separately, choose:
 - **As scheduled:** your leaders' times (for lessons, usually the Sunday evening
   before and Saturday morning; for events, usually the day before; for service,
-  usually a week and a day before).
+  usually a week and a day before; for assignments you've accepted, what the
+  leader who gave it set, usually the day before and the morning it's due).
 - **My own reminders:** tap **+ Add a reminder** (up to 10, up to 3 by text). Pick
   when, and any mix of **App**, **Text** and **Email**. For lessons: the Sunday
   before at 7 PM, Wednesday 7 PM, Friday 7 PM, Saturday 8 AM, Saturday 7 PM or
-  Sunday 7 AM. For events and service: 15 minutes to 2 weeks before.
+  Sunday 7 AM. For events and service: 15 minutes to 2 weeks before. For
+  assignments: when it's due, or 15 minutes to 2 weeks before (counted from its
+  due time, or 9 AM if it has none).
 - **No reminders.**
+
+Your own private to-dos keep the reminders you set on each one.
 
 Then tap **Save**. If you're teaching, you still get your teaching reminders.
 

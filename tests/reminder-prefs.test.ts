@@ -84,4 +84,20 @@ describe("members' own reminders", () => {
     expect(due("2026-10-24T09:00")).toEqual(["/signups/20"]);
     expect(due("2026-10-25T08:00")).toEqual(["/signups/21"]);
   });
+
+  it("sends a member's own assignment reminders instead of the leader's, from its due time", () => {
+    db().prepare("INSERT INTO todos (id, org_id, title, assignee_id, due_date) VALUES (30, 1, 'Call the Larsens', 2, '2026-10-24'), (31, 1, 'Set up chairs', 3, '2026-10-24')").run();
+    db().prepare("UPDATE todos SET due_time = '19:00' WHERE id = 30").run();
+    saveReminderSettings(2, "assignments", "custom", [{ when: "m:60", channels: ["text"] }, { when: "m:0", channels: ["push"] }], { text: true, email: true });
+    const due = (t: string) => collectDue(at(t)).filter((n) => n.key.startsWith("todo")).map((n) => [n.key.split(":")[0], n.recipients[0].id, n.only?.join("+") ?? ""]);
+    // The leader's morning reminder still goes to Ned, not Sam.
+    expect(due("2026-10-24T09:00")).toEqual([["todo-due", 3, ""]]);
+    // (Ned's goes all day until it's sent once.)
+    const sams = (t: string) => due(t).filter((n) => n[1] === 2);
+    expect(sams("2026-10-24T18:00")).toEqual([["todo-mine", 2, "text"]]);
+    // (The text an hour before stays due a few hours in case it was missed; it's sent once.)
+    expect(sams("2026-10-24T19:00")).toEqual([["todo-mine", 2, "text"], ["todo-mine", 2, "push"]]);
+    saveReminderSettings(2, "assignments", "off", [], { text: true, email: true });
+    expect(sams("2026-10-24T19:00")).toEqual([]);
+  });
 });

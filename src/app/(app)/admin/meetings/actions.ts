@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { addAgendaItem, cleanVideoLink, createMeeting, deleteMeetingRecord, finishMeeting, getMeeting, reviewRecord, saveAgendaNotes, setVideoLink, syncMeetingEvent, videoKind, videoLink, type ReviewRecord } from "@/lib/meetings";
+import { addAgendaItem, cleanVideoLink, isMeetingRole, moveAgendaItem, setMeetingRole, createMeeting, deleteMeetingRecord, finishMeeting, getMeeting, reviewRecord, saveAgendaNotes, setVideoLink, syncMeetingEvent, videoKind, videoLink, type ReviewRecord } from "@/lib/meetings";
 import { audienceMembers, notify } from "@/lib/notify";
 import { withOrg } from "@/lib/org-cookie";
 import { leadersWord } from "@/lib/types";
@@ -34,6 +34,25 @@ export async function removeAgenda(fd: FormData) {
   db().prepare("DELETE FROM agenda_items WHERE id = ? AND org_id = ?").run(Number(fd.get("item_id")), user.org_id);
   revalidatePath("/admin", "layout");
   go(`${meetingPath(fd)}#agenda`, "Taken off the agenda.");
+}
+
+export async function moveAgenda(fd: FormData) {
+  const user = await requirePresidency();
+  const id = Number(fd.get("item_id"));
+  moveAgendaItem(user.org_id, id, fd.get("dir") === "up" ? -1 : 1);
+  revalidatePath("/admin", "layout");
+  redirect(`${meetingPath(fd)}#item-${id}`);
+}
+
+/** Who gives the opening prayer, spiritual thought or closing prayer (saved as it's chosen). */
+export async function saveMeetingRole(fd: FormData) {
+  const user = await requirePresidency();
+  const role = fd.get("role");
+  const m = getMeeting(user.org_id, Number(fd.get("meeting_id")));
+  if (!m || !isMeetingRole(role)) redirect("/admin/meetings");
+  setMeetingRole(user.org_id, m.id, role, String(fd.get("name") || ""));
+  revalidatePath("/admin/meetings", "layout");
+  redirect(`${fd.get("back") === "list" ? "/admin/meetings" : `/admin/meetings/${m.id}`}#agenda`);
 }
 
 export async function toggleDiscussed(fd: FormData) {

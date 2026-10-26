@@ -12,7 +12,7 @@ import { reminderSettings, type LessonWhen } from "./reminder-settings";
 import type { PushPayload } from "./push";
 import type { EventRow } from "./types";
 import { eventAudience } from "./events";
-import { daysBetween, dueForDate, dueForStart, ownSettings, type ReminderChannel } from "./reminder-prefs";
+import { daysBetween, dueForDate, dueForStart, ownSettings, whenLabel, type ReminderChannel } from "./reminder-prefs";
 import { hasFeature, homeOf } from "./orgs";
 import { runRetention } from "./retention";
 import { extendAllSeries } from "./event-series";
@@ -226,17 +226,41 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 
 function todoReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
-  if (local.hour < reminderSettings(org.id).morningHour || local.hour >= 20) return [];
+  // The leader's reminders go out from 8 AM; members' own (My reminders → Assignments) at the time they chose.
+  const scheduledHours = local.hour >= reminderSettings(org.id).morningHour && local.hour < 20;
+  const own = ownSettings("assignments");
+  if (!scheduledHours && !own.size) return [];
   const today = local.toISODate()!;
-  // Each assignment's reminders (days before it's due; 0 = the morning it's due), from 8 AM.
+  // Each assignment's reminders (days before it's due; 0 = the morning it's due).
   const rows = db()
     .prepare(
-      `SELECT t.id, t.title, t.due_date, t.reminder1_days AS r1, t.reminder2_days AS r2, m.id AS mid FROM todos t JOIN members m ON m.id = t.assignee_id
-       WHERE t.org_id = ? AND t.done = 0 AND t.accept_status = 'accepted' AND t.due_date >= ? AND t.due_date <= date(?, '+30 days') AND m.status = 'active'`,
+      `SELECT t.id, t.title, t.due_date, t.due_time, t.reminder1_days AS r1, t.reminder2_days AS r2, m.id AS mid FROM todos t JOIN members m ON m.id = t.assignee_id
+       WHERE t.org_id = ? AND t.done = 0 AND t.accept_status = 'accepted' AND t.due_date >= date(?, '-1 day') AND t.due_date <= date(?, '+30 days') AND m.status = 'active'`,
     )
-    .all(org.id, today, today) as { id: number; title: string; due_date: string; r1: number | null; r2: number | null; mid: number }[];
+    .all(org.id, today, today) as { id: number; title: string; due_date: string; due_time: string | null; r1: number | null; r2: number | null; mid: number }[];
   const out: DueNotification[] = [];
   for (const t of rows) {
+    const mine = own.get(t.mid);
+    if (mine) {
+      const who = mine.mode === "custom" ? recipientById(t.mid, org.id) : undefined;
+      const due = dueAtUtc(t, org.timezone)!;
+      for (const r of who ? mine.reminders : []) {
+        if (!dueForStart(r.when, due, now)) continue;
+        const label = whenLabel("assignments", r.when);
+        out.push({
+          key: `todo-mine:${t.id}:${t.due_date}T${t.due_time ?? ""}:${t.mid}:${r.when}:${r.channels.join("+")}`,
+          recipients: [who!],
+          payload: {
+            title: r.when === "m:0" ? "Assignment due now" : `Assignment due in ${label.replace(/ before$/, "")}`,
+            body: `${t.title} (due ${dueText(t.due_date, t.due_time)})`,
+            url: withOrg(`/assignments/${t.id}`, org.id),
+          },
+          only: r.channels,
+        });
+      }
+      continue;
+    }
+    if (!scheduledHours || t.due_date < today) continue;
     const away = daysBetween(today, t.due_date);
     if (away !== t.r1 && away !== t.r2) continue;
     const who = recipientById(t.mid, org.id);

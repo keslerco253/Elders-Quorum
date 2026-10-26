@@ -117,6 +117,25 @@ describe("scheduled presidency meetings", () => {
     expect(db().prepare("SELECT 1 FROM events WHERE id = ?").get(eventId)).toBeUndefined();
   });
 
+  it("keeps the agenda in the order chosen, with new items last, and records who prayed", async () => {
+    const { addAgendaItem, createMeeting, finishMeeting, getMeeting, meetingAgenda, meetingRolesText, moveAgendaItem, pendingAgenda, setMeetingRole } = await import("@/lib/meetings");
+    const [a, b, c] = ["Welcome", "Ministering", "Activities"].map((t) => addAgendaItem(1, t, { addedBy: 1 }));
+    moveAgendaItem(1, c, -1);
+    moveAgendaItem(1, c, -1);
+    moveAgendaItem(1, c, -1); // already first
+    addAgendaItem(1, "New", { addedBy: 1 });
+    expect(pendingAgenda(1).map((x) => x.body)).toEqual(["Activities", "Welcome", "Ministering", "New"]);
+    moveAgendaItem(1, a, 1);
+    expect(pendingAgenda(1).map((x) => x.body)).toEqual(["Activities", "Ministering", "Welcome", "New"]);
+    const id = createMeeting(1, "2026-10-28", "", 1);
+    setMeetingRole(1, id, "opening_prayer", "Pres");
+    setMeetingRole(1, id, "closing_prayer", "Ann");
+    expect(meetingRolesText(getMeeting(1, id)!)).toBe("Opening prayer: Pres · Closing prayer: Ann");
+    db().prepare("UPDATE agenda_items SET discussed = 1 WHERE id IN (?, ?)").run(b, c);
+    finishMeeting(1, id, "2026-10-28");
+    expect(meetingAgenda(id).map((x) => x.body)).toEqual(["Activities", "Ministering"]);
+  });
+
   it("takes notes on agenda items, and offers anyone with a calling as attending", async () => {
     const { addAgendaItem, attendeeChoices, pendingAgenda, saveAgendaNotes } = await import("@/lib/meetings");
     const a = addAgendaItem(1, "Jones family", { addedBy: 1 });

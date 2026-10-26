@@ -24,6 +24,29 @@ export interface Meeting {
   review_at: string | null;
   created_by: number | null;
   updated_at: string;
+  opening_prayer: string;
+  spiritual_thought: string;
+  closing_prayer: string;
+}
+
+/** Who gave the prayers and the thought: kept as names on the meeting's record. */
+export const MEETING_ROLES = [
+  ["opening_prayer", "Opening prayer"],
+  ["spiritual_thought", "Spiritual thought"],
+  ["closing_prayer", "Closing prayer"],
+] as const;
+export type MeetingRole = (typeof MEETING_ROLES)[number][0];
+export const isMeetingRole = (v: unknown): v is MeetingRole => MEETING_ROLES.some(([k]) => k === v);
+
+export function setMeetingRole(orgId: number, meetingId: number, role: MeetingRole, name: string) {
+  db().prepare(`UPDATE meetings SET ${role} = ?, updated_at = datetime('now') WHERE id = ? AND org_id = ?`).run(name.trim().slice(0, 100), meetingId, orgId);
+}
+
+/** "Opening prayer: Hyrum · Spiritual thought: Mark …", for the list of meetings. */
+export function meetingRolesText(m: Pick<Meeting, MeetingRole>): string {
+  return MEETING_ROLES.filter(([k]) => m[k])
+    .map(([k, label]) => `${label}: ${m[k]}`)
+    .join(" · ");
 }
 
 /** "Presidency meeting" ("Bishopric meeting" for the ward). */
@@ -138,23 +161,38 @@ export interface AgendaItem {
   created_at: string;
 }
 
-/** Items waiting for the next meeting, oldest first. */
+/** Items waiting for the next meeting, in the order the presidency put them (new ones last). */
 export function pendingAgenda(orgId: number): AgendaItem[] {
   return db()
-    .prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.org_id = ? AND a.meeting_id IS NULL ORDER BY a.id`)
+    .prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.org_id = ? AND a.meeting_id IS NULL ORDER BY a.position, a.id`)
     .all(orgId) as AgendaItem[];
 }
 
 export function meetingAgenda(meetingId: number): AgendaItem[] {
-  return db().prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.meeting_id = ? ORDER BY a.id`).all(meetingId) as AgendaItem[];
+  return db().prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.meeting_id = ? ORDER BY a.position, a.id`).all(meetingId) as AgendaItem[];
+}
+
+/** Moves a waiting agenda item up (-1) or down (1) one place. */
+export function moveAgendaItem(orgId: number, itemId: number, dir: -1 | 1) {
+  const ids = pendingAgenda(orgId).map((a) => a.id);
+  const i = ids.indexOf(itemId);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  const d = db();
+  const set = d.prepare("UPDATE agenda_items SET position = ? WHERE id = ?");
+  d.transaction(() => ids.forEach((id, n) => set.run(n + 1, id)))();
 }
 
 /** Puts something on the next presidency meeting's agenda. */
 export function addAgendaItem(orgId: number, body: string, opts: { source?: string; link?: string | null; addedBy: number }): number {
   return Number(
     db()
-      .prepare("INSERT INTO agenda_items (org_id, body, source, link, added_by) VALUES (?, ?, ?, ?, ?)")
-      .run(orgId, body.trim().slice(0, 2000), (opts.source ?? "").slice(0, 200), opts.link ?? null, opts.addedBy).lastInsertRowid,
+      .prepare(
+        `INSERT INTO agenda_items (org_id, body, source, link, added_by, position)
+         VALUES (?, ?, ?, ?, ?, (SELECT coalesce(max(position), 0) + 1 FROM agenda_items WHERE org_id = ? AND meeting_id IS NULL))`,
+      )
+      .run(orgId, body.trim().slice(0, 2000), (opts.source ?? "").slice(0, 200), opts.link ?? null, opts.addedBy, orgId).lastInsertRowid,
   );
 }
 

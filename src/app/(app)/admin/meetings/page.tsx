@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
 import { requirePresidency } from "@/lib/auth";
-import { orgMeetings, pendingAgenda, recordsToReview, videoKind, videoLink } from "@/lib/meetings";
+import { attendeeChoices, MEETING_ROLES, meetingRolesText, orgMeetings, pendingAgenda, recordsToReview, videoKind, videoLink } from "@/lib/meetings";
 import { formatDate, todayIn } from "@/lib/time";
 import { leadersWord, roleLabel } from "@/lib/types";
 import { MEETING_MINUTES, reminderSettings } from "@/lib/reminder-settings";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AgendaList } from "./agenda-list";
-import { addAgenda, newMeeting, saveVideoLink, startVideo } from "./actions";
+import { addAgenda, newMeeting, saveMeetingRole, saveVideoLink, startVideo } from "./actions";
+import { RoleSelect } from "./role-select";
 
 export const metadata = { title: "Presidency meetings" };
 
@@ -26,6 +27,13 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   // Scheduled and not finished yet (today's too); the rest are past.
   const upcoming = meetings.filter((m) => !m.held_at && m.date >= today).reverse();
   const past = meetings.filter((m) => !upcoming.includes(m));
+  // The opening prayer, thought and closing prayer are chosen for the next meeting.
+  const next = upcoming[0];
+  const names = attendeeChoices(user.org_id)
+    .filter((p) => p.id > 0)
+    .map((p) => p.name);
+  const roleSelect = (role: (typeof MEETING_ROLES)[number]) =>
+    next && <RoleSelect key={role[0]} action={saveMeetingRole} meetingId={next.id} role={role[0]} label={role[1]} value={next[role[0]]} names={names} back="list" />;
   // A new meeting starts at the time of the last one.
   const lastTime = meetings.find((m) => m.time)?.time ?? "";
   const timeText = (t: string | null) => (t ? DateTime.fromFormat(t, "HH:mm").toFormat("h:mm a") : "");
@@ -41,7 +49,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                 {m.title && ` · ${m.title}`}
               </span>
               <span className="text-sm text-muted">
-                {[m.attendees, m.item_count && `${m.item_count} agenda item${m.item_count === 1 ? "" : "s"}`, m.todo_count && `${m.todo_count} assignment${m.todo_count === 1 ? "" : "s"}`]
+                {[m.attendees, meetingRolesText(m), m.item_count && `${m.item_count} agenda item${m.item_count === 1 ? "" : "s"}`, m.todo_count && `${m.todo_count} assignment${m.todo_count === 1 ? "" : "s"}`]
                   .filter(Boolean)
                   .join(" · ") || (m.held_at ? "No notes" : "Tap to open the agenda")}
               </span>
@@ -101,13 +109,25 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         <div>
           <div id="agenda" className="scroll-mt-20" />
           <Section title={`Agenda for the next meeting${agenda.length ? ` (${agenda.length})` : ""}`}>
+            {next ? (
+              <div className="mb-3 space-y-2">
+                <p className="text-xs text-muted">
+                  {formatDate(next.date, "short")}
+                  {next.time && ` · ${timeText(next.time)}`}
+                </p>
+                {MEETING_ROLES.slice(0, 2).map(roleSelect)}
+              </div>
+            ) : (
+              <p className="hint mb-3">Schedule the next meeting to choose who gives the prayers and the spiritual thought.</p>
+            )}
             {agenda.length === 0 ? <Empty>Nothing on the agenda yet.</Empty> : <AgendaList items={agenda} tz={tz} canEdit />}
+            {next && <div className="mt-3">{roleSelect(MEETING_ROLES[2])}</div>}
             <form action={addAgenda} className="mt-3 flex gap-2">
               <input name="body" maxLength={2000} required className="input flex-1" placeholder="Add something to discuss…" />
               <SubmitButton className="btn-secondary">Add</SubmitButton>
             </form>
             <p className="hint mt-2">
-              Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message. In
+              Use ↑ / ↓ to put it in order. Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message. In
               the meeting, open it and tap an item to take notes on it.
             </p>
           </Section>

@@ -1499,4 +1499,43 @@ CREATE TABLE member_callings (
 ALTER TABLE org_members ADD COLUMN leader_by_calling INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    // Members can set their own reminders for assignments given to them too.
+    id: 75,
+    sql: `
+CREATE TABLE reminder_prefs_new (
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('lessons','events','service','assignments')),
+  mode TEXT NOT NULL CHECK (mode IN ('custom','off')),
+  PRIMARY KEY (member_id, kind)
+);
+INSERT INTO reminder_prefs_new SELECT member_id, kind, mode FROM reminder_prefs;
+DROP TABLE reminder_prefs;
+ALTER TABLE reminder_prefs_new RENAME TO reminder_prefs;
+CREATE TABLE member_reminders_new (
+  id INTEGER PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('lessons','events','service','assignments')),
+  when_key TEXT NOT NULL,
+  channel TEXT NOT NULL CHECK (channel IN ('push','text','email'))
+);
+INSERT INTO member_reminders_new (id, member_id, kind, when_key, channel) SELECT id, member_id, kind, when_key, channel FROM member_reminders;
+DROP TABLE member_reminders;
+ALTER TABLE member_reminders_new RENAME TO member_reminders;
+CREATE INDEX member_reminders_member ON member_reminders(member_id, kind);
+`,
+  },
+  {
+    // The presidency puts the next meeting's agenda in order, and each meeting records
+    // who gave the opening prayer, the spiritual thought and the closing prayer (names,
+    // so the record stays as it was).
+    id: 76,
+    sql: `
+ALTER TABLE agenda_items ADD COLUMN position INTEGER;
+UPDATE agenda_items SET position = id;
+ALTER TABLE meetings ADD COLUMN opening_prayer TEXT NOT NULL DEFAULT '';
+ALTER TABLE meetings ADD COLUMN spiritual_thought TEXT NOT NULL DEFAULT '';
+ALTER TABLE meetings ADD COLUMN closing_prayer TEXT NOT NULL DEFAULT '';
+`,
+  },
 ];

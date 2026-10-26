@@ -1,12 +1,14 @@
 import { DateTime } from "luxon";
 import { db } from "./db";
 
-// Each member's own reminders for lessons, events and service opportunities. By
+// Each member's own reminders for lessons, events, service opportunities and
+// assignments given to them. By
 // default they get the reminders their leaders scheduled; they can set their own
 // instead, each by app notification, text and/or email (up to 3 texts), or turn
 // them off. Stored as a row per way.
 
-export type ReminderKind = "lessons" | "events" | "service";
+export type ReminderKind = "lessons" | "events" | "service" | "assignments";
+export const REMINDER_KINDS: ReminderKind[] = ["lessons", "events", "service", "assignments"];
 export type ReminderChannel = "push" | "text" | "email";
 export type ReminderMode = "default" | "custom" | "off";
 
@@ -21,7 +23,7 @@ export interface MyReminder {
 export const MAX_TEXTS = 3;
 export const MAX_REMINDERS = 10;
 
-export const KIND_LABELS: Record<ReminderKind, string> = { lessons: "Lessons", events: "Events", service: "Service" };
+export const KIND_LABELS: Record<ReminderKind, string> = { lessons: "Lessons", events: "Events", service: "Service", assignments: "Assignments" };
 
 /** The timings offered for each kind. Lessons: days before at a time; events and service: before the start. */
 export const WHEN_OPTIONS: Record<ReminderKind, [string, string][]> = {
@@ -46,6 +48,8 @@ export const WHEN_OPTIONS: Record<ReminderKind, [string, string][]> = {
   ],
   // The same as events, counted from the start time (9 AM if there's none).
   service: [],
+  // Counted from when it's due (9 AM when it has no time).
+  assignments: [],
 };
 
 /** What "my own reminders" starts with: about what leaders usually schedule. */
@@ -58,6 +62,10 @@ export const STARTING_REMINDERS: Record<ReminderKind, MyReminder[]> = {
   service: [
     { when: "m:10080", channels: ["push"] },
     { when: "m:1440", channels: ["push"] },
+  ],
+  assignments: [
+    { when: "m:1440", channels: ["push"] },
+    { when: "m:0", channels: ["push"] },
   ],
 };
 
@@ -74,6 +82,7 @@ function group(rows: { when: string; channel: ReminderChannel }[]): MyReminder[]
 }
 
 WHEN_OPTIONS.service = WHEN_OPTIONS.events;
+WHEN_OPTIONS.assignments = [["m:0", "When it's due"], ...WHEN_OPTIONS.events];
 
 export const whenLabel = (kind: ReminderKind, when: string) => WHEN_OPTIONS[kind].find(([k]) => k === when)?.[1] ?? when;
 

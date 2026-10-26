@@ -379,8 +379,9 @@ but get email until it starts.
   on iPhone each person can choose **Settings → Notifications → (the app) →
   Banner Style → Persistent**. Tapping a notification opens the right page.
 
-**More → My reminders** (also 🔔 **My reminders** on Lessons, Calendar and
-Service): for **Lessons**, **Events** and **Service** separately, each member
+**More → My reminders** (also 🔔 **My reminders** on Lessons, Calendar, Service
+and My assignments): for **Lessons**, **Events**, **Service** and **Assignments**
+separately, each member
 chooses **As scheduled** (the organization's times), **My own reminders** or
 **No reminders**, and taps Save.
 - **My own reminders:** **+ Add a reminder** (up to 10 in each area, up to 3 by
@@ -392,6 +393,10 @@ chooses **As scheduled** (the organization's times), **My own reminders** or
   notification, then email.
 - Service reminders count from the opportunity's start time (or 9 AM that day
   if it has none).
+- **Assignments:** for assignments they've accepted. As scheduled uses the
+  reminders the leader set on each assignment; their own replace those for every
+  assignment, timed from when it's due (or 9 AM) with **When it's due** or 15
+  minutes to 2 weeks before. Private to-dos keep their own reminders.
 - Teachers still get their teaching reminders.
 
 **More → My organizations:** for each organization, **I belong to (name)**
@@ -1005,7 +1010,13 @@ place. Only the presidency (or bishopric) sees it.
   the next meeting*: type it there; tick **Add to the next presidency meeting's
   agenda** when sending a message; or tap **+ Add to the next presidency meeting**
   under a member's message. Each item shows who added it and where it came from.
-  Take one off with ✕.
+  New items go to the bottom; put them in order with **↑ / ↓**. Take one off
+  with ✕.
+- **Prayers and spiritual thought:** above the agenda, choose the **Opening
+  prayer** and **Spiritual thought**, and below it the **Closing prayer**, each
+  from the presidency (and secretaries). It's saved as soon as you pick, for the
+  next scheduled meeting (schedule one first) or on a meeting's own page, and
+  kept on that meeting's record and in the list of meetings.
 - **Schedule a meeting:** date, time (starts at the last meeting's time) and an
   optional title. It goes on the presidency's calendar and Coming up, seen only by
   the presidency, with a reminder (1 hour before, or as set under Reminder times).

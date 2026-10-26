@@ -7,6 +7,7 @@ import { ledOrgIds } from "@/lib/conversations";
 import { withOrg } from "@/lib/org-cookie";
 import { todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
+import { RemindersLink } from "@/components/reminders-link";
 import { SubmitButton } from "@/components/client";
 import { deleteTodo } from "../admin/todos/actions";
 
@@ -63,6 +64,7 @@ export default async function MyAssignmentsPage({ searchParams }: { searchParams
         subtitle="What you've been asked to do, the lessons you're teaching, and the service you signed up for."
         actions={
           <div className="flex flex-wrap gap-2">
+            <RemindersLink kind="assignments" />
             <Link href="/assignments/mine/new" className={assignOrg ? "btn-secondary" : "btn-primary"}>
               + My to-do
             </Link>

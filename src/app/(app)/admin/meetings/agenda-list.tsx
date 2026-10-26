@@ -3,7 +3,7 @@ import { Linkify } from "@/components/linkify";
 import { SubmitButton } from "@/components/client";
 import type { AgendaItem } from "@/lib/meetings";
 import { formatDateTime } from "@/lib/time";
-import { removeAgenda, saveItemNotes, toggleDiscussed } from "./actions";
+import { moveAgenda, removeAgenda, saveItemNotes, toggleDiscussed } from "./actions";
 
 /**
  * Agenda items: who added them and from where. In a meeting, tap one to take notes on
@@ -23,7 +23,7 @@ export function AgendaList({
   const inMeeting = !!meetingId && canEdit;
   return (
     <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
-      {items.map((a) => {
+      {items.map((a, i) => {
         const about = (
           <div className="mt-1 text-xs text-muted">
             {[
@@ -46,6 +46,23 @@ export function AgendaList({
         // In a meeting they sit under the item, leaving room for notes.
         const actions = (
           <div className={`flex gap-1 ${meetingId ? "mt-2" : ""}`}>
+            {/* Put the agenda in order: ↑ / ↓ one place. */}
+            {(["up", "down"] as const).map((dir) =>
+              (dir === "up" ? i > 0 : i < items.length - 1) ? (
+                <form key={dir} action={moveAgenda}>
+                  <input type="hidden" name="item_id" value={a.id} />
+                  <input type="hidden" name="dir" value={dir} />
+                  {meetingId && <input type="hidden" name="meeting_id" value={meetingId} />}
+                  <SubmitButton className="btn-secondary btn-sm" pendingText="…">
+                    <span aria-label={dir === "up" ? "Move up" : "Move down"}>{dir === "up" ? "↑" : "↓"}</span>
+                  </SubmitButton>
+                </form>
+              ) : (
+                <span key={dir} className="btn-secondary btn-sm invisible" aria-hidden>
+                  {dir === "up" ? "↑" : "↓"}
+                </span>
+              ),
+            )}
             {meetingId && (
               <Link
                 href={`/admin/meetings/${meetingId}?assign=${a.id}#assignment-form`}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePresidency } from "@/lib/auth";
-import { attendeeChoices, getMeeting, meetingAgenda, meetingName, pendingAgenda, videoKind, videoLink } from "@/lib/meetings";
+import { attendeeChoices, getMeeting, MEETING_ROLES, meetingAgenda, meetingName, pendingAgenda, videoKind, videoLink } from "@/lib/meetings";
 import { DateTime } from "luxon";
 import { Linkify } from "@/components/linkify";
 import { orgTodos, STATUS_LABELS } from "@/lib/assignments";
@@ -11,7 +11,8 @@ import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AssignmentForm } from "@/components/assignment-form";
 import { AgendaList } from "../agenda-list";
-import { addAgenda, deleteMeeting, finish, saveMeeting, startVideo } from "../actions";
+import { addAgenda, deleteMeeting, finish, saveMeeting, saveMeetingRole, startVideo } from "../actions";
+import { RoleSelect } from "../role-select";
 
 export const metadata = { title: "Presidency meeting" };
 
@@ -31,6 +32,10 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const choices = attendeeChoices(user.org_id);
   const attending = m.attendees.split(",").map((s) => s.trim()).filter(Boolean);
   const others = attending.filter((n) => !choices.some((p) => p.name === n));
+  const names = choices.filter((p) => p.id > 0).map((p) => p.name);
+  const roleSelect = (role: (typeof MEETING_ROLES)[number]) => (
+    <RoleSelect key={role[0]} action={saveMeetingRole} meetingId={m.id} role={role[0]} label={role[1]} value={m[role[0]]} names={names} />
+  );
   // The record: what was noted on each agenda item.
   const noted = [...filed, ...waiting].filter((a) => a.notes);
   const time = m.time ? DateTime.fromFormat(m.time, "HH:mm").toFormat("h:mm a") : null;
@@ -67,6 +72,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
         <div className="space-y-6">
           <div id="agenda" className="scroll-mt-20" />
           <Section title="Agenda">
+            <div className="mb-3 space-y-2">{MEETING_ROLES.slice(0, 2).map(roleSelect)}</div>
             {waiting.length + filed.length === 0 ? (
               <Empty>Nothing on the agenda.</Empty>
             ) : (
@@ -75,6 +81,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                 {waiting.length > 0 && <AgendaList items={waiting} tz={tz} meetingId={m.id} canEdit />}
               </div>
             )}
+            <div className="mt-3">{roleSelect(MEETING_ROLES[2])}</div>
             {!held && (
               <>
                 <form action={addAgenda} className="mt-3 flex gap-2">
