@@ -18,7 +18,8 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   invitation instead; the first time you sign in, confirm your name and choose how
   you'd like to hear from your ward.
 - **Signing in:** enter your mobile number or email and choose **Keep me signed in
-  for** (just this time, 1 day, 30 days or 1 year), then **Send me a code**. Type
+  for** (just this time, 1 day, 30 days or 1 year), then **Send me a code** (in a
+  ward that uses email only: enter your email and tap **Email me a sign-in link**). Type
   the 6-digit code. By email you also get a **Sign in** link; in the iPhone app,
   type the code instead (the link opens Safari). Didn't get it? Wait a minute,
   check your spam or junk folder (and Promotions in Gmail), then tap **Send a new
@@ -36,15 +37,19 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   something is unread) is at the top. On a computer the tabs are across the top.
   Some tabs only show if your organization uses them; **Service** is under
   **More** if it isn't a tab.
-- **Switching organization or ward:** tap the name at the top left. Lessons,
-  service and messages are for the organization you're looking at; you can look at
-  any organization in your ward. Your Home page shows everything from all of
-  yours.
+- **Switching organization or ward:** tap the name at the top left (it also has a
+  shortcut to **My organizations and notifications**). Lessons and service are for
+  the organization you're looking at (looking at the ward shows service from every
+  organization); you can look at any organization in your ward. **Messages** and
+  your Home page show everything from all of yours.
 - **More** has: Service, Challenges, My assignments, Reminders & alerts, My
   organizations, Messages, Request a visit, Customize Home, My reminders, Contact
   & notifications, Help, Church apps (Gospel Library and Member Tools), your
-  notifications on this device, **Appearance** (Automatic, Light or Dark), your
-  account, **Sign out** and **Delete my account**.
+  notifications on this device (with **Turn on**), **Privacy** (Lock with Face ID,
+  in the phone app), **Appearance** (Automatic, Light or Dark), your account,
+  **Sign out**, **Delete my account**, and **Privacy details** and **Terms and
+  conditions**. Service and Request a visit show only if an organization of
+  yours uses them.
 - **A red dot on More** means unread Reminders & alerts. Unread messages show on
   **Messages**.
 - **Can't find something?** Your organization may not use it (for example Plans
@@ -62,6 +67,9 @@ guide that mentions those words is listed. Tap a topic to jump to it.
 - **Send me ward-wide notifications (from the bishopric):** messages and events
   for the whole ward.
 
+Then tap **Save**. Leaving an organization also takes you out of any calling and
+regular teaching Sundays you had in it.
+
 **Another ward:** if you serve in another ward too (for example a stake calling),
 enter its join code under **More → My organizations → Another ward → Join ward**.
 Then switch between wards at the top left.
@@ -77,14 +85,15 @@ Then switch between wards at the top left.
    **Nothing**, used only when an app notification didn't reach you and neither
    box above is ticked.
 
-For example, for app notifications and email but no texts: turn notifications on,
-tick **Email**, and leave **Text** unticked.
+Then tap **Save**. For example, for app notifications and email but no texts: turn
+notifications on, tick **Email**, and leave **Text** unticked.
 
 **When you join,** everything comes to you by the way you joined with (text or
 email) and by app notification once you turn it on. Change it anytime here.
 
-**Your phone number and email:** add, change or remove them on the same page. A new
-one is confirmed with a 6-digit code. A new email gets every reminder and message
+**Your phone number and email:** add, change or remove them on the same page. You
+can sign in with either one, and only you and your ward's leaders can see them. A
+new one is confirmed with a 6-digit code. A new email gets every reminder and message
 too. When adding a phone number, **Send me reminders and messages by text** is
 ticked; untick it to use the number only for sign-in codes. You can't remove your
 only way to sign in. If your ward doesn't
@@ -92,7 +101,9 @@ use texting, it says "Your ward uses email".
 
 **Turning on app notifications:**
 - **In the phone app:** More → Contact & notifications → **Turn on
-  notifications**. If they're off in your phone's settings, turn them on there.
+  notifications** (or **Turn on** under Notifications on More, or the card on
+  Home). If they're off in your phone's settings, the app offers to open Settings
+  so you can turn them on there.
 - **iPhone, without the app:** in Safari, tap **Share → Add to Home Screen**, open
   the app from your Home Screen, then turn notifications on. Until then you'll get
   email.
@@ -148,8 +159,8 @@ the ward:
   accept this assignment?", "Can you take this assignment?", "Will you teach?",
   visit invitations, "Which organizations are you in?" and **Turn on
   notifications**.
-- **Your assignments:** anything overdue, needing an answer, or in the next two
-  weeks.
+- **Your assignments:** anything overdue, needing an answer, in the next two
+  weeks, or with no due date.
 - **This Sunday's lesson** for each organization (Sunday School's is "Come,
   Follow Me this week").
 - **Coming up:** events in the next 45 days mixed in date order with your own
@@ -159,8 +170,11 @@ the ward:
   Customize Home.
 - **Challenge**, **Ways to serve**, **Would you like a visit?** and **Church apps**.
 
+A section with nothing in it (for example, no challenge running) doesn't show.
+
 **Customize Home** (the link at the bottom, or More → Customize Home): move
-sections up or down with ↑ / ↓, and **Hide** or **Show** them. It's saved to your
+sections up or down with ↑ / ↓, and **Hide** or **Show** them ("Conducting this
+Sunday" is only for presidencies; you can ignore it). It's saved to your
 account, so it's the same on every device. **Reset to the usual order** puts it
 back. Things that need your answer always stay at the top.
 
@@ -173,9 +187,12 @@ back. Things that need your answer always stay at the top.
   comment → Post comment**, or **Reply** to someone's. Comments appear after a
   leader approves them (yours shows "Waiting for approval" until then). You can
   delete your own.
-- **Offering to teach:** tap **I'd like to teach this** on a lesson. Your leaders
-  are told; **Withdraw** if your plans change.
-- **Conference Sundays** say there's no lesson, with a link to General Conference.
+- **Offering to teach:** on a lesson that shows **Teacher needed**, tap **I'd like
+  to teach this**. Your leaders are told; **Withdraw** if your plans change.
+- **Topic lessons:** some lessons have an **Assigned topic** with **Open the link
+  ↗** instead of a talk.
+- **Conference Sundays** say there's no lesson (General Conference Sundays link to
+  the conference).
 - **Sunday School** follows Come, Follow Me: each week shows that week's reading.
 
 ### When you're asked to teach
@@ -190,8 +207,8 @@ add a reason), or text back **TEACH** or **CANT**.
   I'm still teaching** (in the notification, email or lesson page), or text back
   **TEACH**. Your leaders see you've confirmed.
 - **Can't make it?** Tap **I can't teach this lesson** on the lesson page (or text
-  **CANT** and a reason). You're taken off the lesson and your leaders are told.
-  Only they see your reason.
+  **CANT** and a reason). You're taken off the lesson, any notes you posted for it
+  are removed, and your leaders are told. Only they see your reason.
 - **Sharing notes:** on the lesson page, **You're teaching this lesson: share notes
   with everyone**. Write them and tap **Submit for approval**. After a leader
   approves them, they're on the lesson page and everyone is told. A leader may send
@@ -211,13 +228,18 @@ add a reason), or text back **TEACH** or **CANT**.
   invitation, and the meeting shows on your calendar and Home's Coming up marked
   **Invited**. Open it to see when and where, the agenda, who's giving the
   prayers and spiritual thought, and who's invited, and tap **I'll be there** or
-  **I can't come**. You get a reminder before it starts unless you said you can't
+  **I can't come** (it says **Please respond** until you do). From the calendar,
+  tap **See the agenda and answer**; **Add it to your calendar** puts it in your
+  own calendar app. You get a reminder before it starts unless you said you can't
   come.
 - **Subscribe:** **Calendar → Subscribe** adds your ward's calendar to Apple
   Calendar, Google Calendar or Outlook once; events then appear and stay up to date
-  on their own. Choose up to two reminders for every event. On iPhone, turn off
-  **Remove Alerts** when subscribing. To stop, delete the calendar in your calendar
-  app.
+  on their own. Choose a **Reminder** and **Second reminder** for every event and tap
+  **Save reminders** (Apple Calendar and Outlook use them; Google Calendar doesn't,
+  so set reminders there, and it checks for new events only a few times a day). On
+  iPhone, turn off **Remove Alerts** when subscribing. To stop, delete the calendar
+  in your calendar app. Your link is just for you: if you shared it by mistake, tap
+  **Reset my link** (calendars using the old link stop updating).
 - **Suggest an event:** **Request an event** on the Calendar (if your organization
   takes suggestions): what it is, when, where and details. You're told when it's
   approved or declined.
@@ -227,7 +249,9 @@ add a reason), or text back **TEACH** or **CANT**.
 - **Service** lists ways to help: projects, meals, rides and more. Tap one to see
   its spots, how many people each needs, and who has signed up.
 - **Sign up:** add an optional note and tap **Sign me up** on a spot. You can take
-  more than one. To cancel, tap **✕ Remove** next to your name.
+  more than one. Your note shows next to your name for everyone who opens it. To
+  cancel, tap **✕ Remove** next to your name. "Signing up for this is closed" means
+  it's no longer taking sign-ups. **Share** sends it to someone.
 - **Reminders:** you get reminders before it, as set by your leaders (usually a
   week and a day before), or as you chose under My reminders.
 - **Friends without the app** can sign up from a public link your leaders share, if
@@ -280,9 +304,11 @@ it comes off your list. If you're asked "Can you take this assignment?", answer
 **Your own to-dos:** tap **+ My to-do** for a private to-do with a title, details,
 a due date and time, and reminders. **Only you can see it**: no one else, not even
 your leaders. Tap **+ Add a reminder** for each one you want: when it's due, or 15
-minutes to 2 weeks before. Without a time, they count from 9 AM that day. They come
-as app notifications (or by email if notifications are off). Tap a to-do to edit
-it, mark it done or delete it. Done to-dos are deleted after 6 months.
+minutes to 2 weeks before. A new to-do starts with reminders 1 day and 1 hour
+before; change them or remove one with ✕, then tap **Add to-do**. Without a time,
+they count from 9 AM that day. They come as app notifications (or by email if
+notifications are off). Tap a to-do to edit it, mark it done (**✓ Mark done**;
+**Not done yet** undoes it) or delete it. Done to-dos are deleted after 6 months.
 
 ## Visits
 
@@ -319,13 +345,16 @@ entries while it's running. Everyone on the teams hears the final scores.
 
 The iPhone and Android app does everything the website does, plus:
 - **Face ID lock:** More → Privacy → **Lock with Face ID** (or fingerprint). It
-  asks when the app opens.
+  asks when the app opens, and again if you come back after more than a minute
+  away; tap **Unlock** if the prompt closes.
 - **Home-screen widget:** this Sunday's lesson, this week's Come, Follow Me
   reading, your next event, and unread messages. On iPhone, add it from the Home
-  Screen's widgets; on Android, long-press the home screen → Widgets → My Ward Link.
+  Screen's widgets (iOS 17 or later); on Android, long-press the home screen →
+  Widgets → My Ward Link.
+- Pull down to refresh a page, and tap the tab you're on to scroll to the top. If
+  you're offline it says "Can't reach My Ward Link"; tap **Try again**.
 - A number on the app icon for unread messages and alerts; links in emails open in
-  the app; texted sign-in codes appear above the keyboard; press and hold a QR code
-  to save it.
+  the app; texted sign-in codes appear above the keyboard.
 
 ## Your account and privacy
 
@@ -340,6 +369,6 @@ The iPhone and Android app does everything the website does, plus:
   also lists exactly what's deleted and what's kept).
 - **What the app keeps:** your name, phone or email, and what you post. It never
   uses Church records, addresses or birth dates. Old information is deleted
-  automatically (for example, sign-ups 30 days after the event, messages after 6
-  months), and accounts not used for 12 months are deleted. See the **Privacy**
-  link under More for details.
+  automatically (for example, sign-ups 30 days after the event, conversations with
+  leaders after 6 months, announcements after a year), and accounts not used for 12
+  months are deleted. See **Privacy details** under More.

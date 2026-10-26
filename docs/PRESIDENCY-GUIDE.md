@@ -250,11 +250,15 @@ code, or a leader adds them.
   - **Send it to the ward:** the join link, with a **Share** button. Anyone with
     the link can join, so make a new code (Ward settings) if it gets shared
     outside the ward.
-  - With no code yet, a ward administrator sees **Create a join code**.
+  - With no code yet, a ward administrator sees **Create a join code**; with one,
+    **Make a new code** (the current code and QR code stop working).
 - **Joining** (the website's Join page): their name, a mobile number or email
   (email only in a ward with no texting), the ward join code (required) and a
   box agreeing to what the app keeps, then a 6-digit code. Someone who already
-  has an account is sent to Sign in.
+  has an account just gets a sign-in code and joins the ward when they use it
+  (their name and choices stay as they were). Joining with a phone number counts
+  as agreeing to ward texts once the code texted to that number is used, so no one
+  can sign up someone else's number.
 - **Added by a leader:** **Admin → Members → Add a member**: their name, a
   mobile number or email, and access level (Member or Leadership). Someone who
   already has an account in your ward is just added. Until they first sign in,
@@ -267,7 +271,9 @@ code, or a leader adds them.
   them. Members marked **No texts** get only the sign-in codes they ask for.
 - **Old access requests:** joining now always needs a code. Requests to join
   without one from before that show under **Admin → Access requests** (bishopric,
-  at the ward) until handled, and are deleted after 60 days.
+  at the ward) with their contact info and note: **Approve** lets them in;
+  **Decline** deletes the request (part-member family members can be approved at
+  the bishopric's discretion). Unhandled ones are deleted after 60 days.
 - **Signing in:** members enter their mobile number or email and choose **Keep
   me signed in for** (just this time, 1 day, 30 days or 1 year), then get a
   6-digit code (email also gets a sign-in link; in the iPhone app, type the code,
@@ -328,7 +334,8 @@ added under **Admin → Callings** (presidency only):
 - **Rename or change this calling**, or **Remove this calling** (everyone in it
   is released).
 - Added callings show as badges by the person's name in Admin → Members and on
-  their page. They leave a calling when they leave the organization.
+  their page. They leave a calling (and any regular teaching Sundays) when they
+  leave the organization, or are taken out of it.
 
 ## How members are notified
 
@@ -597,10 +604,11 @@ sent), it goes into their conversation and every presidency member is notified
   it came by text. Forward it to an organization's presidency or one leader, or
   tap **I took care of it another way**.
 
-**Message groups** (Admin → Message groups): **Create a group**, name it, choose
-its organization (if you lead more than one), tick **People in the group**, and
-choose **who can see it and send to it**: the presidency and/or the people in the
-group. When people in the group can send, it shows in the **To** list of their
+**Message groups** (Admin → Message groups): **Create a group** with its name, its
+organization (if you lead more than one), and **who can see this group and send
+messages to it** (the presidency and/or "People in the group (from the Messages
+tab)"), then **Create group**. Open it, tick **People in the group** and tap
+**Save group**. When people in the group can send, it shows in the **To** list of their
 New message; their message goes to the rest of the group, signed with their
 name, and replies come to the presidency. **Save group** or **Delete group**.
 Each group's page has **Send a message to this group**.
@@ -873,7 +881,7 @@ in Settings → Public links and QR codes.)
 - **Admin → Shared publicly** lists everything shared (type, who shared it and
   when, and for sign-ups how many signed up without an account), with **QR
   code** (download it for posters, bulletins or slides, or in the phone app press
-  and hold to save it), **Copy link**, **Share**, **See what they see** and **Stop
+  and hold the code to save it to Photos or share it), **Copy link**, **Share**, **See what they see** and **Stop
   sharing**, which turns the link and QR code off right away ("This link isn't
   active"). Don't share pictures with members' faces, names or contact
   information without permission.
@@ -881,8 +889,10 @@ in Settings → Public links and QR codes.)
   a spot and give their name and a mobile number or email (only email in a ward
   with no texting), then confirm with a 6-digit code (good for 30 minutes). They
   show as **Guest** (leaders see their phone or email; members see "Guest: John
-  S.") and count toward the people needed. They get a confirmation with a link to
-  cancel, and the opportunity's reminders. Leaders can **Remove** a guest (they
+  S.") and count toward the people needed. They get one confirmation with a link
+  to cancel (it opens a page with **Cancel my sign-up**, so email link checkers
+  can't cancel it, and it keeps working after you stop sharing), and the
+  opportunity's reminders. Leaders can **Remove** a guest (they
   aren't told). Closed opportunities refuse sign-ups.
 - **Texts only with permission:** a guest is texted only if they tick the box
   agreeing to texts (the time and wording are kept); otherwise everything goes by
@@ -927,7 +937,9 @@ ward's list, but not in Elders Quorum. Anyone in the ward can open any plan.
 **Giving an assignment:** **Admin → Assignments**, **+ New assignment** on More →
 My assignments (presidency), **+ Assignment** on a meeting's agenda item, or **+
 Add to the next presidency meeting** from a message. Choose anyone in the
-organization (a presidency member or any member), a due date and optional
+organization (grouped under Presidency and Members), or **Unassigned** to add it
+without a person yet (it counts under Waiting on you → Unassigned assignments until
+someone has it), a due date and optional
 **time**, details, an optional **attachment** (a flyer, handout or picture, PDF or
 image up to 15 MB, sent with the request), and two **Reminders**.
 
@@ -1022,8 +1034,8 @@ place. Only the presidency (or bishopric) sees it.
   from the presidency (and secretaries). It's saved as soon as you pick, for the
   next scheduled meeting (schedule one first) or on a meeting's own page, and
   kept on that meeting's record and in the list of meetings.
-- **Schedule a meeting:** date, time (starts at the last meeting's time) and an
-  optional title. It goes on the presidency's calendar and Coming up, seen only by
+- **Schedule a meeting:** date, time (starts at the last meeting's time), an
+  optional title and where (optional). It goes on the presidency's calendar and Coming up, seen only by
   the presidency, with a reminder (1 hour before, or as set under Reminder times).
   The calendar event opens its agenda and notes. Changing the meeting's date or
   time moves the event; deleting the meeting removes it. Meetings are listed under
@@ -1049,8 +1061,9 @@ place. Only the presidency (or bishopric) sees it.
   - Notes, who was there, assignments and Finish meeting work as for the
     presidency's meetings. Only the presidency manages it.
 - **In the meeting:**
-  - Tap an agenda item to take notes on it. An item with notes counts as
-    discussed, and its notes show under **Notes → From the agenda**. *Other notes*
+  - Tick the box next to an item to mark it discussed (tap again to undo). Tap an
+    item to take notes on it (or reword it): new notes tick it for you, and show
+    under **Notes → From the agenda**. *Other notes*
     is for anything not on the agenda. **Save notes** (can also change the date,
     time and title).
   - **Who was there:** a box for everyone in the presidency and anyone with a
@@ -1058,16 +1071,19 @@ place. Only the presidency (or bishopric) sees it.
     and for the bishopric executive secretary and clerk), plus a line for others.
   - **+ Assignment** on an item turns it into an assignment; **Assignments from
     this meeting** lists them.
-  - **Finish meeting** files the discussed items with the meeting; anything not
-    discussed stays on the agenda.
+  - **Finish meeting** files the ticked items with the meeting; anything not
+    ticked stays on the agenda for next time.
   - **Delete meeting** removes it, its notes and its filed agenda (assignments
     stay).
-- **Video meetings:** save your presidency's meeting link once (a Zoom personal
-  room or recurring meeting, Google Meet or Teams; in Zoom, Meetings → Personal
-  Room → Copy Invitation, which includes the passcode). Save it empty to remove it.
-  **Start Zoom meeting** (or Google Meet / Teams) opens it; with **Let the rest of
-  the presidency know** ticked, the others get a notification with a **Join**
-  button. The button also shows at the top of an unfinished meeting.
+- **Video meetings:** save your presidency's meeting link once: in the Zoom (or
+  Meet/Teams) box tap **Add the link**, paste it and **Save link** (**Change the
+  link** later; save it empty to remove it). Use a Zoom personal room or recurring
+  meeting, Google Meet or Teams; in Zoom, Meetings → Personal Room → Copy
+  Invitation, which includes the passcode. **Start Zoom meeting** (or Google Meet /
+  Teams) opens it; with **Let the rest of the presidency know** ticked, the others
+  get a notification with a **Join** button. The button (with **Let the others
+  know**) also shows at the top of an unfinished presidency meeting, not on
+  invited meetings.
 - **Keep notes only as long as they're needed** (General Handbook): a meeting
   comes up for review 3 months after it's held, a finished assignment 3 months
   after it's done, and an agenda item after waiting 3 months. On the 1st of each
@@ -1163,7 +1179,7 @@ recorded are deleted 30 days after their date.
 
 **Admin → Home visits → Record a visit:** member, date, type, who visited, notes and
 **Follow-up needed**. **Visits made** has **Recent**, **By member** (everyone and
-their last visit, never-visited first) and **Follow-ups** (with **Mark follow-up
+their last home visit; **No home visit** if none, listed first) and **Follow-ups** (with **Mark follow-up
 done**). Edit or delete a record. Visits can only be recorded for people who have
 joined. Keep notes brief: nothing you wouldn't text to another presidency member,
 and never health, financial or worthiness details. Ministering interviews and
@@ -1175,9 +1191,10 @@ deleted.
 A friendly competition between organizations, e.g. who does more temple and family
 history work.
 - **Starting one (presidency):** **Admin → Challenges → + New challenge**: a name
-  and dates, the teams (each one or more organizations; an organization can be on
-  only one team), and what counts and for how many points. Everyone on the teams is
-  notified. Admin → Challenges also lists every challenge in the ward.
+  and dates, the teams (each one or more organizations, with an optional **Team
+  name**; an organization can be on only one team), and what counts and for how
+  many points (members can log halves), then **Start the challenge** (**Save
+  changes** when editing). Everyone on the teams is notified. Admin → Challenges also lists every challenge in the ward.
 - **Logging:** members open it (**More → Challenges**, or the card on Home while
   it's on), choose their team if they're on more than one, what they did and how
   many, and tap **+ Log it**. "What you logged (only you see this)" lets them
@@ -1280,7 +1297,10 @@ and deletes old information automatically:
 Recorded home visits stay until the member's account is deleted.
 
 **Deleting an account:** members can delete their own under **More → Delete my
-account** (type DELETE). It removes their name, contact info, comments, sign-ups,
+account** (type DELETE), or without the app at **/delete-account** on your site
+(for example mywardlink.net/delete-account: sign in with a code, then delete; it
+also lists what's deleted and kept, and is the account deletion URL for the app
+stores). It removes their name, contact info, comments, sign-ups,
 RSVPs and everything they posted, and any visit records about them; things they
 created as a leader stay without their name. It's refused for the only presidency
 member of an organization ("Give someone else presidency access first"). They can
