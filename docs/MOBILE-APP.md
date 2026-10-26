@@ -159,6 +159,13 @@ linked to the person, used only for app functionality, never for tracking or
 ads, and never sold. Data is encrypted in transit. People can delete their
 account in the app (More → Delete my account).
 
+**Account deletion URL** (Google Play Console → App content → Data safety →
+"Delete account URL", and the App Store if asked):
+`https://mywardlink.net/delete-account` (your site address + `/delete-account`).
+It names the app, lists the steps, says what's deleted and what's kept, and lets
+someone sign in with a code and delete their account without the app (or email
+the contact address if they can't sign in).
+
 ---
 
 ## App review

@@ -335,7 +335,9 @@ The iPhone and Android app does everything the website does, plus:
 - **Sign out:** More → **Sign out** (it also stops notifications on that device).
 - **Delete my account:** More → **Delete my account**, type DELETE. This removes
   your name, contact info, comments, sign-ups and everything you posted. You can
-  join again later with the join code.
+  join again later with the join code. Without the app, go to
+  **mywardlink.net/delete-account**, sign in with a code, and delete it there (it
+  also lists exactly what's deleted and what's kept).
 - **What the app keeps:** your name, phone or email, and what you post. It never
   uses Church records, addresses or birth dates. Old information is deleted
   automatically (for example, sign-ups 30 days after the event, messages after 6

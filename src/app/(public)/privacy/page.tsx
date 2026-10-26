@@ -83,8 +83,11 @@ export default function PrivacyPage() {
       </ul>
       <h3>Your choices</h3>
       <p>
-        You can delete your account and everything you&apos;ve posted at any time under <strong>More → Delete my account</strong>, or ask your ward&apos;s leaders to
-        remove you. You can choose which organizations you hear from under More → My organizations, and how you&apos;re reached under More → Contact &amp; notifications.
+        You can delete your account and everything you&apos;ve posted at any time under <strong>More → Delete my account</strong>, on the{" "}
+        <Link href="/delete-account" className="link">
+          Delete your account
+        </Link>{" "}
+        page (no app needed), or ask your ward&apos;s leaders to remove you. You can choose which organizations you hear from under More → My organizations, and how you&apos;re reached under More → Contact &amp; notifications.
         Questions: email <a href={`mailto:${email}`}>{email}</a>.
       </p>
       <p>

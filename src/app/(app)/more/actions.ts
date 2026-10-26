@@ -16,11 +16,13 @@ export async function setTheme(fd: FormData) {
 
 export async function deleteMyAccount(fd: FormData) {
   const user = await requireUser();
-  if (fd.get("confirm") !== "DELETE") redirect("/more?msg=" + encodeURIComponent("Type DELETE to confirm."));
+  // From More, or from the public "Delete your account" page (/delete-account).
+  const back = fd.get("from") === "delete-account" ? "/delete-account" : "/more";
+  if (String(fd.get("confirm") ?? "").trim().toUpperCase() !== "DELETE") redirect(`${back}?msg=` + encodeURIComponent("Type DELETE to confirm."));
   const only = onlyLeaderOf(user.id);
   if (only.length) {
     const names = only.map((id) => user.orgs.find((o) => o.id === id)?.label ?? "an organization in another ward").join(", ");
-    redirect("/more?msg=" + encodeURIComponent(`You're the only presidency member of ${names}. Give someone else presidency access first.`));
+    redirect(`${back}?msg=` + encodeURIComponent(`You're the only presidency member of ${names}. Give someone else presidency access first.`));
   }
   await endSession();
   deleteAccount(user.id);
