@@ -1575,4 +1575,14 @@ ALTER TABLE members ADD COLUMN text_consent_pending INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE members ADD COLUMN pending_join_ward INTEGER REFERENCES wards(id) ON DELETE SET NULL;
 `,
   },
+  {
+    // Ward administrators review who joined the ward (to catch someone who doesn't
+    // belong). Everyone already in a ward counts as reviewed.
+    id: 80,
+    sql: `
+ALTER TABLE ward_members ADD COLUMN reviewed_at TEXT;
+ALTER TABLE ward_members ADD COLUMN reviewed_by INTEGER REFERENCES members(id) ON DELETE SET NULL;
+UPDATE ward_members SET reviewed_at = created_at;
+`,
+  },
 ];

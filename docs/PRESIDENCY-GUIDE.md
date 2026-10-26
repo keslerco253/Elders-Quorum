@@ -269,6 +269,17 @@ code, or a leader adds them.
   and choose "When notifications are off, how should we send reminders and
   messages?" (Text me, Email me, Both, or Neither). Texting is never chosen for
   them. Members marked **No texts** get only the sign-in codes they ask for.
+- **New members (ward administrators):** **Admin → New members** (with a count of
+  people to review) lists everyone who joined the ward in the last 90 days, newest
+  first: how they came ("Joined with the join code", "Added by a leader" or "Joined
+  with an account they already had"), when, their phone or email, the
+  organizations they chose, whether they've signed in yet, and if they're in
+  another ward too. **Looks good** takes them off **To review** (**All new** still
+  shows them, with who reviewed them). If someone doesn't belong, **Remove from
+  ward** (tap twice) takes them out of the ward and its organizations, and deletes
+  their account if they're in no other ward; they could join again with the code,
+  so if it was shared too widely, **Make a new code** under Ward settings. Everyone
+  in the ward before this page existed counts as reviewed.
 - **Old access requests:** joining now always needs a code. Requests to join
   without one from before that show under **Admin → Access requests** (bishopric,
   at the ward) with their contact info and note: **Approve** lets them in;

@@ -9,6 +9,7 @@ import { hasFeature } from "@/lib/orgs";
 import { pendingAgenda, recordsToReview } from "@/lib/meetings";
 import { orgTodos } from "@/lib/assignments";
 import { todayIn } from "@/lib/time";
+import { newMembersToReview } from "@/lib/new-members";
 
 export const metadata = { title: "Admin" };
 
@@ -49,7 +50,17 @@ export default async function AdminPage() {
   const passOn = passOnCount(user);
   const wardTiles: Tile[] = [
     ...(passOn ? [{ href: "/pass-on", label: "Pass it on", count: passOn, desc: "Members' messages that need passing on to the right organization" }] : []),
-    ...(user.wardAdmin ? [{ href: "/ward-settings", label: "Ward settings", desc: `${user.ward.name}'s organizations, join code and ward administrators` }] : []),
+    ...(user.wardAdmin
+      ? [
+          {
+            href: "/ward-settings/new-members",
+            label: "New members",
+            count: newMembersToReview(user.ward_id),
+            desc: `Who joined ${user.ward.name} lately, to check they belong`,
+          },
+          { href: "/ward-settings", label: "Ward settings", desc: `${user.ward.name}'s organizations, join code and ward administrators` },
+        ]
+      : []),
     ...(user.is_site_owner ? [{ href: "/site", label: "Site owner", desc: "Every ward, texting, backups" }] : []),
   ];
   const wardSection = wardTiles.length > 0 && (
