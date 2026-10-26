@@ -134,16 +134,19 @@ function alarmLines(e: EventRow, minutes: number[]) {
 }
 
 function veventLines(e: EventRow, host: string, stamp: string, alerts: number[] = []) {
+  // A member's own event (only in their feed) has its own id and page, and is private.
+  const link = `${appUrl()}${e.personal_event_id ? `/calendar/mine/${e.personal_event_id}` : e.invited_meeting_id ? `/meetings/${e.invited_meeting_id}` : `/calendar/${e.id}`}`;
   return [
     "BEGIN:VEVENT",
-    `UID:event-${e.id}@${host}`,
+    e.personal_event_id ? `UID:personal-${e.personal_event_id}@${host}` : `UID:event-${e.id}@${host}`,
     `DTSTAMP:${stamp}`,
     `DTSTART:${gcal(e.starts_at)}`,
     `DTEND:${gcal(e.ends_at)}`,
     `SUMMARY:${icsEscape(e.title)}`,
     e.location && `LOCATION:${icsEscape(e.location)}`,
-    `DESCRIPTION:${icsEscape([e.description, `${appUrl()}/calendar/${e.id}`].filter(Boolean).join("\n\n"))}`,
-    `URL:${appUrl()}/calendar/${e.id}`,
+    `DESCRIPTION:${icsEscape([e.description, link].filter(Boolean).join("\n\n"))}`,
+    `URL:${link}`,
+    e.personal_event_id && "CLASS:PRIVATE",
     ...alarmLines(e, alerts),
     "END:VEVENT",
   ].filter(Boolean) as string[];

@@ -230,7 +230,8 @@ add a reason), or text back **TEACH** or **CANT**.
   (marked **🔒 Only you**), on your calendar and Home. Add reminders the same way
   as on your to-dos (when it starts, or 15 minutes to 2 weeks before, by **App**
   and/or **Email**), then tap **Add to my calendar**. Tap it later to change or
-  delete it. It's deleted 30 days after its date.
+  delete it. It's deleted 30 days after its date. If you've subscribed to the
+  calendar (below), your own events show there too.
 - **Meetings you're invited to** (like an activities committee): you get an
   invitation, and the meeting shows on your calendar and Home's Coming up marked
   **Invited**. Open it to see when and where, the agenda, who's giving the
@@ -246,7 +247,8 @@ add a reason), or text back **TEACH** or **CANT**.
   so set reminders there, and it checks for new events only a few times a day). On
   iPhone, turn off **Remove Alerts** when subscribing. To stop, delete the calendar
   in your calendar app. Your link is just for you: if you shared it by mistake, tap
-  **Reset my link** (calendars using the old link stop updating).
+  **Reset my link** (calendars using the old link stop updating). It includes your
+  own events too, so keep it to yourself.
 - **Suggest an event:** **Request an event** on the Calendar (if your organization
   takes suggestions): what it is, when, where and details. You're told when it's
   approved or declined.

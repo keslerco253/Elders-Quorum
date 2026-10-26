@@ -102,7 +102,8 @@ export default async function SubscribePage({ searchParams }: { searchParams: Pr
         <ul className="card list-disc space-y-1 pl-8 text-sm text-muted">
           <li>Calendar apps check for changes on their own schedule (Apple usually every hour or so, Google a few times a day), so a brand-new event may take a while to appear.</li>
           <li>To stop, delete the &quot;{user.ward.name}&quot; calendar in your calendar app.</li>
-          <li>This link is just for you. If you shared it by mistake, reset it below.</li>
+          <li>It includes your own events (+ My event), which only you see.</li>
+          <li>This link is just for you (it has your own events too). If you shared it by mistake, reset it below.</li>
         </ul>
         <form action={resetFeedLink} className="mt-3">
           <SubmitButton className="btn-secondary btn-sm" confirm="Make a new link? Calendars using the old one stop updating." pendingText="Resetting…">

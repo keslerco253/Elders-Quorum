@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 import { useTestDb } from "@/lib/db";
 import { collectDue } from "@/lib/scheduler";
 import { todoReminders } from "@/lib/personal-todos";
+import { icsFeed } from "@/lib/events";
 import { eventHref, getPersonalEvent, personalEventsBetween, savePersonalEvent } from "@/lib/personal-events";
 
 const R = (when: string, ways: { push?: boolean; text?: boolean; email?: boolean } = {}) => ({ when, push: !!ways.push, text: !!ways.text, email: !!ways.email });
@@ -38,5 +39,14 @@ describe("members' own calendar events", () => {
     // A presidency member's text stays a text.
     savePersonalEvent(1, null, { ...base, title: "Interview", reminders: [R("m:60", { text: true })] });
     expect(due("2026-11-05T14:00").find((n) => n.recipients[0].id === 1)?.only).toEqual(["text"]);
+  });
+
+  it("are in their own subscribed calendar, as private events", () => {
+    const id = savePersonalEvent(2, null, { ...base, reminders: [] })!;
+    const ics = icsFeed(personalEventsBetween(2, "2026-11-01T00:00:00Z", "2026-11-30T00:00:00Z"), "W", "America/Boise", [], "example.org");
+    expect(ics).toContain(`UID:personal-${id}@example.org`);
+    expect(ics).toContain("SUMMARY:Dentist");
+    expect(ics).toContain("CLASS:PRIVATE");
+    expect(ics).toContain(`/calendar/mine/${id}`);
   });
 });

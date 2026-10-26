@@ -841,8 +841,9 @@ this day** on a picked day) to add their own event: title, date, **Starts**,
 **Ends** (optional; an hour without one), where and notes, with **Reminders** set
 the same way as on private to-dos (When it starts, or 15 minutes to 2 weeks
 before; App and Email for everyone, Text for presidency members, up to 3). Only
-they see it, marked **🔒 Only you**, on their calendar (under Everything) and
-Home's Coming up; no leader can. Tap it to change or delete it. They're deleted
+they see it, marked **🔒 Only you**, on their calendar (under Everything),
+Home's Coming up and their own subscribed calendar (marked private); no leader
+can. Tap it to change or delete it. They're deleted
 30 days after their date.
 
 **Subscribe:** on **Calendar → Subscribe**, members add a calendar to **Apple
@@ -850,7 +851,8 @@ Calendar**, **Google Calendar** or Outlook (**Copy link**, then Add calendar →
 Subscribe from web) once. It holds ward events and events of the organizations
 they belong to, in every ward they're in, and stays up to date (calendar apps
 check every hour or a few times a day). Leaders' calendars include their
-leaders-only events. Each link is private; **Reset my link** cancels an old one.
+leaders-only events, and each member's own events (+ My event). Each link is
+private; **Reset my link** cancels an old one.
 Members choose up to two reminders (15 minutes to 1 week; default 1 hour) put on
 every event. On iPhone they must turn off **Remove Alerts** when subscribing;
 Google Calendar ignores them. To stop, delete the calendar in the calendar app.
