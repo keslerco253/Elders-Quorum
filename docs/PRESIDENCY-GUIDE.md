@@ -994,7 +994,7 @@ Finished assignments come up for review 3 months after they're done (see
   progress);
 - 📝 their own private to-dos;
 - 📖 lessons they're teaching (Please confirm until they do; shown until Sunday);
-- ❤️ service they signed up for, with their slot (shown until its date).
+- 👥 service they signed up for, with their slot (shown until its date).
 
 Tabs: **Coming up** and **Done and past**. Home's **Your assignments** card shows
 anything overdue, needing an answer, or in the next two weeks. Presidency members

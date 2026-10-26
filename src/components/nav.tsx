@@ -13,7 +13,8 @@ const icons: Record<string, string> = {
   calendar: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
   plan: "M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7",
   more: "M5 12h.01M12 12h.01M19 12h.01",
-  list: "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01",
+  // Service: two people (the name stays "list", which the phone app looks up).
+  list: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M5 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",
   shield: "M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z",
   chat: "M4 5h16v11H8l-4 4z",
 };

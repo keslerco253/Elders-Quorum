@@ -52,7 +52,7 @@ const TAB_ICONS: Record<string, [keyof typeof Ionicons.glyphMap, keyof typeof Io
   book: ["book-outline", "book"],
   calendar: ["calendar-outline", "calendar"],
   plan: ["document-text-outline", "document-text"],
-  list: ["hand-left-outline", "hand-left"],
+  list: ["people-outline", "people"],
   chat: ["chatbubble-outline", "chatbubble"],
   shield: ["shield-outline", "shield"],
   more: ["ellipsis-horizontal-circle-outline", "ellipsis-horizontal-circle"],
