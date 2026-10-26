@@ -172,13 +172,17 @@ export function meetingAgenda(meetingId: number): AgendaItem[] {
   return db().prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.meeting_id = ? ORDER BY a.position, a.id`).all(meetingId) as AgendaItem[];
 }
 
-/** Moves a waiting agenda item up (-1) or down (1) one place. */
-export function moveAgendaItem(orgId: number, itemId: number, dir: -1 | 1) {
+/** Moves a waiting agenda item up (-1) or down (1) one place, or to the top. */
+export function moveAgendaItem(orgId: number, itemId: number, dir: -1 | 1 | "top") {
   const ids = pendingAgenda(orgId).map((a) => a.id);
   const i = ids.indexOf(itemId);
-  const j = i + dir;
-  if (i < 0 || j < 0 || j >= ids.length) return;
-  [ids[i], ids[j]] = [ids[j], ids[i]];
+  if (i < 0) return;
+  if (dir === "top") ids.unshift(...ids.splice(i, 1));
+  else {
+    const j = i + dir;
+    if (j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
   const d = db();
   const set = d.prepare("UPDATE agenda_items SET position = ? WHERE id = ?");
   d.transaction(() => ids.forEach((id, n) => set.run(n + 1, id)))();

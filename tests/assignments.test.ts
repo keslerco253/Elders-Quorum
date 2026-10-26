@@ -127,6 +127,9 @@ describe("scheduled presidency meetings", () => {
     expect(pendingAgenda(1).map((x) => x.body)).toEqual(["Activities", "Welcome", "Ministering", "New"]);
     moveAgendaItem(1, a, 1);
     expect(pendingAgenda(1).map((x) => x.body)).toEqual(["Activities", "Ministering", "Welcome", "New"]);
+    const last = pendingAgenda(1)[3].id;
+    moveAgendaItem(1, last, "top");
+    expect(pendingAgenda(1).map((x) => x.body)).toEqual(["New", "Activities", "Ministering", "Welcome"]);
     const id = createMeeting(1, "2026-10-28", "", 1);
     setMeetingRole(1, id, "opening_prayer", "Pres");
     setMeetingRole(1, id, "closing_prayer", "Ann");
@@ -134,6 +137,7 @@ describe("scheduled presidency meetings", () => {
     db().prepare("UPDATE agenda_items SET discussed = 1 WHERE id IN (?, ?)").run(b, c);
     finishMeeting(1, id, "2026-10-28");
     expect(meetingAgenda(id).map((x) => x.body)).toEqual(["Activities", "Ministering"]);
+    expect(pendingAgenda(1).map((x) => x.body)).toEqual(["New", "Welcome"]);
   });
 
   it("takes notes on agenda items, and offers anyone with a calling as attending", async () => {

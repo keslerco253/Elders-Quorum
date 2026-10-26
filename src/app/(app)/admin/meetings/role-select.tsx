@@ -34,7 +34,8 @@ export function RoleSelect({
       <label htmlFor={`${role}-${meetingId}`} className="w-36 shrink-0 text-sm font-medium">
         {label}
       </label>
-      <select id={`${role}-${meetingId}`} name="name" defaultValue={value} className="input" onChange={() => form.current?.requestSubmit()}>
+      {/* Keyed by the saved name: the form is cleared after it saves, so it's drawn again with the new one. */}
+      <select key={value} id={`${role}-${meetingId}`} name="name" defaultValue={value} className="input" onChange={() => form.current?.requestSubmit()}>
         <option value="">Not chosen</option>
         {options.map((n) => (
           <option key={n} value={n}>

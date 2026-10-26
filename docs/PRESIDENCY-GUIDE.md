@@ -1010,7 +1010,8 @@ place. Only the presidency (or bishopric) sees it.
   the next meeting*: type it there; tick **Add to the next presidency meeting's
   agenda** when sending a message; or tap **+ Add to the next presidency meeting**
   under a member's message. Each item shows who added it and where it came from.
-  New items go to the bottom; put them in order with **↑ / ↓**. Take one off
+  New items go to the bottom; put them in order with **↑ / ↓** (one place) or
+  **⤒** (straight to the top); the page stays where you are. Take one off
   with ✕.
 - **Prayers and spiritual thought:** above the agenda, choose the **Opening
   prayer** and **Spiritual thought**, and below it the **Closing prayer**, each

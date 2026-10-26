@@ -36,12 +36,13 @@ export async function removeAgenda(fd: FormData) {
   go(`${meetingPath(fd)}#agenda`, "Taken off the agenda.");
 }
 
+// Moving an item, or choosing who prays, updates the page where it is (no redirect),
+// so it doesn't jump back to the top.
 export async function moveAgenda(fd: FormData) {
   const user = await requirePresidency();
-  const id = Number(fd.get("item_id"));
-  moveAgendaItem(user.org_id, id, fd.get("dir") === "up" ? -1 : 1);
+  const dir = fd.get("dir");
+  moveAgendaItem(user.org_id, Number(fd.get("item_id")), dir === "top" ? "top" : dir === "up" ? -1 : 1);
   revalidatePath("/admin", "layout");
-  redirect(`${meetingPath(fd)}#item-${id}`);
 }
 
 /** Who gives the opening prayer, spiritual thought or closing prayer (saved as it's chosen). */
@@ -52,7 +53,6 @@ export async function saveMeetingRole(fd: FormData) {
   if (!m || !isMeetingRole(role)) redirect("/admin/meetings");
   setMeetingRole(user.org_id, m.id, role, String(fd.get("name") || ""));
   revalidatePath("/admin/meetings", "layout");
-  redirect(`${fd.get("back") === "list" ? "/admin/meetings" : `/admin/meetings/${m.id}`}#agenda`);
 }
 
 export async function toggleDiscussed(fd: FormData) {

@@ -127,7 +127,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
               <SubmitButton className="btn-secondary">Add</SubmitButton>
             </form>
             <p className="hint mt-2">
-              Use ↑ / ↓ to put it in order. Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message. In
+              Use ⤒ (to the top) and ↑ / ↓ to put it in order. Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message. In
               the meeting, open it and tap an item to take notes on it.
             </p>
           </Section>

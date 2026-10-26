@@ -5,6 +5,9 @@ import type { AgendaItem } from "@/lib/meetings";
 import { formatDateTime } from "@/lib/time";
 import { moveAgenda, removeAgenda, saveItemNotes, toggleDiscussed } from "./actions";
 
+const ARROWS = { top: "⤒", up: "↑", down: "↓" };
+const LABELS = { top: "Move to the top", up: "Move up", down: "Move down" };
+
 /**
  * Agenda items: who added them and from where. In a meeting, tap one to take notes on
  * it (they become the meeting's record) and tick off what was discussed.
@@ -46,20 +49,22 @@ export function AgendaList({
         // In a meeting they sit under the item, leaving room for notes.
         const actions = (
           <div className={`flex gap-1 ${meetingId ? "mt-2" : ""}`}>
-            {/* Put the agenda in order: ↑ / ↓ one place. */}
-            {(["up", "down"] as const).map((dir) =>
-              (dir === "up" ? i > 0 : i < items.length - 1) ? (
+            {/* Put the agenda in order: to the top, or ↑ / ↓ one place. */}
+            {(["top", "up", "down"] as const).map((dir) =>
+              (dir === "down" ? i < items.length - 1 : i > 0) ? (
                 <form key={dir} action={moveAgenda}>
                   <input type="hidden" name="item_id" value={a.id} />
                   <input type="hidden" name="dir" value={dir} />
                   {meetingId && <input type="hidden" name="meeting_id" value={meetingId} />}
                   <SubmitButton className="btn-secondary btn-sm" pendingText="…">
-                    <span aria-label={dir === "up" ? "Move up" : "Move down"}>{dir === "up" ? "↑" : "↓"}</span>
+                    <span aria-label={LABELS[dir]} title={LABELS[dir]}>
+                      {ARROWS[dir]}
+                    </span>
                   </SubmitButton>
                 </form>
               ) : (
                 <span key={dir} className="btn-secondary btn-sm invisible" aria-hidden>
-                  {dir === "up" ? "↑" : "↓"}
+                  {ARROWS[dir]}
                 </span>
               ),
             )}
