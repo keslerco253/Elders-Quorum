@@ -28,6 +28,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
     { href: "/notifications", label: "Reminders & alerts", count: newNotes, desc: "Every reminder and alert the app sent you (messages are in Messages)" },
     ...(hasFeature(user.org, "signups") ? [{ href: "/signups", label: "Service", desc: "Service projects, meals, rides and more" }] : []),
     { href: "/messages", label: "Messages", count: unread, desc: `Messages from ${user.orgLabel} and replies from its ${leadersWord(user.org)}` },
+    { href: "/journal", label: "My Journal", desc: "Write about your day. Only you can see it; print it or download it any time" },
     ...(myOrgs(user.id).some((o) => hasFeature(o, "challenges")) ? [{ href: "/challenges", label: "Challenges", desc: "Friendly competitions between organizations: who's ahead, and log what you did" }] : []),
     { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },
     { href: "/more/home", label: "Customize Home", desc: "Put your Home page sections in the order you like, or hide some" },
@@ -99,7 +100,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
       </Section>
       <Section title="Delete my account">
         <form action={deleteMyAccount} className="card space-y-3 text-sm">
-          <p className="text-muted">Permanently removes your name, email, comments, sign-ups and everything else you&apos;ve posted. You can join again later.</p>
+          <p className="text-muted">Permanently removes your name, email, comments, sign-ups, your journal and everything else you&apos;ve posted. Print or download your journal first if you want to keep it. You can join again later.</p>
           <input name="confirm" placeholder="Type DELETE to confirm" className="input max-w-56" autoComplete="off" />
           <SubmitButton className="btn-danger btn-sm" pendingText="Deleting…" confirm="Delete your account permanently?">
             Delete my account

@@ -10,11 +10,13 @@ export interface AppPushStatus {
   platform: string;
 }
 
-type AppWindow = Window & { MyWardLinkApp?: { platform: string; tabs?: boolean; widget?: boolean }; ReactNativeWebView?: { postMessage(msg: string): void } };
+type AppWindow = Window & { MyWardLinkApp?: { platform: string; tabs?: boolean; widget?: boolean; files?: boolean }; ReactNativeWebView?: { postMessage(msg: string): void } };
 
 export const inApp = () => typeof window !== "undefined" && !!(window as AppWindow).MyWardLinkApp;
 /** Newer versions of the app draw the tab bar themselves. */
 export const appHasTabs = () => typeof window !== "undefined" && !!(window as AppWindow).MyWardLinkApp?.tabs;
+/** Newer versions of the app can print a page and save or share a file (the app's window can't on its own). */
+export const appHandlesFiles = () => typeof window !== "undefined" && !!(window as AppWindow).MyWardLinkApp?.files;
 
 export interface AppTab {
   href: string;
@@ -31,7 +33,9 @@ export function postToApp(
     | { type: "badge"; count: number }
     | { type: "share"; url?: string; text?: string; title?: string }
     | { type: "setLock"; on: boolean }
-    | { type: "widgetKey"; key: string },
+    | { type: "widgetKey"; key: string }
+    | { type: "print"; html: string }
+    | { type: "saveFile"; name: string; mime: string; base64: string },
 ) {
   (window as AppWindow).ReactNativeWebView?.postMessage(JSON.stringify(msg));
 }

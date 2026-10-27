@@ -33,6 +33,9 @@ export default function PrivacyPage() {
           presidency keeps to itself.
         </li>
         <li>Your own to-dos under My assignments: only you can see them.</li>
+        <li>
+          Your journal (More → My Journal): only you can see it. No leader or site owner page shows it, and what you write is stored encrypted.
+        </li>
         <li>What you log in a challenge (e.g. temple work): only you see your entries; everyone else sees team totals only.</li>
         <li>Whether each notification reached you (by app, email or text) and whether you opened it, so leaders know who didn&apos;t get something.</li>
         <li>If you turn on notifications, a technical address for your device so it can receive them.</li>
@@ -78,6 +81,7 @@ export default function PrivacyPage() {
           months after that, and deleted once they&apos;re no longer needed.
         </li>
         <li>Your own to-dos: deleted 6 months after you mark them done, or any time you delete them.</li>
+        <li>Your journal: kept until you delete entries or your account (download it first to keep a copy).</li>
         <li>Challenge entries: no longer tied to you 30 days after the challenge ends (only the team totals stay).</li>
         <li>Your account: deleted if you don&apos;t sign in for 12 months, or any time you choose.</li>
       </ul>

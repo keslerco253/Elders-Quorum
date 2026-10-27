@@ -1632,4 +1632,20 @@ ALTER TABLE personal_events ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE members ADD COLUMN sms_consent_via TEXT;
 `,
   },
+  {
+    // A member's private journal: any number of entries a day, only ever shown to them.
+    // The writing is stored encrypted (see journal.ts).
+    id: 85,
+    sql: `
+CREATE TABLE journal_entries (
+  id INTEGER PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  date TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX journal_entries_member ON journal_entries(member_id, date);
+`,
+  },
 ];

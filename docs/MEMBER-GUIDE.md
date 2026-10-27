@@ -43,7 +43,7 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   organization); you can look at any organization in your ward. **Messages** and
   your Home page show everything from all of yours.
 - **More** has, in order: Request a visit, My assignments, Reminders & alerts,
-  Service, Messages, Challenges, My organizations, Customize Home, Reminder
+  Service, Messages, My Journal, Challenges, My organizations, Customize Home, Reminder
   settings, Contact & notifications, Help; then Church apps (Gospel Library and Member Tools), your
   notifications on this device (with **Turn on**), **Privacy** (Lock with Face ID,
   in the phone app), **Appearance** (Automatic, Light or Dark), your account,
@@ -334,6 +334,27 @@ comes as an app notification (or by email if notifications are off). No email
 box? Add an email under More → Contact & notifications. Tap a to-do to edit it, mark it done (**✓ Mark done**;
 **Not done yet** undoes it) or delete it. Done to-dos are deleted after 6 months.
 
+## My Journal
+
+**More → My Journal** opens today's page with the date at the top. Write in the
+box: it **saves as you type** ("Saved ✓" shows under it). Write as many entries
+in a day as you like: after the first, tap **+ Start another entry** (each shows
+the time you wrote it). Tap an entry to change it, or **Delete entry**.
+
+- **Other days:** **←** and **→** go a day back or forward; **Go to a day** jumps
+  to a date; **Back to today** returns.
+- **📖 All entries:** everything you've written, newest first by month, with a
+  **Search** box. Tap one to open its day.
+- **🖨️ Print / Export:** choose **The whole journal**, **This year** or **Days I
+  choose**, then **Print or save as PDF** (each day is a heading, with what you
+  wrote and when) or **Download Word document** to keep, edit or back up. In the
+  phone app, printing opens your phone's print screen and the download opens the
+  share sheet (Save to Files, email and so on).
+- **Private:** only you can see your journal. Your leaders and the site owner
+  can't, and it's stored encrypted.
+- **Keep a copy:** deleting your account (or not signing in for 12 months)
+  deletes your journal too, so download it from time to time.
+
 ## Visits
 
 **Request a visit** (**Home → Would you like a visit?** or **More → Request a
@@ -387,7 +408,8 @@ The iPhone and Android app does everything the website does, plus:
 - **Appearance:** More → Appearance: Automatic, Light or Dark.
 - **Sign out:** More → **Sign out** (it also stops notifications on that device).
 - **Delete my account:** More → **Delete my account**, type DELETE. This removes
-  your name, contact info, comments, sign-ups and everything you posted. You can
+  your name, contact info, comments, sign-ups, your journal and everything you
+  posted (download your journal first to keep it). You can
   join again later with the join code. Without the app, go to
   **mywardlink.net/delete-account**, sign in with a code, and delete it there (it
   also lists exactly what's deleted and what's kept).

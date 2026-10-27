@@ -69,7 +69,7 @@ export default async function DeleteAccountPage({ searchParams }: { searchParams
         <li>Your account: your name, phone number, email, sign-in sessions and devices, and your notification settings and reminders.</li>
         <li>
           What you posted: lesson comments, teacher notes, offers to teach, sign-ups, RSVPs, event requests, visit requests, messages you sent your leaders, your private
-          to-dos, and your answers to meeting invitations.
+          to-dos, your journal, and your answers to meeting invitations.
         </li>
         <li>Which organizations you belong to, your callings, and the visits recorded for you.</li>
       </ul>

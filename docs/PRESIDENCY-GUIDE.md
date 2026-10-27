@@ -23,8 +23,8 @@ point members with questions about the app. Leaders can open it too.
 ## Who can do what
 
 - **Members** use the app: Home, lessons, the calendar, service, plans,
-  challenges, messages, My assignments and private to-dos, Request a visit,
-  Reminders & alerts, Reminder settings, My organizations, Contact & notifications
+  challenges, messages, My assignments and private to-dos, a private journal
+  (My Journal: leaders never see it), Request a visit, Reminders & alerts, Reminder settings, My organizations, Contact & notifications
   and Customize Home.
 - **Leadership** in an organization (its presidency, or the ward's bishopric
   with its secretaries and clerks) gets **Admin** for that organization:

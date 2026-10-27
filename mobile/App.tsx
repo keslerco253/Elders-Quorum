@@ -12,6 +12,9 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import * as WebBrowser from "expo-web-browser";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import { File, Paths } from "expo-file-system";
 import { refreshAndroidWidget, saveAndroidWidgetKey } from "./android-widget";
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from "react-native-webview";
 import type { ShouldStartLoadRequest } from "react-native-webview/lib/WebViewTypes";
@@ -174,6 +177,21 @@ function openOutside(url: string) {
   }
   if (url.startsWith("https://") && !isCalendarLink(url)) WebBrowser.openBrowserAsync(url).catch(() => Linking.openURL(url));
   else Linking.openURL(url).catch(() => {});
+}
+
+/** A file from the site (a journal download): saved, then the share sheet to keep it in Files, email it, and so on. */
+async function saveAndShare(name: unknown, mime: unknown, base64: string) {
+  try {
+    const safe = String(name || "Download").replace(/[\\/:*?"<>|]/g, "").slice(0, 100) || "Download";
+    const file = new File(Paths.cache, safe);
+    if (file.exists) file.delete();
+    file.create();
+    file.write(base64, { encoding: "base64" });
+    const type = String(mime || "application/octet-stream");
+    await Sharing.shareAsync(file.uri, { mimeType: type, UTI: type.includes("wordprocessingml") ? "org.openxmlformats.wordprocessingml.document" : undefined, dialogTitle: safe });
+  } catch {
+    // Nothing to do: the share sheet was closed or the file couldn't be written.
+  }
 }
 
 /** "off": not asked yet (or dismissed on Android); "denied": turned off in the phone's settings. */
@@ -367,7 +385,7 @@ function Main() {
 
   const onMessage = useCallback(
     async (e: WebViewMessageEvent) => {
-      let msg: { type?: string; url?: string; title?: string; text?: string; items?: Tab[]; active?: string | null; count?: number; on?: boolean; key?: string };
+      let msg: { type?: string; url?: string; title?: string; text?: string; items?: Tab[]; active?: string | null; count?: number; on?: boolean; key?: string; html?: string; name?: string; mime?: string; base64?: string };
       try {
         msg = JSON.parse(e.nativeEvent.data);
       } catch {
@@ -397,6 +415,8 @@ function Main() {
       // The widget's key, from each signed-in page.
       else if (msg.type === "widgetKey" && typeof msg.key === "string") saveWidgetKey(msg.key);
       // Face ID lock, from the More page.
+      else if (msg.type === "print" && typeof msg.html === "string") Print.printAsync({ html: msg.html }).catch(() => {});
+      else if (msg.type === "saveFile" && typeof msg.base64 === "string") saveAndShare(msg.name, msg.mime, msg.base64);
       else if (msg.type === "lockStatus") tellWeb({ type: "lock", ...(await lockInfo()) });
       else if (msg.type === "setLock") {
         const l = await lockInfo();
@@ -484,7 +504,7 @@ function Main() {
         source={{ uri: start }}
         style={[styles.fill, { backgroundColor: c.bg }, failed && styles.hidden]}
         applicationNameForUserAgent="MyWardLinkApp/1.0"
-        injectedJavaScriptBeforeContentLoaded={`window.MyWardLinkApp = { platform: ${JSON.stringify(Platform.OS)}, tabs: true, widget: true }; if (document.documentElement) document.documentElement.classList.add("in-app"); true;`}
+        injectedJavaScriptBeforeContentLoaded={`window.MyWardLinkApp = { platform: ${JSON.stringify(Platform.OS)}, tabs: true, widget: true, files: true }; if (document.documentElement) document.documentElement.classList.add("in-app"); true;`}
         onMessage={onMessage}
         onShouldStartLoadWithRequest={onShouldStart}
         // A "new window" link to our own page (a flyer, a PDF) opens in the app, which is signed in.
