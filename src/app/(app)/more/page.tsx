@@ -23,13 +23,13 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
   const unread = unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id);
   const newNotes = unreadNotifications(user.id);
   const links: { href: string; label: string; desc: string; count?: number }[] = [
-    ...(hasFeature(user.org, "signups") ? [{ href: "/signups", label: "Service", desc: "Service projects, meals, rides and more" }] : []),
-    ...(myOrgs(user.id).some((o) => hasFeature(o, "challenges")) ? [{ href: "/challenges", label: "Challenges", desc: "Friendly competitions between organizations: who's ahead, and log what you did" }] : []),
+    ...(myOrgs(user.id).some((o) => hasFeature(o, "visits")) ? [{ href: "/more/visit", label: "Request a visit", desc: "Ask your leaders to come by, talk, or help" }] : []),
     { href: "/assignments", label: "My assignments", desc: "What you've been asked to do, lessons you're teaching, service you signed up for" },
     { href: "/notifications", label: "Reminders & alerts", count: newNotes, desc: "Every reminder and alert the app sent you (messages are in Messages)" },
-    { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },
+    ...(hasFeature(user.org, "signups") ? [{ href: "/signups", label: "Service", desc: "Service projects, meals, rides and more" }] : []),
     { href: "/messages", label: "Messages", count: unread, desc: `Messages from ${user.orgLabel} and replies from its ${leadersWord(user.org)}` },
-    ...(myOrgs(user.id).some((o) => hasFeature(o, "visits")) ? [{ href: "/more/visit", label: "Request a visit", desc: "Ask your leaders to come by, talk, or help" }] : []),
+    ...(myOrgs(user.id).some((o) => hasFeature(o, "challenges")) ? [{ href: "/challenges", label: "Challenges", desc: "Friendly competitions between organizations: who's ahead, and log what you did" }] : []),
+    { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },
     { href: "/more/home", label: "Customize Home", desc: "Put your Home page sections in the order you like, or hide some" },
     { href: "/more/reminders", label: "Reminder settings", desc: "When and how you're reminded about lessons, events, service and assignments" },
     { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },

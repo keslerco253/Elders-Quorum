@@ -42,9 +42,9 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   the organization you're looking at (looking at the ward shows service from every
   organization); you can look at any organization in your ward. **Messages** and
   your Home page show everything from all of yours.
-- **More** has: Service, Challenges, My assignments, Reminders & alerts, My
-  organizations, Messages, Request a visit, Customize Home, Reminder settings, Contact
-  & notifications, Help, Church apps (Gospel Library and Member Tools), your
+- **More** has, in order: Request a visit, My assignments, Reminders & alerts,
+  Service, Messages, Challenges, My organizations, Customize Home, Reminder
+  settings, Contact & notifications, Help; then Church apps (Gospel Library and Member Tools), your
   notifications on this device (with **Turn on**), **Privacy** (Lock with Face ID,
   in the phone app), **Appearance** (Automatic, Light or Dark), your account,
   **Sign out**, **Delete my account**, and **Privacy details** and **Terms and
