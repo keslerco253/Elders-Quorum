@@ -292,7 +292,10 @@ function Main() {
   const [loading, setLoading] = useState(true);
   const shownOnce = useRef(false);
   const [tabs, setTabs] = useState<Tab[]>([]);
+  // The tab whose own page is showing (tapping it scrolls up), and the tab to light up
+  // (also on pages inside it).
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [litTab, setLitTab] = useState<string | null>(null);
   const [keyboard, setKeyboard] = useState(false);
   const [path, setPath] = useState("/");
   const [locked, setLocked] = useState<{ kind: string } | null>(null);
@@ -385,7 +388,7 @@ function Main() {
 
   const onMessage = useCallback(
     async (e: WebViewMessageEvent) => {
-      let msg: { type?: string; url?: string; title?: string; text?: string; items?: Tab[]; active?: string | null; count?: number; on?: boolean; key?: string; html?: string; name?: string; mime?: string; base64?: string };
+      let msg: { type?: string; url?: string; title?: string; text?: string; items?: Tab[]; active?: string | null; count?: number; on?: boolean; key?: string; highlight?: string | null; html?: string; name?: string; mime?: string; base64?: string };
       try {
         msg = JSON.parse(e.nativeEvent.data);
       } catch {
@@ -401,6 +404,7 @@ function Main() {
         tabsAt.current = Date.now();
         setTabs(msg.items.slice(0, 6));
         setActiveTab(msg.active ?? null);
+        setLitTab(msg.highlight !== undefined ? msg.highlight : (msg.active ?? null));
       }
       // The number on the app's icon: unread messages and notifications.
       else if (msg.type === "badge" && typeof msg.count === "number") Notifications.setBadgeCountAsync(Math.max(0, msg.count)).catch(() => {});
@@ -462,6 +466,7 @@ function Main() {
       return;
     }
     setActiveTab(t.href);
+    setLitTab(t.href);
     web.current?.injectJavaScript(`(window.__mwlNavigate ? window.__mwlNavigate(${JSON.stringify(t.href)}) : (window.location.href = ${JSON.stringify(t.href)})); true;`);
   }, [activeTab]);
 
@@ -542,7 +547,7 @@ function Main() {
           <ActivityIndicator color={c.primary} />
         </View>
       ) : null}
-      {tabs.length > 0 && !keyboard && !failed ? <TabBar tabs={tabs} active={activeTab} onPress={onTab} c={c} /> : null}
+      {tabs.length > 0 && !keyboard && !failed ? <TabBar tabs={tabs} active={litTab} onPress={onTab} c={c} /> : null}
       {/* A picture, PDF or download opened on its own has no tab bar or page to go back with: give it a Back button. */}
       {tabs.length === 0 && canGoBack && !keyboard && !failed && !SIGNED_OUT_PAGES.test(path) ? (
         <BackBar

@@ -205,12 +205,16 @@ export function Nav({
   const activeTab = tabs.find((i) => isActive(path, i.href))?.href ?? null;
   // In the phone app, the app draws the tab bar natively (and badges its icon); its
   // taps come back through window.__mwlNavigate.
-  const tabsKey = JSON.stringify([tabs, activeTab]);
+  // `active` is the tab only on its own page: tapping it there scrolls to the top, and
+  // on a page inside it (More → Reminder settings) it goes back to the tab's page.
+  // `highlight` is the tab to light up (newer versions of the app).
+  const onTabPage = activeTab !== null && path === activeTab;
+  const tabsKey = JSON.stringify([tabs, activeTab, onTabPage]);
   useEffect(() => {
     if (!appHasTabs()) return;
     (window as Window & { __mwlNavigate?: (href: string) => void }).__mwlNavigate = (href) => router.push(href);
-    const [items, active] = JSON.parse(tabsKey) as [Item[], string | null];
-    postToApp({ type: "tabs", items, active });
+    const [items, highlight, exact] = JSON.parse(tabsKey) as [Item[], string | null, boolean];
+    postToApp({ type: "tabs", items, active: exact ? highlight : null, highlight });
   }, [tabsKey, router]);
   useEffect(() => {
     if (appHasTabs()) postToApp({ type: "badge", count: messagesCount + moreCount });

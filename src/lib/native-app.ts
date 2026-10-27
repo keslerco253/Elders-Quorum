@@ -29,7 +29,7 @@ export function postToApp(
   msg:
     | { type: "ready" | "enablePush" | "openSettings" | "lockStatus" }
     | { type: "open"; url: string }
-    | { type: "tabs"; items: AppTab[]; active: string | null }
+    | { type: "tabs"; items: AppTab[]; active: string | null; highlight?: string | null }
     | { type: "badge"; count: number }
     | { type: "share"; url?: string; text?: string; title?: string }
     | { type: "setLock"; on: boolean }
