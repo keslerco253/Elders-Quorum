@@ -5,7 +5,7 @@ import { ReminderEditor } from "./reminder-editor";
 import { saveReminders } from "./actions";
 import { memberCanText } from "./can-text";
 
-export const metadata = { title: "My reminders" };
+export const metadata = { title: "Reminder settings" };
 
 const SCHEDULED: Record<ReminderKind, string> = {
   lessons: "When your leaders set it (usually Sunday evening about the next Sunday's lesson, and Saturday morning).",
@@ -20,7 +20,7 @@ export default async function MyRemindersPage({ searchParams }: { searchParams: 
   const canText = memberCanText(user);
   return (
     <>
-      <PageHeader title="My reminders" back={{ href: "/more", label: "More" }} subtitle="How and when you're reminded about lessons, events, service and assignments. Each area can be different. Messages and other notifications follow More → Contact & notifications." />
+      <PageHeader title="Reminder settings" back={{ href: "/more", label: "More" }} subtitle="How and when you're reminded about lessons, events, service and assignments. Each area can be different. Messages and other notifications follow More → Contact & notifications." />
       <Flash msg={sp.msg} tone="success" />
       <Flash msg={sp.error} tone="danger" />
       <div className="max-w-2xl space-y-4">

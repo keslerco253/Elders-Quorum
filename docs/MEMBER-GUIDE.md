@@ -43,7 +43,7 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   organization); you can look at any organization in your ward. **Messages** and
   your Home page show everything from all of yours.
 - **More** has: Service, Challenges, My assignments, Reminders & alerts, My
-  organizations, Messages, Request a visit, Customize Home, My reminders, Contact
+  organizations, Messages, Request a visit, Customize Home, Reminder settings, Contact
   & notifications, Help, Church apps (Gospel Library and Member Tools), your
   notifications on this device (with **Turn on**), **Privacy** (Lock with Face ID,
   in the phone app), **Appearance** (Automatic, Light or Dark), your account,
@@ -126,7 +126,7 @@ the link should open it. If it opens the browser and asks you to sign in, tap
 the right page either way). On iPhone you can also press and hold the link and
 choose **Open in My Ward Link**; iPhone then remembers to use the app.
 
-**My reminders** (**More → My reminders**, or 🔔 **My reminders** on the Lessons,
+**Reminder settings** (**More → Reminder settings**, or 🔔 **Reminder settings** on the Lessons,
 Calendar, Service and My assignments pages): for **Lessons**, **Events**,
 **Service** and **Assignments** separately, choose:
 - **As scheduled:** your leaders' times (for lessons, usually the Sunday evening
@@ -275,7 +275,7 @@ add a reason), or text back **TEACH** or **CANT**.
   cancel, tap **✕ Remove** next to your name. "Signing up for this is closed" means
   it's no longer taking sign-ups. **Share** sends it to someone.
 - **Reminders:** you get reminders before it, as set by your leaders (usually a
-  week and a day before), or as you chose under My reminders.
+  week and a day before), or as you chose under Reminder settings.
 - **Friends without the app** can sign up from a public link your leaders share, if
   there is one.
 

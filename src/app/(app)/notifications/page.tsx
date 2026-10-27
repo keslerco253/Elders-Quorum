@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { OrgLink } from "@/components/org-link";
 import { requireUser } from "@/lib/auth";
 import { notificationsFor } from "@/lib/notification-log";
@@ -24,11 +25,16 @@ export default async function NotificationsPage() {
         back={{ href: "/more", label: "More" }}
         subtitle="Every reminder and alert the app sent you in the last 30 days, in full. Messages and replies are in Messages. A red dot stays until you tap it."
         actions={
-          unread > 0 && (
-            <form action={markRead}>
-              <button className="btn-secondary btn-sm">Mark all as read</button>
-            </form>
-          )
+          <div className="flex flex-wrap gap-2">
+            {unread > 0 && (
+              <form action={markRead}>
+                <button className="btn-secondary btn-sm">Mark all as read</button>
+              </form>
+            )}
+            <Link href="/more/reminders" className="btn-secondary btn-sm">
+              ⚙️ Reminder settings
+            </Link>
+          </div>
         }
       />
       {list.length === 0 ? (

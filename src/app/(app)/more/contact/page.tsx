@@ -117,7 +117,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             <p className="hint">
               Leave these off to get just the push notification. Reminders for lessons, events and service can each be set their own way under{" "}
               <a href="/more/reminders" className="link">
-                My reminders
+                Reminder settings
               </a>
               .
             </p>

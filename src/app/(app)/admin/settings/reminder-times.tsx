@@ -155,7 +155,7 @@ export function ReminderTimes({ org }: { org: Org }) {
         <SubmitButton>Save reminder times</SubmitButton>
         <p className="hint">
           Event reminders are set on each event. Members can change their own
-          under My reminders.
+          under Reminder settings.
         </p>
       </form>
     </Section>

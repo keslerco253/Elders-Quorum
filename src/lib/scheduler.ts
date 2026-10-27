@@ -145,7 +145,7 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 /** "Today", "Tomorrow", "This Sunday" or "Next Sunday", for a lesson some days away. */
 const sundayWord = (days: number) => (days === 0 ? "Today" : days === 1 ? "Tomorrow" : days <= 6 ? "This Sunday" : "Next Sunday");
 
-/** Members' own lesson reminders (Lessons → My reminders). */
+/** Members' own lesson reminders (Lessons → Reminder settings). */
 function myLessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const own = ownSettings("lessons");
   if (!own.size) return [];
@@ -189,7 +189,7 @@ function myLessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 
 function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const nowIso = now.toUTC().toISO()!;
-  // Every event coming up: its scheduled reminders, and members' own (Calendar → My reminders).
+  // Every event coming up: its scheduled reminders, and members' own (Calendar → Reminder settings).
   const events = db().prepare("SELECT * FROM events WHERE org_id = ? AND starts_at > ? AND starts_at < ?").all(org.id, nowIso, now.plus({ days: 15 }).toUTC().toISO()) as EventRow[];
   const own = ownSettings("events");
   const out: DueNotification[] = [];
@@ -228,7 +228,7 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
 
 function todoReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
-  // The leader's reminders go out from 8 AM; members' own (My reminders → Assignments) at the time they chose.
+  // The leader's reminders go out from 8 AM; members' own (Reminder settings → Assignments) at the time they chose.
   const scheduledHours = local.hour >= reminderSettings(org.id).morningHour && local.hour < 20;
   const own = ownSettings("assignments");
   if (!scheduledHours && !own.size) return [];
@@ -381,7 +381,7 @@ function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
  */
 function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
-  // The scheduled ones go out from 8 AM; members' own (Service → My reminders) at the time they chose.
+  // The scheduled ones go out from 8 AM; members' own (Service → Reminder settings) at the time they chose.
   const scheduledHours = local.hour >= reminderSettings(org.id).morningHour && local.hour < 20;
   const own = ownSettings("service");
   if (!scheduledHours && !own.size) return [];

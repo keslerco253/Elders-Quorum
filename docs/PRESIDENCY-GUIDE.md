@@ -24,7 +24,7 @@ point members with questions about the app. Leaders can open it too.
 
 - **Members** use the app: Home, lessons, the calendar, service, plans,
   challenges, messages, My assignments and private to-dos, Request a visit,
-  Reminders & alerts, My reminders, My organizations, Contact & notifications
+  Reminders & alerts, Reminder settings, My organizations, Contact & notifications
   and Customize Home.
 - **Leadership** in an organization (its presidency, or the ward's bishopric
   with its secretaries and clerks) gets **Admin** for that organization:
@@ -123,7 +123,7 @@ ward.
   organization's opportunities, each labeled with where it's from.
 - **More** lists: Service (if the organization uses it), Challenges, My
   assignments, Reminders & alerts, My organizations, Messages, Request a visit,
-  Customize Home, My reminders and Contact & notifications. Then Church apps
+  Customize Home, Reminder settings and Contact & notifications. Then Church apps
   (Gospel Library, Member Tools), Notifications (on or off for this device),
   Privacy (in the phone app: **Lock with Face ID** or fingerprint),
   **Appearance** (Automatic, Light or Dark), the account (name, phone or email,
@@ -419,7 +419,7 @@ but get email until it starts.
   on iPhone each person can choose **Settings → Notifications → (the app) →
   Banner Style → Persistent**. Tapping a notification opens the right page.
 
-**More → My reminders** (also 🔔 **My reminders** on Lessons, Calendar, Service
+**More → Reminder settings** (also 🔔 **Reminder settings** on Lessons, Calendar, Service
 and My assignments): for **Lessons**, **Events**, **Service** and **Assignments**
 separately, each member
 chooses **As scheduled** (the organization's times), **My own reminders** or
@@ -722,7 +722,7 @@ that week's reading, title and Gospel Library link. Nothing to add or paste.
 ### What members see
 
 The **Lessons** tab has **Upcoming** and **Past** (a lesson moves to Past after
-1 PM that Sunday) and 🔔 **My reminders**. A lesson's page has **Read the talk in
+1 PM that Sunday) and 🔔 **Reminder settings**. A lesson's page has **Read the talk in
 Gospel Library** (or this week's Come, Follow Me, or the topic's link), the
 teacher (with ✓ confirmed), the teacher's notes once shared, **I'd like to teach
 this**, and **Study thoughts** (comments). Conference Sundays say there's no
