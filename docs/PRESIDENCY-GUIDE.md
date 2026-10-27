@@ -291,6 +291,17 @@ code, or a leader adds them.
   their account if they're in no other ward; they could join again with the code,
   so if it was shared too widely, **Make a new code** under Ward settings. Everyone
   in the ward before this page existed counts as reviewed.
+- **Members who won't use the app (texts only):** add them under **Admin →
+  Members → Add a member** with their name and mobile number, then tap **📱 Texting
+  card** on Members (or the link on their page) and **Print cards**: four to a
+  page, each with your ward's texting number, "Text JOIN to …", a QR code that
+  starts the text, and how to stop. When they text **JOIN**, the app records their
+  agreement (their page says "Agreed to ward texts … by texting JOIN"), texts back a
+  confirmation, and from then on sends them every reminder and message by text; they
+  can reply to any text to reach you. A couple sharing one phone are both signed
+  up. JOIN from a number no one has added gets "Please ask your ward leaders to add
+  you", and nothing else happens. They can text STOP anytime (and START to come
+  back). Their texts count toward the ward's monthly text limit.
 - **Old access requests:** joining now always needs a code. Requests to join
   without one from before that show under **Admin → Access requests** (bishopric,
   at the ward) with their contact info and note: **Approve** lets them in;

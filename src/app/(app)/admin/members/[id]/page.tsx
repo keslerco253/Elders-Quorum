@@ -127,11 +127,20 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
           </div>
           {m.phone && (
             <p className="hint -mt-2">
-              {m.sms_consent_at
-                ? `Agreed to ward texts ${formatDateTime(m.sms_consent_at, user.ward.timezone, "LLL d, yyyy")}.`
-                : phoneOptInVisible()
-                  ? "Hasn't agreed to ward texts, so the app only texts them sign-in codes they ask for. They can agree at first sign-in or under More → Contact & notifications (by choosing Text)."
-                  : "Hasn't agreed to ward texts. Texting isn't set up yet."}
+              {m.sms_consent_at ? (
+                `Agreed to ward texts ${formatDateTime(m.sms_consent_at, user.ward.timezone, "LLL d, yyyy")}${(m as { sms_consent_via?: string | null }).sms_consent_via === "text" ? " by texting JOIN" : ""}.`
+              ) : phoneOptInVisible() ? (
+                <>
+                  Hasn&apos;t agreed to ward texts, so the app only texts them sign-in codes they ask for. They can agree by texting JOIN to the ward&apos;s number (no
+                  app needed; give them a{" "}
+                  <Link href="/admin/texting-card" className="link">
+                    texting card
+                  </Link>
+                  ), at first sign-in, or under More → Contact &amp; notifications.
+                </>
+              ) : (
+                "Hasn't agreed to ward texts. Texting isn't set up yet."
+              )}
             </p>
           )}
           <p className="hint -mt-2">

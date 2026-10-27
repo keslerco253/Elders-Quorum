@@ -11,6 +11,7 @@ import { allowHit } from "./rate-limit";
 import { answerRequest, latestPendingRequest } from "./teaching-requests";
 import { DateTime } from "luxon";
 import { guestOptOut } from "./guest-signups";
+import { JOIN_UNKNOWN_REPLY, JOIN_WORD, joinByText, joinConfirmation } from "./text-join";
 
 /** The address set as "A message comes in" in Twilio. */
 export const inboundUrl = () => process.env.TWILIO_WEBHOOK_URL || `${appUrl()}/api/sms/inbound`;
@@ -39,7 +40,8 @@ export type InboundResult =
   | "request_accepted"
   | "request_declined"
   | "request_taken"
-  | "asked_which";
+  | "asked_which"
+  | "joined";
 
 /** Texted back (once a month) to a number that isn't anyone's in the app. */
 export const UNKNOWN_NUMBER_REPLY =
@@ -129,6 +131,11 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     const word = body.toUpperCase().replace(/[^A-Z]/g, "");
     if ((params.OptOutType || "").toUpperCase() === "STOP" || STOP_WORDS.includes(word)) return guestOptOut(from) ? "opted_out" : "unknown_sender";
     if ((params.OptOutType || "").toUpperCase() === "HELP" || SKIP_WORDS.includes(word)) return "unknown_sender";
+    // JOIN from a number no one has added yet: how to get added (once a day per number).
+    if (word === JOIN_WORD) {
+      if (allowHit(`sms-join-unknown:${from}`, 1, 24 * 60)) seen.reply = JOIN_UNKNOWN_REPLY;
+      return "unknown_sender";
+    }
     // Let them know it wasn't delivered (once a month per number, so it can't run up texts).
     if (allowHit(`sms-unknown:${from}`, 1, 30 * 24 * 60)) seen.reply = UNKNOWN_NUMBER_REPLY;
     return "unknown_sender";
@@ -148,6 +155,14 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     db().prepare("UPDATE members SET always_text = 0, sms_consent_at = NULL WHERE phone = ?").run(from);
     guestOptOut(from);
     return "opted_out";
+  }
+  // JOIN: a member a leader added agrees to ward texts (and START, after a STOP, agrees
+  // again; Twilio answers START itself).
+  if (word === JOIN_WORD || optOut === "START" || word === "START" || word === "UNSTOP") {
+    joinByText(from);
+    seen.note = "joined by text";
+    if (word === JOIN_WORD) seen.reply = joinConfirmation(getWard(getOrg(orgId)?.ward_id ?? 0)?.name ?? "My Ward Link");
+    return "joined";
   }
   if (optOut === "HELP" || optOut === "START" || SKIP_WORDS.includes(word)) return "ignored";
 

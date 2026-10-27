@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { phoneEnabled } from "@/lib/sms";
 import { OrgLink } from "@/components/org-link";
 import { withOrg } from "@/lib/org-cookie";
 import { HandbookLinks } from "@/components/handbook-link";
@@ -32,13 +33,18 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         subtitle={show === "active" ? `${members.length} ${members.length === 1 ? "person belongs" : "people belong"} to ${user.orgLabel}.` : `${members.length} accounts turned off`}
         actions={
           members.length > 0 && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Link href={`/admin/members/print?${new URLSearchParams({ show, q }).toString()}`} className="btn-secondary btn-sm">
                 🖨 Print
               </Link>
               <a href={`/admin/members/export?${new URLSearchParams({ show, q }).toString()}`} className="btn-secondary btn-sm" download>
                 ⬇ Export (Excel)
               </a>
+              {phoneEnabled() && (
+                <Link href="/admin/texting-card" className="btn-secondary btn-sm">
+                  📱 Texting card
+                </Link>
+              )}
             </div>
           )
         }

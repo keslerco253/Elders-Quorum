@@ -24,6 +24,9 @@ export const phoneEnabled = () => twilioConfigured() || process.env.SMS_DEV_OUTB
 export const phoneOptInVisible = () => phoneEnabled() || process.env.SMS_PENDING === "1";
 
 /** Full opt-in disclosure, sent with a member's first text. */
+/** The number members text (JOIN, replies): the app's Twilio number (a sample one for testing without Twilio). */
+export const textingNumber = () => FROM() || (process.env.SMS_DEV_OUTBOX === "1" ? "+12085550100" : "");
+
 export const SMS_DISCLOSURE = "Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to opt out.";
 
 /** Texts sent this calendar month (UTC) for a ward, all its organizations together. */

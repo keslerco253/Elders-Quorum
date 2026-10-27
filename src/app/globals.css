@@ -273,6 +273,18 @@ body {
   @page {
     margin: 0.5in;
   }
+  /* Texting cards: four to a letter page, to cut apart. */
+  .texting-cards {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.25in !important;
+  }
+  .texting-card {
+    height: 4.85in;
+    overflow: hidden;
+    break-inside: avoid;
+    border-color: #999 !important;
+  }
 }
 
 /* Drop-downs you can type in (components/searchable-selects.tsx). */

@@ -49,6 +49,7 @@ const TEXT_RESULTS: Record<string, string> = {
   request_declined: "Declined teaching request",
   request_taken: "Teaching request already taken",
   asked_which: "Asked which organization it's for",
+  joined: "Joined ward texts (JOIN)",
 };
 
 export default async function SiteOwnerPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {

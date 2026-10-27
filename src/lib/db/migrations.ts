@@ -1624,4 +1624,12 @@ ALTER TABLE event_series ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE personal_events ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    // How a member agreed to ward texts: in the app (null), or by texting JOIN to the
+    // ward's number (members who don't use the app; a leader added their number).
+    id: 84,
+    sql: `
+ALTER TABLE members ADD COLUMN sms_consent_via TEXT;
+`,
+  },
 ];

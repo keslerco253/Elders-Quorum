@@ -102,6 +102,11 @@ ticked; untick it to use the number only for sign-in codes. You can't remove you
 only way to sign in. If your ward doesn't
 use texting, it says "Your ward uses email".
 
+**Don't want to use the app?** Give your ward leaders your mobile number, then text
+**JOIN** to your ward's texting number (it's on the card they can give you). You'll
+get a reply saying you're signed up, and from then on reminders and messages come
+by text. Reply to any text to reach your leaders. Text **STOP** anytime to stop.
+
 **Turning on app notifications:**
 - **In the phone app:** More → Contact & notifications → **Turn on
   notifications** (or **Turn on** under Notifications on More, or the card on
