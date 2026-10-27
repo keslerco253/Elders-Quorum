@@ -140,7 +140,34 @@ function isVideoMeeting(url: string) {
   }
 }
 
+/** Church website links (Gospel Library, the handbook) open in the Church's app when it's installed. */
+function isChurchLink(url: string) {
+  try {
+    return /(^|\.)churchofjesuschrist\.org$/i.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
+const MEMBER_TOOLS_STORE = Platform.OS === "android" ? "market://details?id=org.lds.ldstools" : "https://apps.apple.com/app/id391093033";
+
 function openOutside(url: string) {
+  // Member Tools has no web pages to hand over, so it's opened by its own link; the store if it isn't installed.
+  if (url.startsWith("membertools:")) {
+    Linking.openURL(url).catch(() => Linking.openURL(MEMBER_TOOLS_STORE).catch(() => {}));
+    return;
+  }
+  // An Android "open this app" link: the phone opens the app, or its store page when it isn't installed.
+  if (url.startsWith("intent:")) {
+    const fallback = /;S\.browser_fallback_url=([^;]+)/.exec(url)?.[1];
+    Linking.openURL(url).catch(() => fallback && Linking.openURL(decodeURIComponent(fallback)).catch(() => {}));
+    return;
+  }
+  // Handed to the phone rather than shown in a browser here, so it can open the app.
+  if (isChurchLink(url) && !isCalendarLink(url)) {
+    Linking.openURL(url).catch(() => WebBrowser.openBrowserAsync(url).catch(() => {}));
+    return;
+  }
   if (isVideoMeeting(url)) {
     Linking.openURL(url).catch(() => WebBrowser.openBrowserAsync(url).catch(() => {}));
     return;
