@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { OrgLink } from "@/components/org-link";
+import { withOrg } from "@/lib/org-cookie";
 import { HandbookLinks } from "@/components/handbook-link";
 import { CALLINGS } from "@/lib/handbook";
 import { requireAdmin } from "@/lib/auth";
@@ -102,7 +104,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
           {members.map((m) => (
             <li key={m.id}>
-              <Link href={`/admin/members/${m.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
+              {/* Opens in this organization even if the account switched elsewhere meanwhile. */}
+              <OrgLink href={withOrg(`/admin/members/${m.id}`, user.org_id)} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{m.display_name}</span>
@@ -121,7 +124,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                   </div>
                 </div>
                 <span className="text-muted">›</span>
-              </Link>
+              </OrgLink>
             </li>
           ))}
         </ul>

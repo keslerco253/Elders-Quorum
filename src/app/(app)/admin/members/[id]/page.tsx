@@ -89,6 +89,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
           )}
           {m.email && (
             <form action={emailInvite}>
+              <input type="hidden" name="org_id" value={user.org_id} />
               <input type="hidden" name="item_id" value={m.id} />
               <SubmitButton className={m.phone ? "btn-secondary btn-sm" : "btn-primary btn-sm"} pendingText="Sending…">
                 Email invite to {m.email}
@@ -100,6 +101,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
       )}
       <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
         <form action={updateMember} className="card space-y-4">
+          <input type="hidden" name="org_id" value={user.org_id} />
           <input type="hidden" name="item_id" value={m.id} />
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -195,6 +197,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
           <div className="space-y-3">
         {canSet.size > 0 && orgChoices.length > 0 && (
           <form action={setMemberOrgs} className="card space-y-3 text-sm">
+            <input type="hidden" name="org_id" value={user.org_id} />
             <input type="hidden" name="item_id" value={m.id} />
             <div className="font-semibold">Organizations</div>
             <p className="text-muted">
@@ -237,6 +240,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             </div>
             {user.org.kind === "ward" ? (
               <form action={removeMember} className="card text-sm">
+                <input type="hidden" name="org_id" value={user.org_id} />
                 <input type="hidden" name="item_id" value={m.id} />
                 <div className="font-semibold">Remove from {user.ward.name}</div>
                 <p className="mt-1 mb-3 text-muted">
@@ -250,6 +254,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             ) : (
               m.in_org === 1 && (
                 <form action={removeMember} className="card text-sm">
+                  <input type="hidden" name="org_id" value={user.org_id} />
                   <input type="hidden" name="item_id" value={m.id} />
                   <div className="font-semibold">Remove from {user.orgLabel}</div>
                   <p className="mt-1 mb-3 text-muted">They stay in the ward and can choose {user.orgLabel} again themselves.</p>

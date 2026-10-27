@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { withOrg } from "@/lib/org-cookie";
+import { OrgLink } from "@/components/org-link";
 import { HandbookLinks } from "@/components/handbook-link";
 import { CALLINGS } from "@/lib/handbook";
 import { requirePresidency } from "@/lib/auth";
@@ -77,9 +79,9 @@ export default async function CallingsPage({ searchParams }: { searchParams: Pro
                   {c.holders.map((h) => (
                     <li key={h.member_id} className="space-y-2 px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <Link href={`/admin/members/${h.member_id}`} className="mr-auto font-medium hover:underline">
+                        <OrgLink href={withOrg(`/admin/members/${h.member_id}`, user.org_id)} className="mr-auto font-medium hover:underline">
                           {h.display_name}
-                        </Link>
+                        </OrgLink>
                         <form action={removeHolder}>
                           <input type="hidden" name="calling_id" value={c.id} />
                           <input type="hidden" name="member_id" value={h.member_id} />

@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { ORG_COOKIE, orgCookieMaxAge, orgCookieValue } from "@/lib/org-cookie";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin, requirePresidency, requireUser } from "@/lib/auth";
@@ -16,11 +18,29 @@ import { CALLINGS, isCalling, roleLabel, type Role } from "@/lib/types";
 
 const ROLES: Role[] = ["member", "presidency"];
 
+/**
+ * The member page was opened in one organization; if the account has since switched
+ * to another (on another device or tab), saving would change the wrong one. Sends
+ * them back to the page in the organization it was opened in, to try again. Checked
+ * before anything else (they may not lead the organization they switched to).
+ */
+async function sameOrg(fd: FormData) {
+  const user = await requireUser();
+  const from = Number(fd.get("org_id"));
+  if (from && from !== user.org_id && user.orgs.some((o) => o.id === from)) {
+    // (A redirect from a form doesn't pass through the switch in middleware, so it's set here.)
+    (await cookies()).set(ORG_COOKIE, orgCookieValue(from), { path: "/", maxAge: orgCookieMaxAge, sameSite: "lax", httpOnly: true, secure: appUrl().startsWith("https:") });
+    const id = Number(fd.get("item_id"));
+    redirect(`/admin/members/${id}?msg=${encodeURIComponent("You'd switched organizations in the meantime. Here it is again; please make the change once more.")}`);
+  }
+}
+
 function go(path: string, text: string): never {
   redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);
 }
 
 export async function updateMember(fd: FormData) {
+  await sameOrg(fd);
   const user = await requireAdmin();
   const id = Number(fd.get("item_id"));
   const m = orgMemberView(user.org_id, id);
@@ -30,8 +50,9 @@ export async function updateMember(fd: FormData) {
   const name = canEditContact ? String(fd.get("name") || "").trim().slice(0, 100) : m.display_name;
   const rawEmail = canEditContact ? String(fd.get("email") || "").trim() : (m.email ?? "");
   const rawPhone = canEditContact ? String(fd.get("phone") || "").trim() : (m.phone ?? "");
-  const email = rawEmail ? normalizeEmailAddress(rawEmail) : null;
-  const phone = rawPhone ? normalizePhone(rawPhone) : null;
+  // Left as they were, they're kept (even an old one that wouldn't pass today's check).
+  const email = rawEmail === (m.email ?? "") ? m.email : rawEmail ? normalizeEmailAddress(rawEmail) : null;
+  const phone = rawPhone === (m.phone ?? "") ? m.phone : rawPhone ? normalizePhone(rawPhone) : null;
   if (!name) go(`/admin/members/${id}`, "Name is required.");
   if ((rawEmail && !email) || (rawPhone && !phone)) go(`/admin/members/${id}`, "That phone number or email doesn't look right.");
   if (!email && !phone) go(`/admin/members/${id}`, "Each member needs a phone number or an email to sign in.");
@@ -79,6 +100,7 @@ export async function updateMember(fd: FormData) {
 
 /** Out of this organization, or (from the ward-wide organization) out of the ward. */
 export async function removeMember(fd: FormData) {
+  await sameOrg(fd);
   const user = await requirePresidency();
   const id = Number(fd.get("item_id"));
   const m = orgMemberView(user.org_id, id);
@@ -155,6 +177,7 @@ export async function addMember(fd: FormData) {
 }
 
 export async function emailInvite(fd: FormData) {
+  await sameOrg(fd);
   const user = await requirePresidency();
   const id = Number(fd.get("item_id"));
   const m = wardMember(id, user.org_id);
@@ -170,6 +193,7 @@ export async function emailInvite(fd: FormData) {
  * still choose it again themselves).
  */
 export async function setMemberOrgs(fd: FormData) {
+  await sameOrg(fd);
   const user = await requireUser();
   const id = Number(fd.get("item_id"));
   const back = `/admin/members/${id}`;

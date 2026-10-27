@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { withOrg } from "@/lib/org-cookie";
+import { OrgLink } from "@/components/org-link";
 import { requirePresidency } from "@/lib/auth";
 import { unreachedItems } from "@/lib/unreached";
 import { formatPhone } from "@/lib/contact";
@@ -37,9 +39,9 @@ export default async function UnreachedPage({ searchParams }: { searchParams: Pr
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-semibold">
                   {u.member_id ? (
-                    <Link href={`/admin/members/${u.member_id}`} className="hover:underline">
+                    <OrgLink href={withOrg(`/admin/members/${u.member_id}`, user.org_id)} className="hover:underline">
                       {u.name ?? "Someone"}
-                    </Link>
+                    </OrgLink>
                   ) : (
                     "Several people"
                   )}
