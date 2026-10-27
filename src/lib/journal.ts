@@ -7,9 +7,16 @@ import { formatDateTime } from "./time";
 
 // A member's private journal: any number of entries on each day. Only the member ever
 // sees it: no leader or site owner page shows journals, and the writing is stored
-// encrypted (AES-256-GCM) so it can't be read by looking at the database. The key is
-// JOURNAL_KEY when set, else one kept in the database's settings (so a backup restores
-// journals too). Deleting the account deletes the journal.
+// encrypted (AES-256-GCM) so it can't be read by looking at the database.
+//
+// Two kinds of key:
+// - Without a passcode ("v1:" entries): the site's journal key, JOURNAL_KEY when set,
+//   else one kept in the database's settings (so a backup restores journals too).
+// - With a passcode ("v2:" entries): the member's own random key, stored only wrapped
+//   by a key made from their passcode (scrypt). The passcode itself isn't kept, so
+//   without it nobody can read those entries, and a forgotten passcode can't be reset.
+//   Functions take that key as `mk` once the member has unlocked their journal.
+// Deleting the account deletes the journal.
 
 export interface JournalEntry {
   id: number;
@@ -22,7 +29,10 @@ export interface JournalEntry {
 
 export { MAX_JOURNAL_ENTRY };
 
-function key(): Buffer {
+/** A member's own key, when their journal has a passcode and they've unlocked it. */
+export type MemberKey = Buffer | null | undefined;
+
+function siteKey(): Buffer {
   const env = process.env.JOURNAL_KEY?.trim();
   if (env) return crypto.createHash("sha256").update(env).digest();
   let k = getSetting("journal_key");
@@ -33,45 +43,137 @@ function key(): Buffer {
   return Buffer.from(k, "base64");
 }
 
-export function sealText(text: string): string {
+function seal(data: Buffer, k: Buffer) {
   const iv = crypto.randomBytes(12);
-  const c = crypto.createCipheriv("aes-256-gcm", key(), iv);
-  const out = Buffer.concat([c.update(text, "utf8"), c.final()]);
-  return `v1:${Buffer.concat([iv, c.getAuthTag(), out]).toString("base64")}`;
+  const c = crypto.createCipheriv("aes-256-gcm", k, iv);
+  const out = Buffer.concat([c.update(data), c.final()]);
+  return Buffer.concat([iv, c.getAuthTag(), out]).toString("base64");
 }
 
-export function openText(stored: string): string {
-  if (!stored.startsWith("v1:")) return stored;
+/** Throws when the key is wrong. */
+function unseal(sealed: string, k: Buffer) {
+  const raw = Buffer.from(sealed, "base64");
+  const d = crypto.createDecipheriv("aes-256-gcm", k, raw.subarray(0, 12));
+  d.setAuthTag(raw.subarray(12, 28));
+  return Buffer.concat([d.update(raw.subarray(28)), d.final()]);
+}
+
+export function sealText(text: string, mk?: MemberKey): string {
+  return mk ? `v2:${seal(Buffer.from(text, "utf8"), mk)}` : `v1:${seal(Buffer.from(text, "utf8"), siteKey())}`;
+}
+
+export function openText(stored: string, mk?: MemberKey): string {
+  const v = stored.slice(0, 3);
+  if (v !== "v1:" && v !== "v2:") return stored;
   try {
-    const raw = Buffer.from(stored.slice(3), "base64");
-    const d = crypto.createDecipheriv("aes-256-gcm", key(), raw.subarray(0, 12));
-    d.setAuthTag(raw.subarray(12, 28));
-    return Buffer.concat([d.update(raw.subarray(28)), d.final()]).toString("utf8");
+    if (v === "v2:" && !mk) return "(Locked.)";
+    return unseal(stored.slice(3), v === "v2:" ? mk! : siteKey()).toString("utf8");
   } catch {
     return "(This entry couldn't be opened.)";
   }
 }
 
+// ---- The optional passcode ----
+
+export const MIN_PASSCODE = 4;
+const passKey = (passcode: string, salt: Buffer) => crypto.scryptSync(passcode.normalize("NFKC"), salt, 32, { N: 16384, r: 8, p: 1 });
+
+export function hasJournalPasscode(memberId: number): boolean {
+  return !!db().prepare("SELECT 1 FROM journal_locks WHERE member_id = ?").get(memberId);
+}
+
+/** The member's own key from their passcode, or null when it's wrong (or there's no passcode). */
+export function unlockJournal(memberId: number, passcode: string): Buffer | null {
+  const lock = db().prepare("SELECT salt, wrapped FROM journal_locks WHERE member_id = ?").get(memberId) as { salt: string; wrapped: string } | undefined;
+  if (!lock) return null;
+  try {
+    return unseal(lock.wrapped, passKey(passcode, Buffer.from(lock.salt, "base64")));
+  } catch {
+    return null;
+  }
+}
+
+function storeLock(memberId: number, passcode: string, mk: Buffer) {
+  const salt = crypto.randomBytes(16);
+  db()
+    .prepare(
+      `INSERT INTO journal_locks (member_id, salt, wrapped) VALUES (?, ?, ?)
+       ON CONFLICT(member_id) DO UPDATE SET salt = excluded.salt, wrapped = excluded.wrapped, updated_at = datetime('now')`,
+    )
+    .run(memberId, salt.toString("base64"), seal(mk, passKey(passcode, salt)));
+}
+
+/** Every entry sealed again with another key (turning the passcode on or off). */
+function reseal(memberId: number, from: MemberKey, to: MemberKey) {
+  const rows = db().prepare("SELECT id, body FROM journal_entries WHERE member_id = ?").all(memberId) as { id: number; body: string }[];
+  const put = db().prepare("UPDATE journal_entries SET body = ? WHERE id = ?");
+  for (const r of rows) put.run(sealText(openText(r.body, from), to), r.id);
+}
+
+/** Turns the passcode on: a new key of their own, and every entry locked with it. Returns the key. */
+export function setJournalPasscode(memberId: number, passcode: string): Buffer {
+  const mk = crypto.randomBytes(32);
+  db().transaction(() => {
+    reseal(memberId, null, mk);
+    storeLock(memberId, passcode, mk);
+  })();
+  return mk;
+}
+
+/** False when the current passcode is wrong. The entries keep their key. */
+export function changeJournalPasscode(memberId: number, current: string, next: string): boolean {
+  const mk = unlockJournal(memberId, current);
+  if (!mk) return false;
+  storeLock(memberId, next, mk);
+  return true;
+}
+
+/** Turns the passcode off (entries go back to the site's key). False when it's wrong. */
+export function removeJournalPasscode(memberId: number, current: string): boolean {
+  const mk = unlockJournal(memberId, current);
+  if (!mk) return false;
+  db().transaction(() => {
+    reseal(memberId, mk, null);
+    db().prepare("DELETE FROM journal_locks WHERE member_id = ?").run(memberId);
+  })();
+  return true;
+}
+
+/** A forgotten passcode: the only way back in is to start the journal over. */
+export function eraseJournal(memberId: number) {
+  db().transaction(() => {
+    db().prepare("DELETE FROM journal_entries WHERE member_id = ?").run(memberId);
+    db().prepare("DELETE FROM journal_locks WHERE member_id = ?").run(memberId);
+  })();
+}
+
+// ---- Entries ----
+
 type Row = Omit<JournalEntry, "body"> & { body: string };
-const opened = (r: Row): JournalEntry => ({ ...r, body: openText(r.body) });
 const COLS = "id, date, body, created_at, updated_at";
 
 export const validDate = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && DateTime.fromISO(v).isValid ? v : null);
 
-export function addJournalEntry(memberId: number, date: string, body: string): number {
+/** With a passcode, saving needs their key (so nothing is written that only the site could read). */
+function sealFor(memberId: number, body: string, mk: MemberKey) {
+  if (!mk && hasJournalPasscode(memberId)) throw new Error("journal locked");
+  return sealText(body.slice(0, MAX_JOURNAL_ENTRY), mk);
+}
+
+export function addJournalEntry(memberId: number, date: string, body: string, mk?: MemberKey): number {
   return Number(
     db()
       .prepare("INSERT INTO journal_entries (member_id, date, body) VALUES (?, ?, ?)")
-      .run(memberId, date, sealText(body.slice(0, MAX_JOURNAL_ENTRY))).lastInsertRowid,
+      .run(memberId, date, sealFor(memberId, body, mk)).lastInsertRowid,
   );
 }
 
 /** False when it isn't theirs (or was deleted). */
-export function updateJournalEntry(memberId: number, id: number, body: string): boolean {
+export function updateJournalEntry(memberId: number, id: number, body: string, mk?: MemberKey): boolean {
   return (
     db()
       .prepare("UPDATE journal_entries SET body = ?, updated_at = datetime('now') WHERE id = ? AND member_id = ?")
-      .run(sealText(body.slice(0, MAX_JOURNAL_ENTRY)), id, memberId).changes > 0
+      .run(sealFor(memberId, body, mk), id, memberId).changes > 0
   );
 }
 
@@ -79,14 +181,17 @@ export function deleteJournalEntry(memberId: number, id: number) {
   db().prepare("DELETE FROM journal_entries WHERE id = ? AND member_id = ?").run(id, memberId);
 }
 
-export function journalEntry(memberId: number, id: number): JournalEntry | null {
+export function journalEntry(memberId: number, id: number, mk?: MemberKey): JournalEntry | null {
   const r = db().prepare(`SELECT ${COLS} FROM journal_entries WHERE id = ? AND member_id = ?`).get(id, memberId) as Row | undefined;
-  return r ? opened(r) : null;
+  return r ? { ...r, body: openText(r.body, mk) } : null;
 }
 
 /** A day's entries, in the order they were written. */
-export function journalDay(memberId: number, date: string): JournalEntry[] {
-  return (db().prepare(`SELECT ${COLS} FROM journal_entries WHERE member_id = ? AND date = ? ORDER BY created_at, id`).all(memberId, date) as Row[]).map(opened);
+export function journalDay(memberId: number, date: string, mk?: MemberKey): JournalEntry[] {
+  return (db().prepare(`SELECT ${COLS} FROM journal_entries WHERE member_id = ? AND date = ? ORDER BY created_at, id`).all(memberId, date) as Row[]).map((r) => ({
+    ...r,
+    body: openText(r.body, mk),
+  }));
 }
 
 /**
@@ -94,12 +199,12 @@ export function journalDay(memberId: number, date: string): JournalEntry[] {
  * ones; `q` keeps those that contain it. The writing is encrypted, so searching reads
  * through the member's own entries.
  */
-export function journalEntries(memberId: number, o: { from?: string | null; to?: string | null; q?: string } = {}): JournalEntry[] {
+export function journalEntries(memberId: number, o: { from?: string | null; to?: string | null; q?: string } = {}, mk?: MemberKey): JournalEntry[] {
   const rows = db()
     .prepare(`SELECT ${COLS} FROM journal_entries WHERE member_id = ? AND date >= ? AND date <= ? ORDER BY date, created_at, id`)
     .all(memberId, o.from || "0000-01-01", o.to || "9999-12-31") as Row[];
   const q = o.q?.trim().toLowerCase();
-  return rows.map(opened).filter((e) => e.body.trim() && (!q || e.body.toLowerCase().includes(q)));
+  return rows.map((r) => ({ ...r, body: openText(r.body, mk) })).filter((e) => e.body.trim() && (!q || e.body.toLowerCase().includes(q)));
 }
 
 export type JournalRange = "all" | "year" | "dates";

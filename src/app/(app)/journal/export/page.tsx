@@ -1,5 +1,7 @@
 import { requireUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { journalEntries } from "@/lib/journal";
+import { journalAccess } from "@/lib/journal-session";
 import { todayIn } from "@/lib/time";
 import { PageHeader } from "@/components/ui";
 import { JournalExport } from "./export-form";
@@ -8,7 +10,9 @@ export const metadata = { title: "Print or export your journal" };
 
 export default async function JournalExportPage() {
   const user = await requireUser();
-  const entries = journalEntries(user.id);
+  const access = await journalAccess(user.id);
+  if (!access) redirect("/journal/unlock?next=/journal/export");
+  const entries = journalEntries(user.id, {}, access.mk);
   return (
     <>
       <PageHeader

@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
 import { requireUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { journalDay, longDate, validDate } from "@/lib/journal";
+import { journalAccess } from "@/lib/journal-session";
 import { formatDateTime, todayIn } from "@/lib/time";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { JournalEditor } from "./editor";
-import { deleteJournalEntryAction } from "./actions";
+import { deleteJournalEntryAction, lockJournalAction } from "./actions";
 
 export const metadata = { title: "My Journal" };
 
@@ -15,6 +17,8 @@ const PROMPTS = ["What happened today?", "What are you grateful for today?", "Wh
 export default async function JournalPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
   const sp = await searchParams;
+  const access = await journalAccess(user.id);
+  if (!access) redirect(`/journal/unlock${sp.d ? `?next=${encodeURIComponent(`/journal?d=${sp.d}`)}` : ""}`);
   const tz = user.ward.timezone;
   const today = todayIn(tz);
   const asked = validDate(sp.d);
@@ -22,7 +26,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
   const day = DateTime.fromISO(date);
   const prev = day.minus({ days: 1 }).toISODate()!;
   const next = day.plus({ days: 1 }).toISODate()!;
-  const entries = journalDay(user.id, date);
+  const entries = journalDay(user.id, date, access.mk);
 
   return (
     <>
@@ -93,7 +97,26 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
         </div>
       </div>
 
-      <p className="hint mt-4">🔒 Only you can see your journal. Your leaders can&apos;t, and it&apos;s stored encrypted. It saves as you type.</p>
+      <div className="hint mt-4 space-y-2">
+        <p>🔒 Only you can see your journal. Your leaders can&apos;t, and it&apos;s stored encrypted. It saves as you type.</p>
+        {access.mk ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Locked with your passcode.</span>
+            <form action={lockJournalAction}>
+              <SubmitButton className="link" pendingText="Locking…">
+                Lock now
+              </SubmitButton>
+            </form>
+            <Link href="/journal/passcode" className="link">
+              Change or turn off passcode
+            </Link>
+          </div>
+        ) : (
+          <Link href="/journal/passcode" className="link">
+            Add a passcode (optional)
+          </Link>
+        )}
+      </div>
     </>
   );
 }

@@ -23,6 +23,10 @@ export function JournalExport({ count, first, today }: { count: number; first: s
     setProblem("");
     try {
       const res = await fetch(query(kind === "docx" ? { format: "docx" } : {}), { credentials: "same-origin" });
+      if (res.redirected && new URL(res.url).pathname.startsWith("/journal/unlock")) {
+        window.location.href = "/journal/unlock?next=/journal/export";
+        return;
+      }
       if (!res.ok) throw new Error();
       if (kind === "print") postToApp({ type: "print", html: await res.text() });
       else {

@@ -34,7 +34,7 @@ export default function PrivacyPage() {
         </li>
         <li>Your own to-dos under My assignments: only you can see them.</li>
         <li>
-          Your journal (More → My Journal): only you can see it. No leader or site owner page shows it, and what you write is stored encrypted.
+          Your journal (More → My Journal): only you can see it. No leader or site owner page shows it, and what you write is stored encrypted. If you add a journal passcode, it&apos;s locked with that passcode, which we don&apos;t keep, so we couldn&apos;t open it or reset a forgotten one.
         </li>
         <li>What you log in a challenge (e.g. temple work): only you see your entries; everyone else sees team totals only.</li>
         <li>Whether each notification reached you (by app, email or text) and whether you opened it, so leaders know who didn&apos;t get something.</li>

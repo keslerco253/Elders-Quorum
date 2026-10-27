@@ -1,7 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import zlib from "zlib";
 import { db, useTestDb } from "@/lib/db";
-import { addJournalEntry, deleteJournalEntry, journalBookHtml, journalDay, journalDocx, journalEntries, journalRange, updateJournalEntry } from "@/lib/journal";
+import {
+  addJournalEntry,
+  changeJournalPasscode,
+  eraseJournal,
+  hasJournalPasscode,
+  removeJournalPasscode,
+  setJournalPasscode,
+  unlockJournal,
+  deleteJournalEntry, journalBookHtml, journalDay, journalDocx, journalEntries, journalRange, updateJournalEntry } from "@/lib/journal";
 
 const SEED = `
     INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
@@ -70,6 +78,45 @@ describe("journal", () => {
     expect(files["word/document.xml"]).toContain("Tuesday, October 27, 2026");
     expect(files["word/document.xml"]).toContain("Line &lt;two&gt; &amp; more");
     expect(files["word/document.xml"]).toContain('<w:pStyle w:val="Heading1"/>');
+  });
+
+  it("can be locked with a passcode that only its writer knows", () => {
+    const a = addJournalEntry(1, "2026-10-27", "Before the passcode");
+    const mk = setJournalPasscode(1, "1234");
+    expect(hasJournalPasscode(1)).toBe(true);
+    const raw = () => (db().prepare("SELECT body FROM journal_entries WHERE id = ?").get(a) as { body: string }).body;
+    expect(raw()).toMatch(/^v2:/);
+    // Locked: nothing readable without the key, and nothing saved without it.
+    expect(journalDay(1, "2026-10-27")[0].body).toBe("(Locked.)");
+    expect(() => addJournalEntry(1, "2026-10-27", "No key")).toThrow();
+    expect(unlockJournal(1, "9999")).toBeNull();
+    expect(unlockJournal(1, "1234")!.equals(mk)).toBe(true);
+    addJournalEntry(1, "2026-10-27", "After the passcode", mk);
+    expect(journalDay(1, "2026-10-27", mk).map((e) => e.body)).toEqual(["Before the passcode", "After the passcode"]);
+    // The passcode isn't stored: only a salt and the wrapped key.
+    expect(JSON.stringify(db().prepare("SELECT * FROM journal_locks").all())).not.toContain("1234");
+
+    expect(changeJournalPasscode(1, "wrong", "abcd")).toBe(false);
+    expect(changeJournalPasscode(1, "1234", "abcd")).toBe(true);
+    expect(unlockJournal(1, "1234")).toBeNull();
+    const mk2 = unlockJournal(1, "abcd")!;
+    expect(journalEntries(1, {}, mk2).map((e) => e.body)).toEqual(["Before the passcode", "After the passcode"]);
+
+    expect(removeJournalPasscode(1, "1234")).toBe(false);
+    expect(removeJournalPasscode(1, "abcd")).toBe(true);
+    expect(hasJournalPasscode(1)).toBe(false);
+    expect(raw()).toMatch(/^v1:/);
+    expect(journalEntries(1).map((e) => e.body)).toEqual(["Before the passcode", "After the passcode"]);
+  });
+
+  it("can be erased when the passcode is forgotten", () => {
+    addJournalEntry(1, "2026-10-27", "Secret");
+    addJournalEntry(2, "2026-10-27", "Bea's");
+    setJournalPasscode(1, "1234");
+    eraseJournal(1);
+    expect(hasJournalPasscode(1)).toBe(false);
+    expect(journalEntries(1)).toEqual([]);
+    expect(journalEntries(2)).toHaveLength(1);
   });
 
   it("is deleted with the account", () => {

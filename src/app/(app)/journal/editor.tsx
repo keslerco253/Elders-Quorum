@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MAX_JOURNAL_ENTRY } from "@/lib/journal-limits";
 import { saveJournalText } from "./actions";
+import { UnlockForm } from "./unlock-form";
 
-type Status = "idle" | "saving" | "saved" | "failed";
+type Status = "idle" | "saving" | "saved" | "failed" | "locked";
 
 /**
  * One journal entry, saved as it's typed (a moment after they stop, and when they
@@ -34,6 +35,8 @@ export function JournalEditor({ id: startId, date, initial = "", time, placehold
       setStatus("saving");
       try {
         const r = await saveJournalText({ id: idRef.current, date, body });
+        // A journal with a passcode locked itself: ask for it here, then save.
+        if (r.error === "locked") return setStatus("locked");
         if (r.error) throw new Error(r.error);
         if (r.id && r.id !== idRef.current) {
           idRef.current = r.id;
@@ -91,6 +94,12 @@ export function JournalEditor({ id: startId, date, initial = "", time, placehold
         aria-label={isNew ? "New journal entry" : "Journal entry"}
         className="input min-h-[120px] resize-none font-serif text-base leading-relaxed"
       />
+      {status === "locked" && (
+        <div className="space-y-2 rounded-lg bg-surface-2 p-3 text-sm">
+          <p>Your journal locked itself. Enter your passcode to save what you wrote.</p>
+          <UnlockForm compact onOpen={() => save()} />
+        </div>
+      )}
       <div className="flex min-h-6 flex-wrap items-center gap-3 text-xs text-muted">
         <span aria-live="polite">
           {status === "saving" ? "Saving…" : status === "saved" ? `Saved ✓ ${savedAt}` : status === "failed" ? <span className="text-danger">Not saved yet. Check your connection; it tries again as you type.</span> : ""}

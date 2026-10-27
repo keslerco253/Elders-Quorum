@@ -352,6 +352,12 @@ the time you wrote it). Tap an entry to change it, or **Delete entry**.
   share sheet (Save to Files, email and so on).
 - **Private:** only you can see your journal. Your leaders and the site owner
   can't, and it's stored encrypted.
+- **Passcode (optional):** tap **Add a passcode** at the bottom of My Journal. Your
+  journal then asks for it when you open it and locks again after 30 minutes
+  without using it (or tap **Lock now**). What you write is locked with your
+  passcode, which isn't kept anywhere. **If you forget it, no one can reset it**:
+  the only way back is **Forgot your passcode? → Erase my journal and start
+  over**. Change it or turn it off under **Change or turn off passcode**.
 - **Keep a copy:** deleting your account (or not signing in for 12 months)
   deletes your journal too, so download it from time to time.
 

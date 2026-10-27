@@ -1,4 +1,5 @@
 import { getUser } from "@/lib/auth";
+import { journalAccess } from "@/lib/journal-session";
 import { journalBookHtml, journalDocx, journalEntries, journalFileName, journalRange } from "@/lib/journal";
 
 // The member's own journal to print (?print=1 opens the print screen), or as a Word
@@ -6,10 +7,12 @@ import { journalBookHtml, journalDocx, journalEntries, journalFileName, journalR
 export async function GET(req: Request) {
   const user = await getUser();
   if (!user) return new Response("Sign in to see your journal.", { status: 401 });
+  const access = await journalAccess(user.id);
+  if (!access) return Response.redirect(new URL("/journal/unlock?next=/journal/export", req.url), 303);
   const sp = Object.fromEntries(new URL(req.url).searchParams);
   const tz = user.ward.timezone;
   const { from, to } = journalRange(sp, tz);
-  const book = { name: user.display_name, entries: journalEntries(user.id, { from, to }), tz, from, to };
+  const book = { name: user.display_name, entries: journalEntries(user.id, { from, to }, access.mk), tz, from, to };
   const headers = { "Cache-Control": "private, no-store" };
   if (sp.format === "docx") {
     return new Response(new Uint8Array(journalDocx(book)), {

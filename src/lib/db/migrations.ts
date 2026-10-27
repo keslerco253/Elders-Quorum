@@ -1648,4 +1648,18 @@ CREATE TABLE journal_entries (
 CREATE INDEX journal_entries_member ON journal_entries(member_id, date);
 `,
   },
+  {
+    // An optional journal passcode: the member's own key, wrapped by a key made from
+    // the passcode (which isn't kept). See journal.ts.
+    id: 86,
+    sql: `
+CREATE TABLE journal_locks (
+  member_id INTEGER PRIMARY KEY REFERENCES members(id) ON DELETE CASCADE,
+  salt TEXT NOT NULL,
+  wrapped TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`,
+  },
 ];

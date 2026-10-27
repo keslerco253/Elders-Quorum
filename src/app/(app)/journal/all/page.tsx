@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
 import { requireUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { journalEntries } from "@/lib/journal";
+import { journalAccess } from "@/lib/journal-session";
 import { formatDateTime } from "@/lib/time";
 import { Empty, PageHeader } from "@/components/ui";
 
@@ -10,9 +12,11 @@ export const metadata = { title: "All journal entries" };
 export default async function JournalAllPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
   const sp = await searchParams;
+  const access = await journalAccess(user.id);
+  if (!access) redirect("/journal/unlock?next=/journal/all");
   const q = String(sp.q || "").trim().slice(0, 100);
   const tz = user.ward.timezone;
-  const entries = journalEntries(user.id, { q }).reverse();
+  const entries = journalEntries(user.id, { q }, access.mk).reverse();
   const months: { label: string; entries: typeof entries }[] = [];
   for (const e of entries) {
     const label = DateTime.fromISO(e.date).toFormat("LLLL yyyy");
