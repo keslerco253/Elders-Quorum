@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { appHandlesFiles, inApp, postToApp } from "@/lib/native-app";
+import { journalHandoffAction } from "../actions";
 
 type Range = "all" | "year" | "dates";
 
@@ -46,6 +47,17 @@ export function JournalExport({ count, first, today }: { count: number; first: s
     }
   }
 
+  // Older versions of the app: the journal opens in the phone's browser view, which can print and save it.
+  async function handOff(kind: "print" | "docx") {
+    setBusy(kind);
+    setProblem("");
+    const r = await journalHandoffAction({ range, from, to, format: kind }).catch(() => ({ url: undefined, error: "" }));
+    setBusy("");
+    if (r.error === "locked") window.location.href = "/journal/unlock?next=/journal/export";
+    else if (r.url) postToApp({ type: "open", url: r.url });
+    else setProblem("That didn't work. Check your connection and try again.");
+  }
+
   const choices: [Range, string][] = [
     ["all", `The whole journal${count ? ` (${count === 1 ? "1 entry" : `${count} entries`})` : ""}`],
     ["year", "This year"],
@@ -80,7 +92,20 @@ export function JournalExport({ count, first, today }: { count: number; first: s
       </fieldset>
 
       {where === "old-app" ? (
-        <p className="hint">Update the My Ward Link app to print or download your journal here, or open mywardlink.net in your phone&apos;s browser or on a computer.</p>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn-primary" disabled={!!busy} onClick={() => handOff("print")}>
+              {busy === "print" ? "Getting it ready…" : "🖨️ Print or save as PDF"}
+            </button>
+            <button type="button" className="btn-secondary" disabled={!!busy} onClick={() => handOff("docx")}>
+              {busy === "docx" ? "Getting it ready…" : "⬇️ Download Word document"}
+            </button>
+          </div>
+          <p className="hint">
+            Your journal opens in your phone&apos;s browser. If the print screen doesn&apos;t open, tap the Share button (□↑), then Print. The link works for 10 minutes;
+            tap Done to come back.
+          </p>
+        </div>
       ) : (
         <div className="flex flex-wrap gap-2">
           {where === "app" ? (

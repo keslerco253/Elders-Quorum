@@ -247,9 +247,10 @@ const html = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").repla
 /**
  * The journal as a page of its own, to print or save as a PDF: each day as a heading,
  * each entry under it with the time it was written. With `toolbar`, a Print button
- * (and the print screen opens by itself).
+ * (and the print screen opens by itself); "outside": opened outside the app, so
+ * there's no Back link to the site.
  */
-export function journalBookHtml(o: { name: string; entries: JournalEntry[]; tz: string; from: string | null; to: string | null; toolbar?: boolean }) {
+export function journalBookHtml(o: { name: string; entries: JournalEntry[]; tz: string; from: string | null; to: string | null; toolbar?: boolean | "outside" }) {
   const title = `${o.name}'s Journal`;
   const days = byDay(o.entries)
     .map(
@@ -273,11 +274,12 @@ export function journalBookHtml(o: { name: string; entries: JournalEntry[]; tz: 
   .empty { text-align: center; color: #6b7280; }
   .bar { position: sticky; top: 0; background: #fff; display: flex; gap: .5rem; justify-content: flex-end; padding: .5rem 0 1rem; font-family: system-ui, sans-serif; }
   .bar button, .bar a { font: inherit; font-size: .9rem; padding: .45rem .9rem; border-radius: .5rem; border: 1px solid #d1d5db; background: #fff; color: #1f2937; text-decoration: none; cursor: pointer; }
+  .bar .tip { margin-right: auto; color: #6b7280; font-size: .8rem; align-self: center; }
   .bar button { background: #2563eb; border-color: #2563eb; color: #fff; }
   @media print { .bar { display: none; } body { padding: 0; max-width: none; } }
   @page { margin: .75in; }
 </style></head><body>
-${o.toolbar ? `<div class="bar"><a href="/journal/export">← Back</a><button type="button" onclick="window.print()">Print or save as PDF</button></div><script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 300); });</script>` : ""}
+${o.toolbar ? `<div class="bar">${o.toolbar === "outside" ? `<span class="tip">No print screen? Tap the Share button, then Print.</span>` : `<a href="/journal/export">← Back</a>`}<button type="button" onclick="window.print()">Print or save as PDF</button></div><script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 300); });</script>` : ""}
 <h1>${html(title)}</h1>
 <div class="range">${html(rangeText(o.entries, o.from, o.to))}</div>
 ${days || `<p class="empty">No journal entries for these days.</p>`}

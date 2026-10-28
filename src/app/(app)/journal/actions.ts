@@ -8,7 +8,12 @@ import {
   deleteJournalEntry,
   eraseJournal,
   hasJournalPasscode,
+  journalBookHtml,
+  journalDocx,
+  journalEntries,
   journalEntry,
+  journalFileName,
+  journalRange,
   MIN_PASSCODE,
   removeJournalPasscode,
   setJournalPasscode,
@@ -18,6 +23,8 @@ import {
 } from "@/lib/journal";
 import { endAllJournalSessions, endJournalSession, journalAccess, startJournalSession } from "@/lib/journal-session";
 import { allowHit } from "@/lib/rate-limit";
+import { appUrl } from "@/lib/config";
+import { holdJournalFile } from "@/lib/journal-handoff";
 
 const TOO_MANY = "Too many tries. Wait 15 minutes and try again.";
 const tryPasscode = (memberId: number) => allowHit(`journal-passcode:${memberId}`, 10, 15);
@@ -110,4 +117,23 @@ export async function eraseJournalAction(fd: FormData) {
   endAllJournalSessions(user.id);
   await endJournalSession();
   redirect(`/journal?msg=${encodeURIComponent("Your journal was erased. You can start a new one.")}`);
+}
+
+/**
+ * For older phone apps: the journal made ready for the phone's browser view, which can
+ * print and save files. Returns the private link to open.
+ */
+export async function journalHandoffAction(o: { range: string; from: string; to: string; format: "print" | "docx" }): Promise<{ url?: string; error?: string }> {
+  const user = await requireUser();
+  const access = await journalAccess(user.id);
+  if (!access) return { error: "locked" };
+  const tz = user.ward.timezone;
+  const { from, to } = journalRange(o, tz);
+  const book = { name: user.display_name, entries: journalEntries(user.id, { from, to }, access.mk), tz, from, to };
+  const token = holdJournalFile(
+    o.format === "docx"
+      ? { body: journalDocx(book), type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", filename: journalFileName(user.display_name, "docx") }
+      : { body: journalBookHtml({ ...book, toolbar: "outside" }), type: "text/html; charset=utf-8" },
+  );
+  return { url: `${appUrl()}/journal-file/${token}` };
 }

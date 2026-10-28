@@ -349,7 +349,9 @@ the time you wrote it). Tap an entry to change it, or **Delete entry**.
   choose**, then **Print or save as PDF** (each day is a heading, with what you
   wrote and when) or **Download Word document** to keep, edit or back up. In the
   phone app, printing opens your phone's print screen and the download opens the
-  share sheet (Save to Files, email and so on).
+  share sheet (Save to Files, email and so on). In older versions of the app your
+  journal opens in your phone's browser instead: if the print screen doesn't
+  open, tap the Share button, then Print; tap Done to come back.
 - **Private:** only you can see your journal. Your leaders and the site owner
   can't, and it's stored encrypted.
 - **Passcode (optional):** tap **Add a passcode** at the bottom of My Journal. Your
