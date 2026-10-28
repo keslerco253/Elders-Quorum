@@ -6,7 +6,7 @@ import { Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { CopyButton } from "@/components/copy-button";
 import { resetFeedLink, saveCalendarAlerts, saveFeedContents } from "./actions";
-import { FEED_CONTENTS } from "@/lib/types";
+import { FEED_CONTENTS, feedContents } from "@/lib/types";
 
 export const metadata = { title: "Subscribe to the calendar" };
 
@@ -64,12 +64,12 @@ export default async function SubscribePage({ searchParams }: { searchParams: Pr
         subtitle={`Ward events and those of your organizations, your own events, or both show up in your own calendar app and stay up to date: new events appear and changes or cancellations update by themselves. Change what's included here anytime.${isAdmin(user) ? " Yours includes presidency-only events." : ""}`}
       />
       <Flash msg={sp.msg} tone={sp.ok ? "success" : "warn"} />
-      <form id="contents" action={saveFeedContents} className="card mb-3 scroll-mt-20 space-y-3">
+      <form key={feedContents(user)} id="contents" action={saveFeedContents} className="card mb-3 scroll-mt-20 space-y-3">
         <div className="font-semibold">What&apos;s in your calendar</div>
         <div className="space-y-2">
           {FEED_CONTENTS.map(([value, label, hint]) => (
             <label key={value} className="flex items-start gap-2 text-sm">
-              <input type="radio" name="contents" value={value} defaultChecked={(user.feed_contents ?? "both") === value} className="mt-1" />
+              <input type="radio" name="contents" value={value} defaultChecked={feedContents(user) === value} className="mt-1" />
               <span>
                 <span className="font-medium">{label}</span>
                 <span className="block text-muted">{hint}</span>

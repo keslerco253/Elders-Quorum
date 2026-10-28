@@ -14,7 +14,7 @@ import * as SplashScreen from "expo-splash-screen";
 import * as WebBrowser from "expo-web-browser";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import { File, Paths } from "expo-file-system";
+import { Directory, File, Paths } from "expo-file-system";
 import { refreshAndroidWidget, saveAndroidWidgetKey } from "./android-widget";
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from "react-native-webview";
 import type { ShouldStartLoadRequest } from "react-native-webview/lib/WebViewTypes";
@@ -179,12 +179,30 @@ function openOutside(url: string) {
   else Linking.openURL(url).catch(() => {});
 }
 
+/**
+ * Files handed to the share sheet go in their own folder, emptied before the next one
+ * and when the app opens: not left on the phone (a journal), but kept long enough for
+ * the app it was shared to (email, Files) to read it.
+ */
+const sharedFiles = () => new Directory(Paths.cache, "shared");
+
+function clearSharedFiles() {
+  try {
+    const dir = sharedFiles();
+    if (dir.exists) dir.delete();
+  } catch {
+    // Nothing there.
+  }
+}
+
 /** A file from the site (a journal download): saved, then the share sheet to keep it in Files, email it, and so on. */
 async function saveAndShare(name: unknown, mime: unknown, base64: string) {
   try {
+    clearSharedFiles();
+    const dir = sharedFiles();
+    dir.create();
     const safe = String(name || "Download").replace(/[\\/:*?"<>|]/g, "").slice(0, 100) || "Download";
-    const file = new File(Paths.cache, safe);
-    if (file.exists) file.delete();
+    const file = new File(dir, safe);
     file.create();
     file.write(base64, { encoding: "base64" });
     const type = String(mime || "application/octet-stream");
@@ -193,6 +211,9 @@ async function saveAndShare(name: unknown, mime: unknown, base64: string) {
     // Nothing to do: the share sheet was closed or the file couldn't be written.
   }
 }
+
+// Anything shared last time the app was open.
+clearSharedFiles();
 
 /** "off": not asked yet (or dismissed on Android); "denied": turned off in the phone's settings. */
 type PushResult = { status: "granted" | "off" | "denied" | "unavailable"; token?: string; platform: string };

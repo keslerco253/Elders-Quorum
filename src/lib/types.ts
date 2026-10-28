@@ -28,6 +28,8 @@ export interface Member {
   calendar_alerts: string;
   /** What their subscribed calendar holds. */
   feed_contents: FeedContents;
+  /** When they chose feed_contents; until then their feed has ward events only. */
+  feed_contents_set_at: string | null;
   /** Bumped to cancel the member's old calendar subscription link. */
   feed_version: number;
   /** Send every notification by email / text too, not just when push misses. */
@@ -162,6 +164,11 @@ export interface Comment {
 }
 
 export type FeedContents = "both" | "ward" | "personal";
+/**
+ * What a member's subscribed calendar holds: what they chose, or ward events only until
+ * they choose (a link made before personal events existed may have been shared).
+ */
+export const feedContents = (m: Pick<Member, "feed_contents" | "feed_contents_set_at">): FeedContents => (m.feed_contents_set_at ? m.feed_contents : "ward");
 export const FEED_CONTENTS: [FeedContents, string, string][] = [
   ["both", "Both", "Ward and organization events, and your own events"],
   ["ward", "Ward and organization events", "Events from your ward and organizations only"],

@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { eventsBetween, icsFeed, parseAlerts, validFeedToken } from "@/lib/events";
 import { memberWards } from "@/lib/orgs";
 import { personalEventsBetween } from "@/lib/personal-events";
-import type { Member } from "@/lib/types";
+import { feedContents, type Member } from "@/lib/types";
 
 // A member's subscribed calendar (Apple Calendar, Google Calendar, Outlook).
 // Calendar apps fetch this on their own, so it uses the link's private token,
@@ -19,7 +19,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ member:
   const from = now.minus({ days: 60 }).toISO()!;
   const to = now.plus({ years: 1 }).toISO()!;
   // Ward and organization events, their own events, or both (their choice on Subscribe).
-  const which = member.feed_contents ?? "both";
+  const which = feedContents(member);
   const events = [
     ...(which !== "personal" ? eventsBetween(member.id, from, to, { joinedOnly: true }) : []),
     ...(which !== "ward" ? personalEventsBetween(member.id, from, to) : []),
@@ -29,7 +29,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ member:
     headers: {
       "content-type": "text/calendar; charset=utf-8",
       "content-disposition": 'inline; filename="ward-calendar.ics"',
-      "cache-control": "no-cache",
+      "cache-control": "private, no-store",
     },
   });
 }

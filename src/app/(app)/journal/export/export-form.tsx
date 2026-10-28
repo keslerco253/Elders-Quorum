@@ -102,7 +102,7 @@ export function JournalExport({ count, first, today }: { count: number; first: s
             </button>
           </div>
           <p className="hint">
-            Your journal opens in your phone&apos;s browser. If the print screen doesn&apos;t open, tap the Share button (□↑), then Print. The link works for 10 minutes;
+            Your journal opens in your phone&apos;s browser. If the print screen doesn&apos;t open, tap the Share button (□↑), then Print. The link works for 5 minutes;
             tap Done to come back.
           </p>
         </div>

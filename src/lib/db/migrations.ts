@@ -1662,4 +1662,20 @@ CREATE TABLE journal_locks (
 );
 `,
   },
+  {
+    // Privacy hardening:
+    // - journal_locks.cost: how hard the passcode key is to work out (log2 of scrypt's N);
+    //   new passcodes use a higher cost.
+    // - members.text_last_noreply: the last text was one of their private reminders, so a
+    //   texted reply isn't passed to anyone.
+    // - members.feed_contents_set_at: when they chose what their subscribed calendar holds.
+    //   Until they choose, it has ward events only (links made before personal events
+    //   existed may have been shared).
+    id: 87,
+    sql: `
+ALTER TABLE journal_locks ADD COLUMN cost INTEGER NOT NULL DEFAULT 14;
+ALTER TABLE members ADD COLUMN text_last_noreply INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE members ADD COLUMN feed_contents_set_at TEXT;
+`,
+  },
 ];

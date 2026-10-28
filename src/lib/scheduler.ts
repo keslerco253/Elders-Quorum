@@ -469,6 +469,7 @@ function personalTodoReminders(now: DateTime): DueNotification[] {
           title: r.when === "m:0" ? "Your to-do is due now" : `Your to-do is due in ${label.replace(/ before$/, "")}`,
           body: `${t.title} (due ${dueText(t.due_date, t.due_time)})`,
           url: `/assignments/mine/${t.id}`,
+          noReply: true,
         },
         only: personalWays(r, t.member_id),
       });
@@ -502,6 +503,7 @@ function personalEventReminders(now: DateTime): DueNotification[] {
           title: r.when === "m:0" ? `Starting now: ${e.title}` : `${e.title} starts in ${label.replace(/ before$/, "")}`,
           body: `${e.all_day ? `${formatDate(e.date, "short")} · All day` : formatDateTime(starts, e.timezone)}${e.location ? ` · ${e.location}` : ""}`,
           url: `/calendar/mine/${e.id}`,
+          noReply: true,
         },
         only: personalWays(r, e.member_id),
       });

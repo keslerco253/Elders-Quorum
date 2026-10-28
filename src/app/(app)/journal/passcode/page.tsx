@@ -62,6 +62,7 @@ export default async function JournalPasscodePage({ searchParams }: { searchPara
             </li>
           </ul>
           <Pass name="passcode" label={`Passcode (at least ${MIN_PASSCODE} characters)`} />
+          <p className="hint -mt-1">A short phrase you&apos;ll remember is stronger than a number.</p>
           <Pass name="confirm" label="Passcode again" />
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" name="understand" required className="mt-1" />

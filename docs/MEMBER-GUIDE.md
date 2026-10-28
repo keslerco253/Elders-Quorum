@@ -241,7 +241,7 @@ add a reason), or text back **TEACH** or **CANT**.
   as on your to-dos (when it starts, or 15 minutes to 2 weeks before, by **App**
   and/or **Email**), then tap **Add to my calendar**. Tap it later to change or
   delete it. It's deleted 30 days after its date. If you've subscribed to the
-  calendar (below), your own events show there too.
+  calendar (below) and chose to include them, your own events show there too.
 - **Meetings you're invited to** (like an activities committee): you get an
   invitation, and the meeting shows on your calendar and Home's Coming up marked
   **Invited**. Open it to see when and where, the agenda, who's giving the
@@ -258,8 +258,8 @@ add a reason), or text back **TEACH** or **CANT**.
   iPhone, turn off **Remove Alerts** when subscribing. To stop, delete the calendar
   in your calendar app. Your link is just for you: if you shared it by mistake, tap
   **Reset my link** (calendars using the old link stop updating). Under **What's
-  in your calendar**, choose **Both** (the usual), **Ward and organization
-  events** or **My own events**, and tap **Save**. Change it anytime; the same link
+  in your calendar**, choose **Both**, **Ward and organization events** (what it
+  has until you choose) or **My own events**, and tap **Save**. Change it anytime; the same link
   keeps working and your calendar app shows the change the next time it checks.
   Keep the link to yourself if it has your own events.
 - **Suggest an event:** **Request an event** on the Calendar (if your organization
@@ -352,9 +352,11 @@ the time you wrote it). Tap an entry to change it, or **Delete entry**.
   share sheet (Save to Files, email and so on). In older versions of the app your
   journal opens in your phone's browser instead: if the print screen doesn't
   open, tap the Share button, then Print; tap Done to come back.
-- **Private:** only you can see your journal. Your leaders and the site owner
-  can't, and it's stored encrypted.
-- **Passcode (optional):** tap **Add a passcode** at the bottom of My Journal. Your
+- **Private:** only you can see your journal. No one else can open it in the
+  app, not your leaders or anyone else, and it's stored encrypted. For the most
+  privacy, add a passcode: then not even whoever runs the site could open it.
+- **Passcode (optional):** tap **Add a passcode** at the bottom of My Journal (at
+  least 6 characters; a short phrase is stronger than numbers). Your
   journal then asks for it when you open it and locks again after 30 minutes
   without using it (or tap **Lock now**). What you write is locked with your
   passcode, which isn't kept anywhere. **If you forget it, no one can reset it**:

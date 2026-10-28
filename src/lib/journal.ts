@@ -10,8 +10,8 @@ import { formatDateTime } from "./time";
 // encrypted (AES-256-GCM) so it can't be read by looking at the database.
 //
 // Two kinds of key:
-// - Without a passcode ("v1:" entries): the site's journal key, JOURNAL_KEY when set,
-//   else one kept in the database's settings (so a backup restores journals too).
+// - Without a passcode ("v1:" entries): the site's journal key (see siteKeys). Whoever
+//   runs the server could open these; members are told so.
 // - With a passcode ("v2:" entries): the member's own random key, stored only wrapped
 //   by a key made from their passcode (scrypt). The passcode itself isn't kept, so
 //   without it nobody can read those entries, and a forgotten passcode can't be reset.
@@ -32,15 +32,23 @@ export { MAX_JOURNAL_ENTRY };
 /** A member's own key, when their journal has a passcode and they've unlocked it. */
 export type MemberKey = Buffer | null | undefined;
 
-function siteKey(): Buffer {
+/**
+ * The site's journal keys: JOURNAL_KEY (set in the server's settings, so it isn't in
+ * the database or its backups) when it's set, else one kept in the database. The first
+ * seals new writing; the database key still opens what was written before JOURNAL_KEY
+ * was set.
+ */
+function siteKeys(): Buffer[] {
   const env = process.env.JOURNAL_KEY?.trim();
-  if (env) return crypto.createHash("sha256").update(env).digest();
-  let k = getSetting("journal_key");
-  if (!k) {
-    k = crypto.randomBytes(32).toString("base64");
+  const stored = getSetting("journal_key");
+  const keys = env ? [crypto.createHash("sha256").update(env).digest()] : [];
+  if (stored) keys.push(Buffer.from(stored, "base64"));
+  else if (!env) {
+    const k = crypto.randomBytes(32).toString("base64");
     setSetting("journal_key", k);
+    keys.push(Buffer.from(k, "base64"));
   }
-  return Buffer.from(k, "base64");
+  return keys;
 }
 
 function seal(data: Buffer, k: Buffer) {
@@ -59,7 +67,7 @@ function unseal(sealed: string, k: Buffer) {
 }
 
 export function sealText(text: string, mk?: MemberKey): string {
-  return mk ? `v2:${seal(Buffer.from(text, "utf8"), mk)}` : `v1:${seal(Buffer.from(text, "utf8"), siteKey())}`;
+  return mk ? `v2:${seal(Buffer.from(text, "utf8"), mk)}` : `v1:${seal(Buffer.from(text, "utf8"), siteKeys()[0])}`;
 }
 
 export function openText(stored: string, mk?: MemberKey): string {
@@ -67,7 +75,15 @@ export function openText(stored: string, mk?: MemberKey): string {
   if (v !== "v1:" && v !== "v2:") return stored;
   try {
     if (v === "v2:" && !mk) return "(Locked.)";
-    return unseal(stored.slice(3), v === "v2:" ? mk! : siteKey()).toString("utf8");
+    if (v === "v2:") return unseal(stored.slice(3), mk!).toString("utf8");
+    for (const k of siteKeys()) {
+      try {
+        return unseal(stored.slice(3), k).toString("utf8");
+      } catch {
+        // Written with the other key.
+      }
+    }
+    throw new Error("no key");
   } catch {
     return "(This entry couldn't be opened.)";
   }
@@ -75,8 +91,15 @@ export function openText(stored: string, mk?: MemberKey): string {
 
 // ---- The optional passcode ----
 
-export const MIN_PASSCODE = 4;
-const passKey = (passcode: string, salt: Buffer) => crypto.scryptSync(passcode.normalize("NFKC"), salt, 32, { N: 16384, r: 8, p: 1 });
+export const MIN_PASSCODE = 6;
+/**
+ * How hard a passcode key is to work out (log2 of scrypt's N): about a quarter second
+ * each, so trying passcodes against a copy of the database is slow. Each lock keeps
+ * the cost it was made with.
+ */
+const PASS_COST = 16;
+const passKey = (passcode: string, salt: Buffer, cost: number) =>
+  crypto.scryptSync(passcode.normalize("NFKC"), salt, 32, { N: 2 ** cost, r: 8, p: 1, maxmem: 256 * 1024 * 1024 });
 
 export function hasJournalPasscode(memberId: number): boolean {
   return !!db().prepare("SELECT 1 FROM journal_locks WHERE member_id = ?").get(memberId);
@@ -84,10 +107,10 @@ export function hasJournalPasscode(memberId: number): boolean {
 
 /** The member's own key from their passcode, or null when it's wrong (or there's no passcode). */
 export function unlockJournal(memberId: number, passcode: string): Buffer | null {
-  const lock = db().prepare("SELECT salt, wrapped FROM journal_locks WHERE member_id = ?").get(memberId) as { salt: string; wrapped: string } | undefined;
+  const lock = db().prepare("SELECT salt, wrapped, cost FROM journal_locks WHERE member_id = ?").get(memberId) as { salt: string; wrapped: string; cost: number } | undefined;
   if (!lock) return null;
   try {
-    return unseal(lock.wrapped, passKey(passcode, Buffer.from(lock.salt, "base64")));
+    return unseal(lock.wrapped, passKey(passcode, Buffer.from(lock.salt, "base64"), lock.cost));
   } catch {
     return null;
   }
@@ -97,10 +120,10 @@ function storeLock(memberId: number, passcode: string, mk: Buffer) {
   const salt = crypto.randomBytes(16);
   db()
     .prepare(
-      `INSERT INTO journal_locks (member_id, salt, wrapped) VALUES (?, ?, ?)
-       ON CONFLICT(member_id) DO UPDATE SET salt = excluded.salt, wrapped = excluded.wrapped, updated_at = datetime('now')`,
+      `INSERT INTO journal_locks (member_id, salt, wrapped, cost) VALUES (?, ?, ?, ?)
+       ON CONFLICT(member_id) DO UPDATE SET salt = excluded.salt, wrapped = excluded.wrapped, cost = excluded.cost, updated_at = datetime('now')`,
     )
-    .run(memberId, salt.toString("base64"), seal(mk, passKey(passcode, salt)));
+    .run(memberId, salt.toString("base64"), seal(mk, passKey(passcode, salt, PASS_COST)), PASS_COST);
 }
 
 /** Every entry sealed again with another key (turning the passcode on or off). */

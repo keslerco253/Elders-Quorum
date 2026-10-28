@@ -82,7 +82,7 @@ describe("journal", () => {
 
   it("can be locked with a passcode that only its writer knows", () => {
     const a = addJournalEntry(1, "2026-10-27", "Before the passcode");
-    const mk = setJournalPasscode(1, "1234");
+    const mk = setJournalPasscode(1, "123456");
     expect(hasJournalPasscode(1)).toBe(true);
     const raw = () => (db().prepare("SELECT body FROM journal_entries WHERE id = ?").get(a) as { body: string }).body;
     expect(raw()).toMatch(/^v2:/);
@@ -90,20 +90,20 @@ describe("journal", () => {
     expect(journalDay(1, "2026-10-27")[0].body).toBe("(Locked.)");
     expect(() => addJournalEntry(1, "2026-10-27", "No key")).toThrow();
     expect(unlockJournal(1, "9999")).toBeNull();
-    expect(unlockJournal(1, "1234")!.equals(mk)).toBe(true);
+    expect(unlockJournal(1, "123456")!.equals(mk)).toBe(true);
     addJournalEntry(1, "2026-10-27", "After the passcode", mk);
     expect(journalDay(1, "2026-10-27", mk).map((e) => e.body)).toEqual(["Before the passcode", "After the passcode"]);
     // The passcode isn't stored: only a salt and the wrapped key.
-    expect(JSON.stringify(db().prepare("SELECT * FROM journal_locks").all())).not.toContain("1234");
+    expect(JSON.stringify(db().prepare("SELECT * FROM journal_locks").all())).not.toContain("123456");
 
     expect(changeJournalPasscode(1, "wrong", "abcd")).toBe(false);
-    expect(changeJournalPasscode(1, "1234", "abcd")).toBe(true);
-    expect(unlockJournal(1, "1234")).toBeNull();
-    const mk2 = unlockJournal(1, "abcd")!;
+    expect(changeJournalPasscode(1, "123456", "abcdef")).toBe(true);
+    expect(unlockJournal(1, "123456")).toBeNull();
+    const mk2 = unlockJournal(1, "abcdef")!;
     expect(journalEntries(1, {}, mk2).map((e) => e.body)).toEqual(["Before the passcode", "After the passcode"]);
 
-    expect(removeJournalPasscode(1, "1234")).toBe(false);
-    expect(removeJournalPasscode(1, "abcd")).toBe(true);
+    expect(removeJournalPasscode(1, "123456")).toBe(false);
+    expect(removeJournalPasscode(1, "abcdef")).toBe(true);
     expect(hasJournalPasscode(1)).toBe(false);
     expect(raw()).toMatch(/^v1:/);
     expect(journalEntries(1).map((e) => e.body)).toEqual(["Before the passcode", "After the passcode"]);
@@ -112,7 +112,7 @@ describe("journal", () => {
   it("can be erased when the passcode is forgotten", () => {
     addJournalEntry(1, "2026-10-27", "Secret");
     addJournalEntry(2, "2026-10-27", "Bea's");
-    setJournalPasscode(1, "1234");
+    setJournalPasscode(1, "123456");
     eraseJournal(1);
     expect(hasJournalPasscode(1)).toBe(false);
     expect(journalEntries(1)).toEqual([]);
@@ -123,5 +123,17 @@ describe("journal", () => {
     addJournalEntry(1, "2026-10-27", "Mine");
     db().prepare("DELETE FROM members WHERE id = 1").run();
     expect(db().prepare("SELECT COUNT(*) AS n FROM journal_entries").get()).toEqual({ n: 0 });
+  });
+});
+
+describe("journal hand-off links", () => {
+  it("open only a few times", async () => {
+    const { holdJournalFile, heldJournalFile } = await import("@/lib/journal-handoff");
+    const t = holdJournalFile({ body: "<p>x</p>", type: "text/html" });
+    expect(heldJournalFile(t)).not.toBeNull();
+    expect(heldJournalFile(t)).not.toBeNull();
+    expect(heldJournalFile(t)).not.toBeNull();
+    expect(heldJournalFile(t)).toBeNull();
+    expect(heldJournalFile("guess")).toBeNull();
   });
 });

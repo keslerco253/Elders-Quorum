@@ -81,7 +81,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
       <div className="space-y-5">
         {entries.map((e) => (
           <div key={e.id} id={`entry-${e.id}`} className="card scroll-mt-20 space-y-2">
-            <JournalEditor id={e.id} date={date} initial={e.body} time={formatDateTime(e.created_at, tz, "h:mm a")} />
+            <JournalEditor owner={user.id} id={e.id} date={date} initial={e.body} time={formatDateTime(e.created_at, tz, "h:mm a")} />
             <form action={deleteJournalEntryAction} className="flex justify-end">
               <input type="hidden" name="entry_id" value={e.id} />
               <SubmitButton className="btn-secondary btn-sm" confirm="Delete this entry for good?" pendingText="Deleting…">
@@ -93,7 +93,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
         <div className="card space-y-2">
           <div className="text-sm font-medium">{entries.length ? "Another entry" : "New entry"}</div>
           {/* Keyed by how many there are, so a fresh blank one appears after starting another. */}
-          <JournalEditor key={`new-${date}-${entries.length}`} date={date} placeholder={PROMPTS[day.ordinal % PROMPTS.length]} />
+          <JournalEditor owner={user.id} key={`new-${date}-${entries.length}`} date={date} placeholder={PROMPTS[day.ordinal % PROMPTS.length]} />
         </div>
       </div>
 

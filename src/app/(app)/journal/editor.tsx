@@ -13,7 +13,22 @@ type Status = "idle" | "saving" | "saved" | "failed" | "locked";
  * leave the box or the page). A blank one becomes a new entry once something is
  * written in it.
  */
-export function JournalEditor({ id: startId, date, initial = "", time, placeholder }: { id?: number; date: string; initial?: string; time?: string; placeholder?: string }) {
+export function JournalEditor({
+  owner,
+  id: startId,
+  date,
+  initial = "",
+  time,
+  placeholder,
+}: {
+  /** Whose journal this page shows: saving stops if someone else signs in meanwhile. */
+  owner: number;
+  id?: number;
+  date: string;
+  initial?: string;
+  time?: string;
+  placeholder?: string;
+}) {
   const router = useRouter();
   const [id, setId] = useState<number | null>(startId ?? null);
   const [text, setText] = useState(initial);
@@ -34,7 +49,9 @@ export function JournalEditor({ id: startId, date, initial = "", time, placehold
       if (body === saved.current) return;
       setStatus("saving");
       try {
-        const r = await saveJournalText({ id: idRef.current, date, body });
+        const r = await saveJournalText({ owner, id: idRef.current, date, body });
+        // Signed out (or someone else signed in) since the page opened: hide the writing.
+        if (r.error === "signed-out") return window.location.replace("/journal");
         // A journal with a passcode locked itself: ask for it here, then save.
         if (r.error === "locked") return setStatus("locked");
         if (r.error) throw new Error(r.error);
@@ -50,7 +67,7 @@ export function JournalEditor({ id: startId, date, initial = "", time, placehold
       }
     });
     return running.current;
-  }, [date]);
+  }, [date, owner]);
 
   // Grow with what's written.
   useEffect(() => {

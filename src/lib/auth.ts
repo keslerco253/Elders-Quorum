@@ -1,4 +1,5 @@
 import "server-only";
+import { endJournalSession } from "./journal-session";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { hasAdminTab } from "./admin-counts";
@@ -79,6 +80,8 @@ export async function endSession() {
   const id = jar.get(COOKIE)?.value;
   if (id) deleteSession(id);
   jar.delete(COOKIE);
+  // An unlocked journal locks again too.
+  await endJournalSession();
 }
 
 /** Leaders' pages for an optional feature: when it's turned off, go to Settings, which says so. */

@@ -37,6 +37,28 @@ describe("who leaders may change the sign-in contact of", () => {
     expect(acc.leaderCanEditContact(3, w1)).toBe(false);
   });
 
+  it("never a ward administrator or the backup person for messages", async () => {
+    const { db } = await import("@/lib/db");
+    db().prepare("INSERT INTO ward_admins (ward_id, member_id) VALUES (?, 3)").run(w2);
+    expect(acc.leaderCanEditContact(3, w2)).toBe(false);
+    db().prepare("DELETE FROM ward_admins").run();
+    db().prepare("UPDATE wards SET reply_backup_id = 3 WHERE id = ?").run(w2);
+    expect(acc.leaderCanEditContact(3, w2)).toBe(false);
+  });
+
+  it("gives whoever started a ward its leadership only until it has a bishopric", async () => {
+    const { db } = await import("@/lib/db");
+    const { userForSession, createSession } = await import("@/lib/auth-core");
+    const as = (id: number) => userForSession(createSession(id, "session").id)!;
+    expect(as(1).wardLeader).toBe(true);
+    // Member 4 is given presidency access to the ward itself; the starter was released.
+    const wardOrg = db().prepare("SELECT id FROM orgs WHERE ward_id = ? AND kind = 'ward'").get(w2) as { id: number };
+    db().prepare("UPDATE org_members SET role = 'member' WHERE member_id = 1 AND org_id = ?").run(wardOrg.id);
+    db().prepare("INSERT INTO org_members (org_id, member_id, role) VALUES (?, 4, 'presidency') ON CONFLICT DO UPDATE SET role = 'presidency'").run(wardOrg.id);
+    expect(as(1).wardLeader).toBe(false);
+    expect(as(1).wardAdmin).toBe(false);
+  });
+
   it("keeps the site owner's email for the site owner", () => {
     process.env.OWNER_EMAIL = "Owner@Test.local";
     expect(acc.isOwnerEmail("owner@test.local")).toBe(true);

@@ -1,5 +1,6 @@
 "use server";
 
+import { endAllJournalSessions } from "@/lib/journal-session";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -25,6 +26,7 @@ export async function deleteMyAccount(fd: FormData) {
     redirect(`${back}?msg=` + encodeURIComponent(`You're the only presidency member of ${names}. Give someone else presidency access first.`));
   }
   await endSession();
+  endAllJournalSessions(user.id);
   deleteAccount(user.id);
   redirect("/login?ok=" + encodeURIComponent("Your account and everything you posted have been deleted."));
 }

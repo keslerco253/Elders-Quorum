@@ -86,7 +86,15 @@ export function leaderCanEditContact(memberId: number, wardId: number): boolean 
   const m = db().prepare("SELECT last_login_at, is_site_owner, email FROM members WHERE id = ?").get(memberId) as { last_login_at: string | null; is_site_owner: number; email: string | null } | undefined;
   if (m && isOwnerEmail(m.email)) return false;
   // Never a leader anywhere either: taking over their account would take over what they lead.
-  const leads = db().prepare("SELECT 1 FROM org_members WHERE member_id = ? AND role = 'presidency'").get(memberId);
+  // (presidency access, a calling with Leadership access, a ward administrator or the backup person for messages).
+  const leads = db()
+    .prepare(
+      `SELECT 1 WHERE EXISTS (SELECT 1 FROM org_members WHERE member_id = @id AND role = 'presidency')
+         OR EXISTS (SELECT 1 FROM member_callings mc JOIN org_callings c ON c.id = mc.calling_id WHERE mc.member_id = @id AND c.leader = 1)
+         OR EXISTS (SELECT 1 FROM ward_admins WHERE member_id = @id)
+         OR EXISTS (SELECT 1 FROM wards WHERE reply_backup_id = @id)`,
+    )
+    .get({ id: memberId });
   return !!m && !m.last_login_at && !m.is_site_owner && !leads && onlyInWard(memberId, wardId);
 }
 

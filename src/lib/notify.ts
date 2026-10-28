@@ -135,13 +135,16 @@ export async function notify(
     if (!r.phone) return false;
     if (!orgNames.has(r.org_id)) orgNames.set(r.org_id, orgFullName(r.org_id));
     const res = await sendSms(r.org_id, r.phone, smsBody(orgNames.get(r.org_id)!, payload, url), "notice");
-    // Which organizations texted them lately (to ask which one a reply is for).
-    if (res === "sent") d().prepare("INSERT INTO member_text_orgs (member_id, org_id) VALUES (?, ?) ON CONFLICT DO UPDATE SET at = datetime('now')").run(r.id, r.org_id);
-    // A texted reply goes to this organization (and, after a member's message, to that member).
-    if (res === "sent")
+    // A private reminder: a reply to it isn't passed on, and replies to earlier texts still go where they did.
+    if (res === "sent" && payload.noReply) d().prepare("UPDATE members SET text_last_noreply = 1 WHERE id = ?").run(r.id);
+    else if (res === "sent") {
+      // Which organizations texted them lately (to ask which one a reply is for).
+      d().prepare("INSERT INTO member_text_orgs (member_id, org_id) VALUES (?, ?) ON CONFLICT DO UPDATE SET at = datetime('now')").run(r.id, r.org_id);
+      // A texted reply goes to this organization (and, after a member's message, to that member).
       d()
-        .prepare("UPDATE members SET last_text_org_id = ?, text_reply_member_id = ?, text_reply_private = ?, text_as_member = ? WHERE id = ?")
+        .prepare("UPDATE members SET last_text_org_id = ?, text_reply_member_id = ?, text_reply_private = ?, text_as_member = ?, text_last_noreply = 0 WHERE id = ?")
         .run(r.org_id, payload.replyTo?.memberId ?? null, payload.replyTo?.private ? 1 : 0, payload.asMember ? 1 : 0, r.id);
+    }
     // They replied STOP: stop texting them; use email if they have one.
     if (res === "opted_out")
       d().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END, always_text = 0, sms_consent_at = NULL WHERE id = ?").run(r.id);

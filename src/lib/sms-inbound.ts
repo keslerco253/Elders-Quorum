@@ -44,6 +44,8 @@ export type InboundResult =
   | "joined";
 
 /** Texted back (once a month) to a number that isn't anyone's in the app. */
+/** Answer to a texted reply to one of their own private reminders (which isn't passed to anyone). */
+export const PRIVATE_REMINDER_REPLY = "That was your private reminder, so your reply wasn't sent to anyone. To message your leaders, text again or use the app.";
 export const UNKNOWN_NUMBER_REPLY =
   "My Ward Link: this phone number isn't connected to anyone in the app, so your message wasn't delivered. Please text from the number your ward leaders have for you, or message them in the app.";
 
@@ -122,9 +124,9 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   if (!from || !body) return "ignored";
   const row = db()
     .prepare(
-      "SELECT id, last_text_org_id, display_name, text_reply_member_id, text_reply_private, text_as_member FROM members WHERE phone = ? AND status = 'active' ORDER BY last_login_at DESC LIMIT 1",
+      "SELECT id, last_text_org_id, display_name, text_reply_member_id, text_reply_private, text_as_member, text_last_noreply FROM members WHERE phone = ? AND status = 'active' ORDER BY last_login_at DESC LIMIT 1",
     )
-    .get(from) as { id: number; last_text_org_id: number | null; display_name: string; text_reply_member_id: number | null; text_reply_private: number; text_as_member: number } | undefined;
+    .get(from) as { id: number; last_text_org_id: number | null; display_name: string; text_reply_member_id: number | null; text_reply_private: number; text_as_member: number; text_last_noreply: number } | undefined;
   // Texts from numbers that aren't in the app aren't stored. STOP from someone who signed
   // up for service without an account ends texts to them.
   if (!row) {
@@ -165,6 +167,14 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     return "joined";
   }
   if (optOut === "HELP" || optOut === "START" || SKIP_WORDS.includes(word)) return "ignored";
+  // A reply right after one of their private reminders (a to-do or their own event) is
+  // kept to themselves: it isn't passed to anyone. Their next text goes where it would have.
+  if (row.text_last_noreply) {
+    db().prepare("UPDATE members SET text_last_noreply = 0 WHERE id = ?").run(row.id);
+    seen.reply = PRIVATE_REMINDER_REPLY;
+    seen.note = "Reply to a private reminder (not passed on)";
+    return "ignored";
+  }
 
   if (twilioConfigured()) db().prepare("INSERT INTO sms_log (org_id, kind) VALUES (?, 'reply')").run(member.org_id);
 

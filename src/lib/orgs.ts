@@ -161,9 +161,20 @@ export function currentUserFor(member: Member, wantedOrg?: number): CurrentUser 
     calling: here.calling,
     orgs,
     wards: memberWards(member.id),
-    wardLeader: wardEntry?.role === "presidency" || ward.created_by === member.id,
-    wardAdmin: isWardAdmin(member, ward.id, wardEntry?.role === "presidency" || ward.created_by === member.id),
+    wardLeader: wardEntry?.role === "presidency" || startedLeaderless(ward, member.id),
+    wardAdmin: isWardAdmin(member, ward.id, wardEntry?.role === "presidency" || startedLeaderless(ward, member.id)),
   };
+}
+
+/**
+ * Whoever started the ward leads it only until it has a bishopric (someone with
+ * presidency access to the ward itself): once released, they keep no ward powers.
+ */
+function startedLeaderless(ward: { id: number; created_by: number | null }, memberId: number): boolean {
+  if (ward.created_by !== memberId) return false;
+  return !db()
+    .prepare("SELECT 1 FROM org_members om JOIN orgs o ON o.id = om.org_id JOIN members m ON m.id = om.member_id WHERE o.ward_id = ? AND o.kind = 'ward' AND om.role = 'presidency' AND m.status = 'active'")
+    .get(ward.id);
 }
 
 /** Selects members in an organization, with their role there as m.role / m.calling. */

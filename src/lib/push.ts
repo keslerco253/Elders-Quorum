@@ -56,6 +56,8 @@ export interface PushPayload {
   message?: boolean;
   /** Sent to them as a member: a texted reply goes to the presidency, even if they're a leader. */
   asMember?: boolean;
+  /** One of their private reminders: a texted reply isn't passed to anyone (and where earlier replies go is left as it was). */
+  noReply?: boolean;
   /** A file (uploaded flyer) emailed along with it. */
   attachment?: { file: string; name: string };
 }

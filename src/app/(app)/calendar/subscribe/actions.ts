@@ -25,6 +25,6 @@ export async function saveCalendarAlerts(fd: FormData) {
 export async function saveFeedContents(fd: FormData) {
   const user = await requireUser();
   const value = FEED_CONTENTS.find(([v]) => v === fd.get("contents"))?.[0] ?? "both";
-  db().prepare("UPDATE members SET feed_contents = ? WHERE id = ?").run(value, user.id);
+  db().prepare("UPDATE members SET feed_contents = ?, feed_contents_set_at = datetime('now') WHERE id = ?").run(value, user.id);
   redirect(`/calendar/subscribe?ok=1&msg=${encodeURIComponent("Saved. Your calendar picks it up the next time it checks for changes.")}#contents`);
 }

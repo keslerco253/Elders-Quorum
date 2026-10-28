@@ -60,6 +60,9 @@ describe("members' own calendar events", () => {
       const token = feedPath(m).split("/").pop()!;
       return (await GET(new Request("http://x"), { params: Promise.resolve({ member: "2", token }) })).text();
     };
+    // Not until they choose (a link made before may have been shared).
+    expect(await feed()).not.toContain("SUMMARY:Dentist");
+    db().prepare("UPDATE members SET feed_contents = 'both', feed_contents_set_at = datetime('now') WHERE id = 2").run();
     expect(await feed()).toContain("SUMMARY:Dentist");
     db().prepare("UPDATE members SET feed_contents = 'ward' WHERE id = 2").run();
     expect(await feed()).not.toContain("SUMMARY:Dentist");

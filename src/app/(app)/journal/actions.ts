@@ -34,8 +34,11 @@ const tryPasscode = (memberId: number) => allowHit(`journal-passcode:${memberId}
  * there's something in it; after that the same entry is updated. "locked": the journal
  * has a passcode and locked itself (the editor asks for the passcode and tries again).
  */
-export async function saveJournalText(input: { id: number | null; date: string; body: string }): Promise<{ id: number | null; error?: string }> {
+export async function saveJournalText(input: { owner: number; id: number | null; date: string; body: string }): Promise<{ id: number | null; error?: string }> {
   const user = await requireUser();
+  // Written while someone else was signed in (a page left open from before signing out):
+  // never saved into this member's journal.
+  if (Number(input.owner) !== user.id) return { id: null, error: "signed-out" };
   const access = await journalAccess(user.id);
   if (!access) return { id: input.id ? Number(input.id) : null, error: "locked" };
   const body = String(input.body ?? "");
