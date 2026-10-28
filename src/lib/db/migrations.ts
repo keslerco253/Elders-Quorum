@@ -1678,4 +1678,13 @@ ALTER TABLE members ADD COLUMN text_last_noreply INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE members ADD COLUMN feed_contents_set_at TEXT;
 `,
   },
+  {
+    // A leader marked a member's message as needing no reply (an answer like "Thanks!"),
+    // so the conversation no longer says "Needs reply".
+    id: 88,
+    sql: `
+ALTER TABLE member_messages ADD COLUMN no_reply_at TEXT;
+ALTER TABLE member_messages ADD COLUMN no_reply_by INTEGER REFERENCES members(id) ON DELETE SET NULL;
+`,
+  },
 ];

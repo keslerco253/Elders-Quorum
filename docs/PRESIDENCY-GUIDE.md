@@ -364,7 +364,10 @@ added under **Admin → Callings** (presidency only):
     like the presidency. Releasing them (or removing the calling) takes it back,
     unless you set their access by hand on their page.
 - **Add a person** to a calling from the organization's members; someone can
-  hold several callings. **Release** takes them out (a teacher's Sundays open
+  hold several callings, in several organizations (a teacher in Sunday School
+  and in Elders Quorum). To choose someone who isn't in this organization yet,
+  tick **Show all (ward) members**: they're added to the organization when you
+  tap **Add**. **Release** takes them out (a teacher's Sundays open
   up).
 - **Rename or change this calling**, or **Remove this calling** (everyone in it
   is released).
@@ -559,7 +562,7 @@ number next to each is how many people get it.
 - **Inbox:** one row per person who has written to you (and a separate row for
   each private conversation), from every organization you lead, newest first. A
   blue dot and count mean unread; **Needs reply** means their message is the last
-  one; **Private** marks a private conversation. **Unread** shows only what's new,
+  one and no one has answered it or marked it **No reply needed**; **Private** marks a private conversation. **Unread** shows only what's new,
   and the search box finds someone by name.
 - **Sent:** announcements sent to everyone, the presidency, teachers or a group,
   with who sent them, how many were reached by each way, and **Opened by …**.
@@ -571,7 +574,10 @@ number next to each is how many people get it.
 messages appear while it's open. Under your last answer it says **Seen** once
 they've read it. Links, emails and phone numbers can be tapped. Your unfinished
 reply is kept if you leave; **Ctrl+Enter** (⌘+Enter on a Mac) sends. **Mark as
-unread** keeps it in your Unread list. Each leader has their own read and
+unread** keeps it in your Unread list. When their last message needs no answer
+(like "Thanks!"), tap **✓ No reply needed**: **Needs reply** comes off it for the
+whole presidency (or just you, in a private conversation) until they write again;
+**Undo** puts it back. Each leader has their own read and
 unread. Tap **+ Add to the next presidency meeting** under a member's message to
 put it on the agenda, or **Forward…** to send it elsewhere.
 

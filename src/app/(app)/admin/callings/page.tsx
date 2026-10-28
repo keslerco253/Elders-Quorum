@@ -7,6 +7,8 @@ import { requirePresidency } from "@/lib/auth";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { orgRoster } from "@/lib/orgs";
+import { wardPeople } from "@/lib/announce";
+import { PersonPicker } from "./person-picker";
 import { MAX_CALLING_NAME, orgCallings, type OrgCalling } from "@/lib/org-callings";
 import { regularTeachers, WEEK_WORDS, WEEKS, weeksText } from "@/lib/regular-teachers";
 import { leadersWord } from "@/lib/types";
@@ -42,6 +44,9 @@ export default async function CallingsPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const callings = orgCallings(user.org_id);
   const roster = orgRoster(user.org_id);
+  // Everyone else in the ward, for "Show all ward members".
+  const inRoster = new Set(roster.map((p) => p.id));
+  const wardOthers = wardPeople(user.ward_id).filter((p) => !inRoster.has(p.id));
   const byWeek = new Map(regularTeachers(user.org_id).map((r) => [r.week, r.display_name]));
 
   return (
@@ -65,6 +70,7 @@ export default async function CallingsPage({ searchParams }: { searchParams: Pro
         {callings.length === 0 && <Empty>No added callings yet. Add one below.</Empty>}
         {callings.map((c) => {
           const others = roster.filter((p) => !c.holders.some((h) => h.member_id === p.id));
+          const outside = wardOthers.filter((p) => !c.holders.some((h) => h.member_id === p.id));
           return (
             <section key={c.id} id={`calling-${c.id}`} className="card scroll-mt-20 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -120,25 +126,19 @@ export default async function CallingsPage({ searchParams }: { searchParams: Pro
                   One teacher per Sunday: choosing a Sunday someone else has (shown in parentheses) moves it to this person. 5th Sundays are filled in each time under Manage lessons.
                 </p>
               )}
-              {others.length > 0 && (
-                <form action={addHolder} className="flex flex-wrap items-end gap-2">
+              {(others.length > 0 || outside.length > 0) && (
+                <form action={addHolder} className="flex flex-wrap items-start gap-2">
                   <input type="hidden" name="calling_id" value={c.id} />
-                  <div className="min-w-48 flex-1">
-                    <label className="label" htmlFor={`add-${c.id}`}>
-                      Add a person
-                    </label>
-                    <select id={`add-${c.id}`} name="member_id" className="input" required defaultValue="">
-                      <option value="" disabled>
-                        Choose someone
-                      </option>
-                      {others.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.display_name}
-                        </option>
-                      ))}
-                    </select>
+                  <PersonPicker
+                    id={`add-${c.id}`}
+                    inOrg={others.map((p) => ({ id: p.id, name: p.display_name }))}
+                    others={outside}
+                    wardName={user.ward.name}
+                    orgLabel={user.orgLabel}
+                  />
+                  <div className="pt-6">
+                    <SubmitButton className="btn-secondary">Add</SubmitButton>
                   </div>
-                  <SubmitButton className="btn-secondary">Add</SubmitButton>
                 </form>
               )}
               <details className="text-sm">

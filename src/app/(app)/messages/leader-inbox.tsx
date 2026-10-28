@@ -50,7 +50,7 @@ export function LeaderInbox({ viewerId, tz, unreadOnly, q }: { viewerId: number;
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     <span className={c.unread ? "font-bold" : "font-medium"}>{c.member_name}</span>
                     {c.recipient_id && <Badge tone="warn">Private</Badge>}
-                    {c.last_direction === "in" && <Badge tone="info">Needs reply</Badge>}
+                    {!!c.needs_reply && <Badge tone="info">Needs reply</Badge>}
                     {manyOrgs && <span className="text-xs text-muted">{c.org_label}</span>}
                   </div>
                   <div className={`truncate text-sm ${c.unread ? "text-text" : "text-muted"}`}>

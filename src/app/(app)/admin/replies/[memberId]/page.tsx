@@ -14,7 +14,7 @@ import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { ChatBox } from "@/components/chat-box";
 import { LiveRefresh } from "@/components/live-refresh";
-import { answerMember, markUnread } from "../actions";
+import { answerMember, markUnread, noReplyNeeded } from "../actions";
 import { leadersWord } from "@/lib/types";
 import { hasFeature } from "@/lib/orgs";
 import { agendaFromMessage } from "../../meetings/actions";
@@ -46,6 +46,14 @@ export default async function ConversationPage({ params, searchParams }: { param
   // Other organizations (and leaders) a message can be forwarded to.
   const forwardTo = forwardTargets(user.ward_id).filter((t) => !t.value.startsWith(`org:${user.org_id}`) && !t.value.startsWith(`leader:${user.org_id}:`));
   const lastOut = thread.findLastIndex((c) => c.direction === "out");
+  // The member wrote last: it needs a reply, unless a leader marked it as needing none.
+  const lastIn = thread.at(-1)?.direction === "in" ? thread.at(-1)! : null;
+  const noReply = lastIn
+    ? (db().prepare("SELECT mm.no_reply_at, m.display_name FROM member_messages mm LEFT JOIN members m ON m.id = mm.no_reply_by WHERE mm.id = ?").get(lastIn.id) as {
+        no_reply_at: string | null;
+        display_name: string | null;
+      })
+    : null;
   const tab = (on: boolean) => `rounded-lg px-3 py-1.5 text-sm font-medium ${on ? "bg-accent-soft text-accent" : "text-muted hover:bg-surface-2"}`;
 
   return (
@@ -111,6 +119,31 @@ export default async function ConversationPage({ params, searchParams }: { param
             </li>
           ))}
         </ul>
+      )}
+      {lastIn && (
+        <form action={noReplyNeeded} className="mb-3 flex flex-wrap items-center justify-end gap-2 text-sm">
+          <input type="hidden" name="member_id" value={member.id} />
+          <input type="hidden" name="org_id" value={user.org_id} />
+          {privately && <input type="hidden" name="private" value="1" />}
+          {noReply?.no_reply_at ? (
+            <>
+              <span className="text-xs text-muted">
+                ✓ Marked no reply needed{noReply.display_name ? ` by ${noReply.display_name}` : ""}, {formatDateTime(noReply.no_reply_at, tz, "LLL d")}
+              </span>
+              <input type="hidden" name="undo" value="1" />
+              <SubmitButton className="btn-secondary btn-sm" pendingText="…">
+                Undo
+              </SubmitButton>
+            </>
+          ) : (
+            <>
+              <span className="text-xs text-muted">Nothing to answer (like &ldquo;Thanks!&rdquo;)?</span>
+              <SubmitButton className="btn-secondary btn-sm" pendingText="…">
+                ✓ No reply needed
+              </SubmitButton>
+            </>
+          )}
+        </form>
       )}
       <div id="end" className="scroll-mt-20" />
       <LiveRefresh seconds={10} />

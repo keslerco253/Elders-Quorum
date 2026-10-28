@@ -272,6 +272,23 @@ export function markThreadUnread(orgId: number, memberId: number, thread: Thread
   if (last) db().prepare("DELETE FROM message_reads WHERE message_id = ? AND viewer_id = ?").run(last.id, viewerId);
 }
 
+/**
+ * "No reply needed" (or, with `on` false, undone): the member's newest message in the
+ * thread no longer asks for an answer. Answering later works as always. It's marked read
+ * for this leader too.
+ */
+export function markNoReplyNeeded(orgId: number, memberId: number, thread: Thread, viewerId: number, on = true) {
+  const t = threadSql(thread);
+  const last = db().prepare(`SELECT id, direction FROM member_messages WHERE org_id = ? AND member_id = ? AND ${t.sql} ORDER BY id DESC LIMIT 1`).get(orgId, memberId, ...t.args) as
+    | { id: number; direction: "in" | "out" }
+    | undefined;
+  if (!last || last.direction !== "in") return;
+  db()
+    .prepare(`UPDATE member_messages SET no_reply_at = ${on ? "datetime('now')" : "NULL"}, no_reply_by = ? WHERE id = ?`)
+    .run(on ? viewerId : null, last.id);
+  if (on) markThreadRead(orgId, memberId, thread, viewerId);
+}
+
 /** Counts a member's messages in the last hour, to stop runaway texting or posting. */
 export function recentReplies(memberId: number): number {
   return (db().prepare("SELECT COUNT(*) AS n FROM member_messages WHERE member_id = ? AND direction = 'in' AND created_at > datetime('now', '-1 hour')").get(memberId) as { n: number }).n;
@@ -284,6 +301,8 @@ export interface InboxRow extends ConversationSummary {
   /** Who wrote the last answer (when the last message is one). */
   last_author_id: number | null;
   last_author_name: string | null;
+  /** The member wrote last, and no leader has answered or marked it "No reply needed". */
+  needs_reply: number;
 }
 
 /** Organizations (turned on, in any ward) where this person is in the presidency. */
@@ -306,7 +325,7 @@ export function leaderInbox(viewerId: number, opts: { unreadOnly?: boolean; q?: 
   const rows = db()
     .prepare(
       `SELECT c.org_id, c.member_id, mem.display_name AS member_name, c.recipient_id, c.body AS last_body, c.direction AS last_direction, c.created_at AS last_at,
-         c.author_id AS last_author_id, au.display_name AS last_author_name,
+         c.author_id AS last_author_id, au.display_name AS last_author_name, (c.direction = 'in' AND c.no_reply_at IS NULL) AS needs_reply,
          CASE WHEN o.kind = 'ward' THEN w.name ELSE w.name || ' · ' || o.name END AS org_label,
          (SELECT COUNT(*) FROM member_messages u WHERE u.org_id = c.org_id AND u.member_id = c.member_id AND u.recipient_id IS c.recipient_id AND u.direction = 'in'
            AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = u.id AND r.viewer_id = ?)) AS unread

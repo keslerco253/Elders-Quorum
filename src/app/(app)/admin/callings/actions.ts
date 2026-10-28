@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePresidency } from "@/lib/auth";
-import { orgRoster } from "@/lib/orgs";
+import { addToOrg, orgRoster } from "@/lib/orgs";
+import { wardPeople } from "@/lib/announce";
 import { todayIn } from "@/lib/time";
 import { tellRegularTeachers } from "@/lib/regular-teachers";
 import {
@@ -90,8 +91,15 @@ export async function addHolder(fd: FormData) {
   const calling = getOrgCalling(user.org_id, Number(fd.get("calling_id")));
   if (!calling) go("That calling was removed.");
   const memberId = Number(fd.get("member_id"));
-  const person = orgRoster(user.org_id).find((p) => p.id === memberId);
-  if (!person) go("Choose someone in the organization.", `#calling-${calling.id}`);
+  // Someone in the organization, or anyone in the ward (who then joins it).
+  let person: { display_name: string } | undefined = orgRoster(user.org_id).find((p) => p.id === memberId);
+  if (!person) {
+    const fromWard = wardPeople(user.ward_id).find((p) => p.id === memberId);
+    if (!fromWard) go("Choose someone in the ward.", `#calling-${calling.id}`);
+    addToOrg(memberId, user.org_id);
+    db().prepare("UPDATE org_members SET official = 1 WHERE org_id = ? AND member_id = ?").run(user.org_id, memberId);
+    person = { display_name: fromWard.name };
+  }
   db().prepare("INSERT OR IGNORE INTO member_callings (calling_id, member_id) VALUES (?, ?)").run(calling.id, memberId);
   syncLeaderAccess(user.org_id, memberId);
   refresh();

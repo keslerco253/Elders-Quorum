@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requirePresidency } from "@/lib/auth";
-import { ledOrgIds, markThreadUnread, sendAnswer } from "@/lib/conversations";
+import { ledOrgIds, markNoReplyNeeded, markThreadUnread, sendAnswer } from "@/lib/conversations";
 import type { CurrentUser } from "@/lib/types";
 
 /** The organization the page was showing (it may not be the one now chosen on another device). */
@@ -21,6 +21,19 @@ export async function answerMember(fd: FormData) {
   const ok = await sendAnswer({ id: user.id, org_id: orgId, display_name: user.display_name }, memberId, String(fd.get("body") || ""), privately);
   revalidatePath("/admin", "layout");
   redirect(`/admin/replies/${memberId}?org=${orgId}&${privately ? "private=1&" : ""}msg=${encodeURIComponent(ok ? "Sent." : "Write a message first.")}${ok ? "" : "&err=1"}#end`);
+}
+
+/** The member's last message doesn't need an answer (or, with undo, it does again). */
+export async function noReplyNeeded(fd: FormData) {
+  const user = await requirePresidency();
+  const memberId = Number(fd.get("member_id"));
+  const privately = fd.get("private") === "1";
+  const orgId = formOrg(user, fd);
+  const undo = fd.get("undo") === "1";
+  markNoReplyNeeded(orgId, memberId, privately ? { private: true, withId: user.id } : { private: false }, user.id, !undo);
+  revalidatePath("/", "layout");
+  if (undo) redirect(`/admin/replies/${memberId}?org=${orgId}${privately ? "&private=1" : ""}#end`);
+  redirect("/messages");
 }
 
 /** Like email: keep a conversation unread to come back to it. */
