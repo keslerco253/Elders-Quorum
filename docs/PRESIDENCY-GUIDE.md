@@ -32,10 +32,12 @@ point members with questions about the app. Leaders can open it too.
   settings. Access level (**Member** or **Leadership**) and calling are set per
   organization under **Admin → Members → (name)**.
 - **Callings** (set on a person's page under Admin → Members): for an
-  organization, President, First Counselor, Second Counselor, Secretary,
-  Assistant Secretary and Stake High Council; for the bishopric, Bishop, First
-  Counselor in the Bishopric, Second Counselor in the Bishopric, Executive
-  Secretary and Ward Clerk. Only one President (or Bishop) at a time: choosing a
+  organization, President, 1st Counselor, 2nd Counselor, Secretary, Assistant
+  Secretary and Stake High Councilor, each shown with the organization's name
+  (for example "Elders Quorum 1st Counselor" or "Relief Society Secretary"); for
+  the bishopric, Bishop, Bishopric 1st Counselor, Bishopric 2nd Counselor,
+  Executive Secretary, Ward Clerk and Stake High Councilor. The Calling box
+  appears as soon as you choose **Leadership** as the access level. Only one President (or Bishop) at a time: choosing a
   new one clears it from the previous person. Callings decide who conducts each
   month and are shown to members choosing who to write to. Other callings
   (Teacher, Activities Committee…) are added under **Admin → Callings** (see

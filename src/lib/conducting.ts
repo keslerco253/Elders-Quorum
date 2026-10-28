@@ -24,7 +24,7 @@ export interface Conductor {
   /** Who conducts (null when no one has that calling). */
   memberId: number | null;
   name: string | null;
-  /** "First Counselor", whose month it is. */
+  /** "Elders Quorum 1st Counselor", whose month it is. */
   calling: string;
   /** Who it was, if someone else took it. */
   insteadOf: string | null;

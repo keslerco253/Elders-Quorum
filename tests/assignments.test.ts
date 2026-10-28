@@ -149,12 +149,12 @@ describe("scheduled presidency meetings", () => {
     // People with their callings, and a box for each calling no one holds yet.
     expect(attendeeChoices(1).map((p) => [p.name, p.calling])).toEqual([
       ["Elders Quorum President", null],
-      ["First Counselor", null],
-      ["Second Counselor", null],
+      ["Elders Quorum 1st Counselor", null],
+      ["Elders Quorum 2nd Counselor", null],
       ["Pres", null],
-      ["Secretary", null],
-      ["Ann", "Assistant Secretary"],
-      ["Stake High Council", null],
+      ["Elders Quorum Secretary", null],
+      ["Ann", "Elders Quorum Assistant Secretary"],
+      ["Stake High Councilor", null],
     ]);
   });
 });

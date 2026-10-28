@@ -16,7 +16,7 @@ describe("who's conducting", () => {
     // Oct, Nov, Dec, Jan: bishop, first, second, bishop.
     const months = ["2026-10-25", "2026-11-01", "2026-12-06", "2027-01-03"].map((d) => conductingSchedule(1, d, 1)[0]);
     expect(months.map((c) => c.name)).toEqual(["Pres", "First", "Second", "Pres"]);
-    expect(months[1].calling).toMatch(/First Counselor/);
+    expect(months[1].calling).toMatch(/1st Counselor/);
   });
 
   it("hands a Sunday to someone who accepts; only the one conducting can ask", () => {

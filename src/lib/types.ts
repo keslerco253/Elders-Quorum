@@ -210,13 +210,13 @@ export type Calling = "bishop" | "president" | "first_counselor" | "second_couns
 
 /** Callings offered in each kind of organization, in order of seniority. */
 export const CALLINGS: Record<Org["kind"], Calling[]> = {
-  ward: ["bishop", "first_counselor", "second_counselor", "executive_secretary", "ward_clerk"],
+  ward: ["bishop", "first_counselor", "second_counselor", "executive_secretary", "ward_clerk", "stake_high_council"],
   group: ["president", "first_counselor", "second_counselor", "secretary", "assistant_secretary", "stake_high_council"],
 };
 
-export const isCalling = (v: unknown): v is Calling => typeof v === "string" && ["bishop", ...CALLINGS.group].includes(v);
+export const isCalling = (v: unknown): v is Calling => typeof v === "string" && [...CALLINGS.ward, ...CALLINGS.group].includes(v as Calling);
 
-/** "Elders Quorum President", "Bishop", "First Counselor"… */
+/** "Elders Quorum President", "Bishop", "Relief Society 1st Counselor", "Bishopric 2nd Counselor"… */
 export function callingLabel(calling: Calling, org: Pick<Org, "kind" | "name">): string {
   switch (calling) {
     case "bishop":
@@ -224,19 +224,19 @@ export function callingLabel(calling: Calling, org: Pick<Org, "kind" | "name">):
     case "president":
       return `${org.name} President`;
     case "first_counselor":
-      return org.kind === "ward" ? "First Counselor in the Bishopric" : "First Counselor";
+      return `${org.kind === "ward" ? "Bishopric" : org.name} 1st Counselor`;
     case "second_counselor":
-      return org.kind === "ward" ? "Second Counselor in the Bishopric" : "Second Counselor";
+      return `${org.kind === "ward" ? "Bishopric" : org.name} 2nd Counselor`;
     case "executive_secretary":
       return "Executive Secretary";
     case "ward_clerk":
       return "Ward Clerk";
     case "secretary":
-      return "Secretary";
+      return `${org.name} Secretary`;
     case "assistant_secretary":
-      return "Assistant Secretary";
+      return `${org.name} Assistant Secretary`;
     case "stake_high_council":
-      return "Stake High Council";
+      return "Stake High Councilor";
   }
 }
 

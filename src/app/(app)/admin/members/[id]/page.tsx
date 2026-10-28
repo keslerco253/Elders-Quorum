@@ -154,7 +154,8 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             .
           </p>
           {presidency && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            // The Calling box shows only while Leadership is chosen (before saving too).
+            <div className="access-fields grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="role">
                   Access level
@@ -175,8 +176,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   </select>
                 </div>
               )}
-              {m.role !== "member" && (
-                <div>
+              <div className="calling-field">
                   <label className="label" htmlFor="calling">
                     Calling
                   </label>
@@ -190,7 +190,6 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   </select>
                   <p className="hint">Shown next to their name. Members can message presidency members privately.</p>
                 </div>
-              )}
               <p className="hint sm:col-span-2">
                 Other callings, like a teacher or activities committee:{" "}
                 <Link href="/admin/callings" className="link">

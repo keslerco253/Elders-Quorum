@@ -361,3 +361,8 @@ html.in-app main.app-main { padding-bottom: 2rem; }
 
 /* Things only for the phone app, or only for a browser. */
 html:not(.in-app) .app-only, html.in-app .web-only { display: none; }
+
+/* A member's page: the Calling box only while Leadership is chosen (before saving too). */
+.access-fields:has(#role option[value="member"]:checked) .calling-field {
+  display: none;
+}
