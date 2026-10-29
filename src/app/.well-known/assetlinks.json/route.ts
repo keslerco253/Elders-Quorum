@@ -11,7 +11,7 @@ export function GET() {
   return Response.json([
     {
       relation: ["delegate_permission/common.handle_all_urls"],
-      target: { namespace: "android_app", package_name: "net.mywardlink.app", sha256_cert_fingerprints: prints },
+      target: { namespace: "android_app", package_name: "com.mywardlink.app", sha256_cert_fingerprints: prints },
     },
   ]);
 }

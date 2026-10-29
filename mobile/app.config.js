@@ -40,7 +40,8 @@ module.exports = {
       },
     },
     android: {
-      package: "net.mywardlink.app",
+      // Google Play's app is com.mywardlink.app (the iPhone app keeps com.MyWardLink.app).
+      package: "com.mywardlink.app",
       adaptiveIcon: {
         backgroundColor: "#1d3a5f",
         foregroundImage: "./assets/android-icon-foreground.png",

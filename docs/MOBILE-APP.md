@@ -66,7 +66,8 @@ account, a free Firebase account (Google), and Node.js on your PC
 
 1. https://console.firebase.google.com → **Add project** ("My Ward Link",
    Analytics off).
-2. In the project: **Add app → Android**, package name **net.mywardlink.app**.
+2. In the project: **Add app → Android**, package name **com.mywardlink.app** (Google Play's; the iPhone app is
+   com.MyWardLink.app).
    Download **google-services.json** and put it in the `mobile` folder (it's
    safe to commit).
 3. Project settings → **Service accounts → Generate new private key**. This
