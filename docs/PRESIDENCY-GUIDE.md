@@ -1102,8 +1102,12 @@ place. Only the presidency (or bishopric) sees it.
   for assignments. Print it or save it as a PDF. In the phone app it opens the
   phone's print screen.
 - **＋ Schedule a meeting** (below the next meeting): date, time (starts at the last meeting's time), an
-  optional title and where (optional). It goes on the presidency's calendar and Coming up, seen only by
-  the presidency, with a reminder (1 hour before, or as set under Reminder times).
+  optional title and where (optional), and its **Reminder** and an optional
+  **Second reminder** (15 minutes to 2 days before; the first starts at the usual
+  one set under Reminder times). Scheduling doesn't notify anyone right away: it
+  goes on the presidency's calendar and Coming up, seen only by the presidency,
+  and each of them gets the reminders the way they get their other reminders.
+  Change the reminders later with **Edit meeting** or on the meeting's page.
   The calendar event opens its agenda and notes. Changing the meeting's date or
   time moves the event; deleting the meeting removes it. Meetings are listed under
   **Coming up** and **Past meetings** (Today, Scheduled, Not finished, Review).

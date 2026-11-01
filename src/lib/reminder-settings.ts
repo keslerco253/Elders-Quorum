@@ -56,6 +56,7 @@ export const MEETING_MINUTES: [number, string][] = [
   [60, "1 hour before"],
   [120, "2 hours before"],
   [1440, "1 day before"],
+  [2880, "2 days before"],
 ];
 
 const validWhen = (w: unknown): w is LessonWhen =>

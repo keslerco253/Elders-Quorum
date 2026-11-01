@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePresidency } from "@/lib/auth";
-import { attendeeChoices, getMeeting, inviteGroups, MEETING_ROLES, meetingInvitees, meetingAgenda, meetingName, pendingAgenda, videoKind, videoLink } from "@/lib/meetings";
+import { attendeeChoices, getMeeting, inviteGroups, MEETING_ROLES, meetingInvitees, meetingAgenda, meetingName, meetingReminders, pendingAgenda, videoKind, videoLink } from "@/lib/meetings";
 import { DateTime } from "luxon";
 import { Linkify } from "@/components/linkify";
 import { orgTodos, STATUS_LABELS } from "@/lib/assignments";
@@ -14,6 +14,7 @@ import { AgendaList } from "../agenda-list";
 import { addAgenda, deleteMeeting, finish, inviteToMeetingAction, saveMeeting, saveMeetingRole, startVideo, uninviteAction } from "../actions";
 import { RoleSelect } from "../role-select";
 import { PrintAgendaButton } from "../print-agenda";
+import { MeetingReminderFields } from "../reminder-fields";
 
 export const metadata = { title: "Presidency meeting" };
 
@@ -204,8 +205,9 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
               <input name="date" type="date" required defaultValue={m.date} className="input" aria-label="Date" />
               <input name="time" type="time" defaultValue={m.time ?? ""} className="input" aria-label="Time" />
               <input name="title" maxLength={120} defaultValue={m.title} required={invited} className="input col-span-2" placeholder={invited ? "Title" : "Title (optional)"} />
-              {invited && <input name="location" maxLength={200} defaultValue={m.location} className="input col-span-2" placeholder="Where (optional)" />}
+              <input name="location" maxLength={200} defaultValue={m.location} className="input col-span-2" placeholder="Where (optional)" />
             </div>
+            {!held && <MeetingReminderFields id="meeting" first={meetingReminders(user.org_id, m)[0] ?? 0} second={meetingReminders(user.org_id, m)[1] ?? 0} />}
             <fieldset>
               <legend className="label">Who was there</legend>
               <div className="flex flex-wrap gap-x-4 gap-y-1">

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
 import { requirePresidency } from "@/lib/auth";
-import { attendeeChoices, MEETING_ROLES, meetingRolesText, orgMeetings, pendingAgenda, recordsToReview, videoKind, videoLink } from "@/lib/meetings";
+import { attendeeChoices, MEETING_ROLES, meetingReminders, meetingRolesText, orgMeetings, pendingAgenda, recordsToReview, videoKind, videoLink } from "@/lib/meetings";
 import { formatDate, todayIn } from "@/lib/time";
 import { leadersWord, roleLabel } from "@/lib/types";
-import { MEETING_MINUTES, reminderSettings } from "@/lib/reminder-settings";
+import { reminderSettings } from "@/lib/reminder-settings";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AgendaList } from "./agenda-list";
@@ -13,6 +13,7 @@ import { MEETINGS, orgChapter } from "@/lib/handbook";
 import { addAgenda, newMeeting, saveMeetingRole, saveMeetingWhen, saveVideoLink, startVideo } from "./actions";
 import { RoleSelect } from "./role-select";
 import { PrintAgendaButton } from "./print-agenda";
+import { MeetingReminderFields } from "./reminder-fields";
 
 export const metadata = { title: "Presidency meetings" };
 
@@ -28,7 +29,6 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const review = recordsToReview(user.org_id, today).length;
   const video = videoLink(user.org_id);
   const reminderMin = reminderSettings(user.org_id).meetingMinutes;
-  const reminderText = reminderMin ? `with a reminder ${MEETING_MINUTES.find(([m]) => m === reminderMin)?.[1]}` : "with no reminder";
   // Scheduled and not finished yet (today's too); the rest are past.
   const upcoming = meetings.filter((m) => !m.held_at && m.date >= today).reverse();
   const past = meetings.filter((m) => !upcoming.includes(m));
@@ -150,6 +150,12 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
               Save
             </SubmitButton>
             <input name="location" maxLength={200} defaultValue={next.location} className="input col-span-2 sm:col-span-4" placeholder="Where (optional)" />
+            <MeetingReminderFields
+              id="edit"
+              first={meetingReminders(user.org_id, next)[0] ?? 0}
+              second={meetingReminders(user.org_id, next)[1] ?? 0}
+              className="col-span-2 sm:col-span-4"
+            />
           </form>
         )}
 
@@ -198,13 +204,15 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                 <input name="date" type="date" required defaultValue={today} min={today} className="input" aria-label="Date" />
                 <input name="time" type="time" required defaultValue={lastTime} className="input" aria-label="Time" />
                 <input name="title" maxLength={120} className="input col-span-2 sm:col-span-1" placeholder="Title (needed for another meeting)" />
-                <input name="location" maxLength={200} className="input col-span-2 sm:col-span-2" placeholder="Where (optional)" />
-                <SubmitButton className="btn-primary col-span-2 sm:col-span-1">Schedule</SubmitButton>
+                <input name="location" maxLength={200} className="input col-span-2 sm:col-span-3" placeholder="Where (optional)" />
               </div>
+              <MeetingReminderFields id="new" first={reminderMin} second={0} />
+              <SubmitButton className="btn-primary w-full sm:w-auto">Schedule</SubmitButton>
               <p className="hint">
-                A {leadersWord(user.org)} meeting goes on the {leadersWord(user.org)}&apos;s calendar and their Coming up list on Home, {reminderText} (change it under Settings → Reminder times). Only the{" "}
-                {leadersWord(user.org)} sees it. Another meeting (an activities committee, a teachers&apos; council…) opens next so you can invite people by calling or by name: they&apos;re
-                notified, can say whether they&apos;ll come, and see it on their calendar and Home.
+                Scheduling doesn&apos;t send anything right away. A {leadersWord(user.org)} meeting goes on the {leadersWord(user.org)}&apos;s calendar and their Coming up
+                list on Home (only the {leadersWord(user.org)} sees it), and each of them gets the reminders chosen above, the way they get their other reminders. The
+                usual first reminder is set under Settings → Reminder times. For another meeting (an activities committee, a teachers&apos; council…) you invite people
+                next: they&apos;re notified right away, can say whether they&apos;ll come, and get the same reminders.
               </p>
             </form>
           </details>

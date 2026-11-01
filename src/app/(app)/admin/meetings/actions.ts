@@ -13,6 +13,7 @@ import { leadersWord } from "@/lib/types";
 import { ledOrgIds } from "@/lib/conversations";
 import { formatDate, todayIn } from "@/lib/time";
 import { agendaPrintHtml } from "@/lib/agenda-print";
+import { MEETING_MINUTES } from "@/lib/reminder-settings";
 import { holdJournalFile } from "@/lib/journal-handoff";
 import { appUrl } from "@/lib/config";
 
@@ -70,6 +71,22 @@ export async function toggleDiscussed(fd: FormData) {
   revalidatePath("/admin/meetings", "layout");
 }
 
+/** The reminders chosen for a meeting: [first, second], each minutes before (0: none). */
+function remindersOf(fd: FormData): [number, number] {
+  const pick = (k: string) => {
+    const n = Number(fd.get(k));
+    return MEETING_MINUTES.some(([m]) => m === n) ? n : 0;
+  };
+  return [pick("reminder"), pick("reminder2")];
+}
+
+/** Saves a meeting's reminders when the form had them. */
+function saveReminders(fd: FormData, meetingId: number) {
+  if (!fd.has("reminder")) return;
+  const [first, second] = remindersOf(fd);
+  db().prepare("UPDATE meetings SET reminder_minutes = ?, reminder2_minutes = ? WHERE id = ?").run(first, second || null, meetingId);
+}
+
 const timeOf = (fd: FormData) => (/^\d{2}:\d{2}$/.test(String(fd.get("time"))) ? String(fd.get("time")) : null);
 
 /**
@@ -83,7 +100,14 @@ export async function newMeeting(fd: FormData) {
   const title = String(fd.get("title") || "").trim().slice(0, 120);
   const invited = fd.get("kind") === "invited";
   if (invited && !title) go("/admin/meetings", "Give the meeting a title (for example, Activities committee).");
-  const id = createMeeting(user.org_id, date, title, user.id, { time, tz: user.ward.timezone, kind: invited ? "invited" : "presidency", location: String(fd.get("location") || "") });
+  const [first, second] = remindersOf(fd);
+  const id = createMeeting(user.org_id, date, title, user.id, {
+    time,
+    tz: user.ward.timezone,
+    kind: invited ? "invited" : "presidency",
+    location: String(fd.get("location") || ""),
+    reminders: fd.has("reminder") ? [first, second || null] : undefined,
+  });
   revalidatePath("/", "layout");
   if (invited) go(`/admin/meetings/${id}#invite`, `${title} scheduled for ${formatDate(date, "short")}. Now invite people to it.`);
   go("/admin/meetings", time ? `Meeting scheduled for ${formatDate(date, "short")}. It's on the ${leadersWord(user.org)}'s calendar and Coming up list.` : `Meeting added for ${formatDate(date, "short")}.`);
@@ -113,7 +137,8 @@ export async function saveMeeting(fd: FormData) {
   db()
     .prepare("UPDATE meetings SET date = ?, time = ?, title = ?, location = ?, attendees = ?, notes = ?, updated_at = datetime('now') WHERE id = ?")
     .run(date, time, title, location, attendees, String(fd.get("notes") ?? m.notes).slice(0, 20000), m.id);
-  if (date !== m.date || time !== m.time || title !== m.title || location !== m.location) syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
+  saveReminders(fd, m.id);
+  if (fd.has("reminder") || date !== m.date || time !== m.time || title !== m.title || location !== m.location) syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
   revalidatePath("/", "layout");
   go(`/admin/meetings/${m.id}`, "Notes saved.");
 }
@@ -128,7 +153,8 @@ export async function saveMeetingWhen(fd: FormData) {
   const title = String(fd.get("title") || "").trim().slice(0, 120) || (m.kind === "invited" ? m.title : "");
   const location = String(fd.get("location") || "").trim().slice(0, 200);
   db().prepare("UPDATE meetings SET date = ?, time = ?, title = ?, location = ?, updated_at = datetime('now') WHERE id = ?").run(date, time, title, location, m.id);
-  if (date !== m.date || time !== m.time || title !== m.title || location !== m.location) syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
+  saveReminders(fd, m.id);
+  syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
   revalidatePath("/", "layout");
   go(`${String(fd.get("back")) === "meeting" ? `/admin/meetings/${m.id}` : "/admin/meetings"}?edit=1#next`, "Meeting saved.");
 }

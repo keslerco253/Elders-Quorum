@@ -32,6 +32,10 @@ export interface Meeting {
   /** The presidency's own meeting, or one for the people invited. */
   kind: MeetingKind;
   location: string;
+  /** Its reminder, minutes before it starts (null: the organization's usual one; 0: none). */
+  reminder_minutes: number | null;
+  /** An optional second reminder (null or 0: none). */
+  reminder2_minutes: number | null;
 }
 
 export type MeetingKind = "presidency" | "invited";
@@ -85,12 +89,13 @@ export function createMeeting(
   date: string,
   title: string,
   createdBy: number,
-  opts: { time?: string | null; tz?: string; kind?: MeetingKind; location?: string } = {},
+  opts: { time?: string | null; tz?: string; kind?: MeetingKind; location?: string; reminders?: [number | null, number | null] } = {},
 ): number {
   const id = Number(
     db()
-      .prepare("INSERT INTO meetings (org_id, date, time, title, created_by, kind, location) VALUES (?, ?, ?, ?, ?, ?, ?)")
-      .run(orgId, date, opts.time ?? null, title, createdBy, opts.kind ?? "presidency", (opts.location ?? "").trim().slice(0, 200)).lastInsertRowid,
+      .prepare("INSERT INTO meetings (org_id, date, time, title, created_by, kind, location, reminder_minutes, reminder2_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(orgId, date, opts.time ?? null, title, createdBy, opts.kind ?? "presidency", (opts.location ?? "").trim().slice(0, 200), opts.reminders?.[0] ?? null, opts.reminders?.[1] ?? null)
+      .lastInsertRowid,
   );
   if (opts.time && opts.tz) syncMeetingEvent(orgId, id, opts.tz, createdBy);
   return id;
@@ -116,14 +121,22 @@ export function syncMeetingEvent(orgId: number, meetingId: number, tz: string, b
   const title = meetingName(orgId, m);
   const description = m.kind === "invited" ? "For the people invited. Open it for the agenda, and to say whether you can come." : "The agenda and notes are under Admin → Presidency meetings.";
   const exists = m.event_id && d.prepare("SELECT 1 FROM events WHERE id = ? AND org_id = ?").get(m.event_id, orgId);
+  const [first, second] = meetingReminders(orgId, m);
   if (exists)
-    d.prepare("UPDATE events SET title = ?, location = ?, starts_at = ?, ends_at = ?, reminder_minutes = ? WHERE id = ?").run(title, m.location, starts, ends, reminderSettings(orgId).meetingMinutes || null, m.event_id);
+    d.prepare("UPDATE events SET title = ?, location = ?, starts_at = ?, ends_at = ?, reminder_minutes = ?, reminder2_minutes = ? WHERE id = ?").run(title, m.location, starts, ends, first, second, m.event_id);
   else {
     const id = d
-      .prepare("INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, reminder_minutes, created_by) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)")
-      .run(orgId, title, description, m.location, starts, ends, reminderSettings(orgId).meetingMinutes || null, by).lastInsertRowid;
+      .prepare("INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, reminder_minutes, reminder2_minutes, created_by) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)")
+      .run(orgId, title, description, m.location, starts, ends, first, second, by).lastInsertRowid;
     d.prepare("UPDATE meetings SET event_id = ? WHERE id = ?").run(Number(id), m.id);
   }
+}
+
+/** A meeting's reminders (minutes before, or null for none): its own, or the organization's usual one. */
+export function meetingReminders(orgId: number, m: Pick<Meeting, "reminder_minutes" | "reminder2_minutes">): [number | null, number | null] {
+  const first = m.reminder_minutes ?? reminderSettings(orgId).meetingMinutes;
+  const second = m.reminder2_minutes && m.reminder2_minutes !== first ? m.reminder2_minutes : null;
+  return [first || null, second];
 }
 
 /** Deletes a meeting (its notes and filed agenda) and its calendar event; assignments stay. */

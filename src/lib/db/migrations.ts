@@ -1687,4 +1687,13 @@ ALTER TABLE member_messages ADD COLUMN no_reply_at TEXT;
 ALTER TABLE member_messages ADD COLUMN no_reply_by INTEGER REFERENCES members(id) ON DELETE SET NULL;
 `,
   },
+  {
+    // A meeting's own reminders, chosen when it's scheduled: the first (NULL: the
+    // organization's usual meeting reminder; 0: none) and an optional second one.
+    id: 89,
+    sql: `
+ALTER TABLE meetings ADD COLUMN reminder_minutes INTEGER;
+ALTER TABLE meetings ADD COLUMN reminder2_minutes INTEGER;
+`,
+  },
 ];

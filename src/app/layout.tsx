@@ -1,3 +1,4 @@
+import { UpdatedReload } from "@/components/updated-reload";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getUser } from "@/lib/auth";
@@ -40,6 +41,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ServiceWorker />
         <AppLinks />
         <SearchableSelects />
+        <UpdatedReload />
       </body>
     </html>
   );
