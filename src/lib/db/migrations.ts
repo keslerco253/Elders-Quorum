@@ -1696,4 +1696,12 @@ ALTER TABLE meetings ADD COLUMN reminder_minutes INTEGER;
 ALTER TABLE meetings ADD COLUMN reminder2_minutes INTEGER;
 `,
   },
+  {
+    // Agenda sections (see agenda-sections.ts): what an item is about. Items already on
+    // an agenda are presidency business.
+    id: 90,
+    sql: `
+ALTER TABLE agenda_items ADD COLUMN category TEXT NOT NULL DEFAULT 'presidency';
+`,
+  },
 ];

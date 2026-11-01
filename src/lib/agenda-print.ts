@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { groupBySection } from "./agenda-sections";
 import { getMeeting, MEETING_ROLES, meetingAgenda, meetingName, pendingAgenda, type Meeting } from "./meetings";
 import { getOrg, getWard, orgLabel } from "./orgs";
 
@@ -28,12 +29,13 @@ export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?:
     `<div class="role"><span class="label">${label}</span><span class="who">${m[k] ? html(m[k]) : ""}</span></div>`;
   // Each item: its number and wording, any notes added ahead of time, then "Notes:" and
   // open space to write in the meeting.
+  let n = 0;
+  const item = (a: (typeof items)[number]) =>
+    `<div class="item"><div class="topic"><span class="n">${++n}.</span><span class="body">${html(a.body.trim())}</span></div>${a.notes ? `<div class="prep">${html(a.notes.trim())}</div>` : ""}<div class="notes">Notes:</div></div>`;
+  // Section by section (only those with items), numbered straight through.
   const list = items.length
-    ? items
-        .map(
-          (a, i) =>
-            `<div class="item"><div class="topic"><span class="n">${i + 1}.</span><span class="body">${html(a.body.trim())}</span></div>${a.notes ? `<div class="prep">${html(a.notes.trim())}</div>` : ""}<div class="notes">Notes:</div></div>`,
-        )
+    ? groupBySection(items)
+        .map((g) => `<section class="sec"><h3>${html(g.label)}</h3>${g.items.map(item).join("")}</section>`)
         .join("")
     : `<p class="none">Nothing on the agenda yet.</p>`;
   const title = `${meetingName(orgId, m)}: ${day.toFormat("LLL d")}`;
@@ -61,7 +63,9 @@ export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?:
   .role .who { flex: 1; border-bottom: 1px solid #cbd5e1; min-height: 1.3em; padding-left: .2rem; }
   h2 { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .85rem; letter-spacing: .12em; text-transform: uppercase; color: #1d3a5f; margin: 1.1rem 0 .5rem; padding-bottom: .25rem; border-bottom: 1px solid #e5e7eb; }
   .item { padding: .55rem 0 0; border-top: 1px solid #e3e8ee; break-inside: avoid; }
-  h2 + .item { border-top: none; }
+  .sec h3 { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: #2b6f9e; margin: .9rem 0 .1rem; break-after: avoid; }
+  h2 + .sec h3 { margin-top: .2rem; }
+  .sec h3 + .item { border-top: none; }
   .topic { display: flex; font-size: 1.08rem; font-weight: 600; color: #1d3a5f; }
   .topic .n { flex: none; min-width: 1.6rem; }
   .topic .body { white-space: pre-wrap; overflow-wrap: anywhere; }

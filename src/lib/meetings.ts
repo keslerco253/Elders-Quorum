@@ -1,3 +1,4 @@
+import { bySection, isAgendaSection } from "./agenda-sections";
 import { DateTime } from "luxon";
 import { db } from "./db";
 import { reviewDate } from "./assignments";
@@ -203,24 +204,30 @@ export interface AgendaItem {
   added_by: number | null;
   adder: string | null;
   created_at: string;
+  /** Its agenda section (agenda-sections.ts). */
+  category: string;
 }
 
 /** Items waiting for the next meeting, in the order the presidency put them (new ones last). */
 export function pendingAgenda(orgId: number): AgendaItem[] {
-  return db()
+  const rows = db()
     .prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.org_id = ? AND a.meeting_id IS NULL ORDER BY a.position, a.id`)
     .all(orgId) as AgendaItem[];
+  return bySection(rows);
 }
 
 export function meetingAgenda(meetingId: number): AgendaItem[] {
-  return db().prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.meeting_id = ? ORDER BY a.position, a.id`).all(meetingId) as AgendaItem[];
+  return bySection(
+    db().prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.meeting_id = ? ORDER BY a.position, a.id`).all(meetingId) as AgendaItem[],
+  );
 }
 
-/** Moves an agenda item up (-1) or down (1) one place, or to the top, within its agenda. */
+/** Moves an agenda item up (-1) or down (1) one place, or to the top, within its section. */
 export function moveAgendaItem(orgId: number, itemId: number, dir: -1 | 1 | "top") {
-  const item = db().prepare("SELECT meeting_id FROM agenda_items WHERE id = ? AND org_id = ?").get(itemId, orgId) as { meeting_id: number | null } | undefined;
+  const item = db().prepare("SELECT meeting_id, category FROM agenda_items WHERE id = ? AND org_id = ?").get(itemId, orgId) as { meeting_id: number | null; category: string } | undefined;
   if (!item) return;
-  const ids = (item.meeting_id ? meetingAgenda(item.meeting_id) : pendingAgenda(orgId)).map((a) => a.id);
+  const all = item.meeting_id ? meetingAgenda(item.meeting_id) : pendingAgenda(orgId);
+  const ids = all.filter((a) => a.category === item.category).map((a) => a.id);
   const i = ids.indexOf(itemId);
   if (i < 0) return;
   if (dir === "top") ids.unshift(...ids.splice(i, 1));
@@ -229,22 +236,38 @@ export function moveAgendaItem(orgId: number, itemId: number, dir: -1 | 1 | "top
     if (j < 0 || j >= ids.length) return;
     [ids[i], ids[j]] = [ids[j], ids[i]];
   }
+  // The other sections keep their places: the whole agenda is numbered again in order.
+  const sectionIds = new Set(ids);
+  let k = 0;
+  const final = all.map((a) => (sectionIds.has(a.id) ? ids[k++] : a.id));
   const d = db();
   const set = d.prepare("UPDATE agenda_items SET position = ? WHERE id = ?");
-  d.transaction(() => ids.forEach((id, n) => set.run(n + 1, id)))();
+  d.transaction(() => final.forEach((id, n) => set.run(n + 1, id)))();
+}
+
+/** Puts an item under another section (at the bottom of it). */
+export function setAgendaSection(orgId: number, itemId: number, section: string) {
+  if (!isAgendaSection(section)) return;
+  db()
+    .prepare(
+      `UPDATE agenda_items SET category = ?, position = (SELECT coalesce(max(position), 0) + 1 FROM agenda_items x WHERE x.org_id = agenda_items.org_id AND x.meeting_id IS agenda_items.meeting_id)
+       WHERE id = ? AND org_id = ? AND category <> ?`,
+    )
+    .run(section, itemId, orgId, section);
 }
 
 /** Puts something on the next presidency meeting's agenda. */
-export function addAgendaItem(orgId: number, body: string, opts: { source?: string; link?: string | null; addedBy: number; meetingId?: number }): number {
+export function addAgendaItem(orgId: number, body: string, opts: { source?: string; link?: string | null; addedBy: number; meetingId?: number; section?: string }): number {
   // An invited meeting's agenda is its own; the presidency's waits for the next meeting.
   const meetingId = opts.meetingId ?? null;
   return Number(
     db()
       .prepare(
-        `INSERT INTO agenda_items (org_id, body, source, link, added_by, meeting_id, position)
-         VALUES (?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position), 0) + 1 FROM agenda_items WHERE org_id = ? AND meeting_id IS ?))`,
+        `INSERT INTO agenda_items (org_id, body, source, link, added_by, meeting_id, category, position)
+         VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT coalesce(max(position), 0) + 1 FROM agenda_items WHERE org_id = ? AND meeting_id IS ?))`,
       )
-      .run(orgId, body.trim().slice(0, 2000), (opts.source ?? "").slice(0, 200), opts.link ?? null, opts.addedBy, meetingId, orgId, meetingId).lastInsertRowid,
+      .run(orgId, body.trim().slice(0, 2000), (opts.source ?? "").slice(0, 200), opts.link ?? null, opts.addedBy, meetingId, isAgendaSection(opts.section) ? opts.section : "presidency", orgId, meetingId)
+      .lastInsertRowid,
   );
 }
 

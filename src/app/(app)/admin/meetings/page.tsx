@@ -14,6 +14,7 @@ import { addAgenda, newMeeting, saveMeetingRole, saveMeetingWhen, saveVideoLink,
 import { RoleSelect } from "./role-select";
 import { PrintAgendaButton } from "./print-agenda";
 import { MeetingReminderFields } from "./reminder-fields";
+import { SectionSelect } from "./section-select";
 
 export const metadata = { title: "Presidency meetings" };
 
@@ -176,9 +177,10 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         <div id="agenda" className="scroll-mt-20">
           <h3 className="mb-2 font-semibold">Agenda{agenda.length ? ` (${agenda.length})` : ""}</h3>
           {agenda.length === 0 ? <Empty>Nothing on the agenda yet.</Empty> : <AgendaList items={agenda} tz={tz} canEdit reorder={editing} />}
-          <form action={addAgenda} className="mt-3 flex gap-2">
+          <form action={addAgenda} className="mt-3 flex flex-wrap gap-2">
             {editing && <input type="hidden" name="edit" value="1" />}
-            <input name="body" maxLength={2000} required className="input flex-1" placeholder="Add something to discuss…" />
+            <input name="body" maxLength={2000} required className="input min-w-0 flex-[2_1_14rem]" placeholder="Add something to discuss…" />
+            <SectionSelect className="flex-[1_1_12rem]" />
             <SubmitButton className="btn-secondary">Add</SubmitButton>
           </form>
           <p className="hint mt-2">

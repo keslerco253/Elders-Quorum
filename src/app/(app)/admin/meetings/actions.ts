@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { addAgendaItem, cleanVideoLink, inviteGroups, inviteToMeeting, uninviteFromMeeting, isMeetingRole, moveAgendaItem, setMeetingRole, createMeeting, deleteMeetingRecord, finishMeeting, getMeeting, reviewRecord, saveAgendaNotes, setVideoLink, syncMeetingEvent, videoKind, videoLink, type ReviewRecord } from "@/lib/meetings";
+import { addAgendaItem, cleanVideoLink, inviteGroups, inviteToMeeting, uninviteFromMeeting, isMeetingRole, moveAgendaItem, setAgendaSection, setMeetingRole, createMeeting, deleteMeetingRecord, finishMeeting, getMeeting, reviewRecord, saveAgendaNotes, setVideoLink, syncMeetingEvent, videoKind, videoLink, type ReviewRecord } from "@/lib/meetings";
 import { audienceMembers, notify, recipientById, type Recipient } from "@/lib/notify";
 import { orgRoster } from "@/lib/orgs";
 import { DateTime } from "luxon";
@@ -34,7 +34,7 @@ export async function addAgenda(fd: FormData) {
   const body = String(fd.get("body") || "").trim();
   if (!body) go(`${meetingPath(fd)}#agenda`, "Write the agenda item first.");
   const m = getMeeting(user.org_id, Number(fd.get("meeting_id")));
-  addAgendaItem(user.org_id, body, { addedBy: user.id, meetingId: m?.kind === "invited" ? m.id : undefined });
+  addAgendaItem(user.org_id, body, { addedBy: user.id, meetingId: m?.kind === "invited" ? m.id : undefined, section: String(fd.get("section") || "") });
   revalidatePath("/admin", "layout");
   go(`${meetingPath(fd)}#agenda`, "Added to the agenda.");
 }
@@ -118,6 +118,7 @@ export async function saveItemNotes(fd: FormData) {
   const user = await requirePresidency();
   const itemId = Number(fd.get("item_id"));
   saveAgendaNotes(user.org_id, itemId, String(fd.get("notes") || ""), { body: fd.has("body") ? String(fd.get("body")) : undefined, beforehand: fd.get("beforehand") === "1" });
+  if (fd.has("section")) setAgendaSection(user.org_id, itemId, String(fd.get("section")));
   revalidatePath("/admin/meetings", "layout");
 }
 
@@ -197,7 +198,7 @@ export async function agendaFromMessage(fd: FormData) {
   const safeBack = /^\/admin\/replies\/[\w?=&%-]*$/.test(back) ? back : "/messages";
   // A message written privately to one leader goes on the agenda only if they put it there.
   if (!msg || !ledOrgIds(user.id).includes(msg.org_id) || (msg.recipient_id && msg.recipient_id !== user.id)) go(safeBack, "That message can't be added.");
-  addAgendaItem(msg.org_id, msg.body, { source: `Message from ${msg.display_name}, ${formatDate(msg.created_at.slice(0, 10), "short")}`, link: `/admin/replies/${msg.member_id}`, addedBy: user.id });
+  addAgendaItem(msg.org_id, msg.body, { source: `Message from ${msg.display_name}, ${formatDate(msg.created_at.slice(0, 10), "short")}`, link: `/admin/replies/${msg.member_id}`, addedBy: user.id, section: "members" });
   revalidatePath("/admin", "layout");
   go(safeBack, "Added to the next presidency meeting's agenda.");
 }

@@ -1083,13 +1083,21 @@ place. Only the presidency (or bishopric) sees it.
   prayers and the spiritual thought, and its agenda. **Open meeting ›** opens it
   to take notes and make assignments (the same page you reach from Home's Coming
   up or the calendar).
+- **Agenda sections:** the agenda is grouped, in this order: **Presidency
+  business**, **Temple, family history & missionary work**, **Ministering**,
+  **Members & families**, **Welfare & service** and **Activities & calendar**
+  (only sections with items show). Choose the section next to **Add**; it's
+  Presidency business unless you pick another. A member's message added to the
+  agenda goes under Members & families. To move an item to another section, tap
+  it and change its section. Items are numbered straight through, in the app and
+  on the printed agenda.
 - **The agenda builds itself.** Type an item under the agenda and tap **Add**;
   tick **Add to the next presidency meeting's agenda** when sending a message; or
   tap **+ Add to the next presidency meeting** under a member's message. Each item
   shows who added it and where it came from. New items go to the bottom.
 - **✏️ Edit meeting** (at the top here, or next to the agenda on the meeting's
   page): put the agenda in order with **↑ / ↓** (one place) or **⤒** (straight to
-  the top), take an item off with ✕, change the date, time, title or place, and
+  the top of its section), take an item off with ✕, change the date, time, title or place, and
   choose the **Opening prayer**, **Spiritual thought** and **Closing prayer** (each
   saved as soon as you pick). Tap **✓ Done editing** when it's ready. The order
   buttons show only while editing.

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Linkify } from "@/components/linkify";
 import { SubmitButton } from "@/components/client";
 import type { AgendaItem } from "@/lib/meetings";
+import { AGENDA_SECTIONS, groupBySection } from "@/lib/agenda-sections";
 import { formatDateTime } from "@/lib/time";
 import { moveAgenda, removeAgenda, saveItemNotes, toggleDiscussed } from "./actions";
 
@@ -15,12 +16,33 @@ const LABELS = { top: "Move to the top", up: "Move up", down: "Move down" };
  * place, so the page stays where it is. Putting items in order (and taking one off)
  * shows only while editing the meeting (`reorder`).
  */
-export function AgendaList({
+export function AgendaList(props: Parameters<typeof SectionList>[0]) {
+  const groups = groupBySection(props.items);
+  // Numbered through the whole agenda, section by section.
+  let n = 0;
+  return (
+    <div className="space-y-4">
+      {groups.map((g) => {
+        const start = n;
+        n += g.items.length;
+        return (
+          <div key={g.key}>
+            <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-accent">{g.label}</h4>
+            <SectionList {...props} items={g.items} start={start} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SectionList({
   items,
   tz,
   meetingId,
   canEdit,
   reorder = false,
+  start = 0,
 }: {
   items: AgendaItem[];
   tz: string;
@@ -29,6 +51,8 @@ export function AgendaList({
   canEdit: boolean;
   /** Editing the meeting: ⤒ ↑ ↓ to put items in order, and ✕ to take one off. */
   reorder?: boolean;
+  /** How many items come before these (in earlier sections), for numbering. */
+  start?: number;
 }) {
   const inMeeting = !!meetingId && canEdit;
   return (
@@ -50,6 +74,7 @@ export function AgendaList({
         const shown = (
           <>
             <div className="text-sm whitespace-pre-wrap break-words">
+              <span className="mr-1 font-semibold text-muted">{start + i + 1}.</span>
               <Linkify text={a.body} />
             </div>
             {a.notes && (
@@ -123,10 +148,17 @@ export function AgendaList({
                     <span className="mt-1 inline-block text-xs font-medium text-accent">{a.notes ? "Edit" : inMeeting ? "+ Notes" : "Edit or add notes"}</span>
                   </summary>
                   {/* Keyed by what's saved: the form is cleared after saving and drawn again with it. */}
-                  <form key={`${a.body}\n${a.notes}`} action={saveItemNotes} className="mt-2 space-y-2">
+                  <form key={`${a.body}\n${a.notes}\n${a.category}`} action={saveItemNotes} className="mt-2 space-y-2">
                     <input type="hidden" name="item_id" value={a.id} />
                     {meetingId ? <input type="hidden" name="meeting_id" value={meetingId} /> : <input type="hidden" name="beforehand" value="1" />}
                     <textarea name="body" rows={2} maxLength={2000} required defaultValue={a.body} className="input text-sm" aria-label="Agenda item" />
+                    <select name="section" defaultValue={a.category} className="input text-sm" aria-label="Section">
+                      {AGENDA_SECTIONS.map(([k, label]) => (
+                        <option key={k} value={k}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
                     <textarea
                       name="notes"
                       rows={3}
