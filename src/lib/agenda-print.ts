@@ -41,7 +41,7 @@ export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?:
   const title = `${meetingName(orgId, m)}: ${day.toFormat("LLL d")}`;
   const bar =
     o.toolbar === "browser"
-      ? `<div class="bar"><a href="javascript:history.back()">← Back</a><button type="button" onclick="window.print()">Print</button></div><script>window.addEventListener("load",function(){setTimeout(function(){window.print()},300)})</script>`
+      ? `<div class="bar"><a href="/admin/meetings" onclick="window.close();var h=this.href;setTimeout(function(){location.href=h},200);return false;">✕ Close</a><button type="button" onclick="window.print()">Print</button></div><script>window.addEventListener("load",function(){setTimeout(function(){window.print()},300)})</script>`
       : o.toolbar === "outside"
         ? `<div class="bar"><span class="tip">No print screen? Tap the Share button, then Print.</span><button type="button" onclick="window.print()">Print</button></div><script>window.addEventListener("load",function(){setTimeout(function(){window.print()},300)})</script>`
         : "";
