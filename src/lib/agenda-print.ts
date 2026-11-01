@@ -3,8 +3,8 @@ import { getMeeting, MEETING_ROLES, meetingAgenda, meetingName, pendingAgenda, t
 import { getOrg, getWard, orgLabel } from "./orgs";
 
 // A meeting's agenda on paper: who it's for, when and where, the prayers and
-// spiritual thought, each agenda item numbered with room to write notes, and a
-// place for assignments made. One page for most meetings.
+// spiritual thought, each agenda item numbered with "Notes:" and open space to write,
+// and a place for assignments made.
 
 const html = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -26,14 +26,16 @@ export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?:
   const items = itemsFor(orgId, m);
   const role = (k: (typeof MEETING_ROLES)[number][0], label: string) =>
     `<div class="role"><span class="label">${label}</span><span class="who">${m[k] ? html(m[k]) : ""}</span></div>`;
+  // Each item: its number and wording, any notes added ahead of time, then "Notes:" and
+  // open space to write in the meeting.
   const list = items.length
-    ? `<ol class="items">${items
+    ? items
         .map(
-          (a) =>
-            `<li><div class="body">${html(a.body.trim())}</div>${a.notes ? `<div class="prep">${html(a.notes.trim())}</div>` : ""}<div class="lines"><span></span><span></span></div></li>`,
+          (a, i) =>
+            `<div class="item"><div class="topic"><span class="n">${i + 1}.</span><span class="body">${html(a.body.trim())}</span></div>${a.notes ? `<div class="prep">${html(a.notes.trim())}</div>` : ""}<div class="notes">Notes:</div></div>`,
         )
-        .join("")}</ol>`
-    : `<p class="none">Nothing on the agenda yet.</p><div class="lines tall"><span></span><span></span><span></span><span></span></div>`;
+        .join("")
+    : `<p class="none">Nothing on the agenda yet.</p>`;
   const title = `${meetingName(orgId, m)}: ${day.toFormat("LLL d")}`;
   const bar =
     o.toolbar === "browser"
@@ -58,13 +60,13 @@ export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?:
   .role .label { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; white-space: nowrap; }
   .role .who { flex: 1; border-bottom: 1px solid #cbd5e1; min-height: 1.3em; padding-left: .2rem; }
   h2 { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .85rem; letter-spacing: .12em; text-transform: uppercase; color: #1d3a5f; margin: 1.1rem 0 .5rem; padding-bottom: .25rem; border-bottom: 1px solid #e5e7eb; }
-  ol.items { margin: 0; padding-left: 1.6rem; }
-  ol.items li { margin: 0 0 .75rem; padding-left: .3rem; break-inside: avoid; }
-  ol.items li::marker { font-weight: bold; color: #1d3a5f; }
-  .body { font-size: 1.05rem; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .prep { font-style: italic; color: #4b5563; font-size: .92rem; margin-top: .15rem; white-space: pre-wrap; }
-  .lines span { display: block; height: 1.55em; border-bottom: 1px dotted #cbd5e1; }
-  .lines.tall span { height: 1.8em; }
+  .item { padding: .55rem 0 0; border-top: 1px solid #e3e8ee; break-inside: avoid; }
+  h2 + .item { border-top: none; }
+  .topic { display: flex; font-size: 1.08rem; font-weight: 600; color: #1d3a5f; }
+  .topic .n { flex: none; min-width: 1.6rem; }
+  .topic .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .prep { margin: .15rem 0 0 1.6rem; font-style: italic; color: #4b5563; font-size: .92rem; white-space: pre-wrap; }
+  .notes { margin: .35rem 0 0 1.6rem; height: 1.1in; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .78rem; color: #6b7280; }
   .none { color: #6b7280; font-style: italic; }
   .assign { width: 100%; border-collapse: collapse; font-size: .9rem; }
   .assign th { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; text-align: left; font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; padding: 0 .3rem .2rem; }
