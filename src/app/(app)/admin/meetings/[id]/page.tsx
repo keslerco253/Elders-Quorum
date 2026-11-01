@@ -13,6 +13,7 @@ import { AssignmentForm } from "@/components/assignment-form";
 import { AgendaList } from "../agenda-list";
 import { addAgenda, deleteMeeting, finish, inviteToMeetingAction, saveMeeting, saveMeetingRole, startVideo, uninviteAction } from "../actions";
 import { RoleSelect } from "../role-select";
+import { PrintAgendaButton } from "../print-agenda";
 
 export const metadata = { title: "Presidency meeting" };
 
@@ -53,6 +54,8 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const back = `/admin/meetings/${m.id}`;
   // The presidency's own video link, for its own meetings.
   const video = held || invited ? null : videoLink(user.org_id);
+  // Edit meeting: put the agenda in order (and take items off).
+  const editing = sp.edit === "1" && !held;
 
   return (
     <>
@@ -142,15 +145,32 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
             </div>
           )}
           <div id="agenda" className="scroll-mt-20" />
-          <Section title="Agenda">
+          <Section
+            title="Agenda"
+            actions={
+              <div className="flex flex-wrap gap-2">
+                <PrintAgendaButton meetingId={m.id} />
+                {!held &&
+                  (editing ? (
+                    <Link href={`/admin/meetings/${m.id}#agenda`} className="btn-primary btn-sm">
+                      ✓ Done editing
+                    </Link>
+                  ) : (
+                    <Link href={`/admin/meetings/${m.id}?edit=1#agenda`} className="btn-secondary btn-sm">
+                      ✏️ Edit meeting
+                    </Link>
+                  ))}
+              </div>
+            }
+          >
             <div className="mb-3 space-y-2">{MEETING_ROLES.slice(0, 2).map(roleSelect)}</div>
             {own.length + waiting.length + filed.length === 0 ? (
               <Empty>Nothing on the agenda.</Empty>
             ) : (
               <div className="space-y-3">
-                {own.length > 0 && <AgendaList items={own} tz={tz} meetingId={m.id} canEdit={!held} />}
+                {own.length > 0 && <AgendaList items={own} tz={tz} meetingId={m.id} canEdit={!held} reorder={editing} />}
                 {filed.length > 0 && <AgendaList items={filed} tz={tz} meetingId={m.id} canEdit={false} />}
-                {waiting.length > 0 && <AgendaList items={waiting} tz={tz} meetingId={m.id} canEdit />}
+                {waiting.length > 0 && <AgendaList items={waiting} tz={tz} meetingId={m.id} canEdit reorder={editing} />}
               </div>
             )}
             <div className="mt-3">{roleSelect(MEETING_ROLES[2])}</div>
@@ -158,6 +178,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
               <>
                 <form action={addAgenda} className="mt-3 flex gap-2">
                   <input type="hidden" name="meeting_id" value={m.id} />
+                  {editing && <input type="hidden" name="edit" value="1" />}
                   <input name="body" maxLength={2000} required className="input flex-1" placeholder="Add something to discuss…" />
                   <SubmitButton className="btn-secondary">Add</SubmitButton>
                 </form>

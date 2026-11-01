@@ -12,19 +12,23 @@ const LABELS = { top: "Move to the top", up: "Move up", down: "Move down" };
  * Agenda items: who added them and from where. Tap one to change its wording or add
  * notes, ahead of time or in the meeting (notes taken in the meeting become its record
  * and count the item as discussed); tick off what was discussed. Everything saves in
- * place, so the page stays where it is.
+ * place, so the page stays where it is. Putting items in order (and taking one off)
+ * shows only while editing the meeting (`reorder`).
  */
 export function AgendaList({
   items,
   tz,
   meetingId,
   canEdit,
+  reorder = false,
 }: {
   items: AgendaItem[];
   tz: string;
   /** In a meeting (its page); otherwise the agenda waiting for the next one. */
   meetingId?: number;
   canEdit: boolean;
+  /** Editing the meeting: ⤒ ↑ ↓ to put items in order, and ✕ to take one off. */
+  reorder?: boolean;
 }) {
   const inMeeting = !!meetingId && canEdit;
   return (
@@ -56,10 +60,10 @@ export function AgendaList({
             {about}
           </>
         );
-        const actions = (
+        const actions = (reorder || meetingId) && (
           <div className="mt-2 flex flex-wrap gap-1">
             {/* Put the agenda in order: to the top, or ↑ / ↓ one place. */}
-            {(["top", "up", "down"] as const).map((dir) =>
+            {reorder && (["top", "up", "down"] as const).map((dir) =>
               (dir === "down" ? i < items.length - 1 : i > 0) ? (
                 <form key={dir} action={moveAgenda}>
                   <input type="hidden" name="item_id" value={a.id} />
@@ -82,13 +86,16 @@ export function AgendaList({
                 + Assignment
               </Link>
             )}
-            <form action={removeAgenda}>
-              <input type="hidden" name="item_id" value={a.id} />
-              {meetingId && <input type="hidden" name="meeting_id" value={meetingId} />}
-              <SubmitButton className="btn-secondary btn-sm" confirm="Take this off the agenda?" pendingText="…">
-                ✕
-              </SubmitButton>
-            </form>
+            {reorder && (
+              <form action={removeAgenda}>
+                <input type="hidden" name="item_id" value={a.id} />
+                {meetingId && <input type="hidden" name="meeting_id" value={meetingId} />}
+                <input type="hidden" name="edit" value="1" />
+                <SubmitButton className="btn-secondary btn-sm" confirm="Take this off the agenda?" pendingText="…">
+                  ✕
+                </SubmitButton>
+              </form>
+            )}
           </div>
         );
         return (

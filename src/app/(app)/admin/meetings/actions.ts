@@ -12,6 +12,9 @@ import { withOrg } from "@/lib/org-cookie";
 import { leadersWord } from "@/lib/types";
 import { ledOrgIds } from "@/lib/conversations";
 import { formatDate, todayIn } from "@/lib/time";
+import { agendaPrintHtml } from "@/lib/agenda-print";
+import { holdJournalFile } from "@/lib/journal-handoff";
+import { appUrl } from "@/lib/config";
 
 /** Back to a page with a message (before any #section, so the message shows). */
 function go(path: string, text: string): never {
@@ -19,9 +22,10 @@ function go(path: string, text: string): never {
   redirect(`${page}${page.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}${hash ? `#${hash}` : ""}`);
 }
 
+/** The page the form was on (still editing the meeting when it was). */
 const meetingPath = (fd: FormData) => {
   const id = Number(fd.get("meeting_id"));
-  return id ? `/admin/meetings/${id}` : "/admin/meetings";
+  return `${id ? `/admin/meetings/${id}` : "/admin/meetings"}${fd.get("edit") === "1" ? "?edit=1" : ""}`;
 };
 
 export async function addAgenda(fd: FormData) {
@@ -112,6 +116,21 @@ export async function saveMeeting(fd: FormData) {
   if (date !== m.date || time !== m.time || title !== m.title || location !== m.location) syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
   revalidatePath("/", "layout");
   go(`/admin/meetings/${m.id}`, "Notes saved.");
+}
+
+/** When and where a meeting is (from editing it), keeping its notes and who was there. */
+export async function saveMeetingWhen(fd: FormData) {
+  const user = await requirePresidency();
+  const m = getMeeting(user.org_id, Number(fd.get("meeting_id")));
+  if (!m) go("/admin/meetings", "That meeting no longer exists.");
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("date"))) ? String(fd.get("date")) : m.date;
+  const time = timeOf(fd) ?? m.time;
+  const title = String(fd.get("title") || "").trim().slice(0, 120) || (m.kind === "invited" ? m.title : "");
+  const location = String(fd.get("location") || "").trim().slice(0, 200);
+  db().prepare("UPDATE meetings SET date = ?, time = ?, title = ?, location = ?, updated_at = datetime('now') WHERE id = ?").run(date, time, title, location, m.id);
+  if (date !== m.date || time !== m.time || title !== m.title || location !== m.location) syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
+  revalidatePath("/", "layout");
+  go(`${String(fd.get("back")) === "meeting" ? `/admin/meetings/${m.id}` : "/admin/meetings"}?edit=1#next`, "Meeting saved.");
 }
 
 export async function finish(fd: FormData) {
@@ -221,4 +240,12 @@ export async function uninviteAction(fd: FormData) {
   uninviteFromMeeting(m.id, Number(fd.get("member_id")));
   revalidatePath("/", "layout");
   go(`/admin/meetings/${m.id}#invite`, "Taken off the invitation list.");
+}
+
+/** For older phone apps (they can't print): the agenda, ready for the phone's browser to print. */
+export async function agendaHandoffAction(meetingId: number): Promise<{ url?: string }> {
+  const user = await requirePresidency();
+  const page = agendaPrintHtml(user.org_id, Number(meetingId), { toolbar: "outside" });
+  if (!page) return {};
+  return { url: `${appUrl()}/journal-file/${holdJournalFile({ body: page, type: "text/html; charset=utf-8" })}` };
 }

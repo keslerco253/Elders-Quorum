@@ -1079,23 +1079,29 @@ Tap it to edit, mark done or delete. Done to-dos are deleted after 6 months.
 **Admin → Presidency meetings** keeps the agenda, notes and decisions in one
 place. Only the presidency (or bishopric) sees it.
 
-- **The agenda builds itself.** Anything for the next meeting goes on *Agenda for
-  the next meeting*: type it there; tick **Add to the next presidency meeting's
-  agenda** when sending a message; or tap **+ Add to the next presidency meeting**
-  under a member's message. Each item shows who added it and where it came from.
-  New items go to the bottom; put them in order with **↑ / ↓** (one place) or
-  **⤒** (straight to the top); the page stays where you are. Take one off
-  with ✕.
+- **The next meeting is at the top:** its date, time and place, who gives the
+  prayers and the spiritual thought, and its agenda. **Open meeting ›** opens it
+  to take notes and make assignments (the same page you reach from Home's Coming
+  up or the calendar).
+- **The agenda builds itself.** Type an item under the agenda and tap **Add**;
+  tick **Add to the next presidency meeting's agenda** when sending a message; or
+  tap **+ Add to the next presidency meeting** under a member's message. Each item
+  shows who added it and where it came from. New items go to the bottom.
+- **✏️ Edit meeting** (at the top here, or next to the agenda on the meeting's
+  page): put the agenda in order with **↑ / ↓** (one place) or **⤒** (straight to
+  the top), take an item off with ✕, change the date, time, title or place, and
+  choose the **Opening prayer**, **Spiritual thought** and **Closing prayer** (each
+  saved as soon as you pick). Tap **✓ Done editing** when it's ready. The order
+  buttons show only while editing.
 - **Get ready before the meeting:** tap an item to change its wording or add
   notes to bring (**Edit or add notes → Save**). Notes added ahead of time don't
-  mark it discussed. **Open meeting ›** (next to the agenda's title) opens the
-  next scheduled presidency meeting.
-- **Prayers and spiritual thought:** above the agenda, choose the **Opening
-  prayer** and **Spiritual thought**, and below it the **Closing prayer**, each
-  from the presidency (and secretaries). It's saved as soon as you pick, for the
-  next scheduled meeting (schedule one first) or on a meeting's own page, and
-  kept on that meeting's record and in the list of meetings.
-- **Schedule a meeting:** date, time (starts at the last meeting's time), an
+  mark it discussed.
+- **🖨️ Print agenda** (at the top here, or next to the agenda on the meeting's
+  page): a clean page with the meeting's date, time and place, the prayers and
+  spiritual thought, each agenda item numbered with lines for notes, and a table
+  for assignments. Print it or save it as a PDF. In the phone app it opens the
+  phone's print screen.
+- **＋ Schedule a meeting** (below the next meeting): date, time (starts at the last meeting's time), an
   optional title and where (optional). It goes on the presidency's calendar and Coming up, seen only by
   the presidency, with a reminder (1 hour before, or as set under Reminder times).
   The calendar event opens its agenda and notes. Changing the meeting's date or

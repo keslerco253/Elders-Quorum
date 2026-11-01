@@ -10,8 +10,9 @@ import { SubmitButton } from "@/components/client";
 import { AgendaList } from "./agenda-list";
 import { HandbookLinks } from "@/components/handbook-link";
 import { MEETINGS, orgChapter } from "@/lib/handbook";
-import { addAgenda, newMeeting, saveMeetingRole, saveVideoLink, startVideo } from "./actions";
+import { addAgenda, newMeeting, saveMeetingRole, saveMeetingWhen, saveVideoLink, startVideo } from "./actions";
 import { RoleSelect } from "./role-select";
+import { PrintAgendaButton } from "./print-agenda";
 
 export const metadata = { title: "Presidency meetings" };
 
@@ -33,6 +34,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const past = meetings.filter((m) => !upcoming.includes(m));
   // The opening prayer, thought and closing prayer are chosen for the next meeting.
   const next = upcoming.find((m) => m.kind === "presidency");
+  // Other scheduled meetings (the next one is at the top).
+  const later = upcoming.filter((m) => m !== next);
   const names = attendeeChoices(user.org_id)
     .filter((p) => p.id > 0)
     .map((p) => p.name);
@@ -78,12 +81,15 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   );
   const kind = video ? videoKind(video) : "Zoom";
 
+  const editing = sp.edit === "1";
+  const longDate = (d: string) => DateTime.fromISO(d).toFormat("cccc, LLLL d");
+
   return (
     <>
       <PageHeader
         title={`${roleLabel("presidency", user.org)} meetings`}
         back={{ href: "/admin", label: "Admin" }}
-        subtitle="The agenda for the next meeting, and each meeting's notes and assignments. Only the presidency can see these."
+        subtitle="The next meeting and its agenda, and each meeting's notes and assignments. Only the presidency can see these."
         actions={
           <Link href="/admin/todos" className="btn-secondary">
             Assignments
@@ -91,74 +97,120 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         }
       />
       <Flash msg={sp.msg} />
-      <HandbookLinks chapters={[chapter, MEETINGS]} />
       {review > 0 && (
         <Link href="/admin/meetings/review" className="mb-5 flex items-center justify-between rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
           {review} record{review === 1 ? "" : "s"} to review: keep only what&apos;s still needed <span>›</span>
         </Link>
       )}
-      <form action={newMeeting} className="card mb-6 space-y-3">
-        <h2 className="h2">Schedule a meeting</h2>
-        <select name="kind" className="input" aria-label="Which meeting" defaultValue="presidency">
-          <option value="presidency">{roleLabel("presidency", user.org)} meeting</option>
-          <option value="invited">Another meeting: invite people to it</option>
-        </select>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_2fr]">
-          <input name="date" type="date" required defaultValue={today} min={today} className="input" aria-label="Date" />
-          <input name="time" type="time" required defaultValue={lastTime} className="input" aria-label="Time" />
-          <input name="title" maxLength={120} className="input col-span-2 sm:col-span-1" placeholder="Title (needed for another meeting)" />
-          <input name="location" maxLength={200} className="input col-span-2 sm:col-span-2" placeholder="Where (optional)" />
-          <SubmitButton className="btn-primary col-span-2 sm:col-span-1">Schedule</SubmitButton>
-        </div>
-        <p className="hint">
-          A {leadersWord(user.org)} meeting goes on the {leadersWord(user.org)}&apos;s calendar and their Coming up list on Home, {reminderText} (change it under Settings → Reminder times). Only the{" "}
-          {leadersWord(user.org)} sees it. Another meeting (an activities committee, a teachers&apos; council…) opens next so you can invite people by calling or by name: they&apos;re
-          notified, can say whether they&apos;ll come, and see it on their calendar and Home.
-        </p>
-      </form>
-      {upcoming.length > 0 && (
-        <div className="mb-6">
-          <Section title="Coming up">{list(upcoming)}</Section>
-        </div>
-      )}
-      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
-        <div>
-          <div id="agenda" className="scroll-mt-20" />
-          <Section
-            title={`Agenda for the next meeting${agenda.length ? ` (${agenda.length})` : ""}`}
-            actions={
-              next && (
-                <Link href={`/admin/meetings/${next.id}`} className="btn-primary btn-sm">
-                  Open meeting ›
-                </Link>
-              )
-            }
-          >
+
+      {/* The next meeting: when and where, who prays, and its agenda. Edit meeting puts the agenda in order. */}
+      <section id="next" className="card mb-6 scroll-mt-20 space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-xs font-semibold uppercase tracking-wide text-accent">Next meeting</div>
             {next ? (
-              <div className="mb-3 space-y-2">
-                <p className="text-xs text-muted">
-                  {formatDate(next.date, "short")}
-                  {next.time && ` · ${timeText(next.time)}`}
-                </p>
-                {MEETING_ROLES.slice(0, 2).map(roleSelect)}
-              </div>
+              <>
+                <h2 className="h1 mt-1">
+                  {longDate(next.date)}
+                  {next.time && <span className="text-muted"> · {timeText(next.time)}</span>}
+                </h2>
+                {(next.title || next.location) && <p className="mt-0.5 text-sm text-muted">{[next.title, next.location].filter(Boolean).join(" · ")}</p>}
+              </>
             ) : (
-              <p className="hint mb-3">Schedule the next meeting to choose who gives the prayers and the spiritual thought.</p>
+              <h2 className="h2 mt-1">No meeting scheduled yet</h2>
             )}
-            {agenda.length === 0 ? <Empty>Nothing on the agenda yet.</Empty> : <AgendaList items={agenda} tz={tz} canEdit />}
-            {next && <div className="mt-3">{roleSelect(MEETING_ROLES[2])}</div>}
-            <form action={addAgenda} className="mt-3 flex gap-2">
-              <input name="body" maxLength={2000} required className="input flex-1" placeholder="Add something to discuss…" />
-              <SubmitButton className="btn-secondary">Add</SubmitButton>
-            </form>
-            <p className="hint mt-2">
-              Tap an item to change it or add notes before the meeting. Use ⤒ (to the top) and ↑ / ↓ to put it in order. Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message. In
-              the meeting, open it and tap an item to take notes on it.
-            </p>
-          </Section>
-          <div className="mt-6">
-            <Section title="Past meetings">{past.length === 0 ? <Empty>No meetings yet.</Empty> : list(past)}</Section>
           </div>
+          {next && (
+            <div className="flex flex-wrap items-center gap-2">
+              {next.date === today && <Badge tone="info">Today</Badge>}
+              {editing ? (
+                <Link href="/admin/meetings#next" className="btn-primary btn-sm">
+                  ✓ Done editing
+                </Link>
+              ) : (
+                <Link href="/admin/meetings?edit=1#next" className="btn-secondary btn-sm">
+                  ✏️ Edit meeting
+                </Link>
+              )}
+              <PrintAgendaButton meetingId={next.id} />
+              <Link href={`/admin/meetings/${next.id}`} className="btn-primary btn-sm">
+                Open meeting ›
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {next && editing && (
+          <form action={saveMeetingWhen} className="grid grid-cols-2 gap-3 rounded-lg bg-surface-2 p-3 sm:grid-cols-[1fr_1fr_2fr_auto]">
+            <input type="hidden" name="meeting_id" value={next.id} />
+            <input name="date" type="date" required defaultValue={next.date} className="input" aria-label="Date" />
+            <input name="time" type="time" required defaultValue={next.time ?? ""} className="input" aria-label="Time" />
+            <input name="title" maxLength={120} defaultValue={next.title} className="input col-span-2 sm:col-span-1" placeholder="Title (optional)" />
+            <SubmitButton className="btn-secondary col-span-2 sm:col-span-1" pendingText="Saving…">
+              Save
+            </SubmitButton>
+            <input name="location" maxLength={200} defaultValue={next.location} className="input col-span-2 sm:col-span-4" placeholder="Where (optional)" />
+          </form>
+        )}
+
+        {next &&
+          (editing ? (
+            <div className="space-y-2">{MEETING_ROLES.map(roleSelect)}</div>
+          ) : (
+            <p className="text-sm">
+              {MEETING_ROLES.map(([k, label], i) => (
+                <span key={k}>
+                  {i > 0 && <span className="text-muted"> · </span>}
+                  <span className="text-muted">{label}:</span> {next[k] || <span className="text-muted">not chosen</span>}
+                </span>
+              ))}
+            </p>
+          ))}
+
+        <div id="agenda" className="scroll-mt-20">
+          <h3 className="mb-2 font-semibold">Agenda{agenda.length ? ` (${agenda.length})` : ""}</h3>
+          {agenda.length === 0 ? <Empty>Nothing on the agenda yet.</Empty> : <AgendaList items={agenda} tz={tz} canEdit reorder={editing} />}
+          <form action={addAgenda} className="mt-3 flex gap-2">
+            {editing && <input type="hidden" name="edit" value="1" />}
+            <input name="body" maxLength={2000} required className="input flex-1" placeholder="Add something to discuss…" />
+            <SubmitButton className="btn-secondary">Add</SubmitButton>
+          </form>
+          <p className="hint mt-2">
+            {editing
+              ? "Use ⤒ (to the top) and ↑ / ↓ to put the agenda in order, or ✕ to take an item off. Tap Done editing when it's ready."
+              : "Tap an item to change its wording or add notes. To put the agenda in order, tap Edit meeting."}{" "}
+            Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message.
+            {next ? " In the meeting, tap Open meeting to take notes and make assignments." : " Schedule the next meeting below to choose who gives the prayers and the spiritual thought."}
+          </p>
+        </div>
+      </section>
+
+      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
+        <div className="space-y-6">
+          <details className="card" open={!next}>
+            <summary className="cursor-pointer font-semibold">＋ Schedule a meeting</summary>
+            <form action={newMeeting} className="mt-3 space-y-3">
+              <select name="kind" className="input" aria-label="Which meeting" defaultValue="presidency">
+                <option value="presidency">{roleLabel("presidency", user.org)} meeting</option>
+                <option value="invited">Another meeting: invite people to it</option>
+              </select>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_2fr]">
+                <input name="date" type="date" required defaultValue={today} min={today} className="input" aria-label="Date" />
+                <input name="time" type="time" required defaultValue={lastTime} className="input" aria-label="Time" />
+                <input name="title" maxLength={120} className="input col-span-2 sm:col-span-1" placeholder="Title (needed for another meeting)" />
+                <input name="location" maxLength={200} className="input col-span-2 sm:col-span-2" placeholder="Where (optional)" />
+                <SubmitButton className="btn-primary col-span-2 sm:col-span-1">Schedule</SubmitButton>
+              </div>
+              <p className="hint">
+                A {leadersWord(user.org)} meeting goes on the {leadersWord(user.org)}&apos;s calendar and their Coming up list on Home, {reminderText} (change it under Settings → Reminder times). Only the{" "}
+                {leadersWord(user.org)} sees it. Another meeting (an activities committee, a teachers&apos; council…) opens next so you can invite people by calling or by name: they&apos;re
+                notified, can say whether they&apos;ll come, and see it on their calendar and Home.
+              </p>
+            </form>
+          </details>
+          {later.length > 0 && <Section title="Also coming up">{list(later)}</Section>}
+          <Section title="Past meetings">{past.length === 0 ? <Empty>No meetings yet.</Empty> : list(past)}</Section>
+          <HandbookLinks chapters={[chapter, MEETINGS]} />
         </div>
         <div className="space-y-5">
         <div id="video" className="card scroll-mt-20 space-y-3">
