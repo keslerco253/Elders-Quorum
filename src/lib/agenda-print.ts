@@ -19,6 +19,8 @@ export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?:
   if (!m || !org) return null;
   const ward = getWard(org.ward_id);
   const group = ward ? orgLabel(org, ward) : org.name;
+  // "Villas Ward · Elders Quorum" (or just the ward, for the bishopric).
+  const heading = ward && org.kind !== "ward" ? `${ward.name} · ${group}` : group;
   const day = DateTime.fromISO(m.date);
   const when = [day.toFormat("cccc, LLLL d, yyyy"), m.time ? DateTime.fromFormat(m.time, "HH:mm").toFormat("h:mm a") : ""].filter(Boolean).join(" · ");
   const items = itemsFor(orgId, m);
@@ -76,7 +78,7 @@ export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?:
 </style></head><body>
 ${bar}
 <header>
-  <div class="group">${html(group)}</div>
+  <div class="group">${html(heading)}</div>
   <h1>${html(meetingName(orgId, m))}</h1>
   <div class="when">${html(when)}</div>
   ${m.location ? `<div class="where">${html(m.location)}</div>` : ""}

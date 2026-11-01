@@ -120,24 +120,24 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
               <h2 className="h2 mt-1">No meeting scheduled yet</h2>
             )}
           </div>
-          {next && (
-            <div className="flex flex-wrap items-center gap-2">
-              {next.date === today && <Badge tone="info">Today</Badge>}
-              {editing ? (
-                <Link href="/admin/meetings#next" className="btn-primary btn-sm">
-                  ✓ Done editing
-                </Link>
-              ) : (
-                <Link href="/admin/meetings?edit=1#next" className="btn-secondary btn-sm">
-                  ✏️ Edit meeting
-                </Link>
-              )}
-              <PrintAgendaButton meetingId={next.id} />
+          <div className="flex flex-wrap items-center gap-2">
+            {next?.date === today && <Badge tone="info">Today</Badge>}
+            {editing ? (
+              <Link href="/admin/meetings#next" className="btn-primary btn-sm">
+                ✓ Done editing
+              </Link>
+            ) : (
+              <Link href="/admin/meetings?edit=1#next" className="btn-secondary btn-sm">
+                ✏️ {next ? "Edit meeting" : "Edit agenda"}
+              </Link>
+            )}
+            {next && <PrintAgendaButton meetingId={next.id} />}
+            {next && (
               <Link href={`/admin/meetings/${next.id}`} className="btn-primary btn-sm">
                 Open meeting ›
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {next && editing && (
@@ -178,7 +178,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           <p className="hint mt-2">
             {editing
               ? "Use ⤒ (to the top) and ↑ / ↓ to put the agenda in order, or ✕ to take an item off. Tap Done editing when it's ready."
-              : "Tap an item to change its wording or add notes. To put the agenda in order, tap Edit meeting."}{" "}
+              : `Tap an item to change its wording or add notes. To put the agenda in order, tap ${next ? "Edit meeting" : "Edit agenda"}.`}{" "}
             Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message.
             {next ? " In the meeting, tap Open meeting to take notes and make assignments." : " Schedule the next meeting below to choose who gives the prayers and the spiritual thought."}
           </p>
