@@ -11,6 +11,11 @@ import { ORG_COOKIE, orgCookieMaxAge, orgCookieValue } from "@/lib/org-cookie";
  * shows visitors who aren't signed in the home page (/about) at "/".
  */
 export function middleware(req: NextRequest) {
+  // Scanners post made-up form-action ids ("x", "1", "action") looking for weak sites.
+  // Real ones are long hex ids from our own pages: turn the rest away before they
+  // reach the app (and fill the logs with errors).
+  const action = req.headers.get("next-action");
+  if (action !== null && !/^[0-9a-f]{40,64}$/i.test(action)) return new NextResponse(null, { status: 404 });
   const path = req.nextUrl.pathname + req.nextUrl.search;
   const moved = process.env.MOVED_TO?.trim().replace(/\/+$/, "");
   const to = moved && !/^https?:\/\//i.test(moved) ? `https://${moved}` : moved;
