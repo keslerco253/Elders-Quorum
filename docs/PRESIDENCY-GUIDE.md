@@ -1105,6 +1105,12 @@ place. Only the presidency (or bishopric) sees it.
 - **Get ready before the meeting:** tap an item to change its wording or add
   notes to bring (**Edit or add notes → Save**). Notes added ahead of time don't
   mark it discussed.
+- **Assignment review** (at the bottom of the agenda, here and on the meeting's
+  page): assignments **completed since the last presidency meeting** (or the last
+  30 days, before the first one) and every assignment **still open**, with who
+  has it, when it's due, and Overdue, Not accepted yet or Unassigned. Tap one to
+  change it or add a note. It's on the printed agenda too, above a table for new
+  assignments.
 - **🖨️ Print agenda** (at the top here, or next to the agenda on the meeting's
   page): a clean page with the meeting's date, time and place, the prayers and
   spiritual thought, each agenda item numbered with lines for notes, and a table

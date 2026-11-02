@@ -64,3 +64,29 @@ describe("printing finished meetings' notes", () => {
     expect(pastNotesHtml(1, "3", "2027-06-01")).toContain("No finished meetings in that time.");
   });
 });
+
+describe("assignment review at the bottom of the agenda", () => {
+  it("lists what was completed since the last presidency meeting and what's still open", async () => {
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'Pres', 'p@x.com', 'presidency');
+      INSERT INTO todos (id, ward_id, title, assignee_id, due_date, created_by, done, done_at) VALUES
+        (1, 1, 'Done before', 1, NULL, 1, 1, '2026-09-30 12:00:00'),
+        (2, 1, 'Done since', 1, NULL, 1, 1, '2026-10-10 12:00:00'),
+        (3, 1, 'Still open', 1, '2026-11-20', 1, 0, NULL);
+    `);
+    const { assignmentReview } = await import("@/lib/assignments");
+    const { db } = await import("@/lib/db");
+    const last = createMeeting(1, "2026-10-04", "", 1, { time: "19:00", tz: "America/Boise" });
+    db().prepare("UPDATE meetings SET held_at = '2026-10-05 03:00:00' WHERE id = ?").run(last);
+    const next = createMeeting(1, "2026-11-01", "", 1, { time: "19:00", tz: "America/Boise" });
+    const r = assignmentReview(1, next);
+    expect(r.since).toBe("2026-10-05 03:00:00");
+    expect(r.completed.map((t) => t.title)).toEqual(["Done since"]);
+    expect(r.open.map((t) => t.title)).toEqual(["Still open"]);
+    const page = agendaPrintHtml(1, next)!;
+    expect(page).toContain("Assignment review");
+    expect(page).toContain("Done since");
+    expect(page).not.toContain("Done before");
+  });
+});

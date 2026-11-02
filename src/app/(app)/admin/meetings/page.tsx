@@ -1,3 +1,5 @@
+import { hasFeature } from "@/lib/orgs";
+import { AssignmentReview } from "./assignment-review";
 import { Labeled } from "@/components/labeled";
 import Link from "next/link";
 import { DateTime } from "luxon";
@@ -202,6 +204,11 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
             Anyone in the presidency can add to it here, or tick &ldquo;Add to the next presidency meeting&rdquo; when sending a message or on a member&apos;s message.
             {next ? " In the meeting, tap Open meeting to take notes and make assignments." : " Schedule the next meeting below to choose who gives the prayers and the spiritual thought."}
           </p>
+          {hasFeature(user.org, "todos") && (
+            <div className="mt-5">
+              <AssignmentReview orgId={user.org_id} meetingId={next?.id} today={today} tz={tz} />
+            </div>
+          )}
         </div>
       </section>
 

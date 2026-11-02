@@ -1,3 +1,5 @@
+import { hasFeature } from "@/lib/orgs";
+import { AssignmentReview } from "../assignment-review";
 import { Labeled } from "@/components/labeled";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -187,6 +189,11 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                 {own.length > 0 && <AgendaList items={own} tz={tz} meetingId={m.id} canEdit finished={held} reorder={editing} />}
                 {filed.length > 0 && <AgendaList items={filed} tz={tz} meetingId={m.id} canEdit finished />}
                 {waiting.length > 0 && <AgendaList items={waiting} tz={tz} meetingId={m.id} canEdit reorder={editing} />}
+              </div>
+            )}
+            {!held && !invited && hasFeature(user.org, "todos") && (
+              <div className="mt-5">
+                <AssignmentReview orgId={user.org_id} meetingId={m.id} today={today} tz={tz} />
               </div>
             )}
             <div className="mt-3">{roleSelect(MEETING_ROLES[2])}</div>

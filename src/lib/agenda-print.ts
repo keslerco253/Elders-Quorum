@@ -1,8 +1,8 @@
 import { DateTime } from "luxon";
 import { groupBySection } from "./agenda-sections";
 import { getMeeting, MEETING_ROLES, meetingAgenda, meetingName, orgMeetings, pendingAgenda, type Meeting } from "./meetings";
-import { getOrg, getWard, orgLabel } from "./orgs";
-import { orgTodos } from "./assignments";
+import { getOrg, getWard, hasFeature, orgLabel } from "./orgs";
+import { assignmentReview, orgTodos } from "./assignments";
 
 // A meeting's agenda on paper (or, once it's finished, its notes): who it's for, when and where, the prayers and
 // spiritual thought, each agenda item numbered with "Notes:" and open space to write,
@@ -56,6 +56,7 @@ const PAGE_CSS = `  @page { size: letter; margin: 0.7in 0.75in; }
   .taken.empty { color: #9ca3af; font-style: italic; font-size: .88rem; }
   .other { white-space: pre-wrap; overflow-wrap: anywhere; }
   .assign td.filled { height: auto; padding: .3rem; vertical-align: top; }
+  h3.sub { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: #2b6f9e; margin: .7rem 0 .2rem; }
 `;
 
 const PRINT_ON_LOAD = `<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},300)})</script>`;
@@ -82,6 +83,28 @@ const noteText = (s: string) =>
   html(s.trim())
     .replace(/^#{1,6}\s+(.*)$/gm, "<strong>$1</strong>")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+/** Assignments completed since the last presidency meeting, and those still open, to review. */
+function reviewHtml(orgId: number, meetingId: number, tz: string) {
+  const { since, completed, open } = assignmentReview(orgId, meetingId);
+  const today = DateTime.now().setZone(tz).toISODate()!;
+  const rows = (list: typeof open) =>
+    list
+      .map((t) => {
+        const flag = t.done ? "Done" : t.due_date && t.due_date < today ? "Overdue" : t.assignee_id && t.accept_status === "pending" ? "Not accepted" : !t.assignee_id ? "Unassigned" : "";
+        const when = t.done ? (t.done_at ? DateTime.fromSQL(t.done_at, { zone: "utc" }).setZone(tz).toFormat("LLL d") : "") : t.due_date ? DateTime.fromISO(t.due_date).toFormat("LLL d") : "";
+        return `<tr><td class="filled">${html(t.title)}</td><td class="filled">${html(t.assignee ?? "Unassigned")}</td><td class="filled">${when}</td><td class="filled">${flag}</td></tr>`;
+      })
+      .join("");
+  const table = (list: typeof open, whenLabel: string) =>
+    list.length
+      ? `<table class="assign"><thead><tr><th style="width:48%">What</th><th style="width:22%">Who</th><th style="width:12%">${whenLabel}</th><th></th></tr></thead><tbody>${rows(list)}</tbody></table>`
+      : `<p class="none">None.</p>`;
+  const sinceText = since ? `since the last meeting (${DateTime.fromSQL(since, { zone: "utc" }).setZone(tz).toFormat("LLL d")})` : "in the last 30 days";
+  return `<h2>Assignment review</h2>
+<h3 class="sub">Completed ${sinceText}</h3>${table(completed, "Done")}
+<h3 class="sub">Still open</h3>${table(open, "Due")}`;
+}
 
 const whenText = (m: Meeting) =>
   [DateTime.fromISO(m.date).toFormat("cccc, LLLL d, yyyy"), m.time ? DateTime.fromFormat(m.time, "HH:mm").toFormat("h:mm a") : ""].filter(Boolean).join(" · ");
@@ -197,7 +220,8 @@ ${bar}
 </div>
 <h2>Agenda</h2>
 ${list}
-<h2>Assignments</h2>
+${m.kind === "presidency" && hasFeature(org, "todos") ? reviewHtml(orgId, m.id, ward?.timezone ?? "America/Boise") : ""}
+<h2>New assignments</h2>
 <table class="assign"><thead><tr><th style="width:55%">What</th><th style="width:25%">Who</th><th>When</th></tr></thead>
 <tbody>${"<tr><td></td><td></td><td></td></tr>".repeat(4)}</tbody></table>
 <div class="roles" style="margin-top:1.2rem">

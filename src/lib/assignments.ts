@@ -271,3 +271,22 @@ export function assignmentRequestsFor(memberId: number): Todo[] {
 export function acceptAssignment(id: number, memberId: number): boolean {
   return db().prepare("UPDATE todos SET accept_status = 'accepted' WHERE id = ? AND assignee_id = ? AND accept_status = 'pending' AND done = 0").run(id, memberId).changes > 0;
 }
+
+/**
+ * For the bottom of a presidency meeting's agenda: assignments finished since the last
+ * presidency meeting (or the last 30 days, before the first one), and all those still
+ * open, to review each time.
+ */
+export function assignmentReview(orgId: number, meetingId?: number): { since: string | null; completed: Todo[]; open: Todo[] } {
+  const last = db()
+    .prepare("SELECT held_at FROM meetings WHERE org_id = ? AND kind = 'presidency' AND held_at IS NOT NULL AND id IS NOT ? ORDER BY held_at DESC LIMIT 1")
+    .get(orgId, meetingId ?? null) as { held_at: string } | undefined;
+  const since = last?.held_at ?? null;
+  const from = since ?? (db().prepare("SELECT datetime('now', '-30 days') AS d").get() as { d: string }).d;
+  const all = orgTodos(orgId);
+  return {
+    since,
+    completed: all.filter((t) => t.done && t.done_at && t.done_at > from).sort((a, b) => (a.done_at ?? "").localeCompare(b.done_at ?? "")),
+    open: all.filter((t) => !t.done).sort((a, b) => (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999") || a.id - b.id),
+  };
+}
