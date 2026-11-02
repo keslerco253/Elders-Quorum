@@ -61,13 +61,15 @@ export async function saveReminderTimes(fd: FormData) {
   saveOrgReminderSettings(user.org_id, {
     lesson: whens("lesson"),
     teacher: whens("teacher"),
+    conference: whens("conference"),
     visitHours: visit === 0 || VISIT_HOURS.includes(visit) ? visit : 3,
     morningHour: Number.isInteger(morning) && morning >= 5 && morning <= 12 ? morning : 8,
     meetingMinutes: MEETING_MINUTES.some(([m]) => m === meeting) ? meeting : 60,
   });
-  // Upcoming presidency meetings already on the calendar get the new reminder too.
+  // Upcoming presidency meetings already on the calendar get the new reminder too
+  // (not those given their own reminders when scheduled).
   db()
-    .prepare("UPDATE events SET reminder_minutes = ? WHERE id IN (SELECT event_id FROM meetings WHERE org_id = ? AND held_at IS NULL) AND starts_at > datetime('now')")
+    .prepare("UPDATE events SET reminder_minutes = ? WHERE id IN (SELECT event_id FROM meetings WHERE org_id = ? AND held_at IS NULL AND reminder_minutes IS NULL) AND starts_at > datetime('now')")
     .run(MEETING_MINUTES.some(([m]) => m === meeting) && meeting ? meeting : null, user.org_id);
   revalidatePath("/admin/settings");
   go("Reminder times saved.");

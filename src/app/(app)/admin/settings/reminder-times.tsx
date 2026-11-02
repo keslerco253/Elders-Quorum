@@ -72,6 +72,17 @@ export function ReminderTimes({ org }: { org: Org }) {
         )}
         {lessons && (
           <fieldset className="space-y-2">
+            <legend className="label">Conference Sunday reminder (to everyone)</legend>
+            <LessonRows name="conference" value={s.conference} />
+            <p className="hint">
+              For a General or Stake Conference Sunday (no lesson): that
+              there&apos;s no class and where to watch. Set it apart from the
+              lesson reminder, or choose No reminder.
+            </p>
+          </fieldset>
+        )}
+        {lessons && (
+          <fieldset className="space-y-2">
             <legend className="label">Teacher&apos;s reminder</legend>
             <LessonRows name="teacher" value={s.teacher} />
             <p className="hint">

@@ -231,6 +231,10 @@ ward):
     before, Monday through Saturday, or Sunday morning) at any time, or **No
     reminder**. Starts as the Sunday before at 7 PM and Saturday at 8 AM.
     Members who set their own lesson reminders get theirs instead.
+  - **Conference Sunday reminder** to everyone: for a General or Stake
+    Conference Sunday (no class), the same choices, set apart from the lesson
+    reminder (or **No reminder**). Until you change it, it follows the lesson
+    reminder.
   - **Teacher's reminder** ("You're teaching this Sunday"): the same choices,
     set separately. The teacher gets this instead of the lesson reminder.
   - **Visit reminder:** 1, 2, 3, 4, 6 or 12 hours or 1 day before a planned

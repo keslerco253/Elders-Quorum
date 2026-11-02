@@ -80,8 +80,9 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
     const teacher = lesson.kind === "talk" ? recipientById(lesson.teacher_id, org.id) : undefined;
     const cfm = usesCfm(org) && lesson.kind === "talk" && !!lesson.cfm_auto;
 
-    // To everyone (except the teacher, and members who set their own lesson reminders).
-    for (const w of times.lesson) {
+    // To everyone (except the teacher, and members who set their own lesson reminders);
+    // a conference Sunday has its own reminder times.
+    for (const w of lesson.kind !== "talk" ? times.conference : times.lesson) {
       if (!dueForDate(`d:${w.days}@${w.time}`, date, local)) continue;
       const when = w.days === 0 ? "Today" : w.days === 1 ? "Tomorrow" : "This Sunday";
       // Sunday School follows Come, Follow Me: earlier in the week, the coming week's

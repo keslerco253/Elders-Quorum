@@ -14,6 +14,8 @@ export interface ReminderSettings {
   lesson: LessonWhen[];
   /** To the teacher ("You're teaching…"). Up to two; empty for none. */
   teacher: LessonWhen[];
+  /** To everyone, for a General or Stake Conference Sunday (no lesson). Up to two; the lesson reminder's until set. */
+  conference: LessonWhen[];
   /** Hours before a planned visit (to the presidency, visitors and the member). 0 for none. */
   visitHours: number;
   /** Hour of the day (0-23) service and assignment reminders start going out. */
@@ -28,6 +30,10 @@ export const DEFAULT_REMINDERS: ReminderSettings = {
     { days: 1, time: "08:00" },
   ],
   teacher: [
+    { days: 7, time: "19:00" },
+    { days: 1, time: "08:00" },
+  ],
+  conference: [
     { days: 7, time: "19:00" },
     { days: 1, time: "08:00" },
   ],
@@ -72,8 +78,11 @@ export function reminderSettings(orgId: number): ReminderSettings {
     saved = {};
   }
   const num = (v: unknown, ok: (n: number) => boolean, d: number) => (typeof v === "number" && ok(v) ? v : d);
+  const lesson = Array.isArray(saved.lesson) ? saved.lesson.filter(validWhen).slice(0, 2) : DEFAULT_REMINDERS.lesson;
   return {
-    lesson: Array.isArray(saved.lesson) ? saved.lesson.filter(validWhen).slice(0, 2) : DEFAULT_REMINDERS.lesson,
+    lesson,
+    // Until set on its own, a conference Sunday is reminded about like a lesson.
+    conference: Array.isArray(saved.conference) ? saved.conference.filter(validWhen).slice(0, 2) : lesson,
     teacher: Array.isArray(saved.teacher) ? saved.teacher.filter(validWhen).slice(0, 2) : DEFAULT_REMINDERS.teacher,
     visitHours: num(saved.visitHours, (n) => n === 0 || VISIT_HOURS.includes(n), DEFAULT_REMINDERS.visitHours),
     morningHour: num(saved.morningHour, (n) => Number.isInteger(n) && n >= 5 && n <= 12, DEFAULT_REMINDERS.morningHour),

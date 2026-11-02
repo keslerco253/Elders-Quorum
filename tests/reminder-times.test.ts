@@ -34,6 +34,18 @@ describe("an organization's reminder times", () => {
     expect(n.recipients.map((r) => r.id)).toEqual([1]); // not the teacher
   });
 
+  it("reminds about a conference Sunday at its own times", () => {
+    db().prepare("INSERT INTO lessons (org_id, date, kind) VALUES (?, '2026-11-08', 'stake_conference')").run(org);
+    // Until set apart, a conference Sunday follows the lesson reminder.
+    const keys = (t: string) => collectDue(at(t)).filter((n) => n.key.startsWith("lesson-") && n.key.endsWith(":2026-11-08")).map((n) => n.key.split(":")[0]);
+    expect(keys("2026-11-01T19:00")).toEqual(["lesson-sun"]);
+    saveOrgReminderSettings(org, { ...DEFAULT_REMINDERS, conference: [{ days: 3, time: "12:00" }] });
+    expect(keys("2026-11-01T19:00")).toEqual([]);
+    expect(keys("2026-11-05T12:00")).toEqual(["lesson-d3-1200"]);
+    // The lesson reminder keeps its own times.
+    expect(collectDue(at("2026-10-25T19:00")).filter((n) => n.key.startsWith("lesson-sun:")).length).toBe(1);
+  });
+
   it("times visit reminders and the morning hour as set", () => {
     const visit = (time: string | null) =>
       db().prepare("INSERT INTO planned_visits (org_id, member_id, date, time, type, created_by) VALUES (?, 2, '2026-11-05', ?, 'home', 1)").run(org, time);
