@@ -1,9 +1,10 @@
 import { DateTime } from "luxon";
 import { groupBySection } from "./agenda-sections";
-import { getMeeting, MEETING_ROLES, meetingAgenda, meetingName, pendingAgenda, type Meeting } from "./meetings";
+import { getMeeting, MEETING_ROLES, meetingAgenda, meetingName, orgMeetings, pendingAgenda, type Meeting } from "./meetings";
 import { getOrg, getWard, orgLabel } from "./orgs";
+import { orgTodos } from "./assignments";
 
-// A meeting's agenda on paper: who it's for, when and where, the prayers and
+// A meeting's agenda on paper (or, once it's finished, its notes): who it's for, when and where, the prayers and
 // spiritual thought, each agenda item numbered with "Notes:" and open space to write,
 // and a place for assignments made.
 
@@ -14,42 +15,7 @@ function itemsFor(orgId: number, m: Meeting) {
   return m.kind === "invited" || m.held_at ? meetingAgenda(m.id) : pendingAgenda(orgId);
 }
 
-export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?: "browser" | "outside" } = {}): string | null {
-  const m = getMeeting(orgId, meetingId);
-  const org = getOrg(orgId);
-  if (!m || !org) return null;
-  const ward = getWard(org.ward_id);
-  const group = ward ? orgLabel(org, ward) : org.name;
-  // "Villas Ward · Elders Quorum" (or just the ward, for the bishopric).
-  const heading = ward && org.kind !== "ward" ? `${ward.name} · ${group}` : group;
-  const day = DateTime.fromISO(m.date);
-  const when = [day.toFormat("cccc, LLLL d, yyyy"), m.time ? DateTime.fromFormat(m.time, "HH:mm").toFormat("h:mm a") : ""].filter(Boolean).join(" · ");
-  const items = itemsFor(orgId, m);
-  const role = (k: (typeof MEETING_ROLES)[number][0], label: string) =>
-    `<div class="role"><span class="label">${label}</span><span class="who">${m[k] ? html(m[k]) : ""}</span></div>`;
-  // Each item: its number and wording, any notes added ahead of time, then "Notes:" and
-  // open space to write in the meeting.
-  let n = 0;
-  const item = (a: (typeof items)[number]) =>
-    `<div class="item"><div class="topic"><span class="n">${++n}.</span><span class="body">${html(a.body.trim())}</span></div>${a.notes ? `<div class="prep">${html(a.notes.trim())}</div>` : ""}<div class="notes">Notes:</div></div>`;
-  // Section by section (only those with items), numbered straight through.
-  const list = items.length
-    ? groupBySection(items)
-        .map((g) => `<section class="sec"><h3>${html(g.label)}</h3>${g.items.map(item).join("")}</section>`)
-        .join("")
-    : `<p class="none">Nothing on the agenda yet.</p>`;
-  const title = `${meetingName(orgId, m)}: ${day.toFormat("LLL d")}`;
-  const bar =
-    o.toolbar === "browser"
-      ? `<div class="bar"><a href="/admin/meetings" onclick="window.close();var h=this.href;setTimeout(function(){location.href=h},200);return false;">✕ Close</a><button type="button" onclick="window.print()">Print</button></div><script>window.addEventListener("load",function(){setTimeout(function(){window.print()},300)})</script>`
-      : o.toolbar === "outside"
-        ? `<div class="bar"><span class="tip">No print screen? Tap the Share button, then Print.</span><button type="button" onclick="window.print()">Print</button></div><script>window.addEventListener("load",function(){setTimeout(function(){window.print()},300)})</script>`
-        : "";
-  return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${html(title)}</title>
-<style>
-  @page { size: letter; margin: 0.7in 0.75in; }
+const PAGE_CSS = `  @page { size: letter; margin: 0.7in 0.75in; }
   * { box-sizing: border-box; }
   body { font-family: Georgia, "Times New Roman", serif; color: #1f2937; background: #fff; margin: 0 auto; max-width: 7.5in; padding: 1.5rem 1.25rem; line-height: 1.45; }
   header { text-align: center; padding-bottom: .9rem; border-bottom: 2px solid #1d3a5f; margin-bottom: 1.1rem; }
@@ -81,6 +47,142 @@ export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?:
   .bar button { background: #1d3a5f; border-color: #1d3a5f; color: #fff; }
   .bar .tip { margin-right: auto; color: #6b7280; font-size: .8rem; align-self: center; }
   @media print { .bar { display: none; } body { padding: 0; max-width: none; } }
+  .meeting { margin-top: 1.6rem; padding-top: 1rem; border-top: 2px solid #1d3a5f; }
+  .meeting:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+  .meeting h2.mt { font-family: Georgia, "Times New Roman", serif; text-transform: none; letter-spacing: 0; font-size: 1.25rem; font-weight: normal; color: #1d3a5f; border: none; margin: 0 0 .15rem; padding: 0; }
+  .meta { font-size: .92rem; color: #4b5563; margin-bottom: .2rem; }
+  .meta b { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; font-weight: 600; margin-right: .3rem; }
+  .taken { margin: .2rem 0 .5rem 1.6rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .98rem; }
+  .taken.empty { color: #9ca3af; font-style: italic; font-size: .88rem; }
+  .other { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .assign td.filled { height: auto; padding: .3rem; vertical-align: top; }
+`;
+
+const PRINT_ON_LOAD = `<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},300)})</script>`;
+
+/** Print and Close above the page (not printed); "outside": in the phone's browser, which can't close it. */
+function toolbar(kind?: "browser" | "outside") {
+  if (kind === "browser")
+    return `<div class="bar"><a href="/admin/meetings" onclick="window.close();var h=this.href;setTimeout(function(){location.href=h},200);return false;">✕ Close</a><button type="button" onclick="window.print()">Print</button></div>${PRINT_ON_LOAD}`;
+  if (kind === "outside") return `<div class="bar"><span class="tip">No print screen? Tap the Share button, then Print.</span><button type="button" onclick="window.print()">Print</button></div>${PRINT_ON_LOAD}`;
+  return "";
+}
+
+function orgHeading(orgId: number) {
+  const org = getOrg(orgId);
+  if (!org) return null;
+  const ward = getWard(org.ward_id);
+  const group = ward ? orgLabel(org, ward) : org.name;
+  // "Villas Ward · Elders Quorum" (or just the ward, for the bishopric).
+  return { group, heading: ward && org.kind !== "ward" ? `${ward.name} · ${group}` : group, tz: ward?.timezone ?? "America/Boise" };
+}
+
+/** Notes as written, with "## Heading" lines and **bold** shown as bold instead of the marks. */
+const noteText = (s: string) =>
+  html(s.trim())
+    .replace(/^#{1,6}\s+(.*)$/gm, "<strong>$1</strong>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+const whenText = (m: Meeting) =>
+  [DateTime.fromISO(m.date).toFormat("cccc, LLLL d, yyyy"), m.time ? DateTime.fromFormat(m.time, "HH:mm").toFormat("h:mm a") : ""].filter(Boolean).join(" · ");
+
+/**
+ * Finished meetings on paper, for review: for each, when and where, who was there, the
+ * prayers, each agenda item with the notes taken on it, other notes, and the
+ * assignments made. Oldest first.
+ */
+export function recordsPrintHtml(orgId: number, meetings: Meeting[], o: { toolbar?: "browser" | "outside"; range?: string } = {}): string | null {
+  const h = orgHeading(orgId);
+  if (!h) return null;
+  const list = [...meetings].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+  const block = (m: Meeting) => {
+    let n = 0;
+    const items = meetingAgenda(m.id);
+    const agenda = items.length
+      ? groupBySection(items)
+          .map(
+            (g) =>
+              `<section class="sec"><h3>${html(g.label)}</h3>${g.items
+                .map(
+                  (a) =>
+                    `<div class="item" style="padding-bottom:.1rem"><div class="topic"><span class="n">${++n}.</span><span class="body">${html(a.body.trim())}</span></div>${a.notes.trim() ? `<div class="taken">${noteText(a.notes)}</div>` : `<div class="taken empty">No notes</div>`}</div>`,
+                )
+                .join("")}</section>`,
+          )
+          .join("")
+      : `<p class="none">No agenda items were filed with this meeting.</p>`;
+    const roles = MEETING_ROLES.filter(([k]) => m[k]).map(([k, label]) => `${label}: ${html(m[k])}`).join(" · ");
+    const todos = orgTodos(orgId, { meetingId: m.id });
+    return `<div class="meeting">
+  <h2 class="mt">${html(meetingName(orgId, m))} · ${html(whenText(m))}</h2>
+  ${m.location ? `<div class="meta">${html(m.location)}</div>` : ""}
+  ${m.attendees ? `<div class="meta"><b>There</b>${html(m.attendees)}</div>` : ""}
+  ${roles ? `<div class="meta"><b>Prayers &amp; thought</b>${roles}</div>` : ""}
+  <h2>Agenda</h2>${agenda}
+  ${m.notes.trim() ? `<h2>Other notes</h2><div class="other">${noteText(m.notes)}</div>` : ""}
+  ${
+    todos.length
+      ? `<h2>Assignments</h2><table class="assign"><thead><tr><th style="width:55%">What</th><th style="width:25%">Who</th><th>Due</th></tr></thead><tbody>${todos
+          .map(
+            (t) =>
+              `<tr><td class="filled">${html(t.title)}${t.done ? " ✓" : ""}</td><td class="filled">${html(t.assignee ?? "Unassigned")}</td><td class="filled">${t.due_date ? DateTime.fromISO(t.due_date).toFormat("LLL d") : ""}</td></tr>`,
+          )
+          .join("")}</tbody></table>`
+      : ""
+  }
+</div>`;
+  };
+  const title = list.length === 1 ? `${meetingName(orgId, list[0])}: ${DateTime.fromISO(list[0].date).toFormat("LLL d")} notes` : "Meeting notes";
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${html(title)}</title>
+<style>
+${PAGE_CSS}
+</style></head><body>
+${toolbar(o.toolbar)}
+<header>
+  <div class="group">${html(h.heading)}</div>
+  <h1>${list.length === 1 ? "Meeting notes" : "Meeting notes for review"}</h1>
+  <div class="when">${list.length === 1 ? "" : html(o.range ?? `${list.length} meetings`)}</div>
+</header>
+${list.length ? list.map(block).join("\n") : `<p class="none">No finished meetings in that time.</p>`}
+<footer>Printed ${DateTime.now().setZone(h.tz).toFormat("LLL d, yyyy")} · For the ${html(h.group)} leaders only</footer>
+</body></html>`;
+}
+
+export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?: "browser" | "outside" } = {}): string | null {
+  const m = getMeeting(orgId, meetingId);
+  const org = getOrg(orgId);
+  if (!m || !org) return null;
+  // A finished meeting prints what was noted, for review.
+  if (m.held_at) return recordsPrintHtml(orgId, [m], o);
+  const ward = getWard(org.ward_id);
+  const group = ward ? orgLabel(org, ward) : org.name;
+  // "Villas Ward · Elders Quorum" (or just the ward, for the bishopric).
+  const heading = ward && org.kind !== "ward" ? `${ward.name} · ${group}` : group;
+  const day = DateTime.fromISO(m.date);
+  const when = [day.toFormat("cccc, LLLL d, yyyy"), m.time ? DateTime.fromFormat(m.time, "HH:mm").toFormat("h:mm a") : ""].filter(Boolean).join(" · ");
+  const items = itemsFor(orgId, m);
+  const role = (k: (typeof MEETING_ROLES)[number][0], label: string) =>
+    `<div class="role"><span class="label">${label}</span><span class="who">${m[k] ? html(m[k]) : ""}</span></div>`;
+  // Each item: its number and wording, any notes added ahead of time, then "Notes:" and
+  // open space to write in the meeting.
+  let n = 0;
+  const item = (a: (typeof items)[number]) =>
+    `<div class="item"><div class="topic"><span class="n">${++n}.</span><span class="body">${html(a.body.trim())}</span></div>${a.notes ? `<div class="prep">${html(a.notes.trim())}</div>` : ""}<div class="notes">Notes:</div></div>`;
+  // Section by section (only those with items), numbered straight through.
+  const list = items.length
+    ? groupBySection(items)
+        .map((g) => `<section class="sec"><h3>${html(g.label)}</h3>${g.items.map(item).join("")}</section>`)
+        .join("")
+    : `<p class="none">Nothing on the agenda yet.</p>`;
+  const title = `${meetingName(orgId, m)}: ${day.toFormat("LLL d")}`;
+  const bar = toolbar(o.toolbar);
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${html(title)}</title>
+<style>
+${PAGE_CSS}
 </style></head><body>
 ${bar}
 <header>
@@ -103,4 +205,19 @@ ${list}
 </div>
 <footer>Printed ${DateTime.now().setZone(ward?.timezone ?? "America/Boise").toFormat("LLL d, yyyy")} · For the ${html(group)} leaders</footer>
 </body></html>`;
+}
+
+export const NOTES_RANGES: [string, string][] = [
+  ["3", "Last 3 months"],
+  ["6", "Last 6 months"],
+  ["12", "Last year"],
+  ["all", "All past meetings"],
+];
+
+/** Finished meetings from the last few months (or all), to print for review. */
+export function pastNotesHtml(orgId: number, months: string | null, today: string, o: { toolbar?: "browser" | "outside" } = {}) {
+  const range = NOTES_RANGES.find(([k]) => k === months) ?? NOTES_RANGES[0];
+  const from = range[0] === "all" ? "" : DateTime.fromISO(today).minus({ months: Number(range[0]) }).toISODate()!;
+  const meetings = orgMeetings(orgId).filter((m) => m.held_at && m.date >= from);
+  return recordsPrintHtml(orgId, meetings, { ...o, range: range[1] });
 }

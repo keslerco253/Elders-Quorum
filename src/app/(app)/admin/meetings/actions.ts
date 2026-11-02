@@ -12,7 +12,7 @@ import { withOrg } from "@/lib/org-cookie";
 import { leadersWord } from "@/lib/types";
 import { ledOrgIds } from "@/lib/conversations";
 import { formatDate, todayIn } from "@/lib/time";
-import { agendaPrintHtml } from "@/lib/agenda-print";
+import { agendaPrintHtml, pastNotesHtml } from "@/lib/agenda-print";
 import { MEETING_MINUTES } from "@/lib/reminder-settings";
 import { createMeetingSeries, stopMeetingSeries } from "@/lib/meeting-series";
 import { patternOptions, type Pattern } from "@/lib/recurrence";
@@ -313,4 +313,12 @@ export async function stopRepeating(fd: FormData) {
   stopMeetingSeries(user.org_id, m.series_id);
   revalidatePath("/admin/meetings", "layout");
   go(`/admin/meetings/${m.id}`, "It won't repeat any more. Meetings already scheduled stay.");
+}
+
+/** For older phone apps: past meetings' notes, ready for the phone's browser to print. */
+export async function notesHandoffAction(months: string): Promise<{ url?: string }> {
+  const user = await requirePresidency();
+  const page = pastNotesHtml(user.org_id, months, todayIn(user.ward.timezone), { toolbar: "outside" });
+  if (!page) return {};
+  return { url: `${appUrl()}/journal-file/${holdJournalFile({ body: page, type: "text/html; charset=utf-8" })}` };
 }

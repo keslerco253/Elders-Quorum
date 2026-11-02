@@ -164,7 +164,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
             title="Agenda"
             actions={
               <div className="flex flex-wrap gap-2">
-                <PrintAgendaButton meetingId={m.id} />
+                <PrintAgendaButton meetingId={m.id} finished={held} />
                 {!held &&
                   (editing ? (
                     <Link href={`/admin/meetings/${m.id}#agenda`} className="btn-primary btn-sm">

@@ -12,7 +12,8 @@ import { HandbookLinks } from "@/components/handbook-link";
 import { MEETINGS, orgChapter } from "@/lib/handbook";
 import { addAgenda, newMeeting, saveMeetingRole, saveMeetingWhen, saveVideoLink, startVideo } from "./actions";
 import { RoleSelect } from "./role-select";
-import { PrintAgendaButton } from "./print-agenda";
+import { PrintAgendaButton, PrintPastNotes } from "./print-agenda";
+import { NOTES_RANGES } from "@/lib/agenda-print";
 import { MeetingReminderFields } from "./reminder-fields";
 import { SectionSelect } from "./section-select";
 import { MeetingDateInput } from "./meeting-date";
@@ -223,7 +224,9 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
             </form>
           </details>
           {later.length > 0 && <Section title="Also coming up">{list(later)}</Section>}
-          <Section title="Past meetings">{past.length === 0 ? <Empty>No meetings yet.</Empty> : list(past)}</Section>
+          <Section title="Past meetings" actions={past.some((m) => m.held_at) ? <PrintPastNotes ranges={NOTES_RANGES} /> : undefined}>
+            {past.length === 0 ? <Empty>No meetings yet.</Empty> : list(past)}
+          </Section>
           <HandbookLinks chapters={[chapter, MEETINGS]} />
         </div>
         <div className="space-y-5">

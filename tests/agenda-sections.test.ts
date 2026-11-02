@@ -38,3 +38,29 @@ describe("agenda sections", () => {
     expect(page).toContain('<span class="n">5.</span><span class="body">Communications app');
   });
 });
+
+describe("printing finished meetings' notes", () => {
+  it("prints each finished meeting with its items' notes, other notes and assignments", async () => {
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'Pres', 'p@x.com', 'presidency');
+    `);
+    const { saveAgendaNotes, finishMeeting } = await import("@/lib/meetings");
+    const { pastNotesHtml } = await import("@/lib/agenda-print");
+    const { db } = await import("@/lib/db");
+    const m = createMeeting(1, "2026-10-04", "", 1, { time: "19:00", tz: "America/Boise" });
+    const a = addAgendaItem(1, "Jones family", { addedBy: 1, section: "members" });
+    addAgendaItem(1, "Not discussed", { addedBy: 1 });
+    saveAgendaNotes(1, a, "Brother P will visit Thursday");
+    db().prepare("UPDATE meetings SET attendees = 'Pres, Sam', notes = 'Stake conference next month' WHERE id = ?").run(m);
+    finishMeeting(1, m, "2026-10-04");
+    const page = pastNotesHtml(1, "3", "2026-11-02")!;
+    expect(page).toContain("<h1>Meeting notes</h1>");
+    expect(page).toContain("Brother P will visit Thursday");
+    expect(page).toContain("Members &amp; families");
+    expect(page).toContain("Pres, Sam");
+    expect(page).toContain("Stake conference next month");
+    expect(page).not.toContain("Not discussed");
+    expect(pastNotesHtml(1, "3", "2027-06-01")).toContain("No finished meetings in that time.");
+  });
+});

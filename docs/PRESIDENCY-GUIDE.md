@@ -1162,6 +1162,13 @@ place. Only the presidency (or bishopric) sees it.
     ticked stays on the agenda for next time. A finished meeting (under **Past
     meetings**) can still be opened to correct or add to its notes: tap an agenda
     item to edit its notes, or change the meeting's notes and **Save notes**.
+    Its **🖨️ Print notes** button prints the record: who was there, the prayers,
+    each agenda item with the notes taken on it, other notes and the assignments
+    made.
+  - **Printing past notes for review:** next to **Past meetings**, choose **Last 3
+    months**, **Last 6 months**, **Last year** or **All past meetings** and tap
+    **🖨️ Print notes**: every finished meeting in that time, oldest first, in one
+    printout.
   - **Delete meeting** removes it, its notes and its filed agenda (assignments
     stay).
 - **Video meetings:** save your presidency's meeting link once: in the Zoom (or
