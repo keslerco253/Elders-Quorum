@@ -685,7 +685,7 @@ export async function tick(now: DateTime = DateTime.utc()) {
     for (const n of collectDue(now)) {
       if (!claimOnce(n.key)) continue;
       const res = await notify(n.recipients, n.payload, { only: n.only });
-      console.log(`[scheduler] ${n.key}: ${res.push} push, ${res.email} email`);
+      console.log(`[scheduler] ${n.key}: ${res.push} push, ${res.email} email, ${res.text} text`);
     }
     // Texted replies held while asking which organization they're for.
     await deliverHeldReplies();
