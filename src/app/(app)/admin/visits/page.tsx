@@ -1,3 +1,4 @@
+import { Labeled } from "@/components/labeled";
 import Link from "next/link";
 import { HandbookLinks } from "@/components/handbook-link";
 import { INTERVIEWS, MINISTERING } from "@/lib/handbook";
@@ -102,8 +103,12 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
                         <input type="hidden" name="answer" value="accepted" />
                         <div className="font-medium">They said yes</div>
                         <div className="grid grid-cols-2 gap-2">
-                          <input type="date" name="date" required defaultValue={p.date} aria-label="Agreed date" className="input" />
-                          <input type="time" name="time" defaultValue={p.time ?? ""} aria-label="Agreed time" className="input" />
+                          <Labeled label="Date">
+                            <input type="date" name="date" required defaultValue={p.date} className="input" />
+                          </Labeled>
+                          <Labeled label="Time">
+                            <input type="time" name="time" defaultValue={p.time ?? ""} className="input" />
+                          </Labeled>
                         </div>
                         <label className="flex items-center gap-2">
                           <input type="checkbox" name="confirm" defaultChecked /> Send them a confirmation with the date and time

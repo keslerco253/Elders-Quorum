@@ -34,8 +34,11 @@ export function AssignmentForm({
       <input type="hidden" name="back" value={back} />
       <h2 className="h2">{todo ? "Edit assignment" : "New assignment"}</h2>
       <input name="title" required maxLength={200} className="input" placeholder="What needs to be done?" defaultValue={todo?.title ?? defaultTitle} />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <select name="assignee_id" className="input" defaultValue={todo?.assignee_id ?? defaultAssignee ?? ""} aria-label="Assigned to">
+      <div>
+        <label className="label" htmlFor="assignee_id">
+          Assigned to
+        </label>
+        <select id="assignee_id" name="assignee_id" className="input" defaultValue={todo?.assignee_id ?? defaultAssignee ?? ""}>
           <option value="">Unassigned</option>
           <optgroup label="Presidency">
             {presidency.map((p) => (
@@ -54,9 +57,20 @@ export function AssignmentForm({
             </optgroup>
           )}
         </select>
-        <div className="flex gap-2">
-          <input name="due_date" type="date" className="input min-w-0 flex-1" defaultValue={todo?.due_date ?? ""} aria-label="Due date" />
-          <input name="due_time" type="time" className="input w-32" defaultValue={todo?.due_time ?? ""} aria-label="Time (optional)" title="Time (optional)" />
+      </div>
+      {/* Their own row, so the date has room even in a narrow column. */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label" htmlFor="due_date">
+            Due date
+          </label>
+          <input id="due_date" name="due_date" type="date" className="input" defaultValue={todo?.due_date ?? ""} />
+        </div>
+        <div>
+          <label className="label" htmlFor="due_time">
+            Time <span className="font-normal text-muted">(optional)</span>
+          </label>
+          <input id="due_time" name="due_time" type="time" className="input" defaultValue={todo?.due_time ?? ""} />
         </div>
       </div>
       <textarea name="notes" rows={3} className="input" placeholder="Details (optional): what's needed, who to talk to…" defaultValue={todo?.notes} />

@@ -1,3 +1,4 @@
+import { Labeled } from "@/components/labeled";
 import Link from "next/link";
 import { SubmitButton } from "@/components/client";
 import { PersonalReminders } from "@/components/personal-reminders";
@@ -31,7 +32,9 @@ export function PersonalEventForm({
         </span>
       </p>
       <input name="title" required maxLength={200} className="input" placeholder="What is it?" defaultValue={event?.title} aria-label="Title" />
-      <input name="date" type="date" required className="input" defaultValue={event?.date ?? date ?? ""} aria-label="Date" />
+      <Labeled label="Date">
+        <input name="date" type="date" required className="input" defaultValue={event?.date ?? date ?? ""} />
+      </Labeled>
       <PersonalTimeFields allDay={!!event?.all_day} start={event && !event.all_day ? event.start_time : ""} end={event?.end_time ?? ""} />
       <input name="location" maxLength={200} className="input" placeholder="Where (optional)" defaultValue={event?.location} aria-label="Where" />
       <textarea name="notes" rows={3} className="input" placeholder="Notes (optional)" defaultValue={event?.notes} aria-label="Notes" />

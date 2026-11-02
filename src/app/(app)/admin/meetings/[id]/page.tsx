@@ -1,3 +1,4 @@
+import { Labeled } from "@/components/labeled";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePresidency } from "@/lib/auth";
@@ -217,10 +218,18 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
             <input type="hidden" name="meeting_id" value={m.id} />
             <h2 className="h2">Notes</h2>
             <div className="grid grid-cols-2 gap-3">
-              <input name="date" type="date" required defaultValue={m.date} className="input" aria-label="Date" />
-              <input name="time" type="time" defaultValue={m.time ?? ""} className="input" aria-label="Time" />
-              <input name="title" maxLength={120} defaultValue={m.title} required={invited} className="input col-span-2" placeholder={invited ? "Title" : "Title (optional)"} />
-              <input name="location" maxLength={200} defaultValue={m.location} className="input col-span-2" placeholder="Where (optional)" />
+              <Labeled label="Date">
+                <input name="date" type="date" required defaultValue={m.date} className="input" />
+              </Labeled>
+              <Labeled label="Time">
+                <input name="time" type="time" defaultValue={m.time ?? ""} className="input" />
+              </Labeled>
+              <Labeled label="Title" hint={invited ? undefined : "optional"} className="col-span-2">
+                <input name="title" maxLength={120} defaultValue={m.title} required={invited} className="input" />
+              </Labeled>
+              <Labeled label="Where" hint="optional" className="col-span-2">
+                <input name="location" maxLength={200} defaultValue={m.location} className="input" />
+              </Labeled>
             </div>
             {!held && <MeetingReminderFields id="meeting" first={meetingReminders(user.org_id, m)[0] ?? 0} second={meetingReminders(user.org_id, m)[1] ?? 0} />}
             <fieldset>

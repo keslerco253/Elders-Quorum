@@ -366,3 +366,37 @@ html:not(.in-app) .app-only, html.in-app .web-only { display: none; }
 .access-fields:has(#role option[value="member"]:checked) .calling-field {
   display: none;
 }
+
+/*
+ * Date and time boxes: never squeezed so narrow the date can't be read, and tapping
+ * anywhere in one opens the calendar (date-pickers.tsx). iPhone Safari shows no
+ * calendar icon of its own, so it gets one.
+ */
+@layer components {
+  input[type="date"],
+  input[type="datetime-local"] {
+    min-width: 9.5rem;
+    cursor: pointer;
+  }
+  input[type="time"] {
+    min-width: 7.5rem;
+    cursor: pointer;
+  }
+  @supports (-webkit-touch-callout: none) {
+    input[type="date"],
+    input[type="datetime-local"] {
+      padding-right: 2.25rem;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.7rem center;
+      background-size: 1.1rem;
+    }
+    input[type="time"] {
+      padding-right: 2.25rem;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.7rem center;
+      background-size: 1.1rem;
+    }
+  }
+}

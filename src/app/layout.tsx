@@ -1,3 +1,4 @@
+import { DatePickers } from "@/components/date-pickers";
 import { UpdatedReload } from "@/components/updated-reload";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <AppLinks />
         <SearchableSelects />
         <UpdatedReload />
+        <DatePickers />
       </body>
     </html>
   );

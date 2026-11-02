@@ -1,3 +1,4 @@
+import { Labeled } from "@/components/labeled";
 import Link from "next/link";
 import { DateTime } from "luxon";
 import { requirePresidency } from "@/lib/auth";
@@ -145,21 +146,29 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         </div>
 
         {next && editing && (
-          <form action={saveMeetingWhen} className="grid grid-cols-2 gap-3 rounded-lg bg-surface-2 p-3 sm:grid-cols-[1fr_1fr_2fr_auto]">
+          <form action={saveMeetingWhen} className="grid grid-cols-2 gap-3 rounded-lg bg-surface-2 p-3">
             <input type="hidden" name="meeting_id" value={next.id} />
-            <input name="date" type="date" required defaultValue={next.date} className="input" aria-label="Date" />
-            <input name="time" type="time" required defaultValue={next.time ?? ""} className="input" aria-label="Time" />
-            <input name="title" maxLength={120} defaultValue={next.title} className="input col-span-2 sm:col-span-1" placeholder="Title (optional)" />
-            <SubmitButton className="btn-secondary col-span-2 sm:col-span-1" pendingText="Saving…">
-              Save
-            </SubmitButton>
-            <input name="location" maxLength={200} defaultValue={next.location} className="input col-span-2 sm:col-span-4" placeholder="Where (optional)" />
+            <Labeled label="Date">
+              <input name="date" type="date" required defaultValue={next.date} className="input" />
+            </Labeled>
+            <Labeled label="Time">
+              <input name="time" type="time" required defaultValue={next.time ?? ""} className="input" />
+            </Labeled>
+            <Labeled label="Title" hint="optional" className="col-span-2 sm:col-span-1">
+              <input name="title" maxLength={120} defaultValue={next.title} className="input" />
+            </Labeled>
+            <Labeled label="Where" hint="optional" className="col-span-2 sm:col-span-1">
+              <input name="location" maxLength={200} defaultValue={next.location} className="input" />
+            </Labeled>
             <MeetingReminderFields
               id="edit"
               first={meetingReminders(user.org_id, next)[0] ?? 0}
               second={meetingReminders(user.org_id, next)[1] ?? 0}
-              className="col-span-2 sm:col-span-4"
+              className="col-span-2"
             />
+            <SubmitButton className="btn-secondary col-span-2 sm:col-span-1 sm:w-auto" pendingText="Saving…">
+              Save
+            </SubmitButton>
           </form>
         )}
 
@@ -205,11 +214,19 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                 <option value="presidency">{roleLabel("presidency", user.org)} meeting</option>
                 <option value="invited">Another meeting: invite people to it</option>
               </select>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_2fr]">
-                <MeetingDateInput defaultValue={today} min={today} />
-                <input name="time" type="time" required defaultValue={lastTime} className="input" aria-label="Time" />
-                <input name="title" maxLength={120} className="input col-span-2 sm:col-span-1" placeholder="Title (needed for another meeting)" />
-                <input name="location" maxLength={200} className="input col-span-2 sm:col-span-3" placeholder="Where (optional)" />
+              <div className="grid grid-cols-2 gap-3">
+                <Labeled label="Date">
+                  <MeetingDateInput defaultValue={today} min={today} />
+                </Labeled>
+                <Labeled label="Time">
+                  <input name="time" type="time" required defaultValue={lastTime} className="input" />
+                </Labeled>
+                <Labeled label="Title" hint="needed for another meeting" className="col-span-2 sm:col-span-1">
+                  <input name="title" maxLength={120} className="input" />
+                </Labeled>
+                <Labeled label="Where" hint="optional" className="col-span-2 sm:col-span-1">
+                  <input name="location" maxLength={200} className="input" />
+                </Labeled>
               </div>
               <MeetingReminderFields id="new" first={reminderMin} second={0} />
               <RepeatFields initialStart={today} />

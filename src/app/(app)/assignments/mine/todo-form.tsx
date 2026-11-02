@@ -17,9 +17,19 @@ export function TodoForm({ todo, canText, textReady, canEmail }: { todo?: Person
         </span>
       </p>
       <input name="title" required maxLength={200} className="input" placeholder="What do you want to get done?" defaultValue={todo?.title} />
-      <div className="flex gap-2">
-        <input name="due_date" type="date" className="input min-w-0 flex-1" defaultValue={todo?.due_date ?? ""} aria-label="Due date" />
-        <input name="due_time" type="time" className="input w-36" defaultValue={todo?.due_time ?? ""} aria-label="Time (optional)" title="Time (optional)" />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label" htmlFor="due_date">
+            Due date
+          </label>
+          <input id="due_date" name="due_date" type="date" className="input" defaultValue={todo?.due_date ?? ""} />
+        </div>
+        <div>
+          <label className="label" htmlFor="due_time">
+            Time <span className="font-normal text-muted">(optional)</span>
+          </label>
+          <input id="due_time" name="due_time" type="time" className="input" defaultValue={todo?.due_time ?? ""} />
+        </div>
       </div>
       <textarea name="notes" rows={3} className="input" placeholder="Details (optional)" defaultValue={todo?.notes} />
       <PersonalReminders

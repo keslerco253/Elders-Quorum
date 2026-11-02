@@ -8,5 +8,5 @@ export function MeetingDateInput({ defaultValue, min }: { defaultValue: string; 
   useEffect(() => {
     tell(defaultValue);
   }, [defaultValue]);
-  return <input name="date" type="date" required defaultValue={defaultValue} min={min} className="input" aria-label="Date" onChange={(e) => tell(e.target.value)} />;
+  return <input name="date" type="date" required defaultValue={defaultValue} min={min} className="input" onChange={(e) => tell(e.target.value)} />;
 }
