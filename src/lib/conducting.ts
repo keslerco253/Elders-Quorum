@@ -50,14 +50,66 @@ export function presidencyWithCallings(orgId: number): Person[] {
     .all(orgId) as Person[];
 }
 
+export type ConductMode = "rotation" | "months" | "sundays";
+
+/**
+ * How an organization chooses who conducts: by calling, rotating by month (the
+ * default); a person picked for each month; or a person for each Sunday of the month
+ * (1st-5th). Flexible: anyone in the presidency can change a Sunday directly; firm:
+ * only whoever is scheduled can ask someone else, who has to accept.
+ */
+export interface ConductSettings {
+  mode: ConductMode;
+  /** "2026-11" → member id. */
+  months: Record<string, number>;
+  /** "1".."5" (which Sunday of the month) → member id. */
+  sundays: Record<string, number>;
+  flexible: boolean;
+}
+
+export const CONDUCT_MODES: [ConductMode, string][] = [
+  ["rotation", "By calling, rotating each month"],
+  ["months", "Pick who conducts each month"],
+  ["sundays", "Pick who conducts each Sunday of the month"],
+];
+
+export function conductSettings(orgId: number): ConductSettings {
+  const raw = (db().prepare("SELECT value FROM app_settings WHERE key = ?").get(`conducting:${orgId}`) as { value: string } | undefined)?.value;
+  let s: Partial<ConductSettings> = {};
+  try {
+    s = raw ? JSON.parse(raw) : {};
+  } catch {
+    s = {};
+  }
+  const ids = (o: unknown) => Object.fromEntries(Object.entries(o && typeof o === "object" ? o : {}).filter(([, v]) => Number.isInteger(v) && (v as number) > 0)) as Record<string, number>;
+  return {
+    mode: CONDUCT_MODES.some(([m]) => m === s.mode) ? (s.mode as ConductMode) : "rotation",
+    months: ids(s.months),
+    sundays: ids(s.sundays),
+    flexible: !!s.flexible,
+  };
+}
+
+export function saveConductSettings(orgId: number, s: ConductSettings) {
+  db()
+    .prepare("INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+    .run(`conducting:${orgId}`, JSON.stringify(s));
+}
+
+/** Which Sunday of its month a date is (1-5). */
+export const sundayOfMonth = (date: string) => Math.ceil(Number(date.slice(8, 10)) / 7);
+
 /** Who conducts on each of the next `weeks` Sundays from `from`. */
 export function conductingSchedule(orgId: number, from: string, weeks = 8): Conductor[] {
   const org = getOrg(orgId);
   const people = presidencyWithCallings(orgId);
   const d = db();
+  const how = conductSettings(orgId);
   return sundays(from, weeks).map((date) => {
     const callings = conductingCallings(Number(date.slice(5, 7)));
-    const scheduled = people.find((p) => p.calling && callings.includes(p.calling));
+    // Who it is by the organization's choice: by calling, by month, or by Sunday of the month.
+    const picked = how.mode === "months" ? how.months[date.slice(0, 7)] : how.mode === "sundays" ? how.sundays[String(sundayOfMonth(date))] : undefined;
+    const scheduled = how.mode === "rotation" ? people.find((p) => p.calling && callings.includes(p.calling)) : people.find((p) => p.id === picked);
     // The latest accepted swap for that Sunday wins.
     const swap = d
       .prepare(
@@ -73,7 +125,13 @@ export function conductingSchedule(orgId: number, from: string, weeks = 8): Cond
       .get(orgId, date) as Conductor["pending"] | undefined;
     const lesson = lessonOn(orgId, date);
     const conference = lesson && lesson.kind !== "talk" ? (lesson.kind === "general_conference" ? "General Conference" : "Stake Conference") : null;
-    const calling = org ? callingLabel(callings.length > 1 ? (org.kind === "ward" ? "bishop" : "president") : callings[0], org) : "";
+    const calling = !org
+      ? ""
+      : how.mode === "rotation"
+        ? callingLabel(callings.length > 1 ? (org.kind === "ward" ? "bishop" : "president") : callings[0], org)
+        : scheduled?.calling
+          ? callingLabel(scheduled.calling, org)
+          : "";
     return {
       date,
       memberId: swap?.to_id ?? scheduled?.id ?? null,
@@ -141,4 +199,14 @@ export function answerSwap(id: number, memberId: number, accept: boolean): SwapR
 /** Withdraws an unanswered request (whoever asked). */
 export function cancelSwap(id: number, memberId: number): boolean {
   return db().prepare("UPDATE conducting_swaps SET status = 'cancelled', decided_at = datetime('now') WHERE id = ? AND from_id = ? AND status = 'pending'").run(id, memberId).changes > 0;
+}
+
+/** Flexible schedules: a presidency member sets who conducts a Sunday (it replaces any unanswered ask). */
+export function setConductor(orgId: number, date: string, byId: number, toId: number, today: string): string | null {
+  if (date < today || !sundays(date, 1).includes(date)) return "Choose an upcoming Sunday.";
+  if (!presidencyWithCallings(orgId).some((p) => p.id === toId)) return "Choose someone in the presidency.";
+  const d = db();
+  d.prepare("UPDATE conducting_swaps SET status = 'cancelled', decided_at = datetime('now') WHERE org_id = ? AND date = ? AND status = 'pending'").run(orgId, date);
+  d.prepare("INSERT INTO conducting_swaps (org_id, date, from_id, to_id, note, status, decided_at) VALUES (?, ?, ?, ?, 'Changed by the presidency', 'accepted', datetime('now'))").run(orgId, date, byId, toId);
+  return null;
 }

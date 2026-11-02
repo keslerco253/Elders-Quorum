@@ -400,3 +400,13 @@ html:not(.in-app) .app-only, html.in-app .web-only { display: none; }
     }
   }
 }
+
+/* Who's conducting → How it's chosen: the month or Sunday choices show only for that way. */
+.conduct-setup .conduct-months,
+.conduct-setup .conduct-sundays {
+  display: none;
+}
+.conduct-setup:has(input[name="mode"][value="months"]:checked) .conduct-months,
+.conduct-setup:has(input[name="mode"][value="sundays"]:checked) .conduct-sundays {
+  display: block;
+}

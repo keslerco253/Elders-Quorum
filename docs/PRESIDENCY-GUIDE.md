@@ -212,7 +212,7 @@ ward):
   - Service opportunities
   - Visits and visit requests
   - Assignments and presidency meetings
-  - Who's conducting (presidency rotation)
+  - Who's conducting (by calling, month or Sunday of the month)
   - Event suggestions from members
   - Plans (the Plans tab)
   - Message groups
@@ -1200,15 +1200,25 @@ place. Only the presidency (or bishopric) sees it.
 
 ## Who's conducting
 
-- **By month**, from the callings set under Admin → Members: the president (the
-  bishop, for the ward) in January, April, July and October; the first counselor
-  in February, May, August and November; the second counselor in March, June,
-  September and December. If a calling isn't set, those months show "no one" with
-  a reminder to set callings.
+- **⚙️ How it's chosen** (at the top of Who's conducting), one of:
+  - **By calling, rotating each month** (the usual): from the callings set under
+    Admin → Members, the president (the bishop, for the ward) in January, April,
+    July and October; the first counselor in February, May, August and November;
+    the second counselor in March, June, September and December.
+  - **Pick who conducts each month:** choose a person for each of the next 12
+    months.
+  - **Pick who conducts each Sunday of the month:** a person for the 1st, 2nd,
+    3rd, 4th and 5th Sundays.
+  Anyone not chosen shows "Not chosen yet" (or, by calling, a reminder to set
+  callings).
+- **Firm or flexible:** tick **Flexible** to let anyone in the presidency change
+  who conducts any Sunday (**Change who conducts** under it; the presidency is
+  told). Left off, the schedule is firm: only whoever is scheduled can ask someone
+  else (below).
 - Presidency members see **Conducting this Sunday** on Home. Tapping it (or
   **Admin → Who's conducting**) shows the next 13 Sundays; conference Sundays show
   "no meeting".
-- **Can't be there?** On your Sunday, tap **Ask someone to conduct**, choose
+- **Can't be there?** (firm schedules) On your Sunday, tap **Ask someone to conduct**, choose
   someone in the presidency and add a note. They get a notification and a card on
   Home to answer **Yes, I'll conduct** or **I can't**. Yes notifies the whole
   presidency, and Home shows them conducting ("instead of …"). If they can't,

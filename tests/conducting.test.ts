@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db, useTestDb } from "@/lib/db";
-import { answerSwap, askToConduct, cancelSwap, conductingSchedule, swapsWaitingOn } from "@/lib/conducting";
+import { answerSwap, askToConduct, cancelSwap, conductingSchedule, conductSettings, saveConductSettings, setConductor, swapsWaitingOn } from "@/lib/conducting";
 
 describe("who's conducting", () => {
   beforeEach(() => {
@@ -10,6 +10,21 @@ describe("who's conducting", () => {
         (1, 1, 'P', 'Pres', 'p@x.com', 'presidency'), (2, 1, 'F', 'First', 'f@x.com', 'presidency'), (3, 1, 'S', 'Second', 's@x.com', 'presidency');
     `);
     db().prepare("UPDATE org_members SET calling = CASE member_id WHEN 1 THEN 'bishop' WHEN 2 THEN 'first_counselor' ELSE 'second_counselor' END").run();
+  });
+
+  it("can be chosen by month or by Sunday of the month, and changed on the fly", () => {
+    const names = (from: string, n: number) => conductingSchedule(1, from, n).map((c) => c.name);
+    saveConductSettings(1, { ...conductSettings(1), mode: "months", months: { "2026-11": 3, "2026-12": 1 } });
+    expect(names("2026-11-01", 6)).toEqual(["Second", "Second", "Second", "Second", "Second", "Pres"]);
+    expect(conductingSchedule(1, "2027-01-03", 1)[0].name).toBeNull(); // not chosen yet
+    saveConductSettings(1, { ...conductSettings(1), mode: "sundays", sundays: { "1": 2, "2": 3, "3": 1, "4": 2 } });
+    // Nov 2026: 1st, 8th, 15th, 22nd, 29th (a 5th Sunday no one has).
+    expect(names("2026-11-01", 5)).toEqual(["First", "Second", "Pres", "First", null]);
+    // Flexible: anyone sets a Sunday.
+    expect(setConductor(1, "2026-11-08", 1, 1, "2026-11-02")).toBeNull();
+    expect(conductingSchedule(1, "2026-11-08", 1)[0]).toMatchObject({ name: "Pres", insteadOf: "Second" });
+    expect(setConductor(1, "2026-11-08", 1, 99, "2026-11-02")).toBe("Choose someone in the presidency.");
+    expect(setConductor(1, "2026-10-25", 1, 2, "2026-11-02")).toBe("Choose an upcoming Sunday.");
   });
 
   it("follows the callings by month", () => {
