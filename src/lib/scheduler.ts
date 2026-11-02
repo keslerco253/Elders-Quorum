@@ -16,6 +16,7 @@ import { daysBetween, dueForDate, dueForStart, ownSettings, whenLabel, type Remi
 import { getOrg, getWard, hasFeature, homeOf, pickOrg } from "./orgs";
 import { runRetention } from "./retention";
 import { extendAllSeries } from "./event-series";
+import { extendAllMeetingSeries } from "./meeting-series";
 import { upcomingVisits, visitorIds, whenText } from "./planned-visits";
 import { VISIT_TYPES } from "./visits";
 import { firstName } from "./names";
@@ -698,6 +699,8 @@ export async function tick(now: DateTime = DateTime.utc()) {
     if (claimOnce(`series:${DateTime.local().toISODate()}`)) {
       const added = extendAllSeries();
       if (added) console.log(`[series] added ${added} event dates`);
+      const meetings = extendAllMeetingSeries();
+      if (meetings) console.log(`[series] scheduled ${meetings} repeating meetings`);
     }
     if (claimOnce(`retention:${DateTime.local().toISODate()}`)) {
       const removed = Object.entries(runRetention()).filter(([, n]) => n > 0);

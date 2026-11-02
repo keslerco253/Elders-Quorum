@@ -1009,7 +1009,7 @@ their Home. They read the details and tap **Yes, I accept** or **I'm not able to
 - Until they accept, it shows **Not accepted yet** on the assignment and under
   **Waiting on you → Assignments not accepted yet**, and no due-date reminders go
   out. Unopened after 2 days, it's sent once more by email and text.
-- Accepted: whoever gave it and the presidency are told.
+- Accepted: no one is notified; it just stops showing as Not accepted yet.
 - Not able to: it comes back **Unassigned** with their note, and the presidency
   (and whoever gave it) is told.
 - Assigning it to yourself needs no answer. Changing it to a new person asks them.
@@ -1018,7 +1018,8 @@ their Home. They read the details and tap **Yes, I accept** or **I'm not able to
 none (start as the day before and the morning it's due), from the hour set under
 Reminder times. Only for accepted assignments with a due date.
 
-**Admin → Assignments:** filter by person and by **Open**, **Not accepted**,
+**Admin → Assignments:** filter by person (or **Presidency members**, for
+assignments given to anyone in the presidency) and by **Open**, **Not accepted**,
 **Unassigned**, **Overdue**, **Done** or **All**. Each row has a box to mark it
 done, **Edit** and ✕ to delete. Choosing a person also shows what else they're
 doing (lessons they're teaching, service they signed up for), to spread the load.
@@ -1116,6 +1117,13 @@ place. Only the presidency (or bishopric) sees it.
   goes on the presidency's calendar and Coming up, seen only by the presidency,
   and each of them gets the reminders the way they get their other reminders.
   Change the reminders later with **Edit meeting** or on the meeting's page.
+  **Repeats** (for presidency meetings): every week, every 2 weeks, every month on
+  the first Sunday (whichever day the date falls on), the last one, or the same
+  date each month; it can end on a date or after a number of times. The next two
+  meetings are always scheduled, each its own meeting with its own agenda and
+  notes; more are added as they pass. A repeating meeting's page says how it
+  repeats, with **Stop repeating** (meetings already scheduled stay). Deleting one
+  date doesn't bring it back.
   The calendar event opens its agenda and notes. Changing the meeting's date or
   time moves the event; deleting the meeting removes it. Meetings are listed under
   **Coming up** and **Past meetings** (Today, Scheduled, Not finished, Review).
@@ -1151,7 +1159,9 @@ place. Only the presidency (or bishopric) sees it.
   - **+ Assignment** on an item turns it into an assignment; **Assignments from
     this meeting** lists them.
   - **Finish meeting** files the ticked items with the meeting; anything not
-    ticked stays on the agenda for next time.
+    ticked stays on the agenda for next time. A finished meeting (under **Past
+    meetings**) can still be opened to correct or add to its notes: tap an agenda
+    item to edit its notes, or change the meeting's notes and **Save notes**.
   - **Delete meeting** removes it, its notes and its filed agenda (assignments
     stay).
 - **Video meetings:** save your presidency's meeting link once: in the Zoom (or

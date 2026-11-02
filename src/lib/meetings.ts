@@ -37,6 +37,8 @@ export interface Meeting {
   reminder_minutes: number | null;
   /** An optional second reminder (null or 0: none). */
   reminder2_minutes: number | null;
+  /** The repeating meetings it's one of, if any (meeting-series.ts). */
+  series_id: number | null;
 }
 
 export type MeetingKind = "presidency" | "invited";
@@ -90,13 +92,23 @@ export function createMeeting(
   date: string,
   title: string,
   createdBy: number,
-  opts: { time?: string | null; tz?: string; kind?: MeetingKind; location?: string; reminders?: [number | null, number | null] } = {},
+  opts: { time?: string | null; tz?: string; kind?: MeetingKind; location?: string; reminders?: [number | null, number | null]; seriesId?: number } = {},
 ): number {
   const id = Number(
     db()
-      .prepare("INSERT INTO meetings (org_id, date, time, title, created_by, kind, location, reminder_minutes, reminder2_minutes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .run(orgId, date, opts.time ?? null, title, createdBy, opts.kind ?? "presidency", (opts.location ?? "").trim().slice(0, 200), opts.reminders?.[0] ?? null, opts.reminders?.[1] ?? null)
-      .lastInsertRowid,
+      .prepare("INSERT INTO meetings (org_id, date, time, title, created_by, kind, location, reminder_minutes, reminder2_minutes, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(
+        orgId,
+        date,
+        opts.time ?? null,
+        title,
+        createdBy,
+        opts.kind ?? "presidency",
+        (opts.location ?? "").trim().slice(0, 200),
+        opts.reminders?.[0] ?? null,
+        opts.reminders?.[1] ?? null,
+        opts.seriesId ?? null,
+      ).lastInsertRowid,
   );
   if (opts.time && opts.tz) syncMeetingEvent(orgId, id, opts.tz, createdBy);
   return id;

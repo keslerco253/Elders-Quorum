@@ -93,8 +93,10 @@ export async function answerAssignmentAsk(fd: FormData) {
   const { handoff: h, todo: t } = r;
   const url = withOrg(`/assignments/${t.id}`, t.org_id);
   if (accept) {
-    // Everyone in the presidency, whoever asked and whoever had it, knows who has it now.
-    await notify(presidencyAnd(t.org_id, [h.from_id, r.previousAssignee], user.id), { title: `${user.display_name} took an assignment`, body: t.title, url });
+    // Whoever asked, and whoever had it, know who has it now (not the whole presidency).
+    const told = [h.from_id, r.previousAssignee].filter((id): id is number => !!id && id !== user.id);
+    const to = [...new Set(told)].map((id) => recipientById(id, t.org_id)).filter((x): x is NonNullable<typeof x> => !!x);
+    if (to.length) await notify(to, { title: `${user.display_name} took an assignment`, body: t.title, url });
   } else if (r.allDeclined && h.from_id) {
     const from = recipientById(h.from_id, t.org_id);
     if (from) await notify([from], { title: h.to_id ? `${user.display_name} can't take an assignment` : "No one in the presidency could take an assignment", body: t.title, url });
@@ -131,12 +133,14 @@ export async function unableToDoAssignment(fd: FormData) {
   redirect("/assignments?msg=" + encodeURIComponent("Thanks for letting us know. Your presidency has been told."));
 }
 
-/** The person asked accepts the assignment; whoever gave it (and the presidency) is told. */
+/**
+ * The person asked accepts the assignment. No one is notified: it just stops showing as
+ * "Not accepted yet" on the presidency's assignments.
+ */
 export async function acceptAssignmentRequest(fd: FormData) {
   const user = await requireUser();
   const t = getTodo(Number(fd.get("item_id")));
   if (!t || !acceptAssignment(t.id, user.id)) redirect("/assignments");
-  await notify(presidencyAnd(t.org_id, [t.created_by], user.id), { title: `${user.display_name} accepted an assignment`, body: t.title, url: withOrg(`/assignments/${t.id}`, t.org_id) });
   revalidatePath("/", "layout");
   back(t, "Accepted. Thank you!");
 }

@@ -11,11 +11,12 @@ import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AssignmentForm } from "@/components/assignment-form";
 import { AgendaList } from "../agenda-list";
-import { addAgenda, deleteMeeting, finish, inviteToMeetingAction, saveMeeting, saveMeetingRole, startVideo, uninviteAction } from "../actions";
+import { stopRepeating, addAgenda, deleteMeeting, finish, inviteToMeetingAction, saveMeeting, saveMeetingRole, startVideo, uninviteAction } from "../actions";
 import { RoleSelect } from "../role-select";
 import { PrintAgendaButton } from "../print-agenda";
 import { MeetingReminderFields } from "../reminder-fields";
 import { SectionSelect } from "../section-select";
+import { getMeetingSeries, seriesText } from "@/lib/meeting-series";
 
 export const metadata = { title: "Presidency meeting" };
 
@@ -58,6 +59,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const video = held || invited ? null : videoLink(user.org_id);
   // Edit meeting: put the agenda in order (and take items off).
   const editing = sp.edit === "1" && !held;
+  const series = m.series_id ? getMeetingSeries(user.org_id, m.series_id) : undefined;
 
   return (
     <>
@@ -66,7 +68,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
         back={{ href: "/admin/meetings", label: "Meetings" }}
         subtitle={
           held
-            ? `Finished. ${m.review_at ? `Up for review ${formatDate(m.review_at, "short")}.` : ""}`
+            ? `Finished. Tap an agenda item to correct or add to its notes, or change the notes below. ${m.review_at ? `Up for review ${formatDate(m.review_at, "short")}.` : ""}`
             : invited
               ? `${m.location ? `${m.location}. ` : ""}For the people invited: they see the agenda and the prayers, not the notes.`
               : m.date > today
@@ -75,6 +77,17 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
         }
       />
       <Flash msg={sp.msg} />
+      {series && (
+        <form action={stopRepeating} className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <input type="hidden" name="meeting_id" value={m.id} />
+          <span className="text-muted">🔁 {series.active ? seriesText(series) : "Was repeating (stopped)"}</span>
+          {!!series.active && (
+            <SubmitButton className="btn-secondary btn-sm" confirm="Stop repeating? Meetings already scheduled stay." pendingText="…">
+              Stop repeating
+            </SubmitButton>
+          )}
+        </form>
+      )}
       {video && (
         <form action={startVideo} className="mb-5 flex flex-wrap items-center gap-3">
           <SubmitButton className="btn-secondary" pendingText="Opening…">
@@ -170,8 +183,8 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
               <Empty>Nothing on the agenda.</Empty>
             ) : (
               <div className="space-y-3">
-                {own.length > 0 && <AgendaList items={own} tz={tz} meetingId={m.id} canEdit={!held} reorder={editing} />}
-                {filed.length > 0 && <AgendaList items={filed} tz={tz} meetingId={m.id} canEdit={false} />}
+                {own.length > 0 && <AgendaList items={own} tz={tz} meetingId={m.id} canEdit finished={held} reorder={editing} />}
+                {filed.length > 0 && <AgendaList items={filed} tz={tz} meetingId={m.id} canEdit finished />}
                 {waiting.length > 0 && <AgendaList items={waiting} tz={tz} meetingId={m.id} canEdit reorder={editing} />}
               </div>
             )}

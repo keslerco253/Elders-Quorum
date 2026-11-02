@@ -43,6 +43,7 @@ function SectionList({
   canEdit,
   reorder = false,
   start = 0,
+  finished = false,
 }: {
   items: AgendaItem[];
   tz: string;
@@ -53,8 +54,10 @@ function SectionList({
   reorder?: boolean;
   /** How many items come before these (in earlier sections), for numbering. */
   start?: number;
+  /** A finished meeting's record: notes can still be corrected or added to. */
+  finished?: boolean;
 }) {
-  const inMeeting = !!meetingId && canEdit;
+  const inMeeting = !!meetingId && canEdit && !finished;
   return (
     <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
       {items.map((a, i) => {
@@ -145,7 +148,7 @@ function SectionList({
                 <details>
                   <summary className="cursor-pointer list-none">
                     {shown}
-                    <span className="mt-1 inline-block text-xs font-medium text-accent">{a.notes ? "Edit" : inMeeting ? "+ Notes" : "Edit or add notes"}</span>
+                    <span className="mt-1 inline-block text-xs font-medium text-accent">{a.notes ? "Edit" : inMeeting || finished ? "+ Notes" : "Edit or add notes"}</span>
                   </summary>
                   {/* Keyed by what's saved: the form is cleared after saving and drawn again with it. */}
                   <form key={`${a.body}\n${a.notes}\n${a.category}`} action={saveItemNotes} className="mt-2 space-y-2">
@@ -165,7 +168,7 @@ function SectionList({
                       maxLength={4000}
                       defaultValue={a.notes}
                       className="input text-sm"
-                      placeholder={inMeeting ? "What was discussed or decided…" : "Notes to bring to the meeting…"}
+                      placeholder={inMeeting || finished ? "What was discussed or decided…" : "Notes to bring to the meeting…"}
                       aria-label="Notes"
                     />
                     <SubmitButton className="btn-secondary btn-sm" pendingText="Saving…">

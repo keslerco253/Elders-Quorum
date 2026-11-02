@@ -14,6 +14,8 @@ import { ledOrgIds } from "@/lib/conversations";
 import { formatDate, todayIn } from "@/lib/time";
 import { agendaPrintHtml } from "@/lib/agenda-print";
 import { MEETING_MINUTES } from "@/lib/reminder-settings";
+import { createMeetingSeries, stopMeetingSeries } from "@/lib/meeting-series";
+import { patternOptions, type Pattern } from "@/lib/recurrence";
 import { holdJournalFile } from "@/lib/journal-handoff";
 import { appUrl } from "@/lib/config";
 
@@ -101,12 +103,38 @@ export async function newMeeting(fd: FormData) {
   const invited = fd.get("kind") === "invited";
   if (invited && !title) go("/admin/meetings", "Give the meeting a title (for example, Activities committee).");
   const [first, second] = remindersOf(fd);
+  const reminders: [number | null, number | null] | undefined = fd.has("reminder") ? [first, second || null] : undefined;
+  const location = String(fd.get("location") || "");
+  // A presidency meeting can repeat (the first Sunday of every month…): the next ones are scheduled ahead.
+  const pattern = String(fd.get("repeat") || "") as Pattern;
+  if (!invited && time && patternOptions(date).some((o) => o.value === pattern)) {
+    const until = String(fd.get("repeat_until") || "");
+    const count = Math.round(Number(fd.get("repeat_count")));
+    const end = String(fd.get("repeat_end") || "never");
+    createMeetingSeries(
+      user.org_id,
+      {
+        pattern,
+        start: date,
+        until: end === "until" && /^\d{4}-\d{2}-\d{2}$/.test(until) && until >= date ? until : null,
+        count: end === "count" && count >= 2 && count <= 200 ? count : null,
+        time,
+        title,
+        location,
+        reminders: reminders ?? [null, null],
+      },
+      user.id,
+      user.ward.timezone,
+    );
+    revalidatePath("/", "layout");
+    go("/admin/meetings", `Repeating meetings scheduled, starting ${formatDate(date, "short")}. The next two are always on the ${leadersWord(user.org)}'s calendar.`);
+  }
   const id = createMeeting(user.org_id, date, title, user.id, {
     time,
     tz: user.ward.timezone,
     kind: invited ? "invited" : "presidency",
-    location: String(fd.get("location") || ""),
-    reminders: fd.has("reminder") ? [first, second || null] : undefined,
+    location,
+    reminders,
   });
   revalidatePath("/", "layout");
   if (invited) go(`/admin/meetings/${id}#invite`, `${title} scheduled for ${formatDate(date, "short")}. Now invite people to it.`);
@@ -275,4 +303,14 @@ export async function agendaHandoffAction(meetingId: number): Promise<{ url?: st
   const page = agendaPrintHtml(user.org_id, Number(meetingId), { toolbar: "outside" });
   if (!page) return {};
   return { url: `${appUrl()}/journal-file/${holdJournalFile({ body: page, type: "text/html; charset=utf-8" })}` };
+}
+
+/** Stops a meeting from repeating; the meetings already scheduled stay. */
+export async function stopRepeating(fd: FormData) {
+  const user = await requirePresidency();
+  const m = getMeeting(user.org_id, Number(fd.get("meeting_id")));
+  if (!m?.series_id) go("/admin/meetings", "That meeting doesn't repeat.");
+  stopMeetingSeries(user.org_id, m.series_id);
+  revalidatePath("/admin/meetings", "layout");
+  go(`/admin/meetings/${m.id}`, "It won't repeat any more. Meetings already scheduled stay.");
 }

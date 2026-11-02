@@ -15,6 +15,8 @@ import { RoleSelect } from "./role-select";
 import { PrintAgendaButton } from "./print-agenda";
 import { MeetingReminderFields } from "./reminder-fields";
 import { SectionSelect } from "./section-select";
+import { MeetingDateInput } from "./meeting-date";
+import { RepeatFields } from "@/components/repeat-fields";
 
 export const metadata = { title: "Presidency meetings" };
 
@@ -203,12 +205,14 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                 <option value="invited">Another meeting: invite people to it</option>
               </select>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_2fr]">
-                <input name="date" type="date" required defaultValue={today} min={today} className="input" aria-label="Date" />
+                <MeetingDateInput defaultValue={today} min={today} />
                 <input name="time" type="time" required defaultValue={lastTime} className="input" aria-label="Time" />
                 <input name="title" maxLength={120} className="input col-span-2 sm:col-span-1" placeholder="Title (needed for another meeting)" />
                 <input name="location" maxLength={200} className="input col-span-2 sm:col-span-3" placeholder="Where (optional)" />
               </div>
               <MeetingReminderFields id="new" first={reminderMin} second={0} />
+              <RepeatFields initialStart={today} />
+              <p className="hint -mt-1">Repeats is for {leadersWord(user.org)} meetings: the next two are always scheduled, each with its own agenda and notes.</p>
               <SubmitButton className="btn-primary w-full sm:w-auto">Schedule</SubmitButton>
               <p className="hint">
                 Scheduling doesn&apos;t send anything right away. A {leadersWord(user.org)} meeting goes on the {leadersWord(user.org)}&apos;s calendar and their Coming up

@@ -20,12 +20,14 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
   const user = await requirePresidency();
   const sp = await searchParams;
   const today = todayIn(user.ward.timezone);
-  const who = Number(sp.who) || (sp.mine === "1" ? user.id : 0);
+  // One person, or everyone in the presidency ("presidency"), or everyone.
+  const group = sp.who === "presidency";
+  const who = group ? 0 : Number(sp.who) || (sp.mine === "1" ? user.id : 0);
   const show: Show = sp.show && sp.show in SHOW ? (sp.show as Show) : "open";
-  const all = orgTodos(user.org_id, { assigneeId: who || undefined });
+  const presidencyIds = orgPresidency(user.org_id).map((p) => p.id);
+  const all = orgTodos(user.org_id, { assigneeId: who || undefined }).filter((t) => !group || (!!t.assignee_id && presidencyIds.includes(t.assignee_id)));
   const overdue = (t: Todo) => !t.done && !!t.due_date && t.due_date < today;
   const todos = all.filter((t) => (show === "open" ? !t.done : show === "pending" ? !t.done && !!t.assignee_id && t.accept_status === "pending" : show === "unassigned" ? !t.done && !t.assignee_id : show === "done" ? !!t.done : show === "overdue" ? overdue(t) : true));
-  const presidencyIds = orgPresidency(user.org_id).map((p) => p.id);
   const people = orgRoster(user.org_id, { includeId: who || undefined });
   const editing = sp.edit ? all.find((t) => t.id === Number(sp.edit)) : undefined;
   const person = who ? people.find((p) => p.id === who) : undefined;
@@ -33,7 +35,7 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
   const alsoDoing = person ? myAssignments(person.id, today, { orgId: user.org_id }).filter((i) => i.kind !== "todo") : [];
   const query = (o: Record<string, string | number | undefined>) => {
     const q = new URLSearchParams();
-    const params: Record<string, string | number | undefined> = { who: who || undefined, show, ...o };
+    const params: Record<string, string | number | undefined> = { who: group ? "presidency" : who || undefined, show, ...o };
     for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "" && !(k === "show" && v === "open")) q.set(k, String(v));
     const s = q.toString();
     return `/admin/todos${s ? `?${s}` : ""}`;
@@ -97,8 +99,9 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <div>
           <form className="mb-3 flex flex-wrap items-center gap-2">
-            <select name="who" defaultValue={who || ""} className="input w-auto" aria-label="Person">
+            <select name="who" defaultValue={group ? "presidency" : who || ""} className="input w-auto" aria-label="Person">
               <option value="">Everyone</option>
+              <option value="presidency">{`${roleLabel("presidency", user.org)} members`}</option>
               {people.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.id === user.id ? `${p.display_name} (me)` : p.display_name}

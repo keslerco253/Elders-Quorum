@@ -1704,4 +1704,30 @@ ALTER TABLE meetings ADD COLUMN reminder2_minutes INTEGER;
 ALTER TABLE agenda_items ADD COLUMN category TEXT NOT NULL DEFAULT 'presidency';
 `,
   },
+  {
+    // Repeating presidency meetings (the first Sunday of every month): the next ones are
+    // scheduled ahead as ordinary meetings; last_date is the latest one made, so one
+    // deleted isn't made again.
+    id: 91,
+    sql: `
+CREATE TABLE meeting_series (
+  id INTEGER PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  pattern TEXT NOT NULL,
+  start_date TEXT NOT NULL,
+  until TEXT,
+  count INTEGER,
+  time TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  location TEXT NOT NULL DEFAULT '',
+  reminder_minutes INTEGER,
+  reminder2_minutes INTEGER,
+  created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  last_date TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+ALTER TABLE meetings ADD COLUMN series_id INTEGER REFERENCES meeting_series(id) ON DELETE SET NULL;
+`,
+  },
 ];
