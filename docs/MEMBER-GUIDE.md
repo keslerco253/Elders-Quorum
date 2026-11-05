@@ -138,7 +138,9 @@ Calendar, Service and My assignments pages): for **Lessons**, **Events**,
   before at 7 PM, Wednesday 7 PM, Friday 7 PM, Saturday 8 AM, Saturday 7 PM or
   Sunday 7 AM. For events and service: 15 minutes to 2 weeks before. For
   assignments: when it's due, or 15 minutes to 2 weeks before (counted from its
-  due time, or 9 AM if it has none).
+  due time, or 9 AM if it has none). A reminder a day or more ahead never comes
+  before 8 AM (the morning hour your leaders set): for a 6 AM appointment, "1 day
+  before" comes at 8 AM the day before.
 - **No reminders.**
 
 Your own private to-dos keep the reminders you set on each one.

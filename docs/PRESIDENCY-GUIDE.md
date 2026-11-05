@@ -465,7 +465,10 @@ aren't there; they're in **Messages**.
 member's own reminder that was missed (the server was down) still goes out up
 to 6 hours late, never twice; an event reminder more than 6 hours late is
 skipped, and so is a private to-do reminder. Service and assignment reminders go
-out between the morning hour and 8 PM that day.
+out between the morning hour and 8 PM that day. Reminders counted back from a start time (events,
+meetings, service, assignments, members' own to-dos and events) that are a day or
+more ahead also wait for the morning hour: "1 day before" a 6 AM appointment comes
+at 8 AM the day before; ones an hour or two ahead stay exact.
 
 ### Did they get it?
 

@@ -19,6 +19,19 @@ describe("members' own calendar events", () => {
 
   const base = { title: "Dentist", notes: "", location: "Main St", date: "2026-11-05", start_time: "15:00", end_time: null, all_day: false, timezone: "America/Boise" };
 
+  it("don't send reminders a day or more ahead before the morning hour", () => {
+    savePersonalEvent(2, null, { ...base, start_time: "06:00", reminders: [R("m:1440", { push: true }), R("m:10080", { push: true }), R("m:60", { push: true })] });
+    const due = (t: string) => collectDue(at(t)).filter((n) => n.key.startsWith("pevent:")).map((n) => n.key.split(":").pop());
+    // The day before at 6 AM: not yet; at 8 AM: the 1-day reminder.
+    expect(due("2026-11-04T06:00")).toEqual([]);
+    expect(due("2026-11-04T08:00")).toEqual(["1440"]);
+    // A week before: 8 AM, not 6 AM.
+    expect(due("2026-10-29T06:30")).toEqual([]);
+    expect(due("2026-10-29T08:00")).toEqual(["10080"]);
+    // An hour before stays exact (5 AM).
+    expect(due("2026-11-05T05:00")).toEqual(["60"]);
+  });
+
   it("are only theirs, show on their calendar, and last an hour without an end", () => {
     const id = savePersonalEvent(2, null, { ...base, reminders: [] })!;
     expect(getPersonalEvent(1, id)).toBeUndefined();

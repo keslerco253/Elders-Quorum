@@ -160,11 +160,29 @@ export function dueForDate(when: string, date: string, local: DateTime): boolean
   return local >= at && local.diff(at, "hours").hours < LATE_HOURS;
 }
 
+/** Where to keep reminders from going out too early: the ward's time zone and the morning hour (Reminder times). */
+export interface Mornings {
+  tz: string;
+  hour: number;
+}
+
+/**
+ * When a reminder `minutes` before a start goes out. One a day or more ahead never goes
+ * out before the morning hour: a 6 AM appointment's "1 day before" comes at 8 AM the day
+ * before, not 6 AM. Closer ones (an hour before) stay exact.
+ */
+export function reminderTime(startsAtUtc: string, minutes: number, mornings?: Mornings): DateTime {
+  const at = DateTime.fromISO(startsAtUtc, { zone: "utc" }).minus({ minutes });
+  if (!mornings || minutes < 1440) return at;
+  const local = at.setZone(mornings.tz);
+  return local.hour < mornings.hour ? local.set({ hour: mornings.hour, minute: 0, second: 0, millisecond: 0 }).toUTC() : at;
+}
+
 /** For an event: is "m:N" (minutes before it starts) due now? */
-export function dueForStart(when: string, startsAtUtc: string, now: DateTime): boolean {
+export function dueForStart(when: string, startsAtUtc: string, now: DateTime, mornings?: Mornings): boolean {
   const m = when.match(/^m:(\d+)$/);
   if (!m) return false;
-  const at = DateTime.fromISO(startsAtUtc, { zone: "utc" }).minus({ minutes: Number(m[1]) });
+  const at = reminderTime(startsAtUtc, Number(m[1]), mornings);
   return now >= at && now.diff(at, "hours").hours < LATE_HOURS;
 }
 

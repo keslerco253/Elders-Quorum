@@ -12,7 +12,7 @@ import { reminderSettings, type LessonWhen } from "./reminder-settings";
 import type { PushPayload } from "./push";
 import type { EventRow } from "./types";
 import { eventAudience, eventWhenText, reminderAnchor } from "./events";
-import { daysBetween, dueForDate, dueForStart, ownSettings, whenLabel, type ReminderChannel } from "./reminder-prefs";
+import { daysBetween, dueForDate, dueForStart, ownSettings, reminderTime, whenLabel, type Mornings, type ReminderChannel } from "./reminder-prefs";
 import { getOrg, getWard, hasFeature, homeOf, pickOrg } from "./orgs";
 import { runRetention } from "./retention";
 import { extendAllSeries } from "./event-series";
@@ -66,6 +66,9 @@ function teacherNotesLine(lessonId: number) {
   if (n?.status === "rejected") return "The presidency sent your notes back with a comment. Tap to see it.";
   return "Want to share notes with everyone before Sunday? Tap to add them on the lesson page.";
 }
+
+/** Reminders a day or more ahead wait for the organization's morning hour (Reminder times). */
+const mornings = (org: OrgCtx): Mornings => ({ tz: org.timezone, hour: reminderSettings(org.id).morningHour });
 
 function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const local = now.setZone(org.timezone);
@@ -205,7 +208,7 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       const mine = own.get(m.id);
       if (mine?.mode !== "custom") continue;
       for (const r of mine.reminders) {
-        if (dueForStart(r.when, reminderAnchor(e, org.timezone), now)) out.push({ key: `event-mine:${e.id}:${e.starts_at}:${m.id}:${r.when}:${r.channels.join("+")}`, recipients: [m], payload, only: r.channels });
+        if (dueForStart(r.when, reminderAnchor(e, org.timezone), now, mornings(org))) out.push({ key: `event-mine:${e.id}:${e.starts_at}:${m.id}:${r.when}:${r.channels.join("+")}`, recipients: [m], payload, only: r.channels });
       }
     }
     // An event can have two reminders (e.g. a week before and a day before).
@@ -215,7 +218,7 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
     ] as const) {
       if (minutes === null || minutes === undefined) continue;
       // (An all-day event's count from 9 AM that day.)
-      const remindAt = DateTime.fromISO(reminderAnchor(e, org.timezone), { zone: "utc" }).minus({ minutes });
+      const remindAt = reminderTime(reminderAnchor(e, org.timezone), minutes, mornings(org));
       // Send once the reminder time passes, but skip it if we're more than 6 hours late.
       if (remindAt > now || now.diff(remindAt, "hours").hours > 6) continue;
       out.push({
@@ -249,7 +252,7 @@ function todoReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       const who = mine.mode === "custom" ? recipientById(t.mid, org.id) : undefined;
       const due = dueAtUtc(t, org.timezone)!;
       for (const r of who ? mine.reminders : []) {
-        if (!dueForStart(r.when, due, now)) continue;
+        if (!dueForStart(r.when, due, now, mornings(org))) continue;
         const label = whenLabel("assignments", r.when);
         out.push({
           key: `todo-mine:${t.id}:${t.due_date}T${t.due_time ?? ""}:${t.mid}:${r.when}:${r.channels.join("+")}`,
@@ -406,7 +409,7 @@ function signupReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       // Like events: counted back from when it starts (9 AM when no time is set).
       const starts = DateTime.fromISO(`${r.date}T${r.time ?? "09:00"}`, { zone: org.timezone }).toUTC().toISO()!;
       for (const rem of who ? mine.reminders : []) {
-        if (!dueForStart(rem.when, starts, now)) continue;
+        if (!dueForStart(rem.when, starts, now, mornings(org))) continue;
         out.push({
           key: `signup-mine:${r.id}:${r.date}:${r.time ?? ""}:${r.member_id}:${rem.when}:${rem.channels.join("+")}`,
           recipients: [who!],
@@ -460,7 +463,7 @@ function personalTodoReminders(now: DateTime): DueNotification[] {
     const due = dueAtUtc(t, tz);
     if (!due) continue;
     for (const r of personalReminders(t)) {
-      if (!dueForStart(r.when, due, now)) continue;
+      if (!dueForStart(r.when, due, now, { tz, hour: home ? reminderSettings(home.id).morningHour : 8 })) continue;
       const who = home ? recipientById(t.member_id, home.id) : undefined;
       if (!who) continue;
       const label = TODO_WHEN.find(([k]) => k === r.when)?.[1] ?? "";
@@ -492,9 +495,9 @@ function personalEventReminders(now: DateTime): DueNotification[] {
   for (const e of rows) {
     const { starts } = personalEventTimes(e);
     const anchor = personalReminderAnchor(e);
+    const home = pickOrg(e.member_id);
     for (const r of personalReminders(e)) {
-      if (!dueForStart(r.when, anchor, now)) continue;
-      const home = pickOrg(e.member_id);
+      if (!dueForStart(r.when, anchor, now, { tz: e.timezone, hour: home ? reminderSettings(home.id).morningHour : 8 })) continue;
       const who = home ? recipientById(e.member_id, home.id) : undefined;
       if (!who) continue;
       const label = PERSONAL_EVENT_WHEN.find(([k]) => k === r.when)?.[1] ?? "";
