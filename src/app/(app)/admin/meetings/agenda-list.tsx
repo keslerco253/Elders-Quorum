@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Linkify } from "@/components/linkify";
+import { FlyerThumb } from "@/components/flyer-thumb";
 import { SubmitButton } from "@/components/client";
 import { agendaFileHref, type AgendaItem } from "@/lib/meetings";
 import { AGENDA_SECTIONS, groupBySection } from "@/lib/agenda-sections";
@@ -90,17 +91,20 @@ function SectionList({
           </>
         );
         // Attached files: open (PDFs and pictures in the browser, others download); ✕ to take one off.
+        // Attached files, with a preview (a picture, a PDF's first page, or the kind of
+        // document): tap to open (PDFs and pictures in the browser, others download); ✕ to remove.
         const files = a.files.length > 0 && (
-          <ul className="mt-1.5 flex flex-wrap gap-1.5">
+          <ul className="mt-2 flex flex-wrap gap-2">
             {a.files.map((f) => (
-              <li key={f.id} className="flex items-center gap-1 rounded-lg border border-border bg-surface-2 py-0.5 pr-1 pl-2 text-xs">
-                <a href={agendaFileHref(f)} target="_blank" rel="noreferrer" className="max-w-56 truncate text-accent hover:underline" title={f.original_name}>
-                  📎 {f.original_name}
+              <li key={f.id} className="relative w-24">
+                <a href={agendaFileHref(f)} target="_blank" rel="noreferrer" title={f.original_name} className="block hover:opacity-90">
+                  <FlyerThumb file={f.name} name={f.original_name} src={agendaFileHref(f)} big />
+                  <span className="mt-0.5 block truncate text-[11px] text-accent">{f.original_name}</span>
                 </a>
                 {canEdit && (
-                  <form action={removeAgendaFileAction}>
+                  <form action={removeAgendaFileAction} className="absolute -top-1.5 -right-1.5">
                     <input type="hidden" name="file_id" value={f.id} />
-                    <SubmitButton className="px-1 text-muted hover:text-danger" confirm={`Remove ${f.original_name}?`} pendingText="…">
+                    <SubmitButton className="flex min-h-6 min-w-6 items-center justify-center rounded-full border border-border bg-surface px-1.5 text-xs whitespace-nowrap text-muted shadow hover:text-danger" confirm={`Remove ${f.original_name}?`} pendingText="…">
                       <span aria-label={`Remove ${f.original_name}`}>✕</span>
                     </SubmitButton>
                   </form>

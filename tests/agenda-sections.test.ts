@@ -90,3 +90,33 @@ describe("assignment review at the bottom of the agenda", () => {
     expect(page).not.toContain("Done before");
   });
 });
+
+describe("searching presidency meetings", () => {
+  it("finds a word in agenda items, their notes, files, meeting notes and assignments", async () => {
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'Pres', 'p@x.com', 'presidency');
+    `);
+    const { searchMeetings, saveAgendaNotes, finishMeeting } = await import("@/lib/meetings");
+    const { db } = await import("@/lib/db");
+    const m = createMeeting(1, "2026-10-04", "", 1, { time: "19:00", tz: "America/Boise" });
+    const a = addAgendaItem(1, "Bishop's storehouse order", { addedBy: 1 });
+    saveAgendaNotes(1, a, "Talk to the STOREHOUSE manager");
+    db().prepare("UPDATE meetings SET notes = 'Storehouse hours changed' WHERE id = ?").run(m);
+    finishMeeting(1, m, "2026-10-04");
+    addAgendaItem(1, "Next: storehouse volunteers", { addedBy: 1 });
+    addAgendaItem(1, "Unrelated", { addedBy: 1 });
+    db().prepare("INSERT INTO todos (org_id, title, created_by, meeting_id) VALUES (1, 'Call the storehouse', 1, ?)").run(m);
+    const hits = searchMeetings(1, "storehouse");
+    expect(hits.map((h) => [h.meeting ? "met" : "next", h.where])).toEqual([
+      ["next", "Agenda item"],
+      ["met", "Agenda item"],
+      ["met", `Notes on "Bishop's storehouse order"`],
+      ["met", "Meeting notes"],
+      ["met", "Assignment from the meeting"],
+    ]);
+    expect(hits[1].href).toBe(`/admin/meetings/${m}#item-${a}`);
+    expect(searchMeetings(1, "s")).toEqual([]);
+    expect(searchMeetings(1, "100%")).toEqual([]);
+  });
+});

@@ -99,9 +99,14 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         back={{ href: "/admin", label: "Admin" }}
         subtitle="The next meeting and its agenda, and each meeting's notes and assignments. Only the presidency can see these."
         actions={
-          <Link href="/admin/todos" className="btn-secondary">
-            Assignments
-          </Link>
+          <>
+            <Link href="/admin/meetings/search" className="btn-secondary">
+              🔍 Search
+            </Link>
+            <Link href="/admin/todos" className="btn-secondary">
+              Assignments
+            </Link>
+          </>
         }
       />
       <Flash msg={sp.msg} />

@@ -4,17 +4,21 @@ import { useEffect, useRef, useState } from "react";
 import { isPicture } from "@/lib/upload-names";
 
 /** A small preview of a flyer for lists: the picture, or the first page of a PDF. */
-export function FlyerThumb({ file, name, big }: { file: string; name: string | null; big?: boolean }) {
-  const src = `/files/${file}`;
+export function FlyerThumb({ file, name, big, src: given }: { file: string; name: string | null; big?: boolean; /** Where to load it from (default /files/<file>). */ src?: string }) {
+  const src = given ?? `/files/${file}`;
   const box = `${big ? "h-24 w-24" : "h-14 w-14"} shrink-0 overflow-hidden rounded-lg border border-border bg-surface-2`;
   if (isPicture(file)) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={src} alt={name ?? "Flyer"} loading="lazy" className={`${box} object-cover`} />;
   }
   if (file.endsWith(".pdf")) return <PdfThumb src={src} className={box} width={big ? 96 : 56} />;
+  // Other documents: their kind, at a glance.
+  const ext = file.split(".").pop() ?? "";
+  const kind = ext.startsWith("doc") ? ["📝", "Word"] : ext.startsWith("xls") || ext === "csv" ? ["📊", ext === "csv" ? "CSV" : "Excel"] : ext.startsWith("ppt") ? ["📽️", "PowerPoint"] : ["📄", ext.toUpperCase()];
   return (
-    <span className={`${box} flex items-center justify-center text-2xl`} aria-label="Flyer">
-      📄
+    <span className={`${box} flex flex-col items-center justify-center gap-0.5`} aria-label={kind[1]}>
+      <span className="text-2xl">{kind[0]}</span>
+      {big && <span className="text-[10px] font-semibold text-muted uppercase">{kind[1]}</span>}
     </span>
   );
 }
@@ -55,7 +59,7 @@ function PdfThumb({ src, className, width }: { src: string; className: string; w
       </span>
     );
   return (
-    <span className={`${className} bg-white`}>
+    <span className={`${className} block bg-white`}>
       <canvas ref={canvas} className="block w-full" aria-label="Flyer" />
     </span>
   );

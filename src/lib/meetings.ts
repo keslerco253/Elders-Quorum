@@ -496,3 +496,70 @@ export function inviteGroups(orgId: number): { key: string; label: string; ids: 
   groups.push({ key: "everyone", label: `Everyone in ${org.kind === "ward" ? "the ward" : org.name}`, ids: roster.map((r) => r.id) });
   return groups;
 }
+
+export interface MeetingSearchHit {
+  /** The meeting it's in, or null for the agenda waiting for the next meeting. */
+  meeting: { id: number; date: string; time: string | null; title: string } | null;
+  /** What matched: "Agenda item", "Notes on an agenda item", "Meeting notes", "Attached file", "Assignment"… */
+  where: string;
+  text: string;
+  href: string;
+}
+
+/**
+ * Every place a word or phrase appears in an organization's presidency meetings: the
+ * agenda (waiting and filed), notes on agenda items, attached files' names, each
+ * meeting's title, place, who was there and notes, and assignments made in a meeting.
+ * Newest meetings first; the waiting agenda before them.
+ */
+export function searchMeetings(orgId: number, q: string): MeetingSearchHit[] {
+  const term = q.trim().slice(0, 100);
+  if (term.length < 2) return [];
+  const like = `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  const has = (s: string | null | undefined) => !!s && s.toLowerCase().includes(term.toLowerCase());
+  const d = db();
+  type M = MeetingSearchHit["meeting"];
+  const meetings = new Map<number, NonNullable<M>>();
+  for (const m of d.prepare("SELECT id, date, time, title FROM meetings WHERE org_id = ?").all(orgId) as NonNullable<M>[]) meetings.set(m.id, m);
+  const hits: MeetingSearchHit[] = [];
+  const at = (meetingId: number | null) => (meetingId ? (meetings.get(meetingId) ?? null) : null);
+  const page = (meetingId: number | null, anchor: string) => (meetingId ? `/admin/meetings/${meetingId}#${anchor}` : `/admin/meetings#${anchor}`);
+
+  const items = d
+    .prepare(
+      `SELECT a.id, a.meeting_id, a.body, a.notes FROM agenda_items a
+       WHERE a.org_id = @org AND (a.body LIKE @like ESCAPE '\\' OR a.notes LIKE @like ESCAPE '\\'
+         OR EXISTS (SELECT 1 FROM agenda_files f WHERE f.item_id = a.id AND f.original_name LIKE @like ESCAPE '\\'))`,
+    )
+    .all({ org: orgId, like }) as { id: number; meeting_id: number | null; body: string; notes: string }[];
+  for (const a of items) {
+    const meeting = at(a.meeting_id);
+    if (has(a.body)) hits.push({ meeting, where: "Agenda item", text: a.body, href: page(a.meeting_id, `item-${a.id}`) });
+    if (has(a.notes)) hits.push({ meeting, where: `Notes on "${a.body.slice(0, 60)}"`, text: a.notes, href: page(a.meeting_id, `item-${a.id}`) });
+    for (const f of d.prepare("SELECT original_name FROM agenda_files WHERE item_id = ?").all(a.id) as { original_name: string }[])
+      if (has(f.original_name)) hits.push({ meeting, where: `File on "${a.body.slice(0, 60)}"`, text: f.original_name, href: page(a.meeting_id, `item-${a.id}`) });
+  }
+  const rows = d
+    .prepare("SELECT id, title, location, attendees, notes, opening_prayer, spiritual_thought, closing_prayer FROM meetings WHERE org_id = @org AND (title LIKE @like ESCAPE '\\' OR location LIKE @like ESCAPE '\\' OR attendees LIKE @like ESCAPE '\\' OR notes LIKE @like ESCAPE '\\' OR opening_prayer LIKE @like ESCAPE '\\' OR spiritual_thought LIKE @like ESCAPE '\\' OR closing_prayer LIKE @like ESCAPE '\\')")
+    .all({ org: orgId, like }) as Record<string, string | number>[];
+  for (const r of rows) {
+    const meeting = at(Number(r.id));
+    const fields: [string, string][] = [
+      ["notes", "Meeting notes"],
+      ["title", "Meeting title"],
+      ["location", "Where"],
+      ["attendees", "Who was there"],
+      ["opening_prayer", "Opening prayer"],
+      ["spiritual_thought", "Spiritual thought"],
+      ["closing_prayer", "Closing prayer"],
+    ];
+    for (const [k, label] of fields) if (has(String(r[k] ?? ""))) hits.push({ meeting, where: label, text: String(r[k]), href: `/admin/meetings/${r.id}` });
+  }
+  const todos = d
+    .prepare("SELECT id, meeting_id, title, notes FROM todos WHERE org_id = @org AND meeting_id IS NOT NULL AND (title LIKE @like ESCAPE '\\' OR notes LIKE @like ESCAPE '\\')")
+    .all({ org: orgId, like }) as { id: number; meeting_id: number; title: string; notes: string }[];
+  for (const t of todos) hits.push({ meeting: at(t.meeting_id), where: "Assignment from the meeting", text: has(t.title) ? t.title : `${t.title}: ${t.notes}`, href: `/assignments/${t.id}` });
+
+  // The waiting agenda first, then meetings newest first.
+  return hits.sort((a, b) => (a.meeting ? 1 : 0) - (b.meeting ? 1 : 0) || (b.meeting?.date ?? "").localeCompare(a.meeting?.date ?? "") || (b.meeting?.id ?? 0) - (a.meeting?.id ?? 0));
+}

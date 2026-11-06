@@ -1115,10 +1115,16 @@ place. Only the presidency (or bishopric) sees it.
 - **📎 Files on an agenda item:** when adding an item, or later under **Edit or
   add notes**, choose **Attach files**: PDFs, pictures (JPEG, PNG, iPhone photos),
   Word, Excel and PowerPoint files, or text/CSV files, up to 15 MB each, several
-  at once. They show under the item; tap one to open it (PDFs and pictures open in
+  at once. They show under the item as small previews (a picture, the first page
+  of a PDF, or a Word/Excel/PowerPoint icon); tap one to open it (PDFs and pictures open in
   the browser, other files download) or ✕ to remove it. Only your presidency (or
   bishopric) can open them. The printed agenda lists them by name. They stay with
   the item when the meeting is finished, and are deleted with it.
+- **🔍 Search** (at the top of Presidency meetings): find a word or phrase in
+  every presidency meeting, past and upcoming: agenda items and their notes,
+  attached files' names, meeting notes, who was there, and assignments made in a
+  meeting. Results are grouped by meeting with the word highlighted; tap one to
+  go straight to it.
 - **Assignment review** (at the bottom of the agenda, here and on the meeting's
   page): assignments **completed since the last presidency meeting** (or the last
   30 days, before the first one) and every assignment **still open**, with who
