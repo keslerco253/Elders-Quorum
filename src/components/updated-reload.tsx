@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SAVE_FAILED } from "./keep-draft";
 
 const FLAG = "mwl-updated";
 const isStale = (v: unknown) => /Server Action .* was not found|failed-to-find-server-action/i.test(String((v as Error)?.message ?? v ?? ""));
@@ -37,14 +38,19 @@ export function UpdatedReload() {
     if (g.__mwlFetch) return;
     const plain = window.fetch.bind(window);
     g.__mwlFetch = plain;
+    const failed = () => {
+      setFailed(true);
+      // Forms keeping a draft put the writing back.
+      window.dispatchEvent(new Event(SAVE_FAILED));
+    };
     window.fetch = async (input, init) => {
       const isSave = new Headers(init?.headers).has("next-action");
       try {
         const res = await plain(input, init);
-        if (isSave && res.status >= 500) setFailed(true);
+        if (isSave && res.status >= 500) failed();
         return res;
       } catch (e) {
-        if (isSave) setFailed(true);
+        if (isSave) failed();
         throw e;
       }
     };

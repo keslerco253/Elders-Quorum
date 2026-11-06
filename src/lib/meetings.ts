@@ -198,8 +198,9 @@ export function attendeeChoices(orgId: number): { id: number; name: string; call
  * discussed; notes written ahead of time (beforehand), or saved unchanged, don't.
  */
 export function saveAgendaNotes(orgId: number, itemId: number, notes: string, opts: { body?: string; beforehand?: boolean } = {}) {
-  const text = notes.trim().slice(0, 4000);
-  const body = opts.body?.trim().slice(0, 2000);
+  // A sent form's line breaks are \r\n: kept as \n.
+  const text = notes.replace(/\r\n?/g, "\n").trim().slice(0, 4000);
+  const body = opts.body?.replace(/\r\n?/g, "\n").trim().slice(0, 2000);
   const d = db();
   if (body) d.prepare("UPDATE agenda_items SET body = ? WHERE id = ? AND org_id = ?").run(body, itemId, orgId);
   // Only new notes taken in the meeting tick it (not rewording an item, or notes written beforehand).

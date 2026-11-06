@@ -3,6 +3,7 @@ import { Linkify } from "@/components/linkify";
 import { FlyerThumb } from "@/components/flyer-thumb";
 import { SubmitButton } from "@/components/client";
 import { KeepDraft } from "@/components/keep-draft";
+import { AutoGrow } from "@/components/auto-grow";
 import { ScrollHere } from "@/components/scroll-here";
 import { agendaFileHref, type AgendaItem } from "@/lib/meetings";
 import { AGENDA_SECTIONS, groupBySection } from "@/lib/agenda-sections";
@@ -193,6 +194,7 @@ function SectionList({
                   <form key={`${a.body}\n${a.notes}\n${a.category}`} action={saveItemNotes} className="mt-2 space-y-2">
                     <input type="hidden" name="item_id" value={a.id} />
                     <KeepDraft id={`agenda-item:${a.id}`} />
+                    <AutoGrow />
                     {meetingId && <input type="hidden" name="meeting_id" value={meetingId} />}
                     {!inMeeting && !finished && <input type="hidden" name="beforehand" value="1" />}
                     <textarea name="body" rows={2} maxLength={2000} required defaultValue={a.body} className="input text-sm" aria-label="Agenda item" />
@@ -205,7 +207,7 @@ function SectionList({
                     </select>
                     <textarea
                       name="notes"
-                      rows={3}
+                      rows={4}
                       maxLength={4000}
                       defaultValue={a.notes}
                       className="input text-sm"

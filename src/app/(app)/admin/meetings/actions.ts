@@ -205,7 +205,7 @@ export async function saveMeeting(fd: FormData) {
   const location = fd.has("location") ? String(fd.get("location") || "").trim().slice(0, 200) : m.location;
   db()
     .prepare("UPDATE meetings SET date = ?, time = ?, title = ?, location = ?, attendees = ?, notes = ?, updated_at = datetime('now') WHERE id = ?")
-    .run(date, time, title, location, attendees, String(fd.get("notes") ?? m.notes).slice(0, 20000), m.id);
+    .run(date, time, title, location, attendees, String(fd.get("notes") ?? m.notes).replace(/\r\n?/g, "\n").slice(0, 20000), m.id);
   saveReminders(fd, m.id);
   if (fd.has("reminder") || date !== m.date || time !== m.time || title !== m.title || location !== m.location) syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
   revalidatePath("/", "layout");

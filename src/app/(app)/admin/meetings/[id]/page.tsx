@@ -15,6 +15,7 @@ import { SubmitButton } from "@/components/client";
 import { AssignmentForm } from "@/components/assignment-form";
 import { AgendaList } from "../agenda-list";
 import { KeepDraft } from "@/components/keep-draft";
+import { AutoGrow } from "@/components/auto-grow";
 import { stopRepeating, addAgenda, deleteMeeting, finish, inviteToMeetingAction, saveMeeting, saveMeetingRole, startVideo, uninviteAction } from "../actions";
 import { RoleSelect } from "../role-select";
 import { PrintAgendaButton } from "../print-agenda";
@@ -236,6 +237,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
           <form action={saveMeeting} className="card space-y-3">
             <input type="hidden" name="meeting_id" value={m.id} />
             <KeepDraft id={`meeting-notes:${m.id}`} />
+            <AutoGrow max={560} />
             <h2 className="h2">Notes</h2>
             <div className="grid grid-cols-2 gap-3">
               <Labeled label="Date">
