@@ -55,7 +55,7 @@ export async function approveWard(wardId: number): Promise<PendingWard | null> {
     await sendAccountNotice(
       creator,
       `${w.name} is approved`,
-      `Hi ${creator.display_name},\n\n${w.name} is approved and ready to use. Sign in to share its join code and set up its organizations.`,
+      `Hi ${creator.display_name},\n\n${w.name} is approved and ready to use. Sign in to share its join code and set up its organizations.\n\nFirst, connect the ward's email account (Admin → Ward settings → Ward email): until you do, the app sends your members no email, only app notifications and texts.`,
       { url: `${appUrl()}/?org=${wardOrg(wardId).id}`, label: "Open My Ward Link" },
     );
   }

@@ -212,6 +212,20 @@ export async function setNoTexting(fd: FormData) {
   go(none ? `${ward.name} has no texting at all now: members sign in and get everything by email or app notification.` : `${ward.name} can use texting again. Turn it on when they're ready.`);
 }
 
+/**
+ * Whether a ward's email may go out from the site's own email account when it hasn't
+ * connected its own (wards here before ward email accounts do; new ones don't).
+ */
+export async function setSiteEmail(fd: FormData) {
+  await requireSiteOwner();
+  const ward = getWard(Number(fd.get("ward_id")));
+  if (!ward) go("That ward is gone.", true);
+  const on = fd.get("on") === "1";
+  db().prepare("UPDATE wards SET site_email = ? WHERE id = ?").run(on ? 1 : 0, ward.id);
+  revalidatePath("/", "layout");
+  go(on ? `${ward.name} can use the site's email when it has none of its own.` : `${ward.name} no longer uses the site's email: it sends email only from its own account.`);
+}
+
 /** Texting is paid through a date: it turns off after it (you're reminded two weeks before). Empty: no end date. */
 export async function setPaidThrough(fd: FormData) {
   await requireSiteOwner();

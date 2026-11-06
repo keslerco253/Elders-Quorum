@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { DateTime } from "luxon";
 import { db } from "./db";
 import { sha256 } from "./auth-core";
-import { emailHtml, sendMail } from "./mail";
+import { canEmail, emailHtml, sendMail } from "./mail";
 import { codeTextFooter, sendSms, SMS_DISCLOSURE } from "./sms";
 import { formatContact, type ContactKind } from "./contact";
 import type { Member } from "./types";
@@ -23,6 +23,7 @@ export async function startContactVerification(member: Member, kind: ContactKind
   );
   const home = homeOf(member.id);
   const appName = home.name;
+  if (kind === "email" && !canEmail(home.orgId)) return { ok: false, reason: "Your ward hasn't connected an email account to the app yet, so it can't send a code to an email. Please ask your ward leaders." };
   const sent =
     kind === "phone"
       ? (await sendSms(home.orgId, value, `${appName}: ${code} is your code to confirm this number for ward texts. ${SMS_DISCLOSURE}${codeTextFooter(code)}`, "code")) === "sent"
@@ -31,6 +32,7 @@ export async function startContactVerification(member: Member, kind: ContactKind
           subject: `Confirm your email: ${code}`,
           text: `Enter this code in the app to add this email to your account: ${code}\n\nIt expires in 20 minutes. If you didn't ask for this, you can ignore it.`,
           html: emailHtml("Confirm your email", `Enter this code in the app to add this email to your account: ${code}\n\nIt expires in 20 minutes. If you didn't ask for this, you can ignore it.`),
+          orgId: home.orgId,
         });
   if (!sent) return { ok: false, reason: `We couldn't send a code to ${formatContact(kind, value)}. Please check it and try again.` };
   return { ok: true, id };

@@ -19,6 +19,8 @@ describe("new wards under review", () => {
       (1, 'O', 'Owner', 'owner@test.local', 'active', 'email', 1),
       (2, 'T', 'Tom Test', 'tom@test.local', 'active', 'email', 0)`);
     orgs.createWard({ name: "Villas Ward", timezone: "America/Boise", creatorId: 1 });
+    // Villas Ward sends email from the site's own account.
+    d.prepare("UPDATE wards SET site_email = 1").run();
   });
 
   it("is set up right away, but can't be joined or send anything until approved", async () => {

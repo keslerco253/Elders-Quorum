@@ -170,7 +170,7 @@ export async function addMember(fd: FormData) {
   addToOrg(id, user.org_id, { role });
   let note = `${name} was added.`;
   if (c.kind === "email" && fd.get("send_invite") === "on") {
-    note = (await sendInviteEmail({ display_name: name, email: c.value, phone: null }, user.ward.name, user.display_name)) ? `${name} was added and invited by email.` : `${name} was added, but the invite email didn't send. Check email in Settings.`;
+    note = (await sendInviteEmail({ display_name: name, email: c.value, phone: null }, user.ward.name, user.display_name, user.org_id)) ? `${name} was added and invited by email.` : `${name} was added, but the invite email didn't send. Check the organization's email under Admin → Settings.`;
   }
   revalidatePath("/admin/members");
   redirect(`/admin/members/${id}?msg=${encodeURIComponent(note)}`);
@@ -182,7 +182,7 @@ export async function emailInvite(fd: FormData) {
   const id = Number(fd.get("item_id"));
   const m = wardMember(id, user.org_id);
   if (!m?.email) redirect("/admin/members");
-  const ok = await sendInviteEmail(m, user.ward.name, user.display_name);
+  const ok = await sendInviteEmail(m, user.ward.name, user.display_name, user.org_id);
   go(`/admin/members/${id}`, ok ? `Invite emailed to ${m.email}.` : "The invite email didn't send. Check email in Settings.");
 }
 

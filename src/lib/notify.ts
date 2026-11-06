@@ -120,7 +120,7 @@ export async function notify(
     if (!r.email) return false;
     if (payload.personal) {
       const text = `${payload.body}\n\n- ${payload.personal.from}`;
-      return sendMail({ to: r.email, subject: `A message from ${payload.personal.from}`, text, html: emailHtml("", text) });
+      return sendMail({ to: r.email, subject: `A message from ${payload.personal.from}`, text, html: emailHtml("", text), orgId: r.org_id });
     }
     const body = payload.emailNote ? `${payload.body}\n\n${payload.emailNote}` : payload.body;
     return sendMail({
@@ -129,6 +129,7 @@ export async function notify(
       text: `${body}\n\n${url}`,
       html: emailHtml(payload.title, body, { url, label: payload.linkLabel ?? "Open the app" }),
       attachments,
+      orgId: r.org_id,
     });
   };
   const sendText = async (r: Recipient, url: string) => {

@@ -6,6 +6,7 @@ import { saveMemberMessages, saveOrgSettings } from "./actions";
 import { db } from "@/lib/db";
 import { leadersWord } from "@/lib/types";
 import { ReminderTimes } from "./reminder-times";
+import { OrgEmail } from "./org-email";
 import { hasFeature } from "@/lib/orgs";
 import { FEATURES, type Feature } from "@/lib/types";
 
@@ -47,6 +48,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         {!user.wardAdmin && (
           <p className="mt-3 max-w-xl text-sm text-muted">The ward&apos;s join code, time zone and list of organizations are managed by its ward administrators.</p>
         )}
+      </Section>
+      <Section title={user.org.kind === "ward" ? "Ward email" : "Email"}>
+        <OrgEmail orgId={user.org_id} wardId={user.ward_id} isWard={user.org.kind === "ward"} back="settings" />
       </Section>
       <Section title="Messages from members">
         <form action={saveMemberMessages} className="card max-w-xl space-y-3 text-sm">

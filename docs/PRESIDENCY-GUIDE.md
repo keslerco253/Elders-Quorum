@@ -174,6 +174,10 @@ open it):
 - **Ward administrators:** choose up to two people from anyone in the ward. New
   ones are notified. Clearing both hands Ward settings back to the bishopric.
 - **Ward:** the ward's name and time zone.
+- **Ward email:** the email account the ward's email goes out from, and the
+  email of every organization that hasn't connected its own (see **Email
+  accounts** below). Until one is connected, members of a new ward get app
+  notifications and texts but no email, and can't sign in with an email code.
 - **Messages from members:** **Members can send messages to their leaders in the
   app**. Turn it off to use the app only to send information out (see **Turning
   off messages from members**).
@@ -197,6 +201,43 @@ open it):
     president (optional) and what it uses. A name already used is refused; turn
     the existing one on instead.
 - **Another ward → Start a new ward** (see **Starting a ward** above).
+
+## Email accounts
+
+Each organization sends its email (reminders, messages, invitations, sign-in
+codes for its members) from its own email account, so it comes from you and
+replies go to your inbox, and no one account carries a whole stake.
+
+- **Which account:** an organization's own account if it connected one, else
+  the ward's account, else nothing (members get app notifications and texts,
+  but no email, and sign in with a text code). Villas Ward also uses the site's
+  own email until it connects its own; wards started later don't. A brand-new
+  ward under review, and sign-in codes for a ward's administrators and
+  bishopric, still come from the site's email, so they can sign in and set it up.
+- **Who connects it:** the presidency for its organization (**Admin → Settings
+  → Email**); the bishopric (Admin → Settings, looking at the ward) or the ward
+  administrators (**Ward settings → Ward email**) for the ward's.
+- **Setting up Gmail:**
+  1. Make a Gmail account for the organization (for example
+     villas.eq@gmail.com), so it can be handed to the next presidency with the
+     calling.
+  2. In it, turn on **2-Step Verification** (Google Account → Security).
+  3. Open **myaccount.google.com/apppasswords**, name it "My Ward Link", and
+     copy the 16-letter password.
+  4. In the app, enter the address and that password (and a sender name if you
+     like; it starts as "Villas Ward Elders Quorum"), and tap **Connect**. The
+     app checks it signs in, then sends you a test email.
+- **Not Gmail?** Under **Not Gmail?**, enter your provider's outgoing (SMTP)
+  server and port.
+- The card shows the address, the sender name, how many sent today (a Gmail
+  account sends up to about 500 a day; past about 450 the app uses the ward's
+  account for the rest of the day), and the last problem if one happened.
+  **Send me a test**, **Change the account or sender name** (leave the password
+  blank to keep it) and **Disconnect** are there too. If an organization's
+  account stops working, its email goes out from the ward's account meanwhile.
+- The app password is kept sealed and never shown again. Changing the account's
+  normal password or turning off 2-Step Verification cancels app passwords:
+  connect it again with a new one.
 
 ## Organization settings (Admin → Settings)
 
@@ -222,6 +263,8 @@ ward):
 
   A leader who opens a turned-off feature's page is taken to Settings with a
   note saying it's off.
+- **Email** (titled **Ward email** at the ward level): connect the email
+  account your organization's email goes out from (see **Email accounts**).
 - **Messages from members:** **Members can write to the presidency** (the whole
   presidency or bishopric) and **Members can message me** (just you). See
   **Turning off messages from members**.

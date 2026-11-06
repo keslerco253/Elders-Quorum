@@ -9,7 +9,7 @@ import { APP_TOKEN_COOKIE } from "@/lib/native-app";
 import { db } from "@/lib/db";
 import { createLoginToken, findLoginMember, findMemberByContact, isRemember, redeemCode, redeemToken } from "@/lib/auth-core";
 import { endSession, getUser, startSession } from "@/lib/auth";
-import { sendLoginCode } from "@/lib/login-code";
+import { noEmailForSignIn, sendLoginCode } from "@/lib/login-code";
 import { parseContact } from "@/lib/contact";
 import { memberTextable, phoneEnabled, phoneOptInVisible } from "@/lib/sms";
 import { wardByJoinCode } from "@/lib/wards";
@@ -84,6 +84,15 @@ export async function requestLogin(formData: FormData) {
   // A ward with no texting signs in by email: the code goes there instead.
   const byEmail = c.kind === "phone" && !memberTextable(member.id);
   if (byEmail && !member.email) redirect("/login?" + q({ contact: raw, error: "Your ward signs in with email, and there's no email on your account. Please ask your ward leaders to add it." }));
+  // A ward that hasn't connected its email can't email codes: say so (a phone number still works where the ward texts).
+  if ((byEmail || c.kind === "email") && noEmailForSignIn(member))
+    redirect(
+      "/login?" +
+        q({
+          contact: raw,
+          error: memberTextable(member.id) && member.phone ? "Your ward hasn't connected an email account to the app yet. Sign in with your phone number instead." : "Your ward hasn't connected an email account to the app yet, so sign-in codes can't be emailed. Please ask your ward leaders.",
+        }),
+    );
   const sent = await sendLoginCode(member, byEmail ? "email" : c.kind, res.token, res.code);
   if (!sent) redirect("/login?" + q({ contact: raw, error: "We couldn't send your code just now. Please try again in a few minutes." }));
   redirect("/login/check?" + q({ to: byEmail ? member.email! : c.value, next }));

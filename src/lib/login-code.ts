@@ -1,10 +1,30 @@
 import { appUrl } from "./config";
-import { emailHtml, sendMail } from "./mail";
+import { canEmail, emailHtml, sendMail } from "./mail";
+import { db } from "./db";
 import { codeTextFooter, sendSms, SMS_DISCLOSURE } from "./sms";
 import type { ContactKind } from "./contact";
 import type { Member } from "./types";
 import { homeOf } from "./orgs";
 import { markCodeSent } from "./auth-core";
+
+/**
+ * Someone a ward needs signed in to set it up (its administrators and the bishopric):
+ * their sign-in codes may come from the site's email when the ward hasn't connected one.
+ */
+function runsAWard(memberId: number): boolean {
+  return !!db()
+    .prepare(
+      `SELECT 1 FROM ward_admins WHERE member_id = @id
+       UNION SELECT 1 FROM org_members om JOIN orgs o ON o.id = om.org_id WHERE om.member_id = @id AND o.kind = 'ward' AND om.role = 'presidency'
+       UNION SELECT 1 FROM members WHERE id = @id AND is_site_owner = 1`,
+    )
+    .get({ id: memberId });
+}
+
+/** True when a sign-in code can't be emailed to them: their ward hasn't connected an email account. */
+export function noEmailForSignIn(member: Member): boolean {
+  return !canEmail(homeOf(member.id).orgId, runsAWard(member.id));
+}
 
 /** Sends a sign-in code to the phone number or email the member typed. */
 export async function sendLoginCode(member: Member, via: ContactKind, token: string, code: string) {
@@ -30,6 +50,8 @@ export async function sendLoginCode(member: Member, via: ContactKind, token: str
     subject: `Your sign-in code: ${code}`,
     text: `${text}\n\n${link}`,
     html: emailHtml(`Sign in to ${appName}`, text, { url: link, label: "Sign in" }),
+    orgId: home.orgId,
+    essential: runsAWard(member.id),
   });
 }
 
@@ -38,11 +60,9 @@ export async function sendLoginCode(member: Member, via: ContactKind, token: str
  * signed up with. Sent even when the monthly text limit is reached.
  */
 export async function sendAccountNotice(member: Member, subject: string, text: string, link: { url: string; label: string }) {
-  if (member.email) {
-    return sendMail({ to: member.email, subject, text: `${text}\n\n${link.url}`, html: emailHtml(subject, text, link) });
-  }
+  const home = homeOf(member.id);
+  if (member.email && (await sendMail({ to: member.email, subject, text: `${text}\n\n${link.url}`, html: emailHtml(subject, text, link), orgId: home.orgId, essential: runsAWard(member.id) }))) return true;
   if (member.phone && member.sms_consent_at) {
-    const home = homeOf(member.id);
     return (await sendSms(home.orgId, member.phone, `${home.name}: ${text.replace(/\s+/g, " ").replace(/^Hi [^,]+, /, "")} ${link.url}`, "code")) === "sent";
   }
   return false;

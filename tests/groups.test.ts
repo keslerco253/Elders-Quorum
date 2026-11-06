@@ -21,6 +21,8 @@ beforeEach(async () => {
     (3, 'A', 'Admin', 'a@test.local', 'active', 'email'), (4, 'C', 'Committee Member', 'c@test.local', 'active', 'email'),
     (5, 'D', 'Dee', 'd@test.local', 'active', 'email'), (6, 'O', 'Other', 'o@test.local', 'active', 'email')`);
   const w = orgs.createWard({ name: "Villas Ward", timezone: "America/Boise", creatorId: 1 });
+  // Villas Ward sends email from the site's own account.
+  d.prepare("UPDATE wards SET site_email = 1").run();
   eq = orgs.createOrg(w.id, "Elders Quorum").id;
   orgs.addToOrg(2, eq, { role: "presidency" });
   orgs.addToOrg(3, eq, { role: "admin" });

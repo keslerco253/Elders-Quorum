@@ -1747,4 +1747,29 @@ CREATE TABLE agenda_files (
 CREATE INDEX agenda_files_item ON agenda_files(item_id);
 `,
   },
+  {
+    // Each organization (and the ward, through its ward-wide organization) can send its
+    // email from its own account, so no one account carries a whole stake. The password
+    // is an app password, kept sealed. Wards here before this keep using the site's own
+    // email; new wards don't, until they connect one (site_email).
+    id: 93,
+    sql: `
+CREATE TABLE org_mail (
+  org_id INTEGER PRIMARY KEY REFERENCES orgs(id) ON DELETE CASCADE,
+  address TEXT NOT NULL,
+  secret TEXT NOT NULL,
+  from_name TEXT NOT NULL DEFAULT '',
+  host TEXT NOT NULL DEFAULT 'smtp.gmail.com',
+  port INTEGER NOT NULL DEFAULT 465,
+  set_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  sent_day TEXT,
+  sent_count INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT,
+  last_error_at TEXT
+);
+ALTER TABLE wards ADD COLUMN site_email INTEGER NOT NULL DEFAULT 0;
+UPDATE wards SET site_email = 1;
+`,
+  },
 ];

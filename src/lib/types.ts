@@ -62,6 +62,8 @@ export interface Ward {
   texting_paid_through: string | null;
   /** 0: members can't write to any leaders in the app (no New message for members). */
   member_messages: number;
+  /** 1: email goes out from the site's own account when the ward hasn't connected one. */
+  site_email: number;
 }
 
 /** Features an organization can hide when it doesn't use them. */

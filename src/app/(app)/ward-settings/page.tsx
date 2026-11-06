@@ -18,6 +18,7 @@ import {
   startAnotherWard,
 } from "../admin/settings/actions";
 import { db } from "@/lib/db";
+import { OrgEmail } from "../admin/settings/org-email";
 import { wardPeople } from "@/lib/announce";
 import { orgRoster, wardAdmins, wardOrg } from "@/lib/orgs";
 import { FEATURES, STANDARD_ORGS, type Feature } from "@/lib/types";
@@ -85,6 +86,9 @@ export default async function WardSettingsPage({ searchParams }: { searchParams:
           </div>
           <SubmitButton>Save</SubmitButton>
         </form>
+      </Section>
+      <Section title="Ward email">
+        <OrgEmail orgId={wardOrg(user.ward_id).id} wardId={user.ward_id} isWard back="ward" />
       </Section>
       <Section title="Messages from members">
         <form action={setWardMemberMessages} className="card max-w-xl space-y-3 text-sm">

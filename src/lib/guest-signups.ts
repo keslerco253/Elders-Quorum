@@ -89,7 +89,7 @@ export async function startGuestSignup(g: { slotId: number; name: string; contac
     await sendSms(s.org_id, g.contact, `${code} is your code to confirm signing up for ${what}. Reply STOP to opt out.${codeTextFooter(code)}`, "code");
   } else {
     const text = `Hi ${g.name},\n\nYour code to confirm signing up for ${what} is: ${code}\n\nIt expires in 30 minutes. If you didn't sign up, you can ignore this email.`;
-    await sendMail({ to: g.contact, subject: `Your code: ${code}`, text, html: emailHtml(`Confirm your sign-up`, text) });
+    await sendMail({ to: g.contact, subject: `Your code: ${code}`, text, html: emailHtml(`Confirm your sign-up`, text), orgId: s.org_id });
   }
   return id;
 }
@@ -130,7 +130,7 @@ export async function sendGuestConfirmation(id: number, token: string) {
     if (canSendNotice(s.org_id)) await sendSms(s.org_id, g.contact, `You're signed up for ${what}. Thank you! Can't make it? ${cancel}`, "notice");
   } else if (g.contact_kind === "email") {
     const text = `Hi ${g.name},\n\nYou're signed up for ${what}. Thank you!\n\nCan't make it after all? Cancel here: ${cancel}`;
-    await sendMail({ to: g.contact, subject: `You're signed up: ${s.title}`, text, html: emailHtml(`You're signed up`, text, { url: cancel, label: "Can't make it? Cancel" }) });
+    await sendMail({ to: g.contact, subject: `You're signed up: ${s.title}`, text, html: emailHtml(`You're signed up`, text, { url: cancel, label: "Can't make it? Cancel" }), orgId: s.org_id });
   }
 }
 
@@ -226,6 +226,6 @@ export async function sendGuestReminder(r: GuestReminder) {
   if (r.texts) {
     if (canSendNotice(r.orgId)) await sendSms(r.orgId, r.contact, text, "notice");
   } else if (r.kind === "email") {
-    await sendMail({ to: r.contact, subject: `Reminder: ${r.title}`, text: `Hi ${r.name},\n\n${text}`, html: emailHtml(`Reminder: ${r.title}`, `Hi ${r.name},\n\n${text}`) });
+    await sendMail({ to: r.contact, subject: `Reminder: ${r.title}`, text: `Hi ${r.name},\n\n${text}`, html: emailHtml(`Reminder: ${r.title}`, `Hi ${r.name},\n\n${text}`), orgId: r.orgId });
   }
 }

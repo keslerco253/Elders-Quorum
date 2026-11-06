@@ -41,12 +41,13 @@ Unzip this version and run **UPDATE.bat** on the PC as usual. That adds
    | `OWNER_EMAIL` | your email (the site owner: every ward, texting, backups) |
    | `CONTACT_EMAIL` | optional: the email shown on the Privacy and Terms pages for questions (otherwise the sending address) |
    | `SETUP_CODE` | optional: a phrase for restoring a backup onto an empty server |
+   | `MAIL_KEY` | optional: a long random phrase that seals the organizations' email app passwords (otherwise a key kept in the database, so a backup file could open them). Set it before anyone connects an email; changing it later means reconnecting them |
    | `TWILIO_ACCOUNT_SID` | same as now |
    | `TWILIO_AUTH_TOKEN` | same as now |
    | `TWILIO_FROM` | `+12083579951` |
 
    Leave out `APP_PORT`, `SMS_PENDING` and `CLOUDFLARE_TUNNEL_TOKEN`; they're only for the PC.
-   If Northflank offers to mark a variable as secret, do that for `SMTP_PASS` and `TWILIO_AUTH_TOKEN`.
+   If Northflank offers to mark a variable as secret, do that for `SMTP_PASS`, `MAIL_KEY` and `TWILIO_AUTH_TOKEN`.
 9. Create the service. The first build takes 5–10 minutes.
 
 ## 3. Give it a disk (volume)

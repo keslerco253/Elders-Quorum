@@ -27,7 +27,7 @@ export function inviteText(m: Pick<Member, "display_name" | "email" | "phone">, 
   return `Hi ${first}! I added you to the ${appName} app for reminders, sign-ups and ward news. Sign in here with this phone number and you'll get a code: ${inviteLink(m)}`;
 }
 
-export async function sendInviteEmail(m: Pick<Member, "display_name" | "email" | "phone">, appName: string, from: string) {
+export async function sendInviteEmail(m: Pick<Member, "display_name" | "email" | "phone">, appName: string, from: string, orgId: number) {
   if (!m.email) return false;
   const link = inviteLink(m);
   const text = `Hi ${m.display_name},\n\n${from} added you to ${appName}, our ward app for reminders, sign-ups, the calendar and news from the ward and its organizations.\n\nSign in with this email address (${m.email}). We'll send you a code; no password needed.`;
@@ -36,5 +36,6 @@ export async function sendInviteEmail(m: Pick<Member, "display_name" | "email" |
     subject: `You're invited to ${appName}`,
     text: `${text}\n\n${link}`,
     html: emailHtml(`You're invited to ${appName}`, text, { url: link, label: "Sign in" }),
+    orgId,
   });
 }

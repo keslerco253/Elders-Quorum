@@ -12,7 +12,7 @@ import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
 import { addWard, approveNewWard, declineNewWard, leadWard, loadCfmSchedule, setUpReview, removeCfmYear, removeWard,
-  clearWardData, saveTextCost, saveTextLimit, setNoTexting, setPaidThrough, sendTestEmail, sendTestText, setWardTexting } from "./actions";
+  clearWardData, saveTextCost, saveTextLimit, setNoTexting, setPaidThrough, setSiteEmail, sendTestEmail, sendTestText, setWardTexting } from "./actions";
 import { pendingWards } from "@/lib/ward-review";
 import { formatPhone } from "@/lib/contact";
 import { cfmYears, manualUrl } from "@/lib/cfm";
@@ -27,6 +27,11 @@ interface WardRow {
   created_at: string;
   texting_enabled: number;
   no_texting: number;
+  site_email: number;
+  /** The ward's own email account, if connected. */
+  ward_email: string | null;
+  /** Organizations with their own email account. */
+  org_emails: number;
   texting_paid_through: string | null;
   creator: string | null;
   creator_contact: string | null;
@@ -66,7 +71,9 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
   const soon = DateTime.now().plus({ days: 14 }).toISODate()!;
   const wards = db()
     .prepare(
-      `SELECT w.id, w.name, w.created_at, w.texting_enabled, w.no_texting, w.texting_paid_through, m.display_name AS creator, COALESCE(m.email, m.phone) AS creator_contact,
+      `SELECT w.id, w.name, w.created_at, w.texting_enabled, w.no_texting, w.site_email, w.texting_paid_through,
+         (SELECT om.address FROM org_mail om JOIN orgs o ON o.id = om.org_id WHERE o.ward_id = w.id AND o.kind = 'ward') AS ward_email,
+         (SELECT COUNT(*) FROM org_mail om JOIN orgs o ON o.id = om.org_id WHERE o.ward_id = w.id AND o.kind <> 'ward') AS org_emails, m.display_name AS creator, COALESCE(m.email, m.phone) AS creator_contact,
          (SELECT COUNT(*) FROM ward_members wm WHERE wm.ward_id = w.id) AS people,
          (SELECT COUNT(*) FROM orgs o WHERE o.ward_id = w.id AND o.kind = 'group' AND o.active = 1) AS orgs
        FROM wards w LEFT JOIN members m ON m.id = w.created_by ORDER BY w.created_at DESC`,
@@ -200,6 +207,8 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold">{w.name}</span>
                 {w.no_texting ? <Badge>No texting</Badge> : w.texting_enabled ? <Badge tone="success">Texting on</Badge> : <Badge tone="warn">Texting off</Badge>}
+                {w.ward_email ? <Badge tone="success">Email: {w.ward_email}</Badge> : w.site_email ? <Badge>Email: the site&apos;s</Badge> : <Badge tone="warn">No email</Badge>}
+                {w.org_emails > 0 && <Badge>{w.org_emails} with their own email</Badge>}
                 {!w.no_texting && w.texting_paid_through && (
                   <Badge tone={w.texting_paid_through < today ? "danger" : w.texting_paid_through <= soon ? "warn" : "neutral"}>Paid through {formatDate(w.texting_paid_through, "short")}</Badge>
                 )}
@@ -284,6 +293,16 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
                     </form>
                   </div>
                 </details>
+                <form action={setSiteEmail}>
+                  <input type="hidden" name="ward_id" value={w.id} />
+                  <input type="hidden" name="on" value={w.site_email ? "0" : "1"} />
+                  <SubmitButton
+                    className="btn-secondary btn-sm"
+                    confirm={w.site_email && !w.ward_email ? `${w.name} has no email of its own: members would get no email until its leaders connect one (Ward settings). Stop using the site's email?` : undefined}
+                  >
+                    {w.site_email ? "Stop using the site's email" : "Use the site's email"}
+                  </SubmitButton>
+                </form>
                 <form action={leadWard}>
                   <input type="hidden" name="ward_id" value={w.id} />
                   <SubmitButton className="btn-secondary btn-sm" confirm={`Join the ${w.name} bishopric in the app, so you can manage it?`}>
@@ -330,8 +349,9 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
           ))}
         </ul>
         <p className="hint mt-2">
-          Wards other people start have texting off: reminder and message texts are on your Twilio account and texting registration. Sign-in codes are always texted. Email works
-          for every ward.
+          Wards other people start have texting off: reminder and message texts are on your Twilio account and texting registration. Sign-in codes are always texted. Email goes
+          out from each organization&apos;s own account, else its ward&apos;s (connected in Admin → Settings or Ward settings). The site&apos;s own email is used only for wards
+          marked to use it (those here before ward email accounts), wards still under review, and sign-in codes for wards&apos; administrators and bishoprics.
         </p>
       </Section>
 
