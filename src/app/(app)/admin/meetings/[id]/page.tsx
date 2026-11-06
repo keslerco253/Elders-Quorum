@@ -183,6 +183,20 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
             }
           >
             <div className="mb-3 space-y-2">{MEETING_ROLES.slice(0, 2).map(roleSelect)}</div>
+            {/* Add at the top, before the agenda. */}
+            {!held && (
+              <form action={addAgenda} className="mb-4 flex flex-wrap gap-2">
+                <input type="hidden" name="meeting_id" value={m.id} />
+                {editing && <input type="hidden" name="edit" value="1" />}
+                <input name="body" maxLength={2000} required className="input min-w-0 flex-[2_1_14rem]" placeholder="Add something to discuss…" />
+                <SectionSelect className="flex-[1_1_12rem]" />
+                <SubmitButton className="btn-secondary">Add</SubmitButton>
+                <label className="basis-full text-xs text-muted">
+                  📎 Attach files (optional)
+                  <input type="file" name="files" multiple accept={DOCUMENT_ACCEPT} className="mt-1 block w-full text-sm" />
+                </label>
+              </form>
+            )}
             {own.length + waiting.length + filed.length === 0 ? (
               <Empty>Nothing on the agenda.</Empty>
             ) : (
@@ -200,17 +214,6 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
             <div className="mt-3">{roleSelect(MEETING_ROLES[2])}</div>
             {!held && (
               <>
-                <form action={addAgenda} className="mt-3 flex flex-wrap gap-2">
-                  <input type="hidden" name="meeting_id" value={m.id} />
-                  {editing && <input type="hidden" name="edit" value="1" />}
-                  <input name="body" maxLength={2000} required className="input min-w-0 flex-[2_1_14rem]" placeholder="Add something to discuss…" />
-                  <SectionSelect className="flex-[1_1_12rem]" />
-            <label className="basis-full text-xs text-muted">
-              📎 Attach files (optional)
-              <input type="file" name="files" multiple accept={DOCUMENT_ACCEPT} className="mt-1 block w-full text-sm" />
-            </label>
-                  <SubmitButton className="btn-secondary">Add</SubmitButton>
-                </form>
                 <form action={finish} className="mt-4">
                   <input type="hidden" name="meeting_id" value={m.id} />
                   <SubmitButton

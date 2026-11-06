@@ -6,7 +6,7 @@ import { sniffDocument } from "@/lib/upload-names";
 
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "eq-agenda-files-"));
 
-const file = (bytes: Buffer | string, name: string) => new File([typeof bytes === "string" ? Buffer.from(bytes) : bytes], name);
+const file = (bytes: Buffer | string, name: string) => new File([new Uint8Array(typeof bytes === "string" ? Buffer.from(bytes) : bytes)], name);
 
 describe("files on agenda items", () => {
   it("accepts PDFs, pictures, Office files and text, by their contents", () => {

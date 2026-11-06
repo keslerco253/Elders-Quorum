@@ -191,17 +191,18 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
 
         <div id="agenda" className="scroll-mt-20">
           <h3 className="mb-2 font-semibold">Agenda{agenda.length ? ` (${agenda.length})` : ""}</h3>
-          {agenda.length === 0 ? <Empty>Nothing on the agenda yet.</Empty> : <AgendaList items={agenda} tz={tz} canEdit reorder={editing} />}
-          <form action={addAgenda} className="mt-3 flex flex-wrap gap-2">
+          {/* Add at the top, before the agenda. */}
+          <form action={addAgenda} className="mb-4 flex flex-wrap gap-2">
             {editing && <input type="hidden" name="edit" value="1" />}
             <input name="body" maxLength={2000} required className="input min-w-0 flex-[2_1_14rem]" placeholder="Add something to discuss…" />
             <SectionSelect className="flex-[1_1_12rem]" />
+            <SubmitButton className="btn-secondary">Add</SubmitButton>
             <label className="basis-full text-xs text-muted">
               📎 Attach files (optional)
               <input type="file" name="files" multiple accept={DOCUMENT_ACCEPT} className="mt-1 block w-full text-sm" />
             </label>
-            <SubmitButton className="btn-secondary">Add</SubmitButton>
           </form>
+          {agenda.length === 0 ? <Empty>Nothing on the agenda yet.</Empty> : <AgendaList items={agenda} tz={tz} canEdit reorder={editing} />}
           <p className="hint mt-2">
             {editing
               ? "Use ⤒ (to the top) and ↑ / ↓ to put the agenda in order, or ✕ to take an item off. Tap Done editing when it's ready."
