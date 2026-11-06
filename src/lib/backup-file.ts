@@ -84,7 +84,9 @@ export function restoreBackup(file: Buffer): RestoreResult {
     return { ok: false, error: "That file isn't a backup from this app, or it's damaged." };
   }
 
+  const kept = keepBeforeRestore();
   replaceDatabase(incoming);
+  console.log(`[restore] restored a backup (${counts.wards} wards, ${counts.members} members); the database from before is kept at ${kept}`);
   const dir = path.join(DATA_DIR, "uploads");
   if (uploads.length) fs.mkdirSync(dir, { recursive: true });
   for (const u of uploads) fs.writeFileSync(path.join(dir, u.name), u.data);
@@ -92,6 +94,20 @@ export function restoreBackup(file: Buffer): RestoreResult {
   // are replaced as each member turns notifications on here.
   if (info.app_url && info.app_url !== appUrl()) setSetting("moved_at", new Date().toISOString().replace("T", " ").slice(0, 19));
   return { ok: true, ...counts, files: uploads.length };
+}
+
+/**
+ * A copy of the database as it is, made just before a restore replaces it (with the
+ * nightly backups, keeping the last 5), so restoring the wrong file can be undone.
+ */
+export function keepBeforeRestore(now = new Date()): string {
+  const dir = process.env.BACKUP_DIR || path.join(DATA_DIR, "backups");
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `before-restore-${now.toISOString().slice(0, 19).replace(/[T:]/g, "-")}.db`);
+  db().prepare("VACUUM INTO ?").run(file);
+  const old = fs.readdirSync(dir).filter((f) => /^before-restore-[\d-]+\.db$/.test(f)).sort().slice(0, -5);
+  for (const f of old) fs.rmSync(path.join(dir, f), { force: true });
+  return file;
 }
 
 function isSqlite(b: Buffer) {

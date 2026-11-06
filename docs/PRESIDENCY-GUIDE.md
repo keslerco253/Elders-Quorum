@@ -1111,7 +1111,16 @@ place. Only the presidency (or bishopric) sees it.
   buttons show only while editing.
 - **Get ready before the meeting:** tap an item to change its wording or add
   notes to bring (**Edit or add notes → Save**). Notes added ahead of time don't
-  mark it discussed.
+  mark it discussed, including on the meeting's own page before its day.
+  Choosing another **Section** moves the item under that heading: the page
+  takes you to it there and says where it went.
+- **Nothing you type is lost:** what you write in the Add box, an item's notes
+  or the meeting's notes is kept on your phone as you type. If the page reloads,
+  the app is updated, or the connection drops before it saves, it's put back the
+  next time (it says **Put back what you were writing**), and a save that didn't
+  go through says so and leaves your writing in the box to try again. If you
+  switched to another organization meanwhile (here or on another device), it
+  says the item isn't on that organization's agenda instead of saving nothing.
 - **📎 Files on an agenda item:** when adding an item, or later under **Edit or
   add notes**, choose **Attach files**: PDFs, pictures (JPEG, PNG, iPhone photos),
   Word, Excel and PowerPoint files, or text/CSV files, up to 15 MB each, several
@@ -1185,7 +1194,8 @@ place. Only the presidency (or bishopric) sees it.
   - **+ Assignment** on an item turns it into an assignment; **Assignments from
     this meeting** lists them.
   - **Finish meeting** files the ticked items with the meeting; anything not
-    ticked stays on the agenda for next time. A finished meeting (under **Past
+    ticked stays on the agenda for next time. Tapping it again later (or on a
+    page left open) files nothing more. A finished meeting (under **Past
     meetings**) can still be opened to correct or add to its notes: tap an agenda
     item to edit its notes, or change the meeting's notes and **Save notes**.
     Its **🖨️ Print notes** button prints the record: who was there, the prayers,
@@ -1485,4 +1495,5 @@ and the member list**).
   **Download a backup** gives one file with every ward, member and uploaded file;
   it holds private information, so keep it safe. **Restore a backup** (a .tar or
   .db file, then type RESTORE) replaces everything on the server, and everyone
-  signs in again. A red warning shows if the server has no permanent disk.
+  signs in again. A copy of what was there is saved first (with the nightly
+  backups, as `before-restore-….db`), in case it was the wrong file. A red warning shows if the server has no permanent disk.

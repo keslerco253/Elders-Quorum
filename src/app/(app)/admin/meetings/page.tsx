@@ -11,6 +11,7 @@ import { reminderSettings } from "@/lib/reminder-settings";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AgendaList } from "./agenda-list";
+import { KeepDraft } from "@/components/keep-draft";
 import { HandbookLinks } from "@/components/handbook-link";
 import { MEETINGS, orgChapter } from "@/lib/handbook";
 import { addAgenda, newMeeting, saveMeetingRole, saveMeetingWhen, saveVideoLink, startVideo } from "./actions";
@@ -198,6 +199,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           <h3 className="mb-2 font-semibold">Agenda{agenda.length ? ` (${agenda.length})` : ""}</h3>
           {/* Add at the top, before the agenda. */}
           <form action={addAgenda} className="mb-4 flex flex-wrap gap-2">
+            <KeepDraft id={`agenda-add:${user.org_id}:next`} addsTo="data-agenda-body" />
             {editing && <input type="hidden" name="edit" value="1" />}
             <input name="body" maxLength={2000} required className="input min-w-0 flex-[2_1_14rem]" placeholder="Add something to discuss…" />
             <SectionSelect className="flex-[1_1_12rem]" />
@@ -207,7 +209,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
               <input type="file" name="files" multiple accept={DOCUMENT_ACCEPT} className="mt-1 block w-full text-sm" />
             </label>
           </form>
-          {agenda.length === 0 ? <Empty>Nothing on the agenda yet.</Empty> : <AgendaList items={agenda} tz={tz} canEdit reorder={editing} />}
+          {agenda.length === 0 ? <Empty>Nothing on the agenda yet.</Empty> : <AgendaList items={agenda} tz={tz} canEdit reorder={editing} moved={Number(sp.moved) || undefined} />}
           <p className="hint mt-2">
             {editing
               ? "Use ⤒ (to the top) and ↑ / ↓ to put the agenda in order, or ✕ to take an item off. Tap Done editing when it's ready."

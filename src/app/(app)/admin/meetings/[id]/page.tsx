@@ -14,6 +14,7 @@ import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AssignmentForm } from "@/components/assignment-form";
 import { AgendaList } from "../agenda-list";
+import { KeepDraft } from "@/components/keep-draft";
 import { stopRepeating, addAgenda, deleteMeeting, finish, inviteToMeetingAction, saveMeeting, saveMeetingRole, startVideo, uninviteAction } from "../actions";
 import { RoleSelect } from "../role-select";
 import { PrintAgendaButton } from "../print-agenda";
@@ -63,6 +64,8 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const video = held || invited ? null : videoLink(user.org_id);
   // Edit meeting: put the agenda in order (and take items off).
   const editing = sp.edit === "1" && !held;
+  // An item just put under another section (shown there).
+  const moved = Number(sp.moved) || undefined;
   const series = m.series_id ? getMeetingSeries(user.org_id, m.series_id) : undefined;
 
   return (
@@ -188,6 +191,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
               <form action={addAgenda} className="mb-4 flex flex-wrap gap-2">
                 <input type="hidden" name="meeting_id" value={m.id} />
                 {editing && <input type="hidden" name="edit" value="1" />}
+                <KeepDraft id={`agenda-add:${user.org_id}:${invited ? m.id : "next"}`} addsTo="data-agenda-body" />
                 <input name="body" maxLength={2000} required className="input min-w-0 flex-[2_1_14rem]" placeholder="Add something to discuss…" />
                 <SectionSelect className="flex-[1_1_12rem]" />
                 <SubmitButton className="btn-secondary">Add</SubmitButton>
@@ -201,9 +205,9 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
               <Empty>Nothing on the agenda.</Empty>
             ) : (
               <div className="space-y-3">
-                {own.length > 0 && <AgendaList items={own} tz={tz} meetingId={m.id} canEdit finished={held} reorder={editing} />}
-                {filed.length > 0 && <AgendaList items={filed} tz={tz} meetingId={m.id} canEdit finished />}
-                {waiting.length > 0 && <AgendaList items={waiting} tz={tz} meetingId={m.id} canEdit reorder={editing} />}
+                {own.length > 0 && <AgendaList items={own} tz={tz} meetingId={m.id} canEdit finished={held} reorder={editing} moved={moved} />}
+                {filed.length > 0 && <AgendaList items={filed} tz={tz} meetingId={m.id} canEdit finished moved={moved} />}
+                {waiting.length > 0 && <AgendaList items={waiting} tz={tz} meetingId={m.id} canEdit reorder={editing} upcoming={m.date > today} moved={moved} />}
               </div>
             )}
             {!held && !invited && hasFeature(user.org, "todos") && (
@@ -231,6 +235,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
 
           <form action={saveMeeting} className="card space-y-3">
             <input type="hidden" name="meeting_id" value={m.id} />
+            <KeepDraft id={`meeting-notes:${m.id}`} />
             <h2 className="h2">Notes</h2>
             <div className="grid grid-cols-2 gap-3">
               <Labeled label="Date">

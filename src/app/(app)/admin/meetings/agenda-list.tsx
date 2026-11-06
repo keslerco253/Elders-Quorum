@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Linkify } from "@/components/linkify";
 import { FlyerThumb } from "@/components/flyer-thumb";
 import { SubmitButton } from "@/components/client";
+import { KeepDraft } from "@/components/keep-draft";
+import { ScrollHere } from "@/components/scroll-here";
 import { agendaFileHref, type AgendaItem } from "@/lib/meetings";
 import { AGENDA_SECTIONS, groupBySection } from "@/lib/agenda-sections";
 import { formatDateTime } from "@/lib/time";
@@ -46,6 +48,8 @@ function SectionList({
   reorder = false,
   start = 0,
   finished = false,
+  upcoming = false,
+  moved,
 }: {
   items: AgendaItem[];
   tz: string;
@@ -58,8 +62,13 @@ function SectionList({
   start?: number;
   /** A finished meeting's record: notes can still be corrected or added to. */
   finished?: boolean;
+  /** On the page of a meeting that's still to come: notes are written ahead of time. */
+  upcoming?: boolean;
+  /** The item just put under another section: shown there, with a note. */
+  moved?: number;
 }) {
-  const inMeeting = !!meetingId && canEdit && !finished;
+  // Taking notes in the meeting (they count an item as discussed).
+  const inMeeting = !!meetingId && canEdit && !finished && !upcoming;
   return (
     <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
       {items.map((a, i) => {
@@ -152,7 +161,7 @@ function SectionList({
           </div>
         );
         return (
-          <li key={a.id} id={`item-${a.id}`} className="flex scroll-mt-20 items-start gap-3 px-4 py-3">
+          <li key={a.id} id={`item-${a.id}`} data-agenda-body={a.body} className="flex scroll-mt-20 items-start gap-3 px-4 py-3">
             {inMeeting && (
               <form action={toggleDiscussed}>
                 <input type="hidden" name="item_id" value={a.id} />
@@ -168,6 +177,11 @@ function SectionList({
               </form>
             )}
             <div className="min-w-0 flex-1">
+              {moved === a.id && (
+                <div role="status" className="mb-1.5 rounded-lg bg-success-soft px-2.5 py-1 text-xs font-medium text-success">
+                  <ScrollHere />✓ Saved and moved here, to {AGENDA_SECTIONS.find(([k]) => k === a.category)?.[1]}
+                </div>
+              )}
               {canEdit ? (
                 // Tap the item to change it or write notes.
                 <details>
@@ -178,7 +192,9 @@ function SectionList({
                   {/* Keyed by what's saved: the form is cleared after saving and drawn again with it. */}
                   <form key={`${a.body}\n${a.notes}\n${a.category}`} action={saveItemNotes} className="mt-2 space-y-2">
                     <input type="hidden" name="item_id" value={a.id} />
-                    {meetingId ? <input type="hidden" name="meeting_id" value={meetingId} /> : <input type="hidden" name="beforehand" value="1" />}
+                    <KeepDraft id={`agenda-item:${a.id}`} />
+                    {meetingId && <input type="hidden" name="meeting_id" value={meetingId} />}
+                    {!inMeeting && !finished && <input type="hidden" name="beforehand" value="1" />}
                     <textarea name="body" rows={2} maxLength={2000} required defaultValue={a.body} className="input text-sm" aria-label="Agenda item" />
                     <select name="section" defaultValue={a.category} className="input text-sm" aria-label="Section">
                       {AGENDA_SECTIONS.map(([k, label]) => (

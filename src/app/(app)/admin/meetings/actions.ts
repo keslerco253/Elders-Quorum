@@ -6,7 +6,7 @@ import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { attachAgendaFiles, deleteAgendaItemFiles, removeAgendaFile, addAgendaItem, cleanVideoLink, inviteGroups, inviteToMeeting, uninviteFromMeeting, isMeetingRole, moveAgendaItem, setAgendaSection, setMeetingRole, createMeeting, deleteMeetingRecord, finishMeeting, getMeeting, reviewRecord, saveAgendaNotes, setVideoLink, syncMeetingEvent, videoKind, videoLink, type ReviewRecord } from "@/lib/meetings";
 import { audienceMembers, notify, recipientById, type Recipient } from "@/lib/notify";
-import { orgRoster } from "@/lib/orgs";
+import { orgFullName, orgRoster } from "@/lib/orgs";
 import { DateTime } from "luxon";
 import { withOrg } from "@/lib/org-cookie";
 import { leadersWord } from "@/lib/types";
@@ -31,6 +31,21 @@ const meetingPath = (fd: FormData) => {
   return `${id ? `/admin/meetings/${id}` : "/admin/meetings"}${fd.get("edit") === "1" ? "?edit=1" : ""}`;
 };
 
+/**
+ * An agenda item of the organization being used. When it isn't one (another
+ * organization was chosen since the page opened, on this device or another), say so
+ * instead of saving nothing.
+ */
+function ownItem(orgId: number, fd: FormData): number {
+  const itemId = Number(fd.get("item_id"));
+  if (!db().prepare("SELECT 1 FROM agenda_items WHERE id = ? AND org_id = ?").get(itemId, orgId))
+    go(
+      "/admin/meetings",
+      `That item isn't on ${orgFullName(orgId)}'s agenda, so nothing was changed. If you switched organizations (here or on another device), switch back and try again.`,
+    );
+  return itemId;
+}
+
 export async function addAgenda(fd: FormData) {
   const user = await requirePresidency();
   const body = String(fd.get("body") || "").trim();
@@ -44,8 +59,8 @@ export async function addAgenda(fd: FormData) {
 
 export async function removeAgenda(fd: FormData) {
   const user = await requirePresidency();
-  const itemId = Number(fd.get("item_id"));
-  if (db().prepare("SELECT 1 FROM agenda_items WHERE id = ? AND org_id = ?").get(itemId, user.org_id)) deleteAgendaItemFiles([itemId]);
+  const itemId = ownItem(user.org_id, fd);
+  deleteAgendaItemFiles([itemId]);
   db().prepare("DELETE FROM agenda_items WHERE id = ? AND org_id = ?").run(itemId, user.org_id);
   revalidatePath("/admin", "layout");
   go(`${meetingPath(fd)}#agenda`, "Taken off the agenda.");
@@ -56,7 +71,7 @@ export async function removeAgenda(fd: FormData) {
 export async function moveAgenda(fd: FormData) {
   const user = await requirePresidency();
   const dir = fd.get("dir");
-  moveAgendaItem(user.org_id, Number(fd.get("item_id")), dir === "top" ? "top" : dir === "up" ? -1 : 1);
+  moveAgendaItem(user.org_id, ownItem(user.org_id, fd), dir === "top" ? "top" : dir === "up" ? -1 : 1);
   revalidatePath("/admin", "layout");
 }
 
@@ -72,7 +87,7 @@ export async function saveMeetingRole(fd: FormData) {
 
 export async function toggleDiscussed(fd: FormData) {
   const user = await requirePresidency();
-  db().prepare("UPDATE agenda_items SET discussed = ? WHERE id = ? AND org_id = ?").run(fd.get("discussed") === "1" ? 1 : 0, Number(fd.get("item_id")), user.org_id);
+  db().prepare("UPDATE agenda_items SET discussed = ? WHERE id = ? AND org_id = ?").run(fd.get("discussed") === "1" ? 1 : 0, ownItem(user.org_id, fd), user.org_id);
   revalidatePath("/admin/meetings", "layout");
 }
 
@@ -151,18 +166,28 @@ const uploadedFiles = (fd: FormData) => fd.getAll("files").filter((f): f is File
 /** Takes a file off an agenda item. */
 export async function removeAgendaFileAction(fd: FormData) {
   const user = await requirePresidency();
-  removeAgendaFile(user.org_id, Number(fd.get("file_id")));
+  const removed = removeAgendaFile(user.org_id, Number(fd.get("file_id")));
   revalidatePath("/admin/meetings", "layout");
+  if (!removed) go("/admin/meetings", `That file isn't on ${orgFullName(user.org_id)}'s agenda, so nothing was changed. If you switched organizations, switch back and try again.`);
 }
 
 export async function saveItemNotes(fd: FormData) {
   const user = await requirePresidency();
-  const itemId = Number(fd.get("item_id"));
+  const itemId = ownItem(user.org_id, fd);
+  // Notes count an item as discussed only in the meeting: not ahead of time, and not on
+  // a meeting's page before its day.
+  const m = getMeeting(user.org_id, Number(fd.get("meeting_id")));
+  const beforehand = fd.get("beforehand") === "1" || (!!m && !m.held_at && m.date > todayIn(user.ward.timezone));
   const error = await attachAgendaFiles(user.org_id, itemId, uploadedFiles(fd), user.id);
   if (error) go(`${meetingPath(fd)}#item-${itemId}`, error);
-  saveAgendaNotes(user.org_id, itemId, String(fd.get("notes") || ""), { body: fd.has("body") ? String(fd.get("body")) : undefined, beforehand: fd.get("beforehand") === "1" });
-  if (fd.has("section")) setAgendaSection(user.org_id, itemId, String(fd.get("section")));
+  saveAgendaNotes(user.org_id, itemId, String(fd.get("notes") || ""), { body: fd.has("body") ? String(fd.get("body")) : undefined, beforehand });
+  const moved = fd.has("section") && setAgendaSection(user.org_id, itemId, String(fd.get("section")));
   revalidatePath("/admin/meetings", "layout");
+  // Under another heading now: go to it there, and say where it went.
+  if (moved) {
+    const path = meetingPath(fd);
+    redirect(`${path}${path.includes("?") ? "&" : "?"}moved=${itemId}`);
+  }
 }
 
 export async function saveMeeting(fd: FormData) {
@@ -207,6 +232,7 @@ export async function finish(fd: FormData) {
   const user = await requirePresidency();
   const m = getMeeting(user.org_id, Number(fd.get("meeting_id")));
   if (!m) go("/admin/meetings", "That meeting no longer exists.");
+  if (m.held_at) go(`/admin/meetings/${m.id}`, "This meeting was already finished.");
   finishMeeting(user.org_id, m.id, todayIn(user.ward.timezone));
   revalidatePath("/admin", "layout");
   go(`/admin/meetings/${m.id}`, m.kind === "invited" ? "Meeting finished." : "Meeting finished. Items not discussed wait for the next meeting.");

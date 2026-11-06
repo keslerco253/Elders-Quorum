@@ -13,10 +13,36 @@ function open(): DB {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const db = new Database(path.join(DATA_DIR, "app.db"));
   db.pragma("journal_mode = WAL");
+  // Each saved change is on the disk before the save is reported done (not just handed
+  // to the system), so a crash or power cut right after can't take it back.
+  db.pragma("synchronous = FULL");
   db.pragma("foreign_keys = ON");
   db.pragma("busy_timeout = 5000");
   migrate(db);
+  closeOnExit();
   return db;
+}
+
+/**
+ * When the server stops (an update, a restart), fold the write-ahead log into the
+ * database file and close it cleanly, so the file on the disk is complete by itself.
+ */
+function closeOnExit() {
+  const g = globalThis as unknown as { __eqDbExit?: boolean };
+  if (g.__eqDbExit) return;
+  g.__eqDbExit = true;
+  process.on("exit", () => {
+    const d = globalForDb.__eqDb;
+    if (!d?.open) return;
+    try {
+      d.pragma("wal_checkpoint(TRUNCATE)");
+      d.close();
+    } catch {
+      // Closing anyway; SQLite recovers from the log next time.
+    }
+  });
+  // Stopping by signal ends through "exit" (above), unless something else already handles it.
+  for (const sig of ["SIGTERM", "SIGINT"] as const) if (!process.listenerCount(sig)) process.once(sig, () => process.exit(0));
 }
 
 export function migrate(db: DB, upTo = Infinity) {

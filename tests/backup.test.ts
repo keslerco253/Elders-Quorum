@@ -39,6 +39,8 @@ describe("moving the app to another server", () => {
 
     expect(restoreBackup(Buffer.from("not a backup"))).toMatchObject({ ok: false });
     expect(restoreBackup(backup)).toEqual({ ok: true, wards: 1, members: 1, files: 1 });
+    // What was there before is kept, in case it was the wrong file.
+    expect(fs.readdirSync(path.join(dir, "backups")).some((f) => /^before-restore-.*\.db$/.test(f))).toBe(true);
     expect((db().prepare("SELECT name FROM members WHERE id = 1").get() as { name: string }).name).toBe("Pres");
     expect(fs.readFileSync(path.join(dir, "uploads", pdf), "utf8")).toBe("%PDF-1.4 test");
 

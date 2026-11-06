@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { useTestDb } from "@/lib/db";
-import { addAgendaItem, moveAgendaItem, pendingAgenda, setAgendaSection } from "@/lib/meetings";
+import { addAgendaItem, finishMeeting, meetingAgenda, moveAgendaItem, pendingAgenda, saveAgendaNotes, setAgendaSection } from "@/lib/meetings";
 import { groupBySection } from "@/lib/agenda-sections";
 import { agendaPrintHtml } from "@/lib/agenda-print";
 import { createMeeting } from "@/lib/meetings";
@@ -29,8 +29,9 @@ describe("agenda sections", () => {
     expect(ids()).toEqual([app, sec, interviews, pods, jones]);
     moveAgendaItem(org, interviews, -1);
     expect(ids()).toEqual([app, sec, interviews, pods, jones]);
-    // Another section: to the bottom of it.
-    setAgendaSection(org, app, "members");
+    // Another section: to the bottom of it (and says so; choosing the same one doesn't move it).
+    expect(setAgendaSection(org, app, "members")).toBe(true);
+    expect(setAgendaSection(org, app, "members")).toBe(false);
     expect(ids()).toEqual([sec, interviews, pods, jones, app]);
     const m = createMeeting(org, "2026-11-04", "", 1, { time: "19:00", tz: "America/Boise" });
     const page = agendaPrintHtml(org, m)!;
@@ -118,5 +119,27 @@ describe("searching presidency meetings", () => {
     expect(hits[1].href).toBe(`/admin/meetings/${m}#item-${a}`);
     expect(searchMeetings(1, "s")).toEqual([]);
     expect(searchMeetings(1, "100%")).toEqual([]);
+  });
+
+  it("files only items discussed in the meeting, and finishing twice files nothing more", () => {
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'Pres', 'p@x.com', 'presidency');
+    `);
+    const org = 1;
+    const store = addAgendaItem(org, "Bishop's storehouse", { addedBy: 1, section: "welfare" });
+    const other = addAgendaItem(org, "Calendar", { addedBy: 1 });
+    // Notes written ahead of time don't count it as discussed.
+    saveAgendaNotes(org, store, "https://example.org/storehouse", { beforehand: true });
+    const m = createMeeting(org, "2026-11-04", "", 1, { time: "19:00", tz: "America/Boise" });
+    saveAgendaNotes(org, other, "Decided the dates");
+    finishMeeting(org, m, "2026-11-04");
+    expect(meetingAgenda(m).map((a) => a.id)).toEqual([other]);
+    expect(pendingAgenda(org).map((a) => a.id)).toEqual([store]);
+    // Taken up later and ticked: finishing the old meeting again doesn't pull it in.
+    saveAgendaNotes(org, store, "Talked with the bishop");
+    finishMeeting(org, m, "2026-11-10");
+    expect(meetingAgenda(m).map((a) => a.id)).toEqual([other]);
+    expect(pendingAgenda(org).map((a) => a.id)).toEqual([store]);
   });
 });

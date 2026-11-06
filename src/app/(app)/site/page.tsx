@@ -567,7 +567,7 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
             <form action="/api/restore" method="post" encType="multipart/form-data" className="mt-3 space-y-3">
               <p className="text-muted">
                 Replaces <strong>everything</strong> on this server with the backup: every ward, member and message here now is lost. Everyone, you included, signs in again
-                afterwards.
+                afterwards. A copy of what&apos;s here now is saved first (with the nightly backups, as before-restore-…db), in case it was the wrong file.
               </p>
               <input name="backup" type="file" required accept=".tar,.db" className="input" />
               <input name="confirm" required className="input max-w-56" placeholder="Type RESTORE" autoCapitalize="characters" />

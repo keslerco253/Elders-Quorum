@@ -57,6 +57,13 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   General Handbook in your browser (or Gospel Library).
 - **Can't find something?** Your organization may not use it (for example Plans
   or Service). Ask your leaders.
+- **Delete and remove buttons** ask first: the button turns red and says **Tap
+  again to confirm**, and the question shows near the bottom of the screen. Tap
+  it again to go ahead (a quick double tap doesn't count), or wait and it goes
+  back to normal.
+- **"That didn't go through":** a change that couldn't be saved (no connection,
+  or the app was updating) says so instead of doing nothing. Wait a moment and
+  tap **Try again**.
 
 ## Your organizations
 

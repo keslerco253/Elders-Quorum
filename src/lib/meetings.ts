@@ -265,11 +265,12 @@ export async function attachAgendaFiles(orgId: number, itemId: number, files: Fi
 }
 
 /** Takes a file off an agenda item (and deletes it). */
-export function removeAgendaFile(orgId: number, fileId: number) {
+export function removeAgendaFile(orgId: number, fileId: number): boolean {
   const f = db().prepare("SELECT name FROM agenda_files WHERE id = ? AND org_id = ?").get(fileId, orgId) as { name: string } | undefined;
-  if (!f) return;
+  if (!f) return false;
   db().prepare("DELETE FROM agenda_files WHERE id = ?").run(fileId);
   deleteUpload(f.name);
+  return true;
 }
 
 /** Deletes the files of agenda items about to be deleted. */
@@ -318,15 +319,15 @@ export function moveAgendaItem(orgId: number, itemId: number, dir: -1 | 1 | "top
   d.transaction(() => final.forEach((id, n) => set.run(n + 1, id)))();
 }
 
-/** Puts an item under another section (at the bottom of it). */
-export function setAgendaSection(orgId: number, itemId: number, section: string) {
-  if (!isAgendaSection(section)) return;
-  db()
+/** Puts an item under another section (at the bottom of it). True when it moved. */
+export function setAgendaSection(orgId: number, itemId: number, section: string): boolean {
+  if (!isAgendaSection(section)) return false;
+  return db()
     .prepare(
       `UPDATE agenda_items SET category = ?, position = (SELECT coalesce(max(position), 0) + 1 FROM agenda_items x WHERE x.org_id = agenda_items.org_id AND x.meeting_id IS agenda_items.meeting_id)
        WHERE id = ? AND org_id = ? AND category <> ?`,
     )
-    .run(section, itemId, orgId, section);
+    .run(section, itemId, orgId, section).changes > 0;
 }
 
 /** Puts something on the next presidency meeting's agenda. */
@@ -352,7 +353,9 @@ export function finishMeeting(orgId: number, meetingId: number, today: string) {
   const d = db();
   d.transaction(() => {
     const m = getMeeting(orgId, meetingId);
-    if (m?.kind !== "invited") d.prepare("UPDATE agenda_items SET meeting_id = ? WHERE org_id = ? AND meeting_id IS NULL AND discussed = 1").run(meetingId, orgId);
+    // Finished already (a second tap, or a page left open): nothing more is filed with it.
+    if (!m || m.held_at) return;
+    if (m.kind !== "invited") d.prepare("UPDATE agenda_items SET meeting_id = ? WHERE org_id = ? AND meeting_id IS NULL AND discussed = 1").run(meetingId, orgId);
     d.prepare("UPDATE meetings SET held_at = coalesce(held_at, datetime('now')), review_at = ?, updated_at = datetime('now') WHERE id = ?").run(reviewDate(m && m.date > today ? m.date : today), meetingId);
   })();
 }
