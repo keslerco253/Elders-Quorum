@@ -43,10 +43,12 @@ export interface Todo {
   due_time: string | null;
   flyer_file: string | null;
   flyer_name: string | null;
+  /** Giving a meeting's opening prayer, spiritual thought or closing prayer. */
+  meeting_role: string | null;
 }
 
 const TODO_SELECT = `SELECT t.id, t.org_id, t.title, t.notes, t.due_date, t.assignee_id, t.status, t.done, t.done_at, t.meeting_id, t.created_by, t.created_at, t.reminder1_days, t.reminder2_days,
-    t.accept_status, t.asked_at, t.due_time, t.flyer_file, t.flyer_name,
+    t.accept_status, t.asked_at, t.due_time, t.flyer_file, t.flyer_name, t.meeting_role,
     a.display_name AS assignee, c.display_name AS creator, mt.date AS meeting_date,
     (SELECT COUNT(*) FROM todo_notes n WHERE n.todo_id = t.id) AS note_count
   FROM todos t LEFT JOIN members a ON a.id = t.assignee_id LEFT JOIN members c ON c.id = t.created_by LEFT JOIN meetings mt ON mt.id = t.meeting_id`;
@@ -59,7 +61,8 @@ export function orgTodos(orgId: number, opts: { assigneeId?: number; meetingId?:
   const where = ["t.org_id = ?"];
   const args: number[] = [orgId];
   if (opts.assigneeId) (where.push("t.assignee_id = ?"), args.push(opts.assigneeId));
-  if (opts.meetingId) (where.push("t.meeting_id = ?"), args.push(opts.meetingId));
+  // A meeting's own assignments (its prayers and spiritual thought show with the meeting instead).
+  if (opts.meetingId) (where.push("t.meeting_id = ? AND t.meeting_role IS NULL"), args.push(opts.meetingId));
   return db()
     .prepare(`${TODO_SELECT} WHERE ${where.join(" AND ")} ORDER BY t.done, t.due_date IS NULL, t.due_date, t.id DESC LIMIT 300`)
     .all(...args) as Todo[];
@@ -283,7 +286,8 @@ export function assignmentReview(orgId: number, meetingId?: number): { since: st
     .get(orgId, meetingId ?? null) as { held_at: string } | undefined;
   const since = last?.held_at ?? null;
   const from = since ?? (db().prepare("SELECT datetime('now', '-30 days') AS d").get() as { d: string }).d;
-  const all = orgTodos(orgId);
+  // Prayers and spiritual thoughts aren't reviewed with the assignments.
+  const all = orgTodos(orgId).filter((t) => !t.meeting_role);
   return {
     since,
     completed: all.filter((t) => t.done && t.done_at && t.done_at > from).sort((a, b) => (a.done_at ?? "").localeCompare(b.done_at ?? "")),

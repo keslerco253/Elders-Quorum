@@ -15,7 +15,7 @@ import { KeepDraft } from "@/components/keep-draft";
 import { HandbookLinks } from "@/components/handbook-link";
 import { MEETINGS, orgChapter } from "@/lib/handbook";
 import { addAgenda, newMeeting, saveMeetingRole, saveMeetingWhen, saveVideoLink, startVideo } from "./actions";
-import { RoleSelect } from "./role-select";
+import { RoleNotifyBox, RoleSelect } from "./role-select";
 import { PrintAgendaButton, PrintPastNotes } from "./print-agenda";
 import { NOTES_RANGES } from "@/lib/agenda-print";
 import { MeetingReminderFields } from "./reminder-fields";
@@ -45,11 +45,9 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const next = upcoming.find((m) => m.kind === "presidency");
   // Other scheduled meetings (the next one is at the top).
   const later = upcoming.filter((m) => m !== next);
-  const names = attendeeChoices(user.org_id)
-    .filter((p) => p.id > 0)
-    .map((p) => p.name);
+  const people = attendeeChoices(user.org_id).filter((p) => p.id > 0);
   const roleSelect = (role: (typeof MEETING_ROLES)[number]) =>
-    next && <RoleSelect key={role[0]} action={saveMeetingRole} meetingId={next.id} role={role[0]} label={role[1]} value={next[role[0]]} names={names} back="list" />;
+    next && <RoleSelect key={role[0]} action={saveMeetingRole} meetingId={next.id} role={role[0]} label={role[1]} value={next[role[0]]} people={people} notifyBox={`role-notify-${next.id}`} back="list" />;
   // A new meeting starts at the time of the last one.
   const lastTime = meetings.find((m) => m.time)?.time ?? "";
   const timeText = (t: string | null) => (t ? DateTime.fromFormat(t, "HH:mm").toFormat("h:mm a") : "");
@@ -183,7 +181,10 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
 
         {next &&
           (editing ? (
-            <div className="space-y-2">{MEETING_ROLES.map(roleSelect)}</div>
+            <div className="space-y-2">
+              {MEETING_ROLES.map(roleSelect)}
+              <RoleNotifyBox id={`role-notify-${next.id}`} />
+            </div>
           ) : (
             <p className="text-sm">
               {MEETING_ROLES.map(([k, label], i) => (

@@ -1,4 +1,5 @@
 import fs from "fs";
+import { closeRoleTodos } from "./meeting-roles";
 import path from "path";
 import { DateTime } from "luxon";
 import { db, DATA_DIR } from "./db";
@@ -703,6 +704,8 @@ export async function tick(now: DateTime = DateTime.utc()) {
     if (claimOnce(`series:${DateTime.local().toISODate()}`)) {
       const added = extendAllSeries();
       if (added) console.log(`[series] added ${added} event dates`);
+      // Prayers and spiritual thoughts for meetings that are past (and weren't finished in the app) are done.
+      closeRoleTodos(null);
       const meetings = extendAllMeetingSeries();
       if (meetings) console.log(`[series] scheduled ${meetings} repeating meetings`);
     }

@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { getTodo, isPresidencyOf, type Todo } from "./assignments";
 import { orgPresidency, orgRoster } from "./orgs";
+import { syncRoleFromTodo } from "./meeting-roles";
 
 // Handing an assignment to someone else: a presidency member asks one person, or the
 // whole presidency, to take it; whoever says yes first becomes the person assigned.
@@ -84,6 +85,8 @@ export function answerHandoff(id: number, memberId: number, accept: boolean): { 
       }
     }
   })();
+  // A prayer or spiritual thought: the meeting shows who gives it now.
+  if (accept) syncRoleFromTodo(t.id);
   return { handoff: h, todo: t, previousAssignee: t.assignee_id, allDeclined };
 }
 
@@ -133,6 +136,7 @@ export function unableToDo(todoId: number, memberId: number, note: string, what 
     d.prepare("UPDATE todos SET assignee_id = NULL, status = 'open', accept_status = 'accepted' WHERE id = ?").run(todoId);
     d.prepare("INSERT INTO todo_notes (todo_id, author_id, body, private) VALUES (?, ?, ?, 0)").run(todoId, memberId, body);
   })();
+  syncRoleFromTodo(todoId);
   return t;
 }
 

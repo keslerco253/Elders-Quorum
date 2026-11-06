@@ -161,6 +161,8 @@ export function deleteMeetingRecord(orgId: number, meetingId: number) {
   if (m.event_id) d.prepare("DELETE FROM events WHERE id = ? AND org_id = ?").run(m.event_id, orgId);
   // Its filed agenda goes with it, and their files.
   deleteAgendaItemFiles((d.prepare("SELECT id FROM agenda_items WHERE meeting_id = ?").all(m.id) as { id: number }[]).map((r) => r.id));
+  // Assignments to give its prayers or spiritual thought don't outlive it.
+  d.prepare("DELETE FROM todos WHERE meeting_id = ? AND meeting_role IS NOT NULL").run(m.id);
   d.prepare("DELETE FROM meetings WHERE id = ?").run(m.id);
 }
 
@@ -358,6 +360,8 @@ export function finishMeeting(orgId: number, meetingId: number, today: string) {
     if (!m || m.held_at) return;
     if (m.kind !== "invited") d.prepare("UPDATE agenda_items SET meeting_id = ? WHERE org_id = ? AND meeting_id IS NULL AND discussed = 1").run(meetingId, orgId);
     d.prepare("UPDATE meetings SET held_at = coalesce(held_at, datetime('now')), review_at = ?, updated_at = datetime('now') WHERE id = ?").run(reviewDate(m && m.date > today ? m.date : today), meetingId);
+    // The prayers and spiritual thought were given: those assignments are done.
+    d.prepare("UPDATE todos SET status = 'done', done = 1, done_at = datetime('now'), review_at = ? WHERE meeting_id = ? AND meeting_role IS NOT NULL AND done = 0").run(reviewDate(today), meetingId);
   })();
 }
 

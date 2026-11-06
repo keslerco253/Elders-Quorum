@@ -11,6 +11,7 @@ import { saveUpload } from "@/lib/uploads";
 import { unreachableWhy } from "@/lib/delivery";
 import { withOrg } from "@/lib/org-cookie";
 import { cancelPendingHandoffs } from "@/lib/assignment-handoffs";
+import { clearRoleForTodo, syncRoleFromTodo } from "@/lib/meeting-roles";
 
 /** Back to the meeting the form was on, or the assignments list. */
 function backTo(fd: FormData): string {
@@ -95,6 +96,8 @@ export async function saveTodo(fd: FormData) {
         .run(user.org_id, title, notes, due, dueTime, assignee?.id ?? null, user.id, meeting?.id ?? null, r1, r2, flyerFile, flyerName, acceptStatus, asking ? 1 : 0).lastInsertRowid,
     );
   }
+  // A prayer or spiritual thought given to someone else: the meeting shows them.
+  if (todoId) syncRoleFromTodo(todoId);
   let reached = true;
   if (asking) {
     reached = (await notify([assignee!], {
@@ -125,6 +128,7 @@ export async function deleteTodo(fd: FormData) {
   const t = getTodo(Number(fd.get("item_id")));
   if (!t) go(backTo(fd), "That assignment no longer exists.");
   if (!isPresidencyOf(user.id, t.org_id)) go(backTo(fd), "Only that organization's presidency can delete it.");
+  clearRoleForTodo(t.id);
   db().prepare("DELETE FROM todos WHERE id = ?").run(t.id);
   revalidatePath("/", "layout");
   go(backTo(fd), "Assignment deleted.");

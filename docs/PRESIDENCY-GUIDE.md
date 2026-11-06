@@ -1152,6 +1152,18 @@ place. Only the presidency (or bishopric) sees it.
   choose the **Opening prayer**, **Spiritual thought** and **Closing prayer** (each
   saved as soon as you pick). Tap **✓ Done editing** when it's ready. The order
   buttons show only while editing.
+- **Prayers and the spiritual thought are assignments:** whoever you choose gets
+  it on their **My assignments** ("Opening prayer: Presidency meeting", due at
+  the meeting's time, with the usual reminder the day before). With **Notify the
+  person chosen** ticked (under the choices; the app remembers your choice on
+  this device), they're also sent a notification; untick it to just add it to
+  their list. Choosing someone else moves it to them (the one before is told,
+  when notifying is on), and **Not chosen** takes it off. Like any assignment,
+  the person can ask someone else to take it, or say they can't (it comes back
+  to the presidency unassigned); the meeting then shows whoever has it. Moving
+  the meeting moves the due date; finishing the meeting (or the day after it)
+  marks them done; deleting the meeting deletes them. They don't show in the
+  meeting's assignments or the assignment review.
 - **Get ready before the meeting:** tap an item to change its wording or add
   notes to bring (**Edit or add notes → Save**). Notes added ahead of time don't
   mark it discussed, including on the meeting's own page before its day.

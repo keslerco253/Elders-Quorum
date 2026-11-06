@@ -321,6 +321,11 @@ Tap **Messages** at the top (the speech bubble on a phone).
 
 **Coming up** and **Done and past** tabs. Tap one to open it.
 
+**A prayer or spiritual thought** you're chosen for in a presidency or bishopric
+meeting shows here too ("Opening prayer: Presidency meeting"), due at the
+meeting's time. If you can't, open it and ask someone else to take it, or tap
+that you can't do it, the same as any assignment.
+
 **When you're given an assignment,** you're asked "Would you be willing to accept
 this assignment?" by notification and a card on Home. Read the details (due date,
 time and any attachment) and tap **Yes, I accept** or **I'm not able to** (you can

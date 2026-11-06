@@ -1772,4 +1772,13 @@ ALTER TABLE wards ADD COLUMN site_email INTEGER NOT NULL DEFAULT 0;
 UPDATE wards SET site_email = 1;
 `,
   },
+  {
+    // Giving a prayer or the spiritual thought in a meeting is an assignment for the
+    // person chosen (on their list, with reminders, and can be handed to someone else).
+    id: 94,
+    sql: `
+ALTER TABLE todos ADD COLUMN meeting_role TEXT;
+CREATE UNIQUE INDEX todos_meeting_role ON todos(meeting_id, meeting_role) WHERE meeting_role IS NOT NULL;
+`,
+  },
 ];

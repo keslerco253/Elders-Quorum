@@ -17,7 +17,7 @@ import { AgendaList } from "../agenda-list";
 import { KeepDraft } from "@/components/keep-draft";
 import { AutoGrow } from "@/components/auto-grow";
 import { stopRepeating, addAgenda, deleteMeeting, finish, inviteToMeetingAction, saveMeeting, saveMeetingRole, startVideo, uninviteAction } from "../actions";
-import { RoleSelect } from "../role-select";
+import { RoleNotifyBox, RoleSelect } from "../role-select";
 import { PrintAgendaButton } from "../print-agenda";
 import { MeetingReminderFields } from "../reminder-fields";
 import { DOCUMENT_ACCEPT } from "@/lib/upload-names";
@@ -51,9 +51,9 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
     : leaders;
   const attending = m.attendees.split(",").map((s) => s.trim()).filter(Boolean);
   const others = attending.filter((n) => !choices.some((p) => p.name === n));
-  const names = choices.filter((p) => p.id > 0).map((p) => p.name);
+  const people = choices.filter((p) => p.id > 0);
   const roleSelect = (role: (typeof MEETING_ROLES)[number]) => (
-    <RoleSelect key={role[0]} action={saveMeetingRole} meetingId={m.id} role={role[0]} label={role[1]} value={m[role[0]]} names={names} />
+    <RoleSelect key={role[0]} action={saveMeetingRole} meetingId={m.id} role={role[0]} label={role[1]} value={m[role[0]]} people={people} notifyBox={`role-notify-${m.id}`} />
   );
   // The record: what was noted on each agenda item.
   const noted = [...own, ...filed, ...waiting].filter((a) => a.notes);
@@ -186,7 +186,10 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
               </div>
             }
           >
-            <div className="mb-3 space-y-2">{MEETING_ROLES.slice(0, 2).map(roleSelect)}</div>
+            <div className="mb-3 space-y-2">
+              {MEETING_ROLES.slice(0, 2).map(roleSelect)}
+              {!held && <RoleNotifyBox id={`role-notify-${m.id}`} />}
+            </div>
             {/* Add at the top, before the agenda. */}
             {!held && (
               <form action={addAgenda} className="mb-4 flex flex-wrap gap-2">

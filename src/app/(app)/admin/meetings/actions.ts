@@ -18,6 +18,8 @@ import { createMeetingSeries, stopMeetingSeries } from "@/lib/meeting-series";
 import { patternOptions, type Pattern } from "@/lib/recurrence";
 import { holdJournalFile } from "@/lib/journal-handoff";
 import { appUrl } from "@/lib/config";
+import { assignMeetingRole, syncRoleTodosWhen } from "@/lib/meeting-roles";
+import { attendeeChoices, MEETING_ROLES, meetingName } from "@/lib/meetings";
 
 /** Back to a page with a message (before any #section, so the message shows). */
 function go(path: string, text: string): never {
@@ -75,14 +77,40 @@ export async function moveAgenda(fd: FormData) {
   revalidatePath("/admin", "layout");
 }
 
-/** Who gives the opening prayer, spiritual thought or closing prayer (saved as it's chosen). */
+/**
+ * Who gives the opening prayer, spiritual thought or closing prayer (saved as it's
+ * chosen). It's an assignment on their list; they're told unless "Notify" was unticked,
+ * and whoever had it before is told it's no longer theirs.
+ */
 export async function saveMeetingRole(fd: FormData) {
   const user = await requirePresidency();
   const role = fd.get("role");
   const m = getMeeting(user.org_id, Number(fd.get("meeting_id")));
   if (!m || !isMeetingRole(role)) redirect("/admin/meetings");
-  setMeetingRole(user.org_id, m.id, role, String(fd.get("name") || ""));
-  revalidatePath("/admin/meetings", "layout");
+  const picked = String(fd.get("member_id") || "");
+  // An older meeting may show a name typed before (not someone to assign it to).
+  if (picked.startsWith("name:")) return void setMeetingRole(user.org_id, m.id, role, picked.slice(5));
+  const memberId = Number(picked) || null;
+  if (memberId && !attendeeChoices(user.org_id).some((p) => p.id === memberId) && !orgRoster(user.org_id).some((p) => p.id === memberId)) redirect("/admin/meetings");
+  const r = assignMeetingRole(user.org_id, m.id, role, memberId, user.id);
+  revalidatePath("/", "layout");
+  if (!r.changed || fd.get("notify") === "0" || m.held_at) return;
+  const what = MEETING_ROLES.find(([k]) => k === role)![1].toLowerCase();
+  const when = `${meetingName(user.org_id, m)}, ${formatDate(m.date, "short")}${m.time ? ` at ${DateTime.fromFormat(m.time, "HH:mm").toFormat("h:mm a")}` : ""}`;
+  const giving = role === "spiritual_thought" ? "the spiritual thought" : `the ${what}`;
+  if (memberId && r.todoId && memberId !== user.id) {
+    const to = recipientById(memberId, user.org_id);
+    if (to)
+      await notify([to], {
+        title: `You're giving ${giving}`,
+        body: `${when}. ${user.display_name} chose you. It's in My assignments; if you can't, you can ask someone else to take it there.`,
+        url: withOrg(`/assignments/${r.todoId}`, user.org_id),
+      });
+  }
+  if (r.previous && r.previous !== memberId && r.previous !== user.id) {
+    const was = recipientById(r.previous, user.org_id);
+    if (was) await notify([was], { title: `You're no longer giving ${giving}`, body: `${when}. ${user.display_name} changed it, so it's off your assignments.`, url: withOrg("/assignments", user.org_id) });
+  }
 }
 
 export async function toggleDiscussed(fd: FormData) {
@@ -207,6 +235,7 @@ export async function saveMeeting(fd: FormData) {
     .prepare("UPDATE meetings SET date = ?, time = ?, title = ?, location = ?, attendees = ?, notes = ?, updated_at = datetime('now') WHERE id = ?")
     .run(date, time, title, location, attendees, String(fd.get("notes") ?? m.notes).replace(/\r\n?/g, "\n").slice(0, 20000), m.id);
   saveReminders(fd, m.id);
+  syncRoleTodosWhen(user.org_id, m.id);
   if (fd.has("reminder") || date !== m.date || time !== m.time || title !== m.title || location !== m.location) syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
   revalidatePath("/", "layout");
   go(`/admin/meetings/${m.id}`, "Notes saved.");
@@ -223,6 +252,7 @@ export async function saveMeetingWhen(fd: FormData) {
   const location = String(fd.get("location") || "").trim().slice(0, 200);
   db().prepare("UPDATE meetings SET date = ?, time = ?, title = ?, location = ?, updated_at = datetime('now') WHERE id = ?").run(date, time, title, location, m.id);
   saveReminders(fd, m.id);
+  syncRoleTodosWhen(user.org_id, m.id);
   syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
   revalidatePath("/", "layout");
   go(`${String(fd.get("back")) === "meeting" ? `/admin/meetings/${m.id}` : "/admin/meetings"}?edit=1#next`, "Meeting saved.");
