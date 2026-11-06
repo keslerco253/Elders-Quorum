@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { addAgendaItem, cleanVideoLink, inviteGroups, inviteToMeeting, uninviteFromMeeting, isMeetingRole, moveAgendaItem, setAgendaSection, setMeetingRole, createMeeting, deleteMeetingRecord, finishMeeting, getMeeting, reviewRecord, saveAgendaNotes, setVideoLink, syncMeetingEvent, videoKind, videoLink, type ReviewRecord } from "@/lib/meetings";
+import { attachAgendaFiles, deleteAgendaItemFiles, removeAgendaFile, addAgendaItem, cleanVideoLink, inviteGroups, inviteToMeeting, uninviteFromMeeting, isMeetingRole, moveAgendaItem, setAgendaSection, setMeetingRole, createMeeting, deleteMeetingRecord, finishMeeting, getMeeting, reviewRecord, saveAgendaNotes, setVideoLink, syncMeetingEvent, videoKind, videoLink, type ReviewRecord } from "@/lib/meetings";
 import { audienceMembers, notify, recipientById, type Recipient } from "@/lib/notify";
 import { orgRoster } from "@/lib/orgs";
 import { DateTime } from "luxon";
@@ -36,14 +36,17 @@ export async function addAgenda(fd: FormData) {
   const body = String(fd.get("body") || "").trim();
   if (!body) go(`${meetingPath(fd)}#agenda`, "Write the agenda item first.");
   const m = getMeeting(user.org_id, Number(fd.get("meeting_id")));
-  addAgendaItem(user.org_id, body, { addedBy: user.id, meetingId: m?.kind === "invited" ? m.id : undefined, section: String(fd.get("section") || "") });
+  const itemId = addAgendaItem(user.org_id, body, { addedBy: user.id, meetingId: m?.kind === "invited" ? m.id : undefined, section: String(fd.get("section") || "") });
+  const error = await attachAgendaFiles(user.org_id, itemId, uploadedFiles(fd), user.id);
   revalidatePath("/admin", "layout");
-  go(`${meetingPath(fd)}#agenda`, "Added to the agenda.");
+  go(`${meetingPath(fd)}#agenda`, error ? `Added to the agenda, but: ${error}` : "Added to the agenda.");
 }
 
 export async function removeAgenda(fd: FormData) {
   const user = await requirePresidency();
-  db().prepare("DELETE FROM agenda_items WHERE id = ? AND org_id = ?").run(Number(fd.get("item_id")), user.org_id);
+  const itemId = Number(fd.get("item_id"));
+  if (db().prepare("SELECT 1 FROM agenda_items WHERE id = ? AND org_id = ?").get(itemId, user.org_id)) deleteAgendaItemFiles([itemId]);
+  db().prepare("DELETE FROM agenda_items WHERE id = ? AND org_id = ?").run(itemId, user.org_id);
   revalidatePath("/admin", "layout");
   go(`${meetingPath(fd)}#agenda`, "Taken off the agenda.");
 }
@@ -142,9 +145,21 @@ export async function newMeeting(fd: FormData) {
 }
 
 /** An agenda item's wording and notes: ahead of time, or in the meeting. Saved in place. */
+/** Files chosen in a form's "files" box (none chosen is one empty file). */
+const uploadedFiles = (fd: FormData) => fd.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
+
+/** Takes a file off an agenda item. */
+export async function removeAgendaFileAction(fd: FormData) {
+  const user = await requirePresidency();
+  removeAgendaFile(user.org_id, Number(fd.get("file_id")));
+  revalidatePath("/admin/meetings", "layout");
+}
+
 export async function saveItemNotes(fd: FormData) {
   const user = await requirePresidency();
   const itemId = Number(fd.get("item_id"));
+  const error = await attachAgendaFiles(user.org_id, itemId, uploadedFiles(fd), user.id);
+  if (error) go(`${meetingPath(fd)}#item-${itemId}`, error);
   saveAgendaNotes(user.org_id, itemId, String(fd.get("notes") || ""), { body: fd.has("body") ? String(fd.get("body")) : undefined, beforehand: fd.get("beforehand") === "1" });
   if (fd.has("section")) setAgendaSection(user.org_id, itemId, String(fd.get("section")));
   revalidatePath("/admin/meetings", "layout");

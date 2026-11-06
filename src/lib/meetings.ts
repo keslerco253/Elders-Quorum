@@ -1,3 +1,4 @@
+import { deleteUpload, saveDocument } from "./uploads";
 import { bySection, isAgendaSection } from "./agenda-sections";
 import { DateTime } from "luxon";
 import { db } from "./db";
@@ -158,6 +159,8 @@ export function deleteMeetingRecord(orgId: number, meetingId: number) {
   const m = getMeeting(orgId, meetingId);
   if (!m) return;
   if (m.event_id) d.prepare("DELETE FROM events WHERE id = ? AND org_id = ?").run(m.event_id, orgId);
+  // Its filed agenda goes with it, and their files.
+  deleteAgendaItemFiles((d.prepare("SELECT id FROM agenda_items WHERE meeting_id = ?").all(m.id) as { id: number }[]).map((r) => r.id));
   d.prepare("DELETE FROM meetings WHERE id = ?").run(m.id);
 }
 
@@ -218,19 +221,77 @@ export interface AgendaItem {
   created_at: string;
   /** Its agenda section (agenda-sections.ts). */
   category: string;
+  /** Files attached to it (presidency only). */
+  files: AgendaFile[];
+}
+
+export interface AgendaFile {
+  id: number;
+  item_id: number;
+  /** Stored file name (<24 hex>.<kind>). */
+  name: string;
+  original_name: string;
+}
+
+/** Where a presidency member opens an attached file. */
+export const agendaFileHref = (f: Pick<AgendaFile, "name">) => `/admin/meetings/files/${f.name}`;
+
+/** The items with their attached files. */
+function withFiles(items: Omit<AgendaItem, "files">[]): AgendaItem[] {
+  if (!items.length) return [];
+  const rows = db()
+    .prepare(`SELECT id, item_id, name, original_name FROM agenda_files WHERE item_id IN (${items.map(() => "?").join(",")}) ORDER BY id`)
+    .all(...items.map((a) => a.id)) as AgendaFile[];
+  return items.map((a) => ({ ...a, files: rows.filter((f) => f.item_id === a.id) }));
+}
+
+export const MAX_AGENDA_FILE = 15_000_000;
+
+/** Attaches uploaded files to an agenda item. Returns an error to show, or null. */
+export async function attachAgendaFiles(orgId: number, itemId: number, files: File[], by: number): Promise<string | null> {
+  const item = db().prepare("SELECT id FROM agenda_items WHERE id = ? AND org_id = ?").get(itemId, orgId);
+  if (!item) return "That agenda item no longer exists.";
+  for (const f of files) {
+    if (f.size > MAX_AGENDA_FILE) return `"${f.name}" is over 15 MB.`;
+    let name: string;
+    try {
+      name = await saveDocument(f);
+    } catch {
+      return `"${f.name}" can't be attached. Use a PDF, a picture, a Word, Excel or PowerPoint file, or a text file.`;
+    }
+    db().prepare("INSERT INTO agenda_files (item_id, org_id, name, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)").run(itemId, orgId, name, f.name.slice(0, 200) || "File", by);
+  }
+  return null;
+}
+
+/** Takes a file off an agenda item (and deletes it). */
+export function removeAgendaFile(orgId: number, fileId: number) {
+  const f = db().prepare("SELECT name FROM agenda_files WHERE id = ? AND org_id = ?").get(fileId, orgId) as { name: string } | undefined;
+  if (!f) return;
+  db().prepare("DELETE FROM agenda_files WHERE id = ?").run(fileId);
+  deleteUpload(f.name);
+}
+
+/** Deletes the files of agenda items about to be deleted. */
+export function deleteAgendaItemFiles(itemIds: number[]) {
+  if (!itemIds.length) return;
+  const rows = db().prepare(`SELECT name FROM agenda_files WHERE item_id IN (${itemIds.map(() => "?").join(",")})`).all(...itemIds) as { name: string }[];
+  for (const r of rows) deleteUpload(r.name);
 }
 
 /** Items waiting for the next meeting, in the order the presidency put them (new ones last). */
 export function pendingAgenda(orgId: number): AgendaItem[] {
   const rows = db()
     .prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.org_id = ? AND a.meeting_id IS NULL ORDER BY a.position, a.id`)
-    .all(orgId) as AgendaItem[];
-  return bySection(rows);
+    .all(orgId) as Omit<AgendaItem, "files">[];
+  return withFiles(bySection(rows));
 }
 
 export function meetingAgenda(meetingId: number): AgendaItem[] {
-  return bySection(
-    db().prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.meeting_id = ? ORDER BY a.position, a.id`).all(meetingId) as AgendaItem[],
+  return withFiles(
+    bySection(
+      db().prepare(`SELECT a.*, m.display_name AS adder FROM agenda_items a LEFT JOIN members m ON m.id = a.added_by WHERE a.meeting_id = ? ORDER BY a.position, a.id`).all(meetingId) as Omit<AgendaItem, "files">[],
+    ),
   );
 }
 

@@ -1730,4 +1730,21 @@ CREATE TABLE meeting_series (
 ALTER TABLE meetings ADD COLUMN series_id INTEGER REFERENCES meeting_series(id) ON DELETE SET NULL;
 `,
   },
+  {
+    // Files attached to agenda items (a handout, a spreadsheet, a picture). Only the
+    // organization's presidency can open them (/admin/meetings/files/<name>).
+    id: 92,
+    sql: `
+CREATE TABLE agenda_files (
+  id INTEGER PRIMARY KEY,
+  item_id INTEGER NOT NULL REFERENCES agenda_items(id) ON DELETE CASCADE,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  name TEXT NOT NULL UNIQUE,
+  original_name TEXT NOT NULL,
+  uploaded_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX agenda_files_item ON agenda_files(item_id);
+`,
+  },
 ];

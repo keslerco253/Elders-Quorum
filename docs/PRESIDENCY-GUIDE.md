@@ -1112,6 +1112,13 @@ place. Only the presidency (or bishopric) sees it.
 - **Get ready before the meeting:** tap an item to change its wording or add
   notes to bring (**Edit or add notes → Save**). Notes added ahead of time don't
   mark it discussed.
+- **📎 Files on an agenda item:** when adding an item, or later under **Edit or
+  add notes**, choose **Attach files**: PDFs, pictures (JPEG, PNG, iPhone photos),
+  Word, Excel and PowerPoint files, or text/CSV files, up to 15 MB each, several
+  at once. They show under the item; tap one to open it (PDFs and pictures open in
+  the browser, other files download) or ✕ to remove it. Only your presidency (or
+  bishopric) can open them. The printed agenda lists them by name. They stay with
+  the item when the meeting is finished, and are deleted with it.
 - **Assignment review** (at the bottom of the agenda, here and on the meeting's
   page): assignments **completed since the last presidency meeting** (or the last
   30 days, before the first one) and every assignment **still open**, with who

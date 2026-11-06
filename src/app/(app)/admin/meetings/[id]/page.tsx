@@ -18,6 +18,7 @@ import { stopRepeating, addAgenda, deleteMeeting, finish, inviteToMeetingAction,
 import { RoleSelect } from "../role-select";
 import { PrintAgendaButton } from "../print-agenda";
 import { MeetingReminderFields } from "../reminder-fields";
+import { DOCUMENT_ACCEPT } from "@/lib/upload-names";
 import { SectionSelect } from "../section-select";
 import { getMeetingSeries, seriesText } from "@/lib/meeting-series";
 
@@ -204,6 +205,10 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                   {editing && <input type="hidden" name="edit" value="1" />}
                   <input name="body" maxLength={2000} required className="input min-w-0 flex-[2_1_14rem]" placeholder="Add something to discuss…" />
                   <SectionSelect className="flex-[1_1_12rem]" />
+            <label className="basis-full text-xs text-muted">
+              📎 Attach files (optional)
+              <input type="file" name="files" multiple accept={DOCUMENT_ACCEPT} className="mt-1 block w-full text-sm" />
+            </label>
                   <SubmitButton className="btn-secondary">Add</SubmitButton>
                 </form>
                 <form action={finish} className="mt-4">

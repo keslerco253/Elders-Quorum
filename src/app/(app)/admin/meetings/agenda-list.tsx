@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Linkify } from "@/components/linkify";
 import { SubmitButton } from "@/components/client";
-import type { AgendaItem } from "@/lib/meetings";
+import { agendaFileHref, type AgendaItem } from "@/lib/meetings";
 import { AGENDA_SECTIONS, groupBySection } from "@/lib/agenda-sections";
 import { formatDateTime } from "@/lib/time";
-import { moveAgenda, removeAgenda, saveItemNotes, toggleDiscussed } from "./actions";
+import { moveAgenda, removeAgenda, removeAgendaFileAction, saveItemNotes, toggleDiscussed } from "./actions";
+import { DOCUMENT_ACCEPT } from "@/lib/upload-names";
 
 const ARROWS = { top: "⤒", up: "↑", down: "↓" };
 const LABELS = { top: "Move to the top", up: "Move up", down: "Move down" };
@@ -87,6 +88,26 @@ function SectionList({
             )}
             {about}
           </>
+        );
+        // Attached files: open (PDFs and pictures in the browser, others download); ✕ to take one off.
+        const files = a.files.length > 0 && (
+          <ul className="mt-1.5 flex flex-wrap gap-1.5">
+            {a.files.map((f) => (
+              <li key={f.id} className="flex items-center gap-1 rounded-lg border border-border bg-surface-2 py-0.5 pr-1 pl-2 text-xs">
+                <a href={agendaFileHref(f)} target="_blank" rel="noreferrer" className="max-w-56 truncate text-accent hover:underline" title={f.original_name}>
+                  📎 {f.original_name}
+                </a>
+                {canEdit && (
+                  <form action={removeAgendaFileAction}>
+                    <input type="hidden" name="file_id" value={f.id} />
+                    <SubmitButton className="px-1 text-muted hover:text-danger" confirm={`Remove ${f.original_name}?`} pendingText="…">
+                      <span aria-label={`Remove ${f.original_name}`}>✕</span>
+                    </SubmitButton>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
         );
         const actions = (reorder || meetingId) && (
           <div className="mt-2 flex flex-wrap gap-1">
@@ -171,6 +192,10 @@ function SectionList({
                       placeholder={inMeeting || finished ? "What was discussed or decided…" : "Notes to bring to the meeting…"}
                       aria-label="Notes"
                     />
+                    <label className="block text-xs text-muted">
+                      📎 Attach files <span className="font-normal">(PDF, picture, Word, Excel, PowerPoint or text; up to 15 MB each)</span>
+                      <input type="file" name="files" multiple accept={DOCUMENT_ACCEPT} className="mt-1 block w-full text-sm" />
+                    </label>
                     <SubmitButton className="btn-secondary btn-sm" pendingText="Saving…">
                       Save
                     </SubmitButton>
@@ -179,6 +204,7 @@ function SectionList({
               ) : (
                 shown
               )}
+              {files}
               {canEdit && actions}
             </div>
           </li>

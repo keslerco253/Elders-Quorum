@@ -106,6 +106,10 @@ function reviewHtml(orgId: number, meetingId: number, tz: string) {
 <h3 class="sub">Still open</h3>${table(open, "Due")}`;
 }
 
+/** "📎 handout.pdf, budget.xlsx" under an agenda item. */
+const attached = (a: { files?: { original_name: string }[] }) =>
+  a.files?.length ? `<div class="prep">📎 ${a.files.map((f) => html(f.original_name)).join(", ")}</div>` : "";
+
 const whenText = (m: Meeting) =>
   [DateTime.fromISO(m.date).toFormat("cccc, LLLL d, yyyy"), m.time ? DateTime.fromFormat(m.time, "HH:mm").toFormat("h:mm a") : ""].filter(Boolean).join(" · ");
 
@@ -128,7 +132,7 @@ export function recordsPrintHtml(orgId: number, meetings: Meeting[], o: { toolba
               `<section class="sec"><h3>${html(g.label)}</h3>${g.items
                 .map(
                   (a) =>
-                    `<div class="item" style="padding-bottom:.1rem"><div class="topic"><span class="n">${++n}.</span><span class="body">${html(a.body.trim())}</span></div>${a.notes.trim() ? `<div class="taken">${noteText(a.notes)}</div>` : `<div class="taken empty">No notes</div>`}</div>`,
+                    `<div class="item" style="padding-bottom:.1rem"><div class="topic"><span class="n">${++n}.</span><span class="body">${html(a.body.trim())}</span></div>${attached(a)}${a.notes.trim() ? `<div class="taken">${noteText(a.notes)}</div>` : `<div class="taken empty">No notes</div>`}</div>`,
                 )
                 .join("")}</section>`,
           )
@@ -192,7 +196,7 @@ export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?:
   // open space to write in the meeting.
   let n = 0;
   const item = (a: (typeof items)[number]) =>
-    `<div class="item"><div class="topic"><span class="n">${++n}.</span><span class="body">${html(a.body.trim())}</span></div>${a.notes ? `<div class="prep">${html(a.notes.trim())}</div>` : ""}<div class="notes">Notes:</div></div>`;
+    `<div class="item"><div class="topic"><span class="n">${++n}.</span><span class="body">${html(a.body.trim())}</span></div>${attached(a)}${a.notes ? `<div class="prep">${html(a.notes.trim())}</div>` : ""}<div class="notes">Notes:</div></div>`;
   // Section by section (only those with items), numbered straight through.
   const list = items.length
     ? groupBySection(items)
