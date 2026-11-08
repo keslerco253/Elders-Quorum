@@ -293,9 +293,28 @@ body {
     break-inside: avoid;
     border-color: #999 !important;
   }
-  /* Nothing else on the page with the cards (the note at the bottom would add a page). */
-  main:has(.texting-cards) > :not(.print-sheet) {
+  /* Nothing else on the page with the cards or flyers (the note at the bottom would add a page). */
+  main:has(.texting-cards) > :not(.print-sheet),
+  main:has(.app-flyers) > :not(.print-sheet) {
     display: none !important;
+  }
+  /* App flyers: two half pages to a letter page (each 7.5 x 4.8 in). */
+  .print-sheet:has(.app-flyers) {
+    width: 7.5in !important;
+    margin: 0 !important;
+  }
+  .app-flyers {
+    display: grid !important;
+    grid-template-columns: 7.5in !important;
+    grid-auto-rows: 4.8in !important;
+    gap: 0.35in !important;
+  }
+  .app-flyer {
+    height: 4.8in !important;
+    padding: 0.22in !important;
+    overflow: hidden;
+    break-inside: avoid;
+    border-color: #999 !important;
   }
 }
 

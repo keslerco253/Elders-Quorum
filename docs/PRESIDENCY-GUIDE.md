@@ -305,6 +305,14 @@ code, or a leader adds them.
 
 - **Admin → Invite members** (any leader): the ward's QR code and join code.
   - **In a meeting:** **Show on a big screen** opens a page for a projector.
+  - **🖨️ Print a flyer:** two half-page flyers to a letter page, to hand out or
+    post: the join QR code (with the web address and join code under it; someone
+    who already has an account signs in from there), how to add the app to an
+    iPhone's or Android's home screen, how to turn on notifications (More → Turn on
+    notifications), and, where the ward texts, "Prefer texts? Text JOIN (code) to
+    …" with its own QR code. Print it from a computer or the phone app (the phone's
+    print screen can also save it as a PDF). Print new ones after making a new join
+    code.
     Members scan the QR code, type their name and email (the code is filled
     in) and enter the 6-digit code emailed to them.
   - **Send it to the ward:** the join link, with a **Share** button. Anyone with

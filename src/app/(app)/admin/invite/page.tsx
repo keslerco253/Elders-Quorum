@@ -59,9 +59,15 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
                 <li>They type their name and email (the code is already filled in) and tap Join.</li>
                 <li>They enter the 6-digit code from their email, and they&apos;re in.</li>
               </ol>
-              <Link href="/present/invite" className="btn-primary" target="_blank">
-                Show on a big screen
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/present/invite" className="btn-primary" target="_blank">
+                  Show on a big screen
+                </Link>
+                <Link href="/admin/invite/flyer" className="btn-secondary">
+                  🖨️ Print a flyer
+                </Link>
+              </div>
+              <p className="text-xs text-muted">The flyer has this QR code, how to add the app to a phone&apos;s home screen and turn on notifications, and how to get texts instead. Two to a page.</p>
             </div>
             <div className="card space-y-3">
               <h2 className="h2">Send it to the ward</h2>
