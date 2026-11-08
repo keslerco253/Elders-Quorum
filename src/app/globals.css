@@ -273,17 +273,29 @@ body {
   @page {
     margin: 0.5in;
   }
-  /* Texting cards: four to a letter page, to cut apart. */
+  /* Texting cards: four to a letter page (8.5 x 11, half-inch margins: 7.5 x 10 in
+     to print on), sized in inches so a phone's print screen can't scale them past it. */
+  .print-sheet:has(.texting-cards) {
+    width: 7.5in !important;
+    margin: 0 !important;
+  }
   .texting-cards {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 0.25in !important;
+    grid-template-columns: 3.65in 3.65in !important;
+    grid-auto-rows: 4.7in !important;
+    gap: 0.2in !important;
+    width: 7.5in !important;
   }
   .texting-card {
-    height: 4.85in;
+    height: 4.7in !important;
+    padding: 0.18in !important;
     overflow: hidden;
     break-inside: avoid;
     border-color: #999 !important;
+  }
+  /* Nothing else on the page with the cards (the note at the bottom would add a page). */
+  main:has(.texting-cards) > :not(.print-sheet) {
+    display: none !important;
   }
 }
 
