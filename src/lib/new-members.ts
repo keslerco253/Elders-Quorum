@@ -14,7 +14,7 @@ export interface NewMember {
   phone: string | null;
   status: string;
   /** How they came: joined with the code, added by a leader, or an account they already had. */
-  how: "code" | "leader" | "existing";
+  how: "code" | "leader" | "existing" | "text";
   joined_at: string;
   last_login_at: string | null;
   reviewed_at: string | null;
@@ -29,22 +29,22 @@ export function newWardMembers(wardId: number, opts: { toReviewOnly?: boolean } 
   const d = db();
   const rows = d
     .prepare(
-      `SELECT m.id, m.display_name, m.email, m.phone, m.status, m.source, m.created_at AS member_created, m.last_login_at,
+      `SELECT m.id, m.display_name, m.email, m.phone, m.status, m.source, m.sms_consent_via, m.created_at AS member_created, m.last_login_at,
          wm.created_at AS joined_at, wm.reviewed_at, r.display_name AS reviewed_by_name,
          (SELECT COUNT(*) FROM ward_members x WHERE x.member_id = m.id AND x.ward_id <> wm.ward_id) AS other_wards
        FROM ward_members wm JOIN members m ON m.id = wm.member_id LEFT JOIN members r ON r.id = wm.reviewed_by
        WHERE wm.ward_id = ? AND wm.created_at > datetime('now', ?) ${opts.toReviewOnly ? "AND wm.reviewed_at IS NULL" : ""}
        ORDER BY wm.reviewed_at IS NOT NULL, wm.created_at DESC`,
     )
-    .all(wardId, `-${NEW_MEMBER_DAYS} days`) as (Omit<NewMember, "how" | "orgs"> & { source: string; member_created: string })[];
+    .all(wardId, `-${NEW_MEMBER_DAYS} days`) as (Omit<NewMember, "how" | "orgs"> & { source: string; sms_consent_via: string | null; member_created: string })[];
   const orgsOf = d.prepare(
     `SELECT o.name FROM org_members om JOIN orgs o ON o.id = om.org_id
      WHERE om.member_id = ? AND o.ward_id = ? AND o.kind = 'group' AND (om.official = 1 OR om.role <> 'member') ORDER BY o.name`,
   );
-  return rows.map(({ source, member_created, ...r }) => ({
+  return rows.map(({ source, sms_consent_via, member_created, ...r }) => ({
     ...r,
     // A new account made within a minute of joining came from the join page.
-    how: source === "manual" ? "leader" : source === "request" && Math.abs(Date.parse(member_created.replace(" ", "T") + "Z") - Date.parse(r.joined_at.replace(" ", "T") + "Z")) < 60_000 ? "code" : "existing",
+    how: sms_consent_via === "join-text" ? "text" : source === "manual" ? "leader" : source === "request" && Math.abs(Date.parse(member_created.replace(" ", "T") + "Z") - Date.parse(r.joined_at.replace(" ", "T") + "Z")) < 60_000 ? "code" : "existing",
     orgs: (orgsOf.all(r.id, wardId) as { name: string }[]).map((o) => o.name),
   }));
 }

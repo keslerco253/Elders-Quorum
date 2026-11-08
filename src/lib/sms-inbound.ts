@@ -11,7 +11,7 @@ import { allowHit } from "./rate-limit";
 import { answerRequest, latestPendingRequest } from "./teaching-requests";
 import { DateTime } from "luxon";
 import { guestOptOut } from "./guest-signups";
-import { JOIN_UNKNOWN_REPLY, JOIN_WORD, joinByText, joinConfirmation } from "./text-join";
+import { continueTextJoin, endTextJoin, inTextJoin, JOIN_WORD, joinByText, joinConfirmation, startTextJoin } from "./text-join";
 
 /** The address set as "A message comes in" in Twilio. */
 export const inboundUrl = () => process.env.TWILIO_WEBHOOK_URL || `${appUrl()}/api/sms/inbound`;
@@ -131,11 +131,31 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   // up for service without an account ends texts to them.
   if (!row) {
     const word = body.toUpperCase().replace(/[^A-Z]/g, "");
-    if ((params.OptOutType || "").toUpperCase() === "STOP" || STOP_WORDS.includes(word)) return guestOptOut(from) ? "opted_out" : "unknown_sender";
+    if ((params.OptOutType || "").toUpperCase() === "STOP" || STOP_WORDS.includes(word)) {
+      endTextJoin(from);
+      return guestOptOut(from) ? "opted_out" : "unknown_sender";
+    }
     if ((params.OptOutType || "").toUpperCase() === "HELP" || SKIP_WORDS.includes(word)) return "unknown_sender";
-    // JOIN from a number no one has added yet: how to get added (once a day per number).
-    if (word === JOIN_WORD) {
-      if (allowHit(`sms-join-unknown:${from}`, 1, 24 * 60)) seen.reply = JOIN_UNKNOWN_REPLY;
+    // JOIN (and maybe the ward's join code) from a number no one has added: they join by
+    // text, answering a few questions (a few tries a day per number, and not too many at once).
+    const join = body.match(/^\s*join\b[\s:,.-]*(.*)$/i);
+    if (join) {
+      if (allowHit(`sms-join-start:${from}`, 5, 24 * 60) && allowHit("sms-join-all", 60, 60)) {
+        seen.reply = startTextJoin(from, join[1]);
+        seen.note = "Started joining by text";
+      }
+      return "unknown_sender";
+    }
+    if (inTextJoin(from)) {
+      seen.reply = continueTextJoin(from, body);
+      // Their account is made with the last answer.
+      const made = db().prepare("SELECT id FROM members WHERE phone = ? AND status = 'active' LIMIT 1").get(from) as { id: number } | undefined;
+      if (made) {
+        seen.memberId = made.id;
+        seen.note = "Joined by text";
+        return "joined";
+      }
+      seen.note = "Joining by text";
       return "unknown_sender";
     }
     // Let them know it wasn't delivered (once a month per number, so it can't run up texts).

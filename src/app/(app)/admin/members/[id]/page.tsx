@@ -128,7 +128,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
           {m.phone && (
             <p className="hint -mt-2">
               {m.sms_consent_at ? (
-                `Agreed to ward texts ${formatDateTime(m.sms_consent_at, user.ward.timezone, "LLL d, yyyy")}${(m as { sms_consent_via?: string | null }).sms_consent_via === "text" ? " by texting JOIN" : ""}.`
+                `Agreed to ward texts ${formatDateTime(m.sms_consent_at, user.ward.timezone, "LLL d, yyyy")}${(m as { sms_consent_via?: string | null }).sms_consent_via === "text" ? " by texting JOIN" : (m as { sms_consent_via?: string | null }).sms_consent_via === "join-text" ? " by texting JOIN (they joined by text)" : ""}.`
               ) : phoneOptInVisible() ? (
                 <>
                   Hasn&apos;t agreed to ward texts, so the app only texts them sign-in codes they ask for. They can agree by texting JOIN to the ward&apos;s number (no

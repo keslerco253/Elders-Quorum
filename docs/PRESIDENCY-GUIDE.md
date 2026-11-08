@@ -348,9 +348,25 @@ code, or a leader adds them.
   agreement (their page says "Agreed to ward texts … by texting JOIN"), texts back a
   confirmation, and from then on sends them every reminder and message by text; they
   can reply to any text to reach you. A couple sharing one phone are both signed
-  up. JOIN from a number no one has added gets "Please ask your ward leaders to add
-  you", and nothing else happens. They can text STOP anytime (and START to come
+  up. They can text STOP anytime (and START to come
   back). Their texts count toward the ward's monthly text limit.
+- **Joining by text without being added first:** someone whose number isn't in the
+  app can text **JOIN** (or **JOIN** and your join code, like "JOIN VILLAS"). The
+  app texts back, one question at a time:
+  1. Your ward's **join code**, only when the texting number serves more than one
+     ward (so it knows which ward, and strangers can't join).
+  2. Their **first and last name**.
+  3. Which **organizations** they're part of (a numbered list; they reply with the
+     numbers, like "1 3", or NONE). Skipped if the ward has none.
+
+  Their account is then made in the ward (and those organizations), signed up for
+  ward texts (their JOIN text is their agreement), and they're texted a
+  confirmation with how to use the app too. They show under **Ward settings → New
+  members** as "Joined by texting JOIN" for the ward administrators to check
+  (**Looks good**, or **Remove from ward**). A conversation left an hour starts
+  over with JOIN; a few wrong codes end it; STOP ends it. Only wards with texting
+  turned on take members this way. If none do, JOIN from an unknown number gets
+  "Please ask your ward leaders to add you".
 - **Old access requests:** joining now always needs a code. Requests to join
   without one from before that show under **Admin → Access requests** (bishopric,
   at the ward) with their contact info and note: **Approve** lets them in;

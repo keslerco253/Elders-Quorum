@@ -13,7 +13,7 @@ import { withOrg } from "@/lib/org-cookie";
 
 export const metadata = { title: "New members" };
 
-const HOW = { code: "Joined with the join code", leader: "Added by a leader", existing: "Joined with an account they already had" };
+const HOW = { code: "Joined with the join code", leader: "Added by a leader", existing: "Joined with an account they already had", text: "Joined by texting JOIN" };
 
 /**
  * Who joined the ward lately, for its ward administrators: anyone who doesn't belong

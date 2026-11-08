@@ -1794,4 +1794,20 @@ ALTER TABLE personal_todos ADD COLUMN repeat TEXT;
 ALTER TABLE personal_todos ADD COLUMN repeat_until TEXT;
 `,
   },
+  {
+    // Joining by text from a number no one has added: JOIN, then (when the app's number
+    // serves more than one ward) the join code, their name and their organizations.
+    // Where each number is in that short conversation.
+    id: 96,
+    sql: `
+CREATE TABLE text_joins (
+  phone TEXT PRIMARY KEY,
+  ward_id INTEGER REFERENCES wards(id) ON DELETE CASCADE,
+  step TEXT NOT NULL CHECK (step IN ('code','name','orgs')),
+  name TEXT NOT NULL DEFAULT '',
+  attempts INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`,
+  },
 ];
