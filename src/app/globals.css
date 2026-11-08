@@ -186,6 +186,19 @@ body {
   }
   .plan-page > h2 { @apply mt-6 mb-2 text-xl font-bold first:mt-0; }
   .plan-page > hr { clear: both; @apply my-6 border-border; }
+  /* Tabs on a plan page: blue buttons (Week 1, Jan 1–6), one panel showing. */
+  .plan-tabs { clear: both; @apply my-5; }
+  .plan-tab-list { @apply mb-3 grid grid-flow-col auto-cols-fr gap-1.5 sm:gap-2; }
+  .plan-tab { @apply flex min-w-0 flex-col items-center rounded-lg border-2 border-[#1d3a5f] bg-white px-1 py-1.5 text-center leading-tight text-[#1d3a5f] transition-colors sm:px-3 sm:py-2; }
+  .plan-tab:hover { @apply bg-[#e8eff7]; }
+  .plan-tab-on, .plan-tab-on:hover { @apply bg-[#1d3a5f] text-white; }
+  .plan-tab-label { @apply text-xs font-bold whitespace-nowrap sm:text-sm; }
+  .plan-tab-sub { @apply text-[10px] whitespace-nowrap opacity-80 sm:text-xs; }
+  /* In a tab: each day's heading as a blue label, and the personal invitation as a soft box. */
+  .plan-tab-panel h3 { @apply mt-0 text-lg font-bold text-[#1d3a5f]; }
+  .plan-tab-panel h4 { @apply mt-6 mb-1 inline-block rounded-md bg-[#1d3a5f] px-2.5 py-0.5 text-sm font-semibold text-white; }
+  .plan-tab-panel blockquote { @apply my-2 rounded-lg border-l-4 border-[#c9a227] bg-warn-soft px-3 py-2 not-italic text-text; }
+  .plan-tab-panel { @apply rounded-xl border border-border bg-surface p-4 sm:p-5; }
   .plan-media { width: var(--w); @apply mx-auto mt-2 mb-5; }
   /* Centered pictures and PDFs start on their own line, below anything placed left or right. */
   .plan-media.plan-center { clear: both; display: flow-root; }

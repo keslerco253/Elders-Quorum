@@ -1090,6 +1090,10 @@ ward's list, but not in Elders Quorum. Anyone in the ward can open any plan.
   - **Size** a picture or PDF: drag its blue corner, or tap S, M, L or Full.
   - **Place** it: Left or Right puts text beside it; Center on its own line.
   - Text has **B**, *I*, • List and Link buttons; add a caption under any picture.
+  - **Tabs:** blue buttons (like Week 1, Week 2…), each with a line under it (the
+    dates), its own text, and an optional **Opens from** day: members see one tab
+    at a time, and the page opens on the tab whose day has most recently come.
+    **+ Tab** adds one; **Remove this tab** takes one off.
     Each heading and text block has a size (Small, Normal, Large, Extra large).
 - **Plan icon:** on the edit page, pick a drawn icon, an emoji, or **use your own
   picture**, then **Save icon**.

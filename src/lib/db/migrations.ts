@@ -1,3 +1,5 @@
+import { blocksText, type Block } from "../plan-blocks";
+import { challengeBlocks, CHALLENGE_TITLE } from "../seed/temple-challenge-2027";
 // Schema migrations. Append new entries; never edit one that has shipped.
 /**
  * fkOff: run with foreign keys switched off (needed to rebuild a table others
@@ -1906,4 +1908,29 @@ CREATE TABLE app_suggestions (
 CREATE INDEX app_suggestions_status ON app_suggestions(status, created_at);
 `,
   },
+  {
+    // Villas Ward's January 2027 Temple & Family History Challenge, posted as a plan
+    // for the Elders Quorum and Relief Society (once; edited like any plan after).
+    id: 103,
+    sql: challengeSql(),
+  },
 ];
+
+/** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */
+function challengeSql(): string {
+  const q = (v: string) => `'${v.replace(/'/g, "''")}'`;
+  const blocks = challengeBlocks() as Block[];
+  const title = q(CHALLENGE_TITLE);
+  return `
+INSERT INTO ward_plans (ward_id, name, icon)
+  SELECT w.id, ${title}, 'temple' FROM wards w
+  WHERE w.name LIKE 'Villas Ward%' AND w.demo = 0 AND (SELECT COUNT(*) FROM ward_members wm WHERE wm.ward_id = w.id) >= 10 AND NOT EXISTS (SELECT 1 FROM ward_plans p WHERE p.ward_id = w.id AND p.name = ${title})
+  ORDER BY w.id LIMIT 1;
+INSERT OR IGNORE INTO ward_plan_orgs (plan_id, org_id)
+  SELECT p.id, o.id FROM ward_plans p JOIN orgs o ON o.ward_id = p.ward_id AND o.kind = 'group' AND o.name IN ('Elders Quorum', 'Relief Society')
+  WHERE p.name = ${title} AND NOT EXISTS (SELECT 1 FROM plan_versions v WHERE v.plan_id = p.id);
+INSERT INTO plan_versions (plan_id, org_id, title, body, blocks)
+  SELECT p.id, (SELECT o.id FROM orgs o WHERE o.ward_id = p.ward_id AND o.name = 'Elders Quorum' LIMIT 1), ${title}, ${q(blocksText(blocks))}, ${q(JSON.stringify(blocks))}
+  FROM ward_plans p WHERE p.name = ${title} AND NOT EXISTS (SELECT 1 FROM plan_versions v WHERE v.plan_id = p.id);
+`;
+}

@@ -2,6 +2,7 @@ import { renderMarkdown } from "@/lib/markdown";
 import { isPicture } from "@/lib/upload-names";
 import { mediaProps, sizeClass, type Block, type MediaBlock } from "@/lib/plan-blocks";
 import { PdfPages } from "./pdf-pages";
+import { PlanTabs } from "./plan-tabs";
 
 /** A plan page as members see it. `fileSrc` says where its pictures and PDFs load from (a public link uses its own). */
 export function PlanPage({ blocks, fileSrc }: { blocks: Block[]; fileSrc?: (file: string) => string }) {
@@ -19,6 +20,8 @@ export function PlanPage({ blocks, fileSrc }: { blocks: Block[]; fileSrc?: (file
             return <div key={b.id} className={`prose-eq ${sizeClass(b.size)}`} dangerouslySetInnerHTML={{ __html: renderMarkdown(b.text) }} />;
           case "divider":
             return <hr key={b.id} />;
+          case "tabs":
+            return <PlanTabs key={b.id} id={`tab${b.id}`} tabs={b.tabs.map((t) => ({ label: t.label, sub: t.sub, start: t.start, html: renderMarkdown(t.text) }))} />;
           case "image":
           case "pdf":
             return (

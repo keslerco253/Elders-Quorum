@@ -25,7 +25,19 @@ export type Block =
   | { id: string; type: "text"; text: string; size?: TextSize }
   | { id: string; type: "image"; file: string; name: string; width: number; align: Align; caption: string }
   | { id: string; type: "pdf"; file: string; name: string; width: number; align: Align; caption: string; pages: boolean }
-  | { id: string; type: "divider" };
+  | { id: string; type: "divider" }
+  | { id: string; type: "tabs"; tabs: PlanTab[] };
+
+/** One tab of a tabs block: its label ("Week 1"), a line under it ("Jan 1–6"), and its text (Markdown). */
+export interface PlanTab {
+  label: string;
+  sub: string;
+  /** The day it starts (yyyy-mm-dd), optional: the page opens on the tab for today. */
+  start: string;
+  text: string;
+}
+
+export const newTab = (n: number): PlanTab => ({ label: `Tab ${n}`, sub: "", start: "", text: "" });
 
 export type MediaBlock = Extract<Block, { type: "image" | "pdf" }>;
 
@@ -59,6 +71,15 @@ export function parseBlocks(json: string, fileOk: (name: string) => boolean): Bl
     if (r.type === "heading") out.push({ id, type: "heading", text: str(r.text, 200), ...(textSize(r.size) ? { size: textSize(r.size) } : {}) });
     else if (r.type === "text") out.push({ id, type: "text", text: str(r.text, 20_000), ...(textSize(r.size) ? { size: textSize(r.size) } : {}) });
     else if (r.type === "divider") out.push({ id, type: "divider" });
+    else if (r.type === "tabs" && Array.isArray(r.tabs)) {
+      const tabs = (r.tabs as Record<string, unknown>[]).slice(0, 12).filter((t) => t && typeof t === "object").map((t) => ({
+        label: str(t.label, 60),
+        sub: str(t.sub, 60),
+        start: /^\d{4}-\d{2}-\d{2}$/.test(str(t.start, 10)) ? str(t.start, 10) : "",
+        text: str(t.text, 30_000),
+      }));
+      if (tabs.length) out.push({ id, type: "tabs", tabs });
+    }
     else if ((r.type === "image" || r.type === "pdf") && typeof r.file === "string" && fileOk(r.file)) {
       const base = { id, file: r.file, name: str(r.name, 200) || "Attachment", width: width(r.width), align: align(r.align), caption: str(r.caption, 300) };
       if (r.type === "image") out.push({ ...base, type: "image" });
@@ -86,7 +107,9 @@ export function mediaBlock(file: string, name: string): MediaBlock {
 /** Plain text of the page (kept with each version for anything that reads text). */
 export function blocksText(blocks: Block[]): string {
   return blocks
-    .map((b) => (b.type === "heading" ? `## ${b.text}` : b.type === "text" ? b.text : b.type === "divider" ? "---" : b.caption))
+    .map((b) =>
+      b.type === "heading" ? `## ${b.text}` : b.type === "text" ? b.text : b.type === "divider" ? "---" : b.type === "tabs" ? b.tabs.map((t) => `### ${t.label} ${t.sub}\n\n${t.text}`).join("\n\n") : b.caption,
+    )
     .filter((t) => t.trim())
     .join("\n\n");
 }

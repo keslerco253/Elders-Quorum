@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PdfPages } from "@/components/pdf-pages";
 import { isPicture, UPLOAD_ACCEPT } from "@/lib/upload-names";
+import { newTab, type PlanTab } from "@/lib/plan-blocks";
 import {
   MIN_WIDTH,
   mediaBlock,
@@ -289,6 +290,9 @@ function Toolbar({
       >
         Divider
       </button>
+      <button type="button" className="btn-secondary btn-sm" onClick={() => onAdd({ id: newBlockId(), type: "tabs", tabs: [newTab(1), newTab(2)] })}>
+        Tabs
+      </button>
     </div>
   );
 }
@@ -439,6 +443,8 @@ function BlockBody({
       );
     case "divider":
       return <hr />;
+    case "tabs":
+      return <TabsEditor tabs={b.tabs} onChange={(tabs) => onChange({ tabs } as Partial<Block>)} />;
     case "text":
       return (
         <TextBlock text={b.text} size={b.size} onChange={(text) => onChange({ text })} onSize={(size) => onChange({ size })} />
@@ -455,6 +461,61 @@ function BlockBody({
         />
       );
   }
+}
+
+/** A tabs block: each tab's label, the line under it, the day it starts, and its text. */
+function TabsEditor({ tabs, onChange }: { tabs: PlanTab[]; onChange: (tabs: PlanTab[]) => void }) {
+  const [open, setOpen] = useState(0);
+  const i = Math.min(open, tabs.length - 1);
+  const set = (patch: Partial<PlanTab>) => onChange(tabs.map((t, n) => (n === i ? { ...t, ...patch } : t)));
+  return (
+    <div className="plan-tabs">
+      <div className="plan-tab-list">
+        {tabs.map((t, n) => (
+          <button key={n} type="button" className={`plan-tab ${n === i ? "plan-tab-on" : ""}`} onClick={() => setOpen(n)}>
+            <span className="plan-tab-label">{t.label || `Tab ${n + 1}`}</span>
+            {t.sub && <span className="plan-tab-sub">{t.sub}</span>}
+          </button>
+        ))}
+        {tabs.length < 12 && (
+          <button
+            type="button"
+            className="btn-secondary btn-sm self-center"
+            onClick={() => {
+              onChange([...tabs, newTab(tabs.length + 1)]);
+              setOpen(tabs.length);
+            }}
+          >
+            + Tab
+          </button>
+        )}
+      </div>
+      <div className="space-y-2 rounded-lg border border-border p-3">
+        <div className="grid gap-2 sm:grid-cols-3">
+          <input className="input" value={tabs[i].label} maxLength={60} placeholder="Label (e.g. Week 1)" aria-label="Tab label" onChange={(e) => set({ label: e.target.value })} />
+          <input className="input" value={tabs[i].sub} maxLength={60} placeholder="Under it (e.g. Jan 1–6)" aria-label="Under the label" onChange={(e) => set({ sub: e.target.value })} />
+          <label className="flex items-center gap-2 text-xs text-muted">
+            Opens from
+            <input type="date" className="input py-1" value={tabs[i].start} onChange={(e) => set({ start: e.target.value })} />
+          </label>
+        </div>
+        <TextBlock text={tabs[i].text} onChange={(text) => set({ text })} onSize={() => {}} />
+        {tabs.length > 1 && (
+          <button
+            type="button"
+            className="text-xs text-muted underline hover:text-danger"
+            onClick={() => {
+              onChange(tabs.filter((_, n) => n !== i));
+              setOpen(Math.max(0, i - 1));
+            }}
+          >
+            Remove this tab
+          </button>
+        )}
+        <p className="hint">The page opens on the tab whose &quot;Opens from&quot; day has most recently come (or the first one).</p>
+      </div>
+    </div>
+  );
 }
 
 /** Text with a few formatting buttons (it's stored as simple Markdown). */
