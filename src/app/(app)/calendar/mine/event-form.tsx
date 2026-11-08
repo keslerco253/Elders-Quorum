@@ -6,6 +6,7 @@ import { MAX_TODO_REMINDERS, MAX_TODO_TEXTS, todoReminders } from "@/lib/persona
 import { PERSONAL_EVENT_WHEN, STARTING_EVENT_REMINDERS, type PersonalEvent } from "@/lib/personal-events";
 import { savePersonalEventAction } from "./actions";
 import { PersonalTimeFields } from "./time-fields";
+import { RepeatFields } from "@/components/repeat-fields";
 
 /** A member's own calendar event: what, when, where, notes and its reminders. */
 export function PersonalEventForm({
@@ -35,6 +36,15 @@ export function PersonalEventForm({
       <Labeled label="Date">
         <input name="date" type="date" required className="input" defaultValue={event?.date ?? date ?? ""} />
       </Labeled>
+      <RepeatFields
+        initialStart={event?.date ?? date ?? ""}
+        defaultPattern={event?.repeat ?? ""}
+        defaultEnd={event?.repeat_until ? "until" : "never"}
+        defaultUntil={event?.repeat_until ?? ""}
+        more
+        dateField="date"
+        neverHint="It keeps repeating until you change it."
+      />
       <PersonalTimeFields allDay={!!event?.all_day} start={event && !event.all_day ? event.start_time : ""} end={event?.end_time ?? ""} />
       <input name="location" maxLength={200} className="input" placeholder="Where (optional)" defaultValue={event?.location} aria-label="Where" />
       <textarea name="notes" rows={3} className="input" placeholder="Notes (optional)" defaultValue={event?.notes} aria-label="Notes" />

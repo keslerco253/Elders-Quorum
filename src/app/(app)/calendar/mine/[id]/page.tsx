@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { canTextTodos } from "@/lib/personal-todos";
-import { getPersonalEvent } from "@/lib/personal-events";
+import { getPersonalEvent, occurrences, repeatText } from "@/lib/personal-events";
+import { formatDate } from "@/lib/time";
 import { memberCanText } from "../../../more/reminders/can-text";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -15,16 +16,36 @@ export default async function PersonalEventPage({ params, searchParams }: { para
   const sp = await searchParams;
   const event = getPersonalEvent(user.id, Number((await params).id));
   if (!event) notFound();
+  // Opened from one date of a repeating event.
+  const on = event.repeat && /^\d{4}-\d{2}-\d{2}$/.test(sp.on ?? "") && occurrences(event, sp.on, sp.on).length ? sp.on : null;
+  const day = on ?? event.date;
+  const repeats = repeatText(event);
   return (
     <>
-      <PageHeader title="My event" back={{ href: `/calendar?m=${event.date.slice(0, 7)}&d=${event.date}#day`, label: "Calendar" }} subtitle="Private: only you can see it." />
+      <PageHeader title="My event" back={{ href: `/calendar?m=${day.slice(0, 7)}&d=${day}#day`, label: "Calendar" }} subtitle="Private: only you can see it." />
       <Flash msg={sp.msg} tone="warn" />
-      <form action={deletePersonalEventAction} className="mb-4">
-        <input type="hidden" name="item_id" value={event.id} />
-        <SubmitButton className="btn-secondary" confirm="Delete this event?" pendingText="…">
-          Delete
-        </SubmitButton>
-      </form>
+      {repeats && (
+        <p className="mb-3 text-sm">
+          🔁 {repeats}.{on && ` This is the one on ${formatDate(on, "short")}.`} Changes below apply to every date.
+        </p>
+      )}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {on && (
+          <form action={deletePersonalEventAction}>
+            <input type="hidden" name="item_id" value={event.id} />
+            <input type="hidden" name="on" value={on} />
+            <SubmitButton className="btn-secondary" confirm={`Take off just ${formatDate(on, "short")}?`} pendingText="…">
+              Delete just {formatDate(on, "short")}
+            </SubmitButton>
+          </form>
+        )}
+        <form action={deletePersonalEventAction}>
+          <input type="hidden" name="item_id" value={event.id} />
+          <SubmitButton className="btn-secondary" confirm={repeats ? "Delete this event and every date it repeats?" : "Delete this event?"} pendingText="…">
+            {repeats ? "Delete every date" : "Delete"}
+          </SubmitButton>
+        </form>
+      </div>
       <PersonalEventForm key={event.id} event={event} canText={canTextTodos(user.id)} textReady={memberCanText(user)} canEmail={!!user.email} />
     </>
   );

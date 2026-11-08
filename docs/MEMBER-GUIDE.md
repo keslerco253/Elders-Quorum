@@ -249,7 +249,13 @@ add a reason), or text back **TEACH** or **CANT**.
   (marked **🔒 Only you**), on your calendar and Home. Add reminders the same way
   as on your to-dos (when it starts, or 15 minutes to 2 weeks before, by **App**
   and/or **Email**), then tap **Add to my calendar**. Tap it later to change or
-  delete it. It's deleted 30 days after its date. If you've subscribed to the
+  delete it. It's deleted 30 days after its date.
+  - **Repeats:** choose **Every day**, every week or 2 weeks on that day, every
+    month (on that weekday or date), or **Every year**, and when it **Ends**
+    (never, on a date, or after a number of times). Each date shows on your
+    calendar with its own reminders. Opening one says **🔁 Every week on…**;
+    **Delete just (that date)** takes off only that one, **Delete every date**
+    the whole thing, and changes you save apply to every date. If you've subscribed to the
   calendar (below) and chose to include them, your own events show there too.
 - **Meetings you're invited to** (like an activities committee): you get an
   invitation, and the meeting shows on your calendar and Home's Coming up marked
@@ -338,7 +344,9 @@ it comes off your list. If you're asked "Can you take this assignment?", answer
 **Yes, I'll take it** or **I can't**.
 
 **Your own to-dos:** tap **+ My to-do** for a private to-do with a title, details,
-a due date and time, and reminders. **Only you can see it**: no one else, not even
+a due date and time, and reminders. With a due date it can **Repeat** (every day,
+week, 2 weeks, month or year): it shows **🔁 Repeats**, and when you mark it done
+the next one is added, due on its next date, with the same reminders. **Only you can see it**: no one else, not even
 your leaders. Tap **+ Add a reminder** for each one you want: when it's due, or 15
 minutes to 2 weeks before. A new to-do starts with reminders 1 day and 1 hour
 before; change them or remove one with ✕, then tap **Add to-do**. Without a time,

@@ -149,10 +149,11 @@ function alarmLines(e: EventRow, minutes: number[]) {
 function veventLines(e: EventRow, host: string, stamp: string, alerts: number[] = [], tz = "America/Boise") {
   const days = e.all_day ? icsDays(e, tz) : null;
   // A member's own event (only in their feed) has its own id and page, and is private.
-  const link = `${appUrl()}${e.personal_event_id ? `/calendar/mine/${e.personal_event_id}` : e.invited_meeting_id ? `/meetings/${e.invited_meeting_id}` : `/calendar/${e.id}`}`;
+  const link = `${appUrl()}${e.personal_event_id ? `/calendar/mine/${e.personal_event_id}${e.personal_date ? `?on=${e.personal_date}` : ""}` : e.invited_meeting_id ? `/meetings/${e.invited_meeting_id}` : `/calendar/${e.id}`}`;
   return [
     "BEGIN:VEVENT",
-    e.personal_event_id ? `UID:personal-${e.personal_event_id}@${host}` : `UID:event-${e.id}@${host}`,
+    // Each date of a repeating own event is its own entry.
+    e.personal_event_id ? `UID:personal-${e.personal_event_id}${e.personal_date ? `-${e.personal_date}` : ""}@${host}` : `UID:event-${e.id}@${host}`,
     `DTSTAMP:${stamp}`,
     days ? `DTSTART;VALUE=DATE:${days.start}` : `DTSTART:${gcal(e.starts_at)}`,
     days ? `DTEND;VALUE=DATE:${days.end}` : `DTEND:${gcal(e.ends_at)}`,

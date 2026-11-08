@@ -3,6 +3,7 @@ import { SubmitButton } from "@/components/client";
 import { MAX_TODO_REMINDERS, MAX_TODO_TEXTS, STARTING_TODO_REMINDERS, TODO_WHEN, todoReminders, type PersonalTodo } from "@/lib/personal-todos";
 import { savePersonal } from "./actions";
 import { PersonalReminders } from "@/components/personal-reminders";
+import { RepeatFields } from "@/components/repeat-fields";
 
 /** A member's own to-do: title, details, due date and time, and its reminders. */
 export function TodoForm({ todo, canText, textReady, canEmail }: { todo?: PersonalTodo; canText: boolean; textReady: boolean; canEmail: boolean }) {
@@ -31,6 +32,15 @@ export function TodoForm({ todo, canText, textReady, canEmail }: { todo?: Person
           <input id="due_time" name="due_time" type="time" className="input" defaultValue={todo?.due_time ?? ""} />
         </div>
       </div>
+      <RepeatFields
+        initialStart={todo?.due_date ?? ""}
+        defaultPattern={todo?.repeat ?? ""}
+        defaultEnd={todo?.repeat_until ? "until" : "never"}
+        defaultUntil={todo?.repeat_until ?? ""}
+        more
+        dateField="due_date"
+        neverHint="When you mark it done, the next one is added, due on its next date."
+      />
       <textarea name="notes" rows={3} className="input" placeholder="Details (optional)" defaultValue={todo?.notes} />
       <PersonalReminders
         options={TODO_WHEN}

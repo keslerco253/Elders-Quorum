@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { deletePersonalTodo, remindersFromForm, savePersonalTodo, setPersonalTodoDone } from "@/lib/personal-todos";
+import { repeatFromForm } from "@/lib/recurrence";
+import { formatDate } from "@/lib/time";
 
 function go(path: string, text: string): never {
   redirect(`${path}?msg=${encodeURIComponent(text)}`);
@@ -24,6 +26,7 @@ export async function savePersonal(fd: FormData) {
     due_date: due,
     due_time: time,
     reminders,
+    repeat: due ? repeatFromForm(fd, due) : null,
   });
   revalidatePath("/", "layout");
   go("/assignments", saved ? (id ? "To-do saved." : "To-do added. It's private: only you can see it.") : "That to-do no longer exists.");
@@ -32,9 +35,9 @@ export async function savePersonal(fd: FormData) {
 export async function donePersonal(fd: FormData) {
   const user = await requireUser();
   const done = fd.get("done") === "1";
-  setPersonalTodoDone(user.id, Number(fd.get("item_id")), done);
+  const next = setPersonalTodoDone(user.id, Number(fd.get("item_id")), done);
   revalidatePath("/", "layout");
-  go("/assignments", done ? "Marked done. Nice work!" : "Moved back to your list.");
+  go("/assignments", done ? (next ? `Marked done. The next one is due ${formatDate(next, "short")}.` : "Marked done. Nice work!") : "Moved back to your list.");
 }
 
 export async function deletePersonal(fd: FormData) {

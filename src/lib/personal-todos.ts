@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { db } from "./db";
 import { ledOrgIds } from "./conversations";
 import { WHEN_OPTIONS } from "./reminder-prefs";
+import { describeRecurrence, nextOccurrence, type Pattern } from "./recurrence";
 
 // A member's own private to-dos: only they see them (not the presidency). Each can
 // have a due date and time and any number of reminders, like event reminders. Each
@@ -21,7 +22,14 @@ export interface PersonalTodo {
   reminders: string;
   done: number;
   done_at: string | null;
+  /** Repeats from its due date: marking it done adds the next one. */
+  repeat: Pattern | null;
+  repeat_until: string | null;
 }
+
+/** "Every week on Tuesday", or null when it doesn't repeat. */
+export const todoRepeatText = (t: Pick<PersonalTodo, "repeat" | "due_date" | "repeat_until">) =>
+  t.repeat && t.due_date ? describeRecurrence({ pattern: t.repeat, start: t.due_date, until: t.repeat_until, count: null }) : null;
 
 /** One reminder: minutes before it's due ("m:60"), and how it comes. */
 export interface TodoReminder {
@@ -111,26 +119,50 @@ export function personalTodos(memberId: number, done: boolean): PersonalTodo[] {
 export function savePersonalTodo(
   memberId: number,
   id: number | null,
-  t: { title: string; notes: string; due_date: string | null; due_time: string | null; reminders: TodoReminder[] },
+  t: { title: string; notes: string; due_date: string | null; due_time: string | null; reminders: TodoReminder[]; repeat?: { pattern: Pattern; until: string | null } | null },
 ): number | null {
   const reminders = storeReminders(memberId, t.reminders);
   const time = t.due_date ? t.due_time : null;
+  // Repeating needs a due date to count from.
+  const repeat = t.due_date ? (t.repeat ?? null) : null;
   const d = db();
   if (id) {
     const changed = d
-      .prepare("UPDATE personal_todos SET title = ?, notes = ?, due_date = ?, due_time = ?, reminders = ? WHERE id = ? AND member_id = ?")
-      .run(t.title, t.notes, t.due_date, time, reminders, id, memberId).changes;
+      .prepare("UPDATE personal_todos SET title = ?, notes = ?, due_date = ?, due_time = ?, reminders = ?, repeat = ?, repeat_until = ? WHERE id = ? AND member_id = ?")
+      .run(t.title, t.notes, t.due_date, time, reminders, repeat?.pattern ?? null, repeat?.until ?? null, id, memberId).changes;
     return changed ? id : null;
   }
   return Number(
     d
-      .prepare("INSERT INTO personal_todos (member_id, title, notes, due_date, due_time, reminders) VALUES (?, ?, ?, ?, ?, ?)")
-      .run(memberId, t.title, t.notes, t.due_date, time, reminders).lastInsertRowid,
+      .prepare("INSERT INTO personal_todos (member_id, title, notes, due_date, due_time, reminders, repeat, repeat_until) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(memberId, t.title, t.notes, t.due_date, time, reminders, repeat?.pattern ?? null, repeat?.until ?? null).lastInsertRowid,
   );
 }
 
-export function setPersonalTodoDone(memberId: number, id: number, done: boolean) {
-  db().prepare("UPDATE personal_todos SET done = ?, done_at = CASE WHEN ? = 1 THEN datetime('now') END WHERE id = ? AND member_id = ?").run(done ? 1 : 0, done ? 1 : 0, id, memberId);
+/**
+ * Marks it done (or not). A repeating one done: the next one is added, due on its next
+ * date (once, even if it's ticked again). Returns the next one's due date, if one was added.
+ */
+export function setPersonalTodoDone(memberId: number, id: number, done: boolean): string | null {
+  const d = db();
+  d.prepare("UPDATE personal_todos SET done = ?, done_at = CASE WHEN ? = 1 THEN datetime('now') END WHERE id = ? AND member_id = ?").run(done ? 1 : 0, done ? 1 : 0, id, memberId);
+  const t = getPersonalTodo(memberId, id);
+  if (!done || !t?.repeat || !t.due_date) return null;
+  const next = nextOccurrence({ pattern: t.repeat, start: t.due_date, until: t.repeat_until, count: null }, t.due_date);
+  if (!next) return null;
+  const already = d.prepare("SELECT 1 FROM personal_todos WHERE member_id = ? AND title = ? AND repeat = ? AND due_date = ?").get(memberId, t.title, t.repeat, next);
+  if (already) return null;
+  d.prepare("INSERT INTO personal_todos (member_id, title, notes, due_date, due_time, reminders, repeat, repeat_until) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(
+    memberId,
+    t.title,
+    t.notes,
+    next,
+    t.due_time,
+    t.reminders,
+    t.repeat,
+    t.repeat_until,
+  );
+  return next;
 }
 
 export function deletePersonalTodo(memberId: number, id: number) {

@@ -28,7 +28,7 @@ import { joinNames } from "./invite-text";
 import { withOrg } from "./org-cookie";
 import { recordsToReview } from "./meetings";
 import { fillRegularTeachers } from "./regular-teachers";
-import { PERSONAL_EVENT_WHEN, personalEventTimes, personalReminderAnchor, type PersonalEvent } from "./personal-events";
+import { PERSONAL_EVENT_WHEN, personalEventTimes, personalReminderAnchor, occurrences, personalRowsBetween } from "./personal-events";
 import { canTextTodos, dueAtUtc, reminderWays, todoReminders as personalReminders, TODO_WHEN, type TodoReminder } from "./personal-todos";
 import { dueText } from "./assignments";
 import { challengeMemberIds, challengeTeams, scoreboard } from "./challenges";
@@ -453,9 +453,9 @@ function personalTodoReminders(now: DateTime): DueNotification[] {
       `SELECT t.id, t.member_id, t.title, t.due_date, t.due_time, t.reminders,
          (SELECT w.timezone FROM ward_members wm JOIN wards w ON w.id = wm.ward_id WHERE wm.member_id = t.member_id ORDER BY w.id LIMIT 1) AS tz
        FROM personal_todos t JOIN members m ON m.id = t.member_id
-       WHERE t.done = 0 AND t.due_date IS NOT NULL AND t.due_date >= date('now', '-1 day') AND t.due_date <= date('now', '+16 days') AND m.status = 'active'`,
+       WHERE t.done = 0 AND t.due_date IS NOT NULL AND t.due_date >= date(?, '-1 day') AND t.due_date <= date(?, '+16 days') AND m.status = 'active'`,
     )
-    .all() as { id: number; member_id: number; title: string; due_date: string; due_time: string | null; reminders: string; tz: string | null }[];
+    .all(now.toISODate(), now.toISODate()) as { id: number; member_id: number; title: string; due_date: string; due_time: string | null; reminders: string; tz: string | null }[];
   const out: DueNotification[] = [];
   for (const t of rows) {
     // In the time zone of the ward they're sent from (the same organization as the link).
@@ -486,12 +486,10 @@ function personalTodoReminders(now: DateTime): DueNotification[] {
 
 /** Members' own calendar events: each reminder some time before it starts, the ways they chose. */
 function personalEventReminders(now: DateTime): DueNotification[] {
-  const rows = db()
-    .prepare(
-      `SELECT e.* FROM personal_events e JOIN members m ON m.id = e.member_id
-       WHERE e.date >= date(?, '-1 day') AND e.date <= date(?, '+16 days') AND m.status = 'active'`,
-    )
-    .all(now.toISODate(), now.toISODate()) as PersonalEvent[];
+  const from = now.minus({ days: 1 }).toISODate()!;
+  const to = now.plus({ days: 16 }).toISODate()!;
+  // Each date of a repeating event has its own reminders.
+  const rows = personalRowsBetween("m.status = 'active'", [], from, to).flatMap((e) => occurrences(e, from, to));
   const out: DueNotification[] = [];
   for (const e of rows) {
     const { starts } = personalEventTimes(e);
@@ -508,7 +506,7 @@ function personalEventReminders(now: DateTime): DueNotification[] {
         payload: {
           title: r.when === "m:0" ? `Starting now: ${e.title}` : `${e.title} starts in ${label.replace(/ before$/, "")}`,
           body: `${e.all_day ? `${formatDate(e.date, "short")} · All day` : formatDateTime(starts, e.timezone)}${e.location ? ` · ${e.location}` : ""}`,
-          url: `/calendar/mine/${e.id}`,
+          url: `/calendar/mine/${e.id}${e.repeat ? `?on=${e.date}` : ""}`,
           noReply: true,
         },
         only: personalWays(r, e.member_id),

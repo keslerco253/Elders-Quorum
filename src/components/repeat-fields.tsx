@@ -13,12 +13,20 @@ export function RepeatFields({
   defaultEnd = "never",
   defaultUntil = "",
   defaultCount = 12,
+  more = false,
+  dateField,
+  neverHint = "Dates are added a year ahead and keep coming.",
 }: {
   initialStart: string;
   defaultPattern?: string;
   defaultEnd?: "never" | "until" | "count";
   defaultUntil?: string;
   defaultCount?: number;
+  /** Also every day and every year (a member's own events and to-dos). */
+  more?: boolean;
+  /** The form's date box to follow (by name), instead of the event time fields. */
+  dateField?: string;
+  neverHint?: string;
 }) {
   const [start, setStart] = useState(initialStart.slice(0, 10));
   const [pattern, setPattern] = useState(defaultPattern);
@@ -28,10 +36,21 @@ export function RepeatFields({
   useEffect(() => {
     const update = (e: Event) => setStart(String((e as CustomEvent<string>).detail).slice(0, 10));
     window.addEventListener("event-start-date", update);
-    return () => window.removeEventListener("event-start-date", update);
-  }, []);
+    // Or a plain date box in the same form.
+    const typed = (e: Event) => {
+      const el = e.target as HTMLInputElement;
+      if (dateField && el.name === dateField) setStart(el.value);
+    };
+    document.addEventListener("input", typed);
+    document.addEventListener("change", typed);
+    return () => {
+      window.removeEventListener("event-start-date", update);
+      document.removeEventListener("input", typed);
+      document.removeEventListener("change", typed);
+    };
+  }, [dateField]);
 
-  const options = patternOptions(start);
+  const options = patternOptions(start, more);
   // If the date changes so the chosen pattern no longer fits (e.g. "last Friday"), fall back to none.
   const value = options.some((o) => o.value === pattern) ? pattern : "";
 
@@ -69,7 +88,7 @@ export function RepeatFields({
               <input type="number" name="repeat_count" required min={2} max={200} defaultValue={defaultCount} className="input w-24" /> times
             </label>
           )}
-          {end === "never" && <p className="hint sm:pb-2">Dates are added a year ahead and keep coming.</p>}
+          {end === "never" && <p className="hint sm:pb-2">{neverHint}</p>}
         </div>
       )}
     </div>

@@ -1781,4 +1781,17 @@ ALTER TABLE todos ADD COLUMN meeting_role TEXT;
 CREATE UNIQUE INDEX todos_meeting_role ON todos(meeting_id, meeting_role) WHERE meeting_role IS NOT NULL;
 `,
   },
+  {
+    // A member's own events and to-dos can repeat (every day, week, month, year...).
+    // An event's dates are worked out as they're shown; one date can be skipped. A
+    // to-do's next one is made when it's marked done.
+    id: 95,
+    sql: `
+ALTER TABLE personal_events ADD COLUMN repeat TEXT;
+ALTER TABLE personal_events ADD COLUMN repeat_until TEXT;
+ALTER TABLE personal_events ADD COLUMN skip_dates TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE personal_todos ADD COLUMN repeat TEXT;
+ALTER TABLE personal_todos ADD COLUMN repeat_until TEXT;
+`,
+  },
 ];

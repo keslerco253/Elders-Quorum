@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 // Repeating-event patterns. Pure date math (no database), so the event form can
 // use it in the browser to label the choices for the chosen start date.
 
-export type Pattern = "weekly" | "biweekly" | "monthly_nth" | "monthly_last" | "monthly_day";
+export type Pattern = "daily" | "weekly" | "biweekly" | "monthly_nth" | "monthly_last" | "monthly_day" | "yearly";
 
 export interface Recurrence {
   pattern: Pattern;
@@ -27,23 +27,28 @@ function weekdayPosition(d: DateTime) {
   return { nth: Math.ceil(d.day / 7), last: d.plus({ days: 7 }).month !== d.month };
 }
 
-/** The repeat choices that make sense for a start date, e.g. "Every month on the third Friday". */
-export function patternOptions(startDate: string): { value: Pattern; label: string }[] {
+/**
+ * The repeat choices that make sense for a start date, e.g. "Every month on the third
+ * Friday". `more` adds every day and every year (for a member's own events and to-dos).
+ */
+export function patternOptions(startDate: string, more = false): { value: Pattern; label: string }[] {
   const d = DateTime.fromISO(startDate);
   if (!d.isValid) return [];
   const day = d.toFormat("cccc");
   const { nth, last } = weekdayPosition(d);
   return [
+    ...(more ? [{ value: "daily" as const, label: "Every day" }] : []),
     { value: "weekly", label: `Every week on ${day}` },
     { value: "biweekly", label: `Every 2 weeks on ${day}` },
     ...(nth <= 4 ? [{ value: "monthly_nth" as const, label: `Every month on the ${ORDINALS[nth - 1]} ${day}` }] : []),
     ...(last ? [{ value: "monthly_last" as const, label: `Every month on the last ${day}` }] : []),
     { value: "monthly_day", label: `Every month on the ${ordinalDay(d.day)}` },
+    ...(more ? [{ value: "yearly" as const, label: `Every year on ${d.toFormat("LLLL d")}` }] : []),
   ];
 }
 
 export function describeRecurrence(r: Recurrence) {
-  const label = patternOptions(r.start).find((o) => o.value === r.pattern)?.label ?? "Repeats";
+  const label = patternOptions(r.start, true).find((o) => o.value === r.pattern)?.label ?? "Repeats";
   if (r.until) return `${label}, until ${DateTime.fromISO(r.until).toFormat("LLL d, yyyy")}`;
   if (r.count) return `${label}, ${r.count} times`;
   return label;
@@ -63,6 +68,11 @@ function lastWeekdayOfMonth(year: number, month: number, weekday: number) {
 /** The k-th date of the series (k = 0 is the start), or null if that month has no such day. */
 function nthDate(r: Recurrence, k: number): DateTime | null {
   const s = DateTime.fromISO(r.start);
+  if (r.pattern === "daily") return s.plus({ days: k });
+  if (r.pattern === "yearly") {
+    const y = s.plus({ years: k });
+    return y.day === s.day ? y : null; // Feb 29 only in leap years
+  }
   if (r.pattern === "weekly") return s.plus({ weeks: k });
   if (r.pattern === "biweekly") return s.plus({ weeks: 2 * k });
   const m = s.startOf("month").plus({ months: k });
@@ -75,7 +85,7 @@ function nthDate(r: Recurrence, k: number): DateTime | null {
 export function occurrenceDates(r: Recurrence, from: string, to: string): string[] {
   const out: string[] = [];
   let made = 0;
-  for (let k = 0; k < 2000; k++) {
+  for (let k = 0; k < 5000; k++) {
     const d = nthDate(r, k);
     if (!d) continue;
     const iso = d.toISODate()!;
@@ -84,4 +94,29 @@ export function occurrenceDates(r: Recurrence, from: string, to: string): string
     if (iso >= from) out.push(iso);
   }
   return out;
+}
+
+/** The date after `after` in the series (honoring until/count), or null when it's over. */
+export function nextOccurrence(r: Recurrence, after: string): string | null {
+  const next = DateTime.fromISO(after).plus({ days: 1 }).toISODate()!;
+  const horizon = DateTime.fromISO(after).plus({ years: 2, days: 1 }).toISODate()!;
+  return occurrenceDates(r, next, horizon)[0] ?? null;
+}
+
+/** "After N times" as the last date (so a series is kept as start, pattern and last date). */
+export function lastOfCount(r: Pick<Recurrence, "pattern" | "start">, count: number): string | null {
+  const dates = occurrenceDates({ ...r, until: null, count }, r.start, "9999-12-31");
+  return dates.at(-1) ?? null;
+}
+
+/** A repeat chosen on a form (repeat, repeat_end, repeat_until, repeat_count) for a start date: the pattern and last date, or none. */
+export function repeatFromForm(fd: FormData, start: string): { pattern: Pattern; until: string | null } | null {
+  const pattern = String(fd.get("repeat") || "") as Pattern;
+  if (!patternOptions(start, true).some((o) => o.value === pattern)) return null;
+  const end = String(fd.get("repeat_end") || "never");
+  const until = String(fd.get("repeat_until") || "");
+  const count = Math.round(Number(fd.get("repeat_count")));
+  if (end === "until" && /^\d{4}-\d{2}-\d{2}$/.test(until) && until >= start) return { pattern, until };
+  if (end === "count" && count >= 2 && count <= 1000) return { pattern, until: lastOfCount({ pattern, start }, count) };
+  return { pattern, until: null };
 }

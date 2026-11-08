@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { canTextTodos, getPersonalTodo } from "@/lib/personal-todos";
+import { canTextTodos, getPersonalTodo, todoRepeatText } from "@/lib/personal-todos";
 import { memberCanText } from "../../../more/reminders/can-text";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -18,6 +18,7 @@ export default async function TodoPage({ params, searchParams }: { params: Promi
     <>
       <PageHeader title={todo.done ? "Done" : "My to-do"} back={{ href: "/assignments", label: "My assignments" }} subtitle="Private: only you can see it." />
       <Flash msg={sp.msg} tone="warn" />
+      {todoRepeatText(todo) && !todo.done && <p className="mb-3 text-sm">🔁 {todoRepeatText(todo)}. When you mark it done, the next one is added.</p>}
       <div className="mb-4 flex max-w-xl flex-wrap gap-2">
         <form action={donePersonal}>
           <input type="hidden" name="item_id" value={todo.id} />
