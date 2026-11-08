@@ -1868,4 +1868,24 @@ ALTER TABLE lessons ADD COLUMN fifth INTEGER;
 ALTER TABLE lessons ADD COLUMN no_teacher INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    // Ward council, for an organization's presidency: what to share there (ticked off
+    // once shared), and what was shared there to pass on to the organization (which
+    // can go on the next presidency meeting's agenda).
+    id: 101,
+    sql: `
+CREATE TABLE ward_council_items (
+  id INTEGER PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('share','from')),
+  body TEXT NOT NULL,
+  council_date TEXT,
+  shared_at TEXT,
+  agenda_item_id INTEGER REFERENCES agenda_items(id) ON DELETE SET NULL,
+  created_by INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX ward_council_items_org ON ward_council_items(org_id, kind);
+`,
+  },
 ];

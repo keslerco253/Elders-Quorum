@@ -1245,6 +1245,20 @@ place. Only the presidency (or bishopric) sees it.
   the browser, other files download) or ✕ to remove it. Only your presidency (or
   bishopric) can open them. The printed agenda lists them by name. They stay with
   the item when the meeting is finished, and are deleted with it.
+- **🤝 Ward council** (at the top of Presidency meetings): a page for ward
+  council, only for your presidency (or bishopric).
+  - **To share at ward council:** add things the whole ward council should hear
+    from your organization. Tick the box once it's shared; **Shared lately** keeps
+    the last 15 (tap the ✓ to put one back).
+  - **From ward council:** after the meeting, write down what was shared that
+    your organization needs to hear or act on, with the date of the ward council
+    (today unless you change it). Tick **Add to the next presidency meeting
+    agenda** (and choose its section) to put it there, or tap **+ Add to the
+    agenda** on it later. It goes on the agenda once, marked "From ward council,
+    (date)" with an **Open** link back here, and shows **On the agenda** until the
+    meeting where it's discussed is finished.
+  - **Edit** changes an item's wording or deletes it. What you type is kept on
+    your phone until it's saved, like the agenda.
 - **🔍 Search** (at the top of Presidency meetings): find a word or phrase in
   every presidency meeting, past and upcoming: agenda items and their notes,
   attached files' names, meeting notes, who was there, and assignments made in a

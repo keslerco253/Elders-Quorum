@@ -99,6 +99,9 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         subtitle="The next meeting and its agenda, and each meeting's notes and assignments. Only the presidency can see these."
         actions={
           <>
+            <Link href="/admin/meetings/ward-council" className="btn-secondary">
+              🤝 Ward council
+            </Link>
             <Link href="/admin/meetings/search" className="btn-secondary">
               🔍 Search
             </Link>
