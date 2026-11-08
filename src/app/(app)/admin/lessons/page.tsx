@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import {
   markGeneralConferences,
   openLessonSundays,
+  markFifthSundays,
   upcomingLessons,
 } from "@/lib/lessons";
 import { formatDate, sundayOnOrAfter, todayIn } from "@/lib/time";
@@ -38,6 +39,8 @@ export default async function AdminLessonsPage({
   const regular = regularTeachers(user.org_id);
   const regularSummary = regularByTeacher(user.org_id);
   const roster = isPresidency(user) ? orgRoster(user.org_id) : [];
+  // 5th Sundays waiting for a lesson become 5th Sunday lessons (not talks).
+  if (!usesCfm(user.org)) markFifthSundays(user.org_id, today);
   const lessons = upcomingLessons(user.org_id, today, 80);
   // Lessons waiting on the presidency: someone can't teach, or members offered to.
   const needs = isPresidency(user)
@@ -230,7 +233,7 @@ export default async function AdminLessonsPage({
                         </Link>
                         <span className="text-muted">
                           {" · "}
-                          {conferenceLabel(l.kind) ?? [l.title || "Not decided yet", l.teacher_name && `Teacher: ${l.teacher_name}`].filter(Boolean).join(" · ")}
+                          {conferenceLabel(l.kind) ?? [l.title || "Not decided yet", l.teacher_name ? `Teacher: ${l.teacher_name}` : l.no_teacher ? "No teacher needed" : null].filter(Boolean).join(" · ")}
                         </span>
                       </li>
                     ))}
@@ -289,7 +292,7 @@ export default async function AdminLessonsPage({
                       {conf ??
                         (l.title || (
                           <span className="text-muted">
-                            {cfm ? "No lesson yet" : l.topic ? "No topic yet" : "No talk yet"}
+                            {cfm ? "No lesson yet" : l.fifth === 1 ? "5th Sunday lesson: not decided yet" : l.topic ? "No topic yet" : "No talk yet"}
                           </span>
                         ))}
                     </div>
@@ -307,6 +310,8 @@ export default async function AdminLessonsPage({
                               <span className="ml-1">· regular</span>
                             )}
                           </span>
+                        ) : l.no_teacher ? (
+                          <span>No teacher needed</span>
                         ) : cfm && !l.decline_count ? (
                           <span>No teacher</span>
                         ) : (

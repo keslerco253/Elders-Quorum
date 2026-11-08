@@ -1857,4 +1857,15 @@ CREATE TABLE need_seen (
 );
 `,
   },
+  {
+    // 5th Sundays: a lesson of its own kind (an area broadcast, a combined meeting...),
+    // set automatically on 5th Sundays (fifth NULL: not decided by hand yet; 1: a 5th
+    // Sunday lesson; 0: made something else). Any lesson can need no teacher (given by
+    // the area presidency, the stake or someone outside the ward).
+    id: 100,
+    sql: `
+ALTER TABLE lessons ADD COLUMN fifth INTEGER;
+ALTER TABLE lessons ADD COLUMN no_teacher INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];

@@ -38,6 +38,18 @@ export function markGeneralConferences(orgId: number, fromDate: string): number 
 }
 
 /**
+ * 5th Sundays (the 29th to 31st) from a date become 5th Sunday lessons, unless a
+ * leader already made one something else or put a talk on it. Returns how many.
+ */
+export function markFifthSundays(orgId: number, fromDate: string): number {
+  return db()
+    .prepare(
+      "UPDATE lessons SET fifth = 1 WHERE org_id = ? AND date >= ? AND fifth IS NULL AND kind = 'talk' AND topic = 0 AND url = '' AND CAST(substr(date, 9, 2) AS INTEGER) >= 29",
+    )
+    .run(orgId, fromDate).changes;
+}
+
+/**
  * Sundays (from a date) waiting for a talk, in order: what each Sunday shows now, not
  * what it once had. A lesson with no talk on it (no title, even if a link from a talk
  * that was moved or cleared is still saved) is open; conference Sundays, assigned
@@ -45,7 +57,7 @@ export function markGeneralConferences(orgId: number, fromDate: string): number 
  */
 export function openLessonSundays(orgId: number, fromDate: string): { id: number; date: string }[] {
   return db()
-    .prepare("SELECT id, date FROM lessons WHERE org_id = ? AND date >= ? AND kind = 'talk' AND topic = 0 AND trim(title) = '' ORDER BY date")
+    .prepare("SELECT id, date FROM lessons WHERE org_id = ? AND date >= ? AND kind = 'talk' AND topic = 0 AND coalesce(fifth, 0) = 0 AND trim(title) = '' ORDER BY date")
     .all(orgId, fromDate) as { id: number; date: string }[];
 }
 

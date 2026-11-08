@@ -153,6 +153,10 @@ export interface Lesson {
   topic: number;
   /** The teacher was put on by the regular-teacher schedule. */
   teacher_auto: number;
+  /** A 5th Sunday lesson (1), something else chosen by hand (0), or not decided (null). */
+  fifth: number | null;
+  /** No teacher needed (given by the area presidency, the stake or someone outside the ward). */
+  no_teacher: number;
 }
 
 export interface Comment {

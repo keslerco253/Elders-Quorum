@@ -16,7 +16,7 @@ interface NeedLesson {
 /** Upcoming lessons with members who offered to teach and no teacher yet. */
 export function volunteerLessons(orgId: number): NeedLesson[] {
   return db()
-    .prepare("SELECT DISTINCT l.id, l.date, l.title FROM lesson_volunteers v JOIN lessons l ON l.id = v.lesson_id WHERE l.org_id = ? AND l.teacher_id IS NULL AND l.date >= date('now') ORDER BY l.date")
+    .prepare("SELECT DISTINCT l.id, l.date, l.title FROM lesson_volunteers v JOIN lessons l ON l.id = v.lesson_id WHERE l.org_id = ? AND l.teacher_id IS NULL AND l.no_teacher = 0 AND l.date >= date('now') ORDER BY l.date")
     .all(orgId) as NeedLesson[];
 }
 
@@ -33,7 +33,7 @@ export function teacherNeededLessons(orgId: number, opts: { unseenBy?: number } 
     : "";
   return db()
     .prepare(
-      `SELECT l.id, l.date, l.title FROM lessons l WHERE l.org_id = @org AND l.teacher_id IS NULL AND l.date >= date('now')
+      `SELECT l.id, l.date, l.title FROM lessons l WHERE l.org_id = @org AND l.teacher_id IS NULL AND l.no_teacher = 0 AND l.date >= date('now')
          AND (EXISTS (SELECT 1 FROM lesson_declines d WHERE d.lesson_id = l.id) OR EXISTS (SELECT 1 FROM teaching_requests r WHERE r.lesson_id = l.id AND r.status = 'declined'))
          AND NOT EXISTS (SELECT 1 FROM lesson_volunteers v WHERE v.lesson_id = l.id)
          AND NOT EXISTS (SELECT 1 FROM teaching_requests r WHERE r.lesson_id = l.id AND r.status = 'pending')

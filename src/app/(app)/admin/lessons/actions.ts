@@ -6,13 +6,13 @@ import { askToTeach, cancelRequest } from "@/lib/teaching-requests";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin, requirePresidency } from "@/lib/auth";
-import { getLesson, markGeneralConferences, openLessonSundays } from "@/lib/lessons";
+import { getLesson, markFifthSundays, markGeneralConferences, openLessonSundays } from "@/lib/lessons";
 import { fallbackTitle, fetchTalkInfo, fetchTalkInfos } from "@/lib/talk-info";
 import { notify, recipientById } from "@/lib/notify";
 import { formatDate, sundays, todayIn } from "@/lib/time";
 import type { LessonKind, Member } from "@/lib/types";
 import { wardMember } from "@/lib/orgs";
-import { refillCfmLesson } from "@/lib/cfm";
+import { refillCfmLesson, usesCfm } from "@/lib/cfm";
 import { fillRegularTeachers, saveRegularTeachers, tellRegularTeachers, weeksText } from "@/lib/regular-teachers";
 import { orgRoster } from "@/lib/orgs";
 
@@ -37,6 +37,8 @@ export async function addSundays(fd: FormData) {
   db().transaction(() => {
     for (const d of sundays(start, weeks)) added += ins.run(user.org_id, d).changes;
     conferences = markGeneralConferences(user.org_id, start);
+    // 5th Sundays get a 5th Sunday lesson (not a talk), to fill in when it's decided.
+    if (!usesCfm(user.org)) markFifthSundays(user.org_id, start);
   })();
   fillRegularTeachers(user.org_id, todayIn(user.ward.timezone));
   refresh();
@@ -75,15 +77,18 @@ export async function saveLesson(fd: FormData) {
   const user = await requireAdmin();
   const lesson = getLesson(user.org_id, Number(fd.get("item_id")));
   if (!lesson) redirect("/admin/lessons");
-  // An assigned topic is a lesson (kind talk) marked as a topic.
+  // An assigned topic, or a 5th Sunday lesson, is a lesson (kind talk) marked as one.
   const topic = fd.get("kind") === "topic" ? 1 : 0;
+  const fifth = fd.get("kind") === "fifth" ? 1 : 0;
   const kind = KINDS.includes(fd.get("kind") as LessonKind) ? (fd.get("kind") as LessonKind) : "talk";
+  // A 5th Sunday lesson can need no teacher (the area presidency, the stake...).
+  const noTeacher = fifth && fd.get("no_teacher") === "on" ? 1 : 0;
   const rawUrl = String(fd.get("url") || "").trim();
   // Only web links (never javascript: or data:).
   const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : rawUrl && !/^[a-z][a-z0-9+.-]*:/i.test(rawUrl) ? `https://${rawUrl}` : "";
   let title = String(fd.get("title") || "").trim();
   let speaker = String(fd.get("speaker") || "").trim();
-  if (!topic && url && url !== lesson.url && (!title || !speaker)) {
+  if (!topic && !fifth && url && url !== lesson.url && (!title || !speaker)) {
     const info = await fetchTalkInfo(url);
     title ||= info.title;
     speaker ||= info.speaker;
@@ -96,9 +101,33 @@ export async function saveLesson(fd: FormData) {
     if (other) d.prepare("UPDATE lessons SET date = ? WHERE id = ?").run(`swap-${other.id}`, other.id);
     // Changed by hand: a Come, Follow Me lesson is no longer updated from the schedule.
     const handEdited = kind !== lesson.kind || topic !== lesson.topic || title !== lesson.title || speaker !== lesson.speaker || url !== lesson.url || date !== lesson.date;
-    d.prepare("UPDATE lessons SET kind = ?, topic = ?, title = ?, speaker = ?, url = ?, date = ?, cfm_auto = cfm_auto * ? WHERE id = ?").run(kind, topic, title, speaker, url, date, handEdited ? 0 : 1, lesson.id);
+    d.prepare("UPDATE lessons SET kind = ?, topic = ?, fifth = ?, no_teacher = ?, title = ?, speaker = ?, url = ?, date = ?, cfm_auto = cfm_auto * ? WHERE id = ?").run(
+      kind,
+      topic,
+      kind === "talk" ? fifth : 0,
+      kind === "talk" ? noTeacher : 0,
+      title,
+      speaker,
+      url,
+      date,
+      handEdited ? 0 : 1,
+      lesson.id,
+    );
     if (other) d.prepare("UPDATE lessons SET date = ?, cfm_auto = 0 WHERE id = ?").run(lesson.date, other.id);
   })();
+  // No teacher needed now: whoever was teaching is taken off and told.
+  let tookOff = "";
+  if (noTeacher && lesson.teacher_id) {
+    d.prepare("UPDATE lessons SET teacher_id = NULL, teacher_confirmed_at = NULL, teacher_auto = 0 WHERE id = ?").run(lesson.id);
+    removeTeacherNotes(lesson.id, lesson.teacher_id);
+    const was = recipientById(lesson.teacher_id, user.org_id);
+    if (was) await notify([was], { title: "You're not teaching after all", body: `No teacher is needed on ${formatDate(lesson.date, "short")}${title ? ` (${title})` : ""}. Thank you for being willing.`, url: `/lessons/${lesson.id}` });
+    tookOff = ` ${lesson.teacher_name ?? "The teacher"} was taken off and told.`;
+  }
+  if (tookOff) {
+    refresh();
+    go(`/admin/lessons/${lesson.id}`, `Lesson saved. No teacher needed.${tookOff}`);
+  }
   refresh();
   go(
     `/admin/lessons/${lesson.id}`,

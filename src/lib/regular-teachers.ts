@@ -63,7 +63,7 @@ export function fillRegularTeachers(orgId: number, today: string): number {
   if (!byWeek.size) return 0;
   const lessons = d
     .prepare(
-      `SELECT l.id, l.date FROM lessons l WHERE l.org_id = ? AND l.date >= ? AND l.kind = 'talk' AND l.teacher_id IS NULL AND l.regular_done = 0
+      `SELECT l.id, l.date FROM lessons l WHERE l.org_id = ? AND l.date >= ? AND l.kind = 'talk' AND coalesce(l.fifth, 0) = 0 AND l.no_teacher = 0 AND l.teacher_id IS NULL AND l.regular_done = 0
          AND NOT EXISTS (SELECT 1 FROM teaching_requests r WHERE r.lesson_id = l.id AND r.status = 'pending')`,
     )
     .all(orgId, today) as { id: number; date: string }[];

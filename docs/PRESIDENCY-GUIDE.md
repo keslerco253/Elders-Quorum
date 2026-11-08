@@ -794,6 +794,15 @@ requests are separate: turn off **Visits and visit requests** in Settings.
 - Change **This Sunday is**: a talk, **A lesson on an assigned topic**, General
   Conference or Stake Conference. For a talk, paste its link and leave the title
   and speaker blank to have them looked up.
+- **5th Sundays** (the 29th to 31st) are set to **A 5th Sunday lesson**
+  automatically (not a talk), so pasting talk links and regular teachers skip
+  them. Fill in **What it is** (an area broadcast, a combined meeting, a topic),
+  optional **Details** and a **Link**. Tick **No teacher needed** when it's given
+  by the area presidency, the stake or someone outside the ward: it never shows
+  as needing a teacher, members don't see "I'd like to teach this", and a teacher
+  already on it is taken off and told. Leave it unticked to assign or ask a
+  teacher as usual. To make a 5th Sunday a regular talk Sunday, change **This
+  Sunday is** to a talk; it stays that way.
 - **View as member.**
 - **Assign anyone → Save teacher** (choose "(no teacher)" to remove the teacher
   and their notes). Assigning by hand means the regular teacher won't fill that

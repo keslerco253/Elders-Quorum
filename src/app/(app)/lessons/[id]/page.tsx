@@ -67,7 +67,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
 
   return (
     <>
-      <PageHeader title={conf ?? (lesson.title || (cfm ? "Lesson to be announced" : lesson.topic ? "Topic to be announced" : "Talk to be announced"))} back={{ href: "/lessons", label: "Lessons" }} subtitle={formatDate(lesson.date)} />
+      <PageHeader title={conf ?? (lesson.title || (cfm ? "Lesson to be announced" : lesson.fifth === 1 ? "5th Sunday lesson (to be announced)" : lesson.topic ? "Topic to be announced" : "Talk to be announced"))} back={{ href: "/lessons", label: "Lessons" }} subtitle={formatDate(lesson.date)} />
       <Flash msg={sp.msg} />
 
       {conf ? (
@@ -101,9 +101,10 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
               <a href={lesson.url} target="_blank" rel="noreferrer" className="btn-primary w-full sm:w-auto">
                 {cfm ? "Read this week's lesson in Gospel Library ↗" : lesson.topic ? "Open the link ↗" : "Read the talk in Gospel Library ↗"}
               </a>
-            ) : lesson.topic ? null : (
+            ) : lesson.topic || lesson.fifth === 1 ? null : (
               <p className="text-sm text-muted">{cfm ? "The lesson link hasn't been posted yet." : "The talk link hasn't been posted yet."}</p>
             )}
+            {!!lesson.no_teacher && !lesson.teacher_name ? null : (
             <div className="border-t border-border pt-4">
               <div className="text-sm text-muted">Teacher</div>
               {lesson.teacher_name ? (
@@ -158,6 +159,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
                 </div>
               )}
             </div>
+            )}
             {admin && (
               <Link href={`/admin/lessons/${lesson.id}`} className="link text-sm">
                 Edit lesson

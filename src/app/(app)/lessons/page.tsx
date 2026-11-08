@@ -64,13 +64,13 @@ export default async function LessonsPage({ searchParams }: { searchParams: Prom
                       <div className="font-semibold">{conf}</div>
                     ) : (
                       <>
-                        <div className="truncate font-semibold">{l.title || (cfm ? "Lesson to be announced" : l.topic ? "Topic to be announced" : "Talk to be announced")}</div>
+                        <div className="truncate font-semibold">{l.title || (cfm ? "Lesson to be announced" : l.fifth === 1 ? "5th Sunday lesson (to be announced)" : l.topic ? "Topic to be announced" : "Talk to be announced")}</div>
                         <div className="truncate text-sm text-muted">{l.speaker}</div>
                       </>
                     )}
                     {!conf && (
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-                        {l.teacher_name ? <span>Teacher: {l.teacher_name}</span> : cfm ? null : <Badge tone="warn">Teacher needed</Badge>}
+                        {l.teacher_name ? <span>Teacher: {l.teacher_name}</span> : cfm || l.no_teacher ? null : <Badge tone="warn">Teacher needed</Badge>}
                         {l.comment_count > 0 && <span>· {l.comment_count} comment{l.comment_count === 1 ? "" : "s"}</span>}
                       </div>
                     )}

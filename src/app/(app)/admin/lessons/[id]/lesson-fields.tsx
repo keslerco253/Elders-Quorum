@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 
-/** What kind of Sunday it is, and the fields that go with it (a talk, an assigned topic, or a conference). */
-export function LessonFields({ kind, date, url, title, speaker, cfm }: { kind: string; date: string; url: string; title: string; speaker: string; cfm: boolean }) {
+/** What kind of Sunday it is, and the fields that go with it (a talk, an assigned topic, a 5th Sunday lesson, or a conference). */
+export function LessonFields({ kind, date, url, title, speaker, cfm, noTeacher = false }: { kind: string; date: string; url: string; title: string; speaker: string; cfm: boolean; noTeacher?: boolean }) {
   const [k, setK] = useState(kind);
   const topic = k === "topic";
+  const fifth = k === "fifth";
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -16,6 +17,7 @@ export function LessonFields({ kind, date, url, title, speaker, cfm }: { kind: s
           <select id="kind" name="kind" value={k} onChange={(e) => setK(e.target.value)} className="input">
             <option value="talk">{cfm ? "A lesson" : "A lesson on a talk"}</option>
             <option value="topic">A lesson on an assigned topic</option>
+            {!cfm && <option value="fifth">A 5th Sunday lesson</option>}
             <option value="general_conference">General Conference (no lesson)</option>
             <option value="stake_conference">Stake Conference (no lesson)</option>
           </select>
@@ -27,7 +29,35 @@ export function LessonFields({ kind, date, url, title, speaker, cfm }: { kind: s
           <input id="date" name="date" type="date" defaultValue={date} className="input" />
         </div>
       </div>
-      {topic ? (
+      {fifth ? (
+        <>
+          <div>
+            <label className="label" htmlFor="title">
+              What it is
+            </label>
+            <input id="title" name="title" defaultValue={title} className="input" placeholder="e.g. Area broadcast, Combined with Relief Society, Temple and family history" />
+          </div>
+          <div>
+            <label className="label" htmlFor="speaker">
+              Details <span className="font-normal text-muted">(optional)</span>
+            </label>
+            <textarea id="speaker" name="speaker" rows={2} defaultValue={speaker} className="input" placeholder="e.g. Given by the area presidency; in the chapel" />
+          </div>
+          <div>
+            <label className="label" htmlFor="url">
+              Link <span className="font-normal text-muted">(optional)</span>
+            </label>
+            <input id="url" name="url" type="url" defaultValue={url} className="input" placeholder="https://… (a broadcast or reading)" />
+          </div>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="no_teacher" defaultChecked={noTeacher} className="mt-1" />
+            <span>
+              <strong>No teacher needed</strong>
+              <span className="block text-muted">It&apos;s given by the area presidency, the stake or someone outside the ward. No one is asked to teach, and it doesn&apos;t show as needing a teacher.</span>
+            </span>
+          </label>
+        </>
+      ) : topic ? (
         <>
           <div>
             <label className="label" htmlFor="title">

@@ -24,7 +24,7 @@ export default async function EditLessonPage({ params, searchParams }: { params:
   if (!lesson) notFound();
   const presidency = isPresidency(user);
   // Opened: if it needs a teacher, this leader has seen that (it stops counting toward their red number).
-  if (presidency && lesson && !lesson.teacher_id) markTeacherNeedsSeen(user.id, [lesson.id]);
+  if (presidency && lesson && !lesson.teacher_id && !lesson.no_teacher) markTeacherNeedsSeen(user.id, [lesson.id]);
   // Sunday School: that week's Come, Follow Me lesson.
   const cfm = usesCfm(user.org);
   const week = cfm ? cfmWeekOn(lesson.date) : undefined;
@@ -63,14 +63,20 @@ export default async function EditLessonPage({ params, searchParams }: { params:
       )}
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         {/* Keyed on the lesson, so it shows the new values after a refill. */}
-        <form key={`${lesson.kind}|${lesson.topic}|${lesson.date}|${lesson.title}|${lesson.speaker}|${lesson.url}`} action={saveLesson} className="card space-y-4">
+        <form key={`${lesson.kind}|${lesson.topic}|${lesson.fifth}|${lesson.no_teacher}|${lesson.date}|${lesson.title}|${lesson.speaker}|${lesson.url}`} action={saveLesson} className="card space-y-4">
           <input type="hidden" name="item_id" value={lesson.id} />
-          <LessonFields kind={lesson.topic ? "topic" : lesson.kind} date={lesson.date} url={lesson.url} title={lesson.title} speaker={lesson.speaker} cfm={cfm} />
+          <LessonFields kind={lesson.fifth === 1 && lesson.kind === "talk" ? "fifth" : lesson.topic ? "topic" : lesson.kind} date={lesson.date} url={lesson.url} title={lesson.title} speaker={lesson.speaker} cfm={cfm} noTeacher={!!lesson.no_teacher} />
           <SubmitButton>Save lesson</SubmitButton>
         </form>
 
         <div className="space-y-4">
-          {lesson.kind === "talk" && (
+          {lesson.kind === "talk" && !!lesson.no_teacher && (
+            <div id="teacher" className="card scroll-mt-20 space-y-2">
+              <h2 className="h2">Teacher</h2>
+              <p className="text-sm text-muted">No teacher needed for this Sunday (it&apos;s given by someone outside the ward). To have a teacher, untick <strong>No teacher needed</strong> and save.</p>
+            </div>
+          )}
+          {lesson.kind === "talk" && !lesson.no_teacher && (
             <div id="teacher" className="card scroll-mt-20 space-y-3">
               <h2 className="h2">Teacher</h2>
               {lesson.teacher_name && (
