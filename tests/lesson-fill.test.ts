@@ -16,13 +16,17 @@ describe("pasting talk links", () => {
         (1, '2026-11-22', 'talk', '', ''),
         (1, '2026-11-29', 'talk', '', 'Typed in by hand'),
         (1, '2026-12-06', 'stake_conference', '', ''),
-        (1, '2026-12-13', 'talk', '', '');
+        (1, '2026-12-13', 'talk', '', ''),
+        (1, '2026-12-20', 'talk', 'https://x/old', '');
     `);
     void d;
     const { openLessonSundays } = await import("@/lib/lessons");
-    expect(openLessonSundays(1, "2026-10-28").map((l) => l.date)).toEqual(["2026-11-08", "2026-11-22", "2026-12-13"]);
+    // What's there now counts: a link left from a talk that was moved or cleared (no title) is open.
+    expect(openLessonSundays(1, "2026-10-28").map((l) => l.date)).toEqual(["2026-11-08", "2026-11-22", "2026-12-13", "2026-12-20"]);
     // Sundays already past aren't filled.
-    expect(openLessonSundays(1, "2026-11-10").map((l) => l.date)).toEqual(["2026-11-22", "2026-12-13"]);
+    expect(openLessonSundays(1, "2026-11-10").map((l) => l.date)).toEqual(["2026-11-22", "2026-12-13", "2026-12-20"]);
+    const { fallbackTitle } = await import("@/lib/talk-info");
+    expect(fallbackTitle("https://www.churchofjesuschrist.org/study/general-conference/2025/10/57nelson?lang=eng")).toBe("General Conference talk, October 2025");
   });
 });
 

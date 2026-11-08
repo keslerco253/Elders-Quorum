@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin, requirePresidency } from "@/lib/auth";
 import { getLesson, markGeneralConferences, openLessonSundays } from "@/lib/lessons";
-import { fetchTalkInfo } from "@/lib/talk-info";
+import { fallbackTitle, fetchTalkInfo, fetchTalkInfos } from "@/lib/talk-info";
 import { notify, recipientById } from "@/lib/notify";
 import { formatDate, sundays, todayIn } from "@/lib/time";
 import type { LessonKind, Member } from "@/lib/types";
@@ -56,9 +56,10 @@ export async function fillTalks(fd: FormData) {
   // The next open Sundays from today, skipping any that already have a talk (or are General Conference).
   markGeneralConferences(user.org_id, todayIn(user.ward.timezone));
   const open = openLessonSundays(user.org_id, todayIn(user.ward.timezone)).slice(0, urls.length);
-  const infos = await Promise.all(urls.slice(0, open.length).map((u) => fetchTalkInfo(u)));
-  const upd = db().prepare("UPDATE lessons SET url = ?, title = CASE WHEN title = '' THEN ? ELSE title END, speaker = CASE WHEN speaker = '' THEN ? ELSE speaker END WHERE id = ?");
-  db().transaction(() => open.forEach((l, i) => upd.run(urls[i], infos[i].title, infos[i].speaker, l.id)))();
+  const infos = await fetchTalkInfos(urls.slice(0, open.length));
+  // What's there now is replaced: an old link (or speaker) left from a talk that was moved or cleared.
+  const upd = db().prepare("UPDATE lessons SET url = ?, title = ?, speaker = ? WHERE id = ? AND trim(title) = ''");
+  db().transaction(() => open.forEach((l, i) => upd.run(urls[i], infos[i].title || fallbackTitle(urls[i]), infos[i].speaker, l.id)))();
   refresh();
   const extra = urls.length - open.length;
   const missingTitles = infos.filter((i) => !i.title).length;
@@ -66,7 +67,7 @@ export async function fillTalks(fd: FormData) {
     "/admin/lessons",
     `${open.length} lessons filled.` +
       (extra > 0 ? ` ${extra} links left over: add more Sundays first.` : "") +
-      (missingTitles ? ` ${missingTitles} titles couldn't be looked up; please type them in.` : ""),
+      (missingTitles ? ` ${missingTitles} titles couldn't be looked up, so they say "General Conference talk": open those lessons to type the title.` : ""),
   );
 }
 

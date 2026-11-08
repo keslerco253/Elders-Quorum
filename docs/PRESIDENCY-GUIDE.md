@@ -777,9 +777,13 @@ requests are separate: turn off **Visits and visit requests** in Settings.
    the conference instead.
 3. **2. Paste talk links:** in Gospel Library on the web, open each talk and copy
    its address. Paste them all, one per line, in order. They fill the open
-   Sundays from the next one, skipping Sundays that already have a talk or a
-   conference, and the titles and speakers are looked up for you. If you paste
-   more links than open Sundays, you're told how many are left over.
+   Sundays from the next one, in date order, skipping Sundays that have a talk
+   on them now (or a conference or assigned topic), and the titles and speakers
+   are looked up for you. What each Sunday shows now is what counts: a Sunday
+   whose talk was moved or cleared off is open again and gets filled. A talk
+   whose title can't be looked up is saved as "General Conference talk, October
+   2025" (open it to type the title). If you paste more links than open
+   Sundays, you're told how many are left over.
 4. Open any Sunday to fix a title or change its date. Moving a lesson to a Sunday
    that already has one swaps the two.
 

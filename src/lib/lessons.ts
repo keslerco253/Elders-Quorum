@@ -38,12 +38,14 @@ export function markGeneralConferences(orgId: number, fromDate: string): number 
 }
 
 /**
- * Sundays (from a date) still waiting for a talk, in order: a lesson with no link and
- * no title typed in. Conference Sundays and ones already filled are skipped.
+ * Sundays (from a date) waiting for a talk, in order: what each Sunday shows now, not
+ * what it once had. A lesson with no talk on it (no title, even if a link from a talk
+ * that was moved or cleared is still saved) is open; conference Sundays, assigned
+ * topics and Sundays with a talk are skipped.
  */
 export function openLessonSundays(orgId: number, fromDate: string): { id: number; date: string }[] {
   return db()
-    .prepare("SELECT id, date FROM lessons WHERE org_id = ? AND date >= ? AND kind = 'talk' AND topic = 0 AND url = '' AND title = '' ORDER BY date")
+    .prepare("SELECT id, date FROM lessons WHERE org_id = ? AND date >= ? AND kind = 'talk' AND topic = 0 AND trim(title) = '' ORDER BY date")
     .all(orgId, fromDate) as { id: number; date: string }[];
 }
 
