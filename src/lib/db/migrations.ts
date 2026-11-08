@@ -1914,17 +1914,23 @@ CREATE INDEX app_suggestions_status ON app_suggestions(status, created_at);
     id: 103,
     sql: challengeSql(),
   },
+  {
+    // The temple challenge again, for the ward with join code YQE4W8 (Villas Ward), in
+    // case 103 didn't find it by name. It's never posted twice (same name, same ward).
+    id: 104,
+    sql: challengeSql("w.join_code = 'YQE4W8' COLLATE NOCASE"),
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */
-function challengeSql(): string {
+function challengeSql(which = "w.name LIKE 'Villas Ward%' AND w.demo = 0 AND (SELECT COUNT(*) FROM ward_members wm WHERE wm.ward_id = w.id) >= 10"): string {
   const q = (v: string) => `'${v.replace(/'/g, "''")}'`;
   const blocks = challengeBlocks() as Block[];
   const title = q(CHALLENGE_TITLE);
   return `
 INSERT INTO ward_plans (ward_id, name, icon)
   SELECT w.id, ${title}, 'temple' FROM wards w
-  WHERE w.name LIKE 'Villas Ward%' AND w.demo = 0 AND (SELECT COUNT(*) FROM ward_members wm WHERE wm.ward_id = w.id) >= 10 AND NOT EXISTS (SELECT 1 FROM ward_plans p WHERE p.ward_id = w.id AND p.name = ${title})
+  WHERE ${which} AND NOT EXISTS (SELECT 1 FROM ward_plans p WHERE p.ward_id = w.id AND p.name = ${title})
   ORDER BY w.id LIMIT 1;
 INSERT OR IGNORE INTO ward_plan_orgs (plan_id, org_id)
   SELECT p.id, o.id FROM ward_plans p JOIN orgs o ON o.ward_id = p.ward_id AND o.kind = 'group' AND o.name IN ('Elders Quorum', 'Relief Society')
