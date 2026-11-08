@@ -1888,4 +1888,22 @@ CREATE TABLE ward_council_items (
 CREATE INDEX ward_council_items_org ON ward_council_items(org_id, kind);
 `,
   },
+  {
+    // Suggestions for the app from anyone: they go on the site owner's list, who moves
+    // each to working on it, done or declined (with a note back).
+    id: 102,
+    sql: `
+CREATE TABLE app_suggestions (
+  id INTEGER PRIMARY KEY,
+  member_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  org_id INTEGER REFERENCES orgs(id) ON DELETE SET NULL,
+  body TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new','working','done','declined')),
+  owner_note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX app_suggestions_status ON app_suggestions(status, created_at);
+`,
+  },
 ];

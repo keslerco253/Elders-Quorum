@@ -9,7 +9,22 @@ import { composeMessage } from "./compose-actions";
 const PERSON = "person";
 
 /** One place to write any message: to one person, or to a whole organization, its presidency or a group. */
-export function ComposeForm({ orgs, people, initial, agendaOrgs = [] }: { orgs: OrgChoices[]; people: PersonChoice[]; initial: string; agendaOrgs?: number[] }) {
+export function ComposeForm({
+  orgs,
+  people,
+  initial,
+  agendaOrgs = [],
+  initialTitle = "",
+  initialBody = "",
+}: {
+  orgs: OrgChoices[];
+  people: PersonChoice[];
+  initial: string;
+  agendaOrgs?: number[];
+  /** Filled in from elsewhere (e.g. something from ward council to pass on). */
+  initialTitle?: string;
+  initialBody?: string;
+}) {
   const startPerson = initial.startsWith("person:");
   const [to, setTo] = useState(startPerson ? PERSON : initial || orgs[0]?.audiences[0]?.value || "");
   const [person, setPerson] = useState(startPerson ? initial : "");
@@ -62,14 +77,14 @@ export function ComposeForm({ orgs, people, initial, agendaOrgs = [] }: { orgs: 
           <label className="label" htmlFor="compose-title">
             Subject <span className="font-normal text-muted">(optional)</span>
           </label>
-          <input id="compose-title" name="title" maxLength={120} className="input" placeholder="e.g. Service project Saturday" />
+          <input id="compose-title" name="title" maxLength={120} className="input" placeholder="e.g. Service project Saturday" defaultValue={initialTitle} />
         </div>
       )}
       <div>
         <label className="label" htmlFor="compose-body">
           Message
         </label>
-        <ChatBox id="compose-body" name="body" rows={5} maxLength={2000} required={isPerson} className="input" draftKey="compose" placeholder="Write your message… (Ctrl+Enter to send)" />
+        <ChatBox id="compose-body" name="body" rows={5} maxLength={2000} required={isPerson} className="input" draftKey="compose" defaultValue={initialBody || undefined} placeholder="Write your message… (Ctrl+Enter to send)" />
       </div>
       {!isPerson && (
         <div>

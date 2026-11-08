@@ -146,6 +146,15 @@ export default async function WardCouncilPage({ searchParams }: { searchParams: 
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
                     {i.adder && <span>{i.adder}</span>}
+                    <Link
+                      href={`/messages/new?${new URLSearchParams({ to: `aud:${user.org_id}:everyone`, title: "From ward council", body: i.body })}`}
+                      className="btn-secondary btn-sm"
+                    >
+                      ✉️ Send to members
+                    </Link>
+                    <Link href={`/admin/todos?council=${i.id}#assignment-form`} className="btn-secondary btn-sm">
+                      📋 Make an assignment
+                    </Link>
                     {i.on_agenda ? (
                       <Link href={`/admin/meetings#item-${i.agenda_item_id}`}>
                         <Badge tone="success">On the agenda</Badge>

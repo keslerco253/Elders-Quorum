@@ -44,7 +44,7 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   your Home page show everything from all of yours.
 - **More** has, in order: Request a visit, My assignments, Reminders & alerts,
   Service, Messages, My Journal, Challenges, My organizations, Customize Home, Reminder
-  settings, Contact & notifications, Help; then Church apps (Gospel Library and Member Tools), your
+  settings, Contact & notifications, Help, Suggest an improvement; then Church apps (Gospel Library and Member Tools), your
   notifications on this device (with **Turn on**), **Privacy** (Lock with Face ID,
   in the phone app), **Appearance** (Automatic, Light or Dark), your account,
   **Sign out**, **Delete my account**, and **Privacy details** and **Terms and
@@ -434,6 +434,14 @@ The iPhone and Android app does everything the website does, plus:
   you're offline it says "Can't reach My Ward Link"; tap **Try again**.
 - A number on the app icon for unread messages and alerts; links in emails open in
   the app; texted sign-in codes appear above the keyboard.
+
+## Suggest an improvement
+
+**More → Suggest an improvement:** an idea to make the app better, something
+confusing, or something you wish it did. Write it and tap **Send my idea**; it
+goes to the person who runs the app, with your name so they can ask about it.
+**Your ideas** below shows each one and what's happening with it (New, Working on
+it, Done or Not adding, with any note back), and you're told when it changes.
 
 ## Your account and privacy
 

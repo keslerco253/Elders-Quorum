@@ -6,6 +6,7 @@ import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { AssignmentForm } from "@/components/assignment-form";
+import { getCouncilItem } from "@/lib/ward-council";
 import { deleteTodo, setStatus } from "./actions";
 import { orgPresidency, orgRoster } from "@/lib/orgs";
 import { roleLabel } from "@/lib/types";
@@ -30,6 +31,8 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
   const todos = all.filter((t) => (show === "open" ? !t.done : show === "pending" ? !t.done && !!t.assignee_id && t.accept_status === "pending" : show === "unassigned" ? !t.done && !t.assignee_id : show === "done" ? !!t.done : show === "overdue" ? overdue(t) : true));
   const people = orgRoster(user.org_id, { includeId: who || undefined });
   const editing = sp.edit ? all.find((t) => t.id === Number(sp.edit)) : undefined;
+  // Made from something passed on at ward council.
+  const council = !editing && sp.council ? getCouncilItem(user.org_id, Number(sp.council)) : undefined;
   const person = who ? people.find((p) => p.id === who) : undefined;
   // Everything else this person is doing (teaching, service), to see their whole load.
   const alsoDoing = person ? myAssignments(person.id, today, { orgId: user.org_id }).filter((i) => i.kind !== "todo") : [];
@@ -150,7 +153,7 @@ export default async function TodosPage({ searchParams }: { searchParams: Promis
           )}
         </div>
         <div>
-          <AssignmentForm key={editing?.id ?? "new"} todo={editing} people={people} presidencyIds={presidencyIds} back={back} defaultAssignee={editing ? undefined : who || user.id} cancelHref={back} />
+          <AssignmentForm key={editing?.id ?? "new"} todo={editing} people={people} presidencyIds={presidencyIds} back={back} defaultAssignee={editing ? undefined : who || user.id} defaultTitle={council?.body.replace(/\s+/g, " ").slice(0, 200)} defaultNotes={council ? `From ward council${council.council_date ? `, ${formatDate(council.council_date, "short")}` : ""}:\n${council.body}` : undefined} cancelHref={back} />
         </div>
       </div>
     </>

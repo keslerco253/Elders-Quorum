@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { suggestionCounts } from "@/lib/suggestions";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime } from "@/lib/time";
@@ -60,6 +62,7 @@ const TEXT_RESULTS: Record<string, string> = {
 export default async function SiteOwnerPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
   if (!user.is_site_owner) redirect("/");
+  const ideas = suggestionCounts();
   const sp = await searchParams;
   const tz = user.ward.timezone;
   // Whether email is getting out (sign-in codes depend on it).
@@ -106,6 +109,15 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
       <PageHeader title="Site owner" back={{ href: "/admin", label: "Admin" }} subtitle="Every ward on this app, email and texting, and backups. Only you see this page." />
       <Flash msg={sp.msg} />
       <Flash msg={sp.error} tone="danger" />
+      <Link href="/site/suggestions" className="card mb-6 flex items-center justify-between gap-3 text-sm hover:bg-surface-2">
+        <span>
+          <strong>💡 Suggestions for the app</strong>
+          <span className="block text-muted">
+            {ideas.new} new · {ideas.working} working on · {ideas.done} done · {ideas.declined} not adding
+          </span>
+        </span>
+        {ideas.new > 0 && <Badge tone="warn">{ideas.new} new</Badge>}
+      </Link>
       <Section title="Who has site-owner access">
         <div className="card space-y-2 text-sm">
           <ul>

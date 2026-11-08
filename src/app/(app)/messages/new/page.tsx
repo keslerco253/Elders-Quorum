@@ -32,7 +32,7 @@ export default async function NewMessagePage({ searchParams }: { searchParams: P
     <>
       <PageHeader title="New message" back={{ href: "/messages", label: "Messages" }} subtitle="To one person, or to everyone in an organization, its presidency or a group." />
       <Flash msg={sp.msg} tone="warn" />
-      <ComposeForm orgs={orgs} people={people} initial={initial} agendaOrgs={ledOrgIds(user.id).filter((id) => { const o = getOrg(id); return !!o && hasFeature(o, "todos"); })} />
+      <ComposeForm orgs={orgs} people={people} initial={initial} initialTitle={(sp.title ?? "").slice(0, 120)} initialBody={(sp.body ?? "").slice(0, 2000)} agendaOrgs={ledOrgIds(user.id).filter((id) => { const o = getOrg(id); return !!o && hasFeature(o, "todos"); })} />
       <p className="mt-3 text-sm text-muted">
         Groups (like a committee) are set up under{" "}
         <Link href="/admin/groups" className="link">

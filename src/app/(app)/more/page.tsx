@@ -35,6 +35,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
     { href: "/more/reminders", label: "Reminder settings", desc: "When and how you're reminded about lessons, events, service and assignments" },
     { href: "/more/contact", label: "Contact & notifications", desc: "Phone, email, and how you get reminders and messages" },
     { href: "/more/help", label: "Help", desc: "How to use the app: ask a question or look it up" },
+    { href: "/more/suggest", label: "Suggest an improvement", desc: "An idea to make the app better? Send it to the person who runs the app" },
   ];
   return (
     <>

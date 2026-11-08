@@ -14,6 +14,7 @@ export function AssignmentForm({
   meetingId,
   defaultTitle,
   defaultAssignee,
+  defaultNotes,
   cancelHref,
 }: {
   todo?: Todo;
@@ -23,6 +24,8 @@ export function AssignmentForm({
   meetingId?: number;
   defaultTitle?: string;
   defaultAssignee?: number;
+  /** A new assignment's details (e.g. where it came from). */
+  defaultNotes?: string;
   cancelHref?: string;
 }) {
   const presidency = people.filter((p) => presidencyIds.includes(p.id));
@@ -73,7 +76,7 @@ export function AssignmentForm({
           <input id="due_time" name="due_time" type="time" className="input" defaultValue={todo?.due_time ?? ""} />
         </div>
       </div>
-      <textarea name="notes" rows={3} className="input" placeholder="Details (optional): what's needed, who to talk to…" defaultValue={todo?.notes} />
+      <textarea name="notes" rows={3} className="input" placeholder="Details (optional): what's needed, who to talk to…" defaultValue={todo?.notes ?? defaultNotes} />
       <FlyerField file={todo?.flyer_file} name={todo?.flyer_name} hint="Optional: a flyer, handout or picture (PDF or picture, up to 15 MB). It's on the assignment and sent with the request." />
       <div className="grid gap-3 sm:grid-cols-2">
         {(["reminder1_days", "reminder2_days"] as const).map((field, i) => (

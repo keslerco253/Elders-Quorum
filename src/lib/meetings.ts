@@ -512,6 +512,8 @@ export interface MeetingSearchHit {
   where: string;
   text: string;
   href: string;
+  /** Not in a meeting: its heading instead (e.g. "Ward council · Nov 8"). */
+  group?: string;
 }
 
 /**
@@ -569,5 +571,18 @@ export function searchMeetings(orgId: number, q: string): MeetingSearchHit[] {
   for (const t of todos) hits.push({ meeting: at(t.meeting_id), where: "Assignment from the meeting", text: has(t.title) ? t.title : `${t.title}: ${t.notes}`, href: `/assignments/${t.id}` });
 
   // The waiting agenda first, then meetings newest first.
-  return hits.sort((a, b) => (a.meeting ? 1 : 0) - (b.meeting ? 1 : 0) || (b.meeting?.date ?? "").localeCompare(a.meeting?.date ?? "") || (b.meeting?.id ?? 0) - (a.meeting?.id ?? 0));
+  // Ward council: what to share there, and what came from it.
+  const council = db()
+    .prepare("SELECT id, kind, body, council_date, created_at FROM ward_council_items WHERE org_id = @org AND body LIKE @like ESCAPE '\\' ORDER BY coalesce(council_date, created_at) DESC")
+    .all({ org: orgId, like }) as { id: number; kind: string; body: string; council_date: string | null; created_at: string }[];
+  const sorted = hits.sort((a, b) => (a.meeting ? 1 : 0) - (b.meeting ? 1 : 0) || (b.meeting?.date ?? "").localeCompare(a.meeting?.date ?? "") || (b.meeting?.id ?? 0) - (a.meeting?.id ?? 0));
+  for (const c of council)
+    sorted.push({
+      meeting: null,
+      where: c.kind === "share" ? "To share at ward council" : "From ward council",
+      text: c.body,
+      href: `/admin/meetings/ward-council#${c.kind === "share" ? "share" : "from"}`,
+      group: c.council_date ? `Ward council · ${DateTime.fromISO(c.council_date).toFormat("ccc, LLL d")}` : "Ward council",
+    });
+  return sorted;
 }

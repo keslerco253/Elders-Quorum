@@ -28,4 +28,19 @@ describe("ward council", () => {
     finishMeeting(org, m, "2026-11-12");
     expect(fromCouncil(org)[0]).toMatchObject({ on_agenda: 0, agenda_item_id: agendaId });
   });
+
+  it("is found by the meetings search", async () => {
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'Pres', 'p@x.com', 'presidency');
+    `);
+    addCouncilItem(1, "from", "Bishop's storehouse orders due Friday", 1, "2026-11-08");
+    addCouncilItem(1, "share", "Storehouse volunteers needed", 1, null);
+    const { searchMeetings } = await import("@/lib/meetings");
+    const hits = searchMeetings(1, "storehouse");
+    expect(hits.map((h) => [h.where, h.group]).sort()).toEqual([
+      ["From ward council", "Ward council · Sun, Nov 8"],
+      ["To share at ward council", "Ward council"],
+    ]);
+  });
 });

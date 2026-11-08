@@ -1257,8 +1257,14 @@ place. Only the presidency (or bishopric) sees it.
     agenda** on it later. It goes on the agenda once, marked "From ward council,
     (date)" with an **Open** link back here, and shows **On the agenda** until the
     meeting where it's discussed is finished.
+  - On each item from ward council: **✉️ Send to members** opens a new message to
+    everyone in your organization with it filled in (titled "From ward council";
+    change anything before sending), and **📋 Make an assignment** opens a new
+    assignment with it as the title and where it came from in the details.
   - **Edit** changes an item's wording or deletes it. What you type is kept on
     your phone until it's saved, like the agenda.
+  - The meetings **🔍 Search** finds ward council items too, under "Ward council"
+    and the date.
 - **🔍 Search** (at the top of Presidency meetings): find a word or phrase in
   every presidency meeting, past and upcoming: agenda items and their notes,
   attached files' names, meeting notes, who was there, and assignments made in a
@@ -1582,6 +1588,12 @@ and the member list**).
 ## Site owner
 
 **Admin → Site owner** (site owner only):
+- **💡 Suggestions for the app** (at the top, with how many are new): ideas sent
+  from **More → Suggest an improvement** by anyone, each with who sent it, their
+  ward and organization, and when. You're notified of each new one. Tabs for New,
+  Working on it, Done and Not adding; on each, an optional note back and buttons
+  to move it (**Save note** keeps the status). With **Let them know** ticked, the
+  person is notified when the status changes, with your note.
 - **Who has site-owner access.**
 - **New wards to approve:** each with its stake, who started it (with their email or
   phone) and their note. **Approve** opens it and emails them. **Decline** (optional

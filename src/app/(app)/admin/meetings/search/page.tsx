@@ -30,12 +30,12 @@ export default async function MeetingSearchPage({ searchParams }: { searchParams
   const q = String((await searchParams).q ?? "").trim().slice(0, 100);
   const hits = q ? searchMeetings(user.org_id, q) : [];
   // Grouped by meeting (the waiting agenda first), in the order found.
-  const groups: { key: string; meeting: MeetingSearchHit["meeting"]; hits: MeetingSearchHit[] }[] = [];
+  const groups: { key: string; meeting: MeetingSearchHit["meeting"]; group?: string; hits: MeetingSearchHit[] }[] = [];
   for (const h of hits) {
-    const key = h.meeting ? `m${h.meeting.id}` : "next";
+    const key = h.group ? `g${h.group}` : h.meeting ? `m${h.meeting.id}` : "next";
     const g = groups.find((x) => x.key === key);
     if (g) g.hits.push(h);
-    else groups.push({ key, meeting: h.meeting, hits: [h] });
+    else groups.push({ key, meeting: h.meeting, group: h.group, hits: [h] });
   }
   const timeText = (t: string | null) => (t ? ` · ${DateTime.fromFormat(t, "HH:mm").toFormat("h:mm a")}` : "");
 
@@ -44,7 +44,7 @@ export default async function MeetingSearchPage({ searchParams }: { searchParams
       <PageHeader
         title="Search meetings"
         back={{ href: "/admin/meetings", label: "Meetings" }}
-        subtitle={`Find a word or phrase anywhere in your ${roleLabel("presidency", user.org).toLowerCase()} meetings: agenda items and their notes, attached files' names, meeting notes, who was there, and assignments made.`}
+        subtitle={`Find a word or phrase anywhere in your ${roleLabel("presidency", user.org).toLowerCase()} meetings: agenda items and their notes, attached files' names, meeting notes, who was there, assignments made, and ward council notes.`}
       />
       <form className="mb-5 flex gap-2">
         <input name="q" type="search" defaultValue={q} autoFocus className="input" placeholder="A word or phrase…" aria-label="Search meetings" />
@@ -61,7 +61,11 @@ export default async function MeetingSearchPage({ searchParams }: { searchParams
         {groups.map((g) => (
           <section key={g.key}>
             <h2 className="h2 mb-2">
-              {g.meeting ? (
+              {g.group ? (
+                <Link href="/admin/meetings/ward-council" className="hover:underline">
+                  {g.group}
+                </Link>
+              ) : g.meeting ? (
                 <Link href={`/admin/meetings/${g.meeting.id}`} className="hover:underline">
                   {meetingName(user.org_id, g.meeting)} · {formatDate(g.meeting.date, "short")}
                   {timeText(g.meeting.time)}

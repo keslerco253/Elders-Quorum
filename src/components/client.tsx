@@ -40,6 +40,21 @@ export function SubmitButton({ children, className = "btn-primary", pendingText,
         } else if (confirm && Date.now() - armedAt.current < 800) {
           // The second tap of a double tap: they haven't seen the question yet.
           e.preventDefault();
+        } else if (name) {
+          // Which button it was (Keep or Delete, Approve or Decline...): the form's
+          // action doesn't always get the tapped button's name and value, so they're
+          // put in the form as a field while it's sent.
+          const form = e.currentTarget.form;
+          if (form) {
+            form.querySelectorAll("input[data-submitter]").forEach((el) => el.remove());
+            const field = document.createElement("input");
+            field.type = "hidden";
+            field.name = name;
+            field.value = value ?? "";
+            field.dataset.submitter = "1";
+            form.appendChild(field);
+            setTimeout(() => field.remove(), 0);
+          }
         }
       }}
     >
