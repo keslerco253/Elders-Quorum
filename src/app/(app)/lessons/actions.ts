@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { teacherNewsAudience } from "@/lib/conducting";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -39,9 +40,8 @@ export async function volunteer(fd: FormData) {
         });
       }
       await notify(
-        audienceMembers(user.org_id, "presidency").filter(
-          (r) => r.id !== user.id,
-        ),
+        // Whoever conducts that Sunday (everyone when no one's set).
+        teacherNewsAudience(user.org_id, lesson.date, { except: user.id }),
         {
           title: "Teaching offer withdrawn",
           body: `${user.display_name} withdrew their offer to teach on ${which}.`,

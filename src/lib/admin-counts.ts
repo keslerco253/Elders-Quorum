@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { conductorOn } from "./conducting";
 import type { CurrentUser } from "./types";
 import { isAdmin, isPresidency } from "./permissions";
 import { hasFeature } from "./orgs";
@@ -81,8 +82,9 @@ export function adminCounts(user: CurrentUser) {
   const visitRequests = isPresidency(user) ? one("SELECT COUNT(*) AS n FROM visit_requests WHERE org_id = ? AND status = 'open'") : 0;
   const replies = isPresidency(user) ? unreadReplies(w, user.id) : 0;
   const neededList = isPresidency(user) ? teacherNeededLessons(w) : [];
-  // Counted (the red number) only until this leader has seen each one.
-  const teacherNeeded = isPresidency(user) ? teacherNeededLessons(w, { unseenBy: user.id }).length : 0;
+  // Counted (the red number) only for whoever conducts that Sunday (everyone when no
+  // one's set), and only until they've seen it. Others see it on Manage lessons.
+  const teacherNeeded = isPresidency(user) ? teacherNeededLessons(w, { unseenBy: user.id }).filter((l) => [user.id, null].includes(conductorOn(w, l.date))).length : 0;
   // Visit invitations where the member asked for another time.
   const newTimes = isPresidency(user) ? one("SELECT COUNT(*) AS n FROM planned_visits WHERE org_id = ? AND invite_status = 'new_time'") : 0;
   // Open assignments no one has (never given to anyone, or the person was unable to do it).

@@ -1,5 +1,6 @@
 import { db } from "./db";
-import { audienceMembers, notify, recipientById } from "./notify";
+import { notify, recipientById } from "./notify";
+import { teacherNewsAudience } from "./conducting";
 import { signToken, validToken } from "./signed-links";
 import { formatDate } from "./time";
 import { withOrg } from "./org-cookie";
@@ -19,6 +20,7 @@ export interface TeachingRequest {
   message: string;
   status: "pending" | "accepted" | "declined" | "cancelled";
   reason: string;
+  asked_by: number | null;
   asked_by_name: string | null;
   created_at: string;
   responded_at: string | null;
@@ -105,7 +107,8 @@ export async function answerRequest(requestId: number, memberId: number, accept:
       d.prepare("UPDATE teaching_requests SET status = 'cancelled' WHERE lesson_id = ? AND status = 'pending' AND id != ?").run(r.lesson_id, r.id);
     }
   })();
-  await notify(audienceMembers(r.org_id, "presidency"), {
+  // Whoever conducts that Sunday (and whoever asked); everyone when no one's set to conduct.
+  await notify(teacherNewsAudience(r.org_id, r.lesson_date, { also: r.asked_by }), {
     title: accept ? "Teacher found" : "Can't teach",
     body: accept ? `${r.member_name} will teach on ${lessonLabel(r)}.` : `${r.member_name} can't teach on ${lessonLabel(r)}.${why ? ` Reason: ${why}` : ""}`,
     url: `/admin/lessons/${r.lesson_id}`,

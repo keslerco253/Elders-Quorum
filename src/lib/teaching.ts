@@ -2,7 +2,8 @@ import { DateTime } from "luxon";
 import { db } from "./db";
 import { signToken, validToken } from "./signed-links";
 import { removeTeacherNotes } from "./lesson-notes";
-import { audienceMembers, notify } from "./notify";
+import { notify } from "./notify";
+import { teacherNewsAudience } from "./conducting";
 import { formatDate } from "./time";
 import type { Lesson } from "./types";
 
@@ -55,7 +56,8 @@ export async function declineTeaching(member: { id: number; display_name: string
     d.prepare("INSERT INTO lesson_declines (lesson_id, member_id, reason) VALUES (?, ?, ?)").run(lesson.id, member.id, why);
     removeTeacherNotes(lesson.id, member.id);
   })();
-  await notify(audienceMembers(lesson.org_id, "presidency"), {
+  // Whoever conducts that Sunday finds the teachers: they're told (everyone when no one's set).
+  await notify(teacherNewsAudience(lesson.org_id, lesson.date), {
     title: "Teacher needed",
     body: `${member.display_name} can't teach on ${formatDate(lesson.date, "short")}${lesson.title ? ` ("${lesson.title}")` : ""}.${why ? ` Reason: ${why}` : ""}`,
     url: `/admin/lessons/${lesson.id}`,

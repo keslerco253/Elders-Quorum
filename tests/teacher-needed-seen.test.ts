@@ -25,3 +25,22 @@ describe("a teacher can't teach", () => {
     expect(teacherNeededLessons(1, { unseenBy: 1 }).map((l) => l.id)).toEqual([10]);
   });
 });
+
+describe("who hears that a teacher can't teach", () => {
+  it("is whoever conducts that Sunday; everyone when no one's set", async () => {
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES
+        (1, 1, 'P', 'Pres', 'p@x.com', 'presidency'), (2, 1, 'F', 'First', 'f@x.com', 'presidency'), (3, 1, 'S', 'Second', 's@x.com', 'presidency');
+    `);
+    const { saveConductSettings, teacherNewsAudience } = await import("@/lib/conducting");
+    const org = (db().prepare("SELECT id FROM orgs WHERE kind <> 'ward' LIMIT 1").get() as { id: number }).id;
+    expect(teacherNewsAudience(org, "2026-12-13").map((r) => r.id).sort()).toEqual([1, 2, 3]);
+    saveConductSettings(org, { mode: "months", months: { "2026-12": 2 }, sundays: {}, flexible: true });
+    expect(teacherNewsAudience(org, "2026-12-13").map((r) => r.id)).toEqual([2]);
+    // And whoever asked someone to teach hears the answer.
+    expect(teacherNewsAudience(org, "2026-12-13", { also: 3 }).map((r) => r.id).sort()).toEqual([2, 3]);
+    // No one set for January: everyone.
+    expect(teacherNewsAudience(org, "2027-01-10").map((r) => r.id).sort()).toEqual([1, 2, 3]);
+  });
+});

@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { lessonOn } from "./lessons";
-import { getOrg } from "./orgs";
+import { getOrg, hasFeature } from "./orgs";
+import { audienceMembers, type Recipient } from "./notify";
 import { sundays } from "./time";
 import { callingLabel, type Calling } from "./types";
 
@@ -209,4 +210,28 @@ export function setConductor(orgId: number, date: string, byId: number, toId: nu
   d.prepare("UPDATE conducting_swaps SET status = 'cancelled', decided_at = datetime('now') WHERE org_id = ? AND date = ? AND status = 'pending'").run(orgId, date);
   d.prepare("INSERT INTO conducting_swaps (org_id, date, from_id, to_id, note, status, decided_at) VALUES (?, ?, ?, ?, 'Changed by the presidency', 'accepted', datetime('now'))").run(orgId, date, byId, toId);
   return null;
+}
+
+/**
+ * Who conducts on a Sunday, when the organization uses Who's conducting and someone
+ * is (by its schedule, with any swap); otherwise null.
+ */
+export function conductorOn(orgId: number, date: string): number | null {
+  const org = getOrg(orgId);
+  if (!org || !hasFeature(org, "conducting")) return null;
+  const s = conductingSchedule(orgId, date, 1)[0];
+  return s && s.date === date ? s.memberId : null;
+}
+
+/**
+ * Who's told about a lesson's teacher (they can't teach, someone asked said no or yes,
+ * an offer was withdrawn): whoever conducts that Sunday, since they find the teachers;
+ * the whole presidency when no one is set to conduct (or the organization doesn't use
+ * Who's conducting). `also` adds someone (who asked), `except` leaves someone out.
+ */
+export function teacherNewsAudience(orgId: number, date: string, opts: { also?: number | null; except?: number } = {}): Recipient[] {
+  const presidency = audienceMembers(orgId, "presidency");
+  const conductor = conductorOn(orgId, date);
+  const chosen = conductor && presidency.some((r) => r.id === conductor) ? presidency.filter((r) => r.id === conductor || r.id === opts.also) : presidency;
+  return chosen.filter((r) => r.id !== opts.except);
 }
