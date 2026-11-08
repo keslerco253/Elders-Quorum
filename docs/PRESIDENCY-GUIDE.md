@@ -534,14 +534,15 @@ meetings, service, assignments, members' own to-dos and events) that are a day o
 more ahead also wait for the morning hour: "1 day before" a 6 AM appointment comes
 at 8 AM the day before; ones an hour or two ahead stay exact.
 
-**Quiet hours for texts:** a text the app would send because of something you
-did (assigning a teacher or an assignment, a message to members, a reply, an
-invitation) between 9 PM and the morning hour (8 AM unless you changed it under
-**Reminder times**, in the ward's time zone) waits until the morning hour. The
-app notification and email still go right away. Sending a message late says so
-("it's late, so the texts go out at 8 AM"). Reminders go out at the times set for
-them, and sign-in codes are never held. A text held overnight isn't sent if the
-person replied STOP meanwhile.
+**Quiet hours:** an app notification or text the app would send because of
+something you did (assigning a teacher or an assignment, a message to members, a
+reply, an invitation) between 9 PM and the morning hour (8 AM unless you changed it
+under **Reminder times**, in the ward's time zone) waits until the morning hour.
+Email still goes right away, and it shows in their Reminders & alerts list right
+away. Sending a message late says so ("it's late, so app notifications and texts
+go out at 8 AM"). Reminders go out at the times set for them, and sign-in codes
+are never held. A text held overnight isn't sent if the person replied STOP
+meanwhile.
 
 ### Did they get it?
 

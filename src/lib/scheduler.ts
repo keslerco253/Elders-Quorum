@@ -3,7 +3,7 @@ import { closeRoleTodos } from "./meeting-roles";
 import path from "path";
 import { DateTime } from "luxon";
 import { db, DATA_DIR } from "./db";
-import { audienceMembers, claimOnce, notify, recipientById, type Recipient, sendHeldTexts } from "./notify";
+import { audienceMembers, claimOnce, notify, recipientById, type Recipient, sendHeldTexts, sendHeldPushes } from "./notify";
 import { lessonOn } from "./lessons";
 import { ensureCfmLessons, usesCfm } from "./cfm";
 import { getNotes } from "./lesson-notes";
@@ -692,7 +692,8 @@ export async function tick(now: DateTime = DateTime.utc()) {
     }
     // Texts held overnight (quiet hours) go out once it's morning.
     const morning = await sendHeldTexts();
-    if (morning) console.log(`[scheduler] sent ${morning} texts held overnight`);
+    const pushes = await sendHeldPushes();
+    if (morning || pushes) console.log(`[scheduler] sent ${pushes} app notifications and ${morning} texts held overnight`);
     // Texted replies held while asking which organization they're for.
     await deliverHeldReplies();
     // People without an account who signed up for service from a public link.

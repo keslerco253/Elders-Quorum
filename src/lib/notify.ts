@@ -113,7 +113,7 @@ export async function notify(
   let push = 0;
   let email = 0;
   let text = 0;
-  /** Texts held for the morning (quiet hours); counted in `text` too. */
+  /** App notifications and texts held for the morning (quiet hours); counted in `push` and `text` too. */
   let held = 0;
   let reached = 0;
   const orgNames = new Map<number, string>();
@@ -137,13 +137,30 @@ export async function notify(
       orgId: r.org_id,
     });
   };
+  // Quiet hours (late at night, until the morning hour): app notifications and texts
+  // wait for the morning; email goes now. Not for reminders at the times chosen for them.
+  const quiet = new Map<number, string | null>();
+  const quietFor = (orgId: number) => {
+    if (opts.scheduled) return null;
+    if (!quiet.has(orgId)) quiet.set(orgId, quietUntil(orgId));
+    return quiet.get(orgId)!;
+  };
+  const pushNow = async (r: Recipient, p: PushPayload) => {
+    const until = quietFor(r.org_id);
+    if (until && hasPushDevice(r.id)) {
+      d().prepare("INSERT INTO held_pushes (member_id, payload, send_at) VALUES (?, ?, ?)").run(r.id, JSON.stringify(p), until);
+      held++;
+      return 1;
+    }
+    return until ? 0 : pushToMember(r.id, p);
+  };
   const sendText = async (r: Recipient, url: string) => {
     if (!r.phone) return false;
     if (!orgNames.has(r.org_id)) orgNames.set(r.org_id, orgFullName(r.org_id));
     const body = smsBody(orgNames.get(r.org_id)!, payload, url);
     const meta: TextMeta = { noReply: !!payload.noReply, replyMemberId: payload.replyTo?.memberId ?? null, replyPrivate: !!payload.replyTo?.private, asMember: !!payload.asMember };
     // Quiet hours: late at night, the text waits for the morning (app notifications and email don't).
-    const until = opts.scheduled ? null : quietUntil(r.org_id);
+    const until = quietFor(r.org_id);
     if (until) {
       d()
         .prepare("INSERT INTO held_texts (org_id, member_id, phone, body, no_reply, reply_member_id, reply_private, as_member, send_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
@@ -182,7 +199,7 @@ export async function notify(
     // A member's own reminder says how: any of app notification, text (up to their
     // limit) and email. If none of those reaches them, the next best does.
     if (opts.only) {
-      if (opts.only.includes("push") && (await pushToMember(r.id, p)) > 0) {
+      if (opts.only.includes("push") && (await pushNow(r, p)) > 0) {
         push++;
         got = true;
       }
@@ -194,7 +211,7 @@ export async function notify(
         email++;
         got = true;
       }
-      if (!got && !opts.only.includes("push") && (await pushToMember(r.id, p)) > 0) {
+      if (!got && !opts.only.includes("push") && (await pushNow(r, p)) > 0) {
         push++;
         got = true;
       }
@@ -207,7 +224,7 @@ export async function notify(
       record();
       continue;
     }
-    if ((await pushToMember(r.id, p)) > 0) {
+    if ((await pushNow(r, p)) > 0) {
       push++;
       got = true;
     }
@@ -255,6 +272,27 @@ function afterText(memberId: number, orgId: number, meta: TextMeta, res: string)
   // They replied STOP: stop texting them; use email if they have one.
   if (res === "opted_out")
     d().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END, always_text = 0, sms_consent_at = NULL WHERE id = ?").run(memberId);
+}
+
+/** Whether this member has a phone or browser to send app notifications to. */
+function hasPushDevice(memberId: number): boolean {
+  return !!d().prepare("SELECT 1 FROM push_subscriptions WHERE member_id = ? UNION SELECT 1 FROM native_push_tokens WHERE member_id = ?").get(memberId, memberId);
+}
+
+/** Sends the app notifications held overnight whose morning has come. Returns how many reached a device. */
+export async function sendHeldPushes(now: Date = new Date()): Promise<number> {
+  const rows = d().prepare("SELECT h.* FROM held_pushes h JOIN members m ON m.id = h.member_id WHERE h.send_at <= ? AND m.status = 'active' ORDER BY h.id LIMIT 500").all(now.toISOString()) as {
+    id: number;
+    member_id: number;
+    payload: string;
+  }[];
+  let sent = 0;
+  for (const h of rows) {
+    d().prepare("DELETE FROM held_pushes WHERE id = ?").run(h.id);
+    if ((await pushToMember(h.member_id, JSON.parse(h.payload) as PushPayload)) > 0) sent++;
+  }
+  d().prepare("DELETE FROM held_pushes WHERE send_at <= ? AND member_id NOT IN (SELECT id FROM members WHERE status = 'active')").run(now.toISOString());
+  return sent;
 }
 
 /** Sends the texts held overnight whose morning has come (to people still taking texts). Returns how many went. */

@@ -50,6 +50,16 @@ describe("quiet hours for texts", () => {
     expect(await sendHeldTexts(boise("2026-11-09T08:00").toJSDate())).toBe(1);
     expect((db().prepare("SELECT COUNT(*) AS n FROM held_texts").get() as { n: number }).n).toBe(0);
     expect((db().prepare("SELECT last_text_org_id FROM members WHERE id = 2").get() as { last_text_org_id: number }).last_text_org_id).toBe(org);
+    // App notifications wait too (for someone with a phone or browser signed up for them).
+    db().prepare("INSERT INTO push_subscriptions (member_id, endpoint, p256dh, auth) VALUES (2, 'https://push.example/x', 'k', 'a')").run();
+    vi.setSystemTime(boise("2026-11-08T23:30").toJSDate());
+    expect(await notify([tex], { title: "Late push", body: "b", url: "/" }, { only: ["push"] })).toMatchObject({ push: 1, held: 1 });
+    expect((db().prepare("SELECT COUNT(*) AS n FROM held_pushes WHERE member_id = 2 AND send_at = ?").get(boise("2026-11-09T08:00").toISO()) as { n: number }).n).toBe(1);
+    const { sendHeldPushes } = await import("@/lib/notify");
+    await sendHeldPushes(boise("2026-11-09T07:59").toJSDate());
+    expect((db().prepare("SELECT COUNT(*) AS n FROM held_pushes").get() as { n: number }).n).toBe(1);
+    db().prepare("DELETE FROM held_pushes").run();
+    db().prepare("DELETE FROM push_subscriptions").run();
     // A reminder at the time chosen for it goes now.
     expect(await notify([tex], { title: "Reminder", body: "b", url: "/" }, { scheduled: true })).toMatchObject({ text: 1 });
     // Replied STOP overnight: the held text isn't sent.

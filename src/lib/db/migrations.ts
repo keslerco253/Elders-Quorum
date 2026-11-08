@@ -1831,4 +1831,18 @@ CREATE TABLE held_texts (
 CREATE INDEX held_texts_due ON held_texts(send_at);
 `,
   },
+  {
+    // Quiet hours hold app notifications too (sent at the morning hour).
+    id: 98,
+    sql: `
+CREATE TABLE held_pushes (
+  id INTEGER PRIMARY KEY,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  payload TEXT NOT NULL,
+  send_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX held_pushes_due ON held_pushes(send_at);
+`,
+  },
 ];

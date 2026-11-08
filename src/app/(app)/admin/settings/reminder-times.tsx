@@ -136,8 +136,8 @@ export function ReminderTimes({ org }: { org: Org }) {
             </select>
             <p className="hint">
               On the day each one is set for (chosen on the service opportunity
-              or assignment). Texts that would go out late at night (from 9 PM)
-              wait until this time too.
+              or assignment). App notifications and texts that would go out late
+              at night (from 9 PM) wait until this time too.
             </p>
           </div>
         )}
