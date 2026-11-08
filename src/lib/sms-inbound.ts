@@ -180,10 +180,11 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   }
   // JOIN: a member a leader added agrees to ward texts (and START, after a STOP, agrees
   // again; Twilio answers START itself).
-  if (word === JOIN_WORD || optOut === "START" || word === "START" || word === "UNSTOP") {
+  // "JOIN VILLAS" (from a texting card with the join code) is JOIN too.
+  if (word === JOIN_WORD || /^\s*join\b/i.test(body) || optOut === "START" || word === "START" || word === "UNSTOP") {
     joinByText(from);
     seen.note = "joined by text";
-    if (word === JOIN_WORD) seen.reply = joinConfirmation(getWard(getOrg(orgId)?.ward_id ?? 0)?.name ?? "My Ward Link");
+    if (word.startsWith(JOIN_WORD)) seen.reply = joinConfirmation(getWard(getOrg(orgId)?.ward_id ?? 0)?.name ?? "My Ward Link");
     return "joined";
   }
   if (optOut === "HELP" || optOut === "START" || SKIP_WORDS.includes(word)) return "ignored";

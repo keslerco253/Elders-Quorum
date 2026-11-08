@@ -340,11 +340,15 @@ code, or a leader adds them.
   their account if they're in no other ward; they could join again with the code,
   so if it was shared too widely, **Make a new code** under Ward settings. Everyone
   in the ward before this page existed counts as reviewed.
-- **Members who won't use the app (texts only):** add them under **Admin →
-  Members → Add a member** with their name and mobile number, then tap **📱 Texting
-  card** on Members (or the link on their page) and **Print cards**: four to a
-  page, each with your ward's texting number, "Text JOIN to …", a QR code that
-  starts the text, and how to stop. When they text **JOIN**, the app records their
+- **Members who won't use the app (texts only):** tap **📱 Texting card** on
+  Members (or the link on a member's page) and **Print cards**: four to a page,
+  each with your ward's texting number, "Text JOIN (your join code) to …" (the code
+  tells the app which ward), a QR code that starts the text, the steps (new people
+  are asked their name and organizations by text), and how to stop. You can add
+  them first under **Admin → Members → Add a member** with their name and mobile
+  number, or let them join by text (below). If you make a new join code, print new
+  cards. If texting isn't turned on for your ward, the card says just "Text JOIN"
+  and people must be added first. When they text **JOIN**, the app records their
   agreement (their page says "Agreed to ward texts … by texting JOIN"), texts back a
   confirmation, and from then on sends them every reminder and message by text; they
   can reply to any text to reach you. A couple sharing one phone are both signed

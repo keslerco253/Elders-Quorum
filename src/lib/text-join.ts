@@ -38,9 +38,12 @@ export const joinConfirmation = (wardName: string) =>
 /** "(208) 555-0100", or "" when texting isn't set up. */
 export const textingNumberDisplay = () => (textingNumber() ? formatPhone(textingNumber()) : "");
 
-/** A QR code that opens a text to the app's number with JOIN filled in. */
-export function joinQrSvg(): Promise<string> {
-  return QRCode.toString(`SMSTO:${textingNumber()}:${JOIN_WORD}`, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
+/** What a texting card says to text: JOIN and the ward's join code (so the app knows the ward), or just JOIN. */
+export const joinText = (joinCode: string | null) => (joinCode ? `${JOIN_WORD} ${joinCode.toUpperCase()}` : JOIN_WORD);
+
+/** A QR code that opens a text to the app's number with JOIN (and the join code) filled in. */
+export function joinQrSvg(text = JOIN_WORD): Promise<string> {
+  return QRCode.toString(`SMSTO:${textingNumber()}:${text}`, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
 }
 
 // ---------------------------------------------------------------------------

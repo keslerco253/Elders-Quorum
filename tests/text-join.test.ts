@@ -22,6 +22,11 @@ describe("joining ward texts by texting JOIN", () => {
     });
     // It isn't saved as a message to the presidency.
     expect((d.prepare("SELECT COUNT(*) AS n FROM member_messages").get() as { n: number }).n).toBe(0);
+    // "JOIN VILLAS" (a card with the join code) is JOIN too, not a message.
+    const card: { reply?: string } = {};
+    expect(await inbound.handleInboundText({ From: "+12085550005", Body: "JOIN VILLAS" }, card)).toBe("joined");
+    expect(card.reply).toMatch(/you're signed up for ward texts/);
+    expect((d.prepare("SELECT COUNT(*) AS n FROM member_messages").get() as { n: number }).n).toBe(0);
 
     // A number no one has added, where no ward takes members by text: how to get added.
     d.prepare("UPDATE wards SET texting_enabled = 0").run();
