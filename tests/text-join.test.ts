@@ -88,5 +88,10 @@ describe("joining ward texts by texting JOIN", () => {
     // STOP ends it.
     await say("+12085550222", "STOP");
     expect(await say("+12085550222", "Pat Doe")).not.toMatch(/signed up/);
+    // A number whose access was turned off can't come back in by text.
+    d.prepare("INSERT INTO members (name, display_name, phone, status) VALUES ('Off', 'Off Person', '+12085550333', 'inactive')").run();
+    expect(await say("+12085550333", "JOIN VILLAS")).toMatch(/access was turned off/);
+    expect(await say("+12085550333", "Off Person")).not.toMatch(/signed up/);
+    expect((d.prepare("SELECT COUNT(*) AS n FROM members WHERE phone = '+12085550333'").get() as { n: number }).n).toBe(1);
   });
 });

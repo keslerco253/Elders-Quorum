@@ -139,6 +139,15 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     // JOIN (and maybe the ward's join code) from a number no one has added: they join by
     // text, answering a few questions (a few tries a day per number, and not too many at once).
     const join = body.match(/^\s*join\b[\s:,.-]*(.*)$/i);
+    // A number whose account had its access turned off (or is waiting for approval) can't join again by text.
+    const held = db().prepare("SELECT status FROM members WHERE phone = ? AND status <> 'active' ORDER BY status = 'inactive' DESC LIMIT 1").get(from) as { status: string } | undefined;
+    if (held && (join || inTextJoin(from))) {
+      endTextJoin(from);
+      if (allowHit(`sms-join-held:${from}`, 1, 24 * 60))
+        seen.reply = held.status === "pending" ? "My Ward Link: your request to join is waiting for approval. We'll let you know when it's approved." : "My Ward Link: this number's access was turned off. Please contact your ward leaders.";
+      seen.note = "JOIN from a number whose access is off or waiting";
+      return "unknown_sender";
+    }
     if (join) {
       if (allowHit(`sms-join-start:${from}`, 5, 24 * 60) && allowHit("sms-join-all", 60, 60)) {
         seen.reply = startTextJoin(from, join[1]);
