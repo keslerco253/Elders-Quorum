@@ -11,7 +11,7 @@ import { allowHit } from "./rate-limit";
 import { answerRequest, latestPendingRequest } from "./teaching-requests";
 import { DateTime } from "luxon";
 import { guestOptOut } from "./guest-signups";
-import { alreadyJoined, alreadyJoinedReply, continueTextJoin, endTextJoin, inTextJoin, JOIN_WORD, joinByText, joinConfirmation, startTextJoin } from "./text-join";
+import { alreadyJoined, alreadyJoinedReply, continueTextJoin, loginLink, endTextJoin, inTextJoin, JOIN_WORD, joinByText, joinConfirmation, startTextJoin } from "./text-join";
 
 /** The address set as "A message comes in" in Twilio. */
 export const inboundUrl = () => process.env.TWILIO_WEBHOOK_URL || `${appUrl()}/api/sms/inbound`;
@@ -204,7 +204,7 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   if (isJoin || optOut === "START" || word === "START" || word === "UNSTOP") {
     joinByText(from);
     seen.note = "joined by text";
-    if (word.startsWith(JOIN_WORD)) seen.reply = joinConfirmation(getWard(getOrg(orgId)?.ward_id ?? 0)?.name ?? "My Ward Link");
+    if (word.startsWith(JOIN_WORD)) seen.reply = `${joinConfirmation(getWard(getOrg(orgId)?.ward_id ?? 0)?.name ?? "My Ward Link")} To use the app too, sign in with this number: ${loginLink(from)}`;
     return "joined";
   }
   if (optOut === "HELP" || optOut === "START" || SKIP_WORDS.includes(word)) return "ignored";

@@ -366,7 +366,7 @@ code, or a leader adds them.
 
   Their account is then made in the ward (and those organizations), signed up for
   ward texts (their JOIN text is their agreement), and they're texted a
-  confirmation with how to use the app too. They show under **Ward settings → New
+  confirmation with a sign-in link that has their number filled in, to use the app too. They show under **Ward settings → New
   members** as "Joined by texting JOIN" for the ward administrators to check
   (**Looks good**, or **Remove from ward**). A conversation left an hour starts
   over with JOIN; a few wrong codes end it; STOP ends it. Only wards with texting

@@ -13,7 +13,7 @@ describe("joining ward texts by texting JOIN", () => {
     const inbound = await import("@/lib/sms-inbound");
     const out: { reply?: string } = {};
     expect(await inbound.handleInboundText({ From: "+12085550005", Body: "join" }, out)).toBe("joined");
-    expect(out.reply).toMatch(/^Villas Ward: you're signed up for ward texts\..*Reply HELP for help, STOP to opt out\.$/);
+    expect(out.reply).toMatch(/^Villas Ward: you're signed up for ward texts\..*Reply HELP for help, STOP to opt out\. To use the app too, sign in with this number: http:\/\/localhost:3000\/login\?contact=2085550005$/);
     expect(d.prepare("SELECT sms_consent_via, always_text, contact_pref, sms_consent_at IS NOT NULL AS agreed FROM members WHERE id = 5").get()).toEqual({
       sms_consent_via: "text",
       always_text: 1,
@@ -60,6 +60,7 @@ describe("joining ward texts by texting JOIN", () => {
     const done = await say("2");
     expect(done.result).toBe("joined");
     expect(done.reply).toMatch(/^Villas Ward: you're signed up for ward texts\./);
+    expect(done.reply).toMatch(/sign in with this number: http:\/\/localhost:3000\/login\?contact=2085550777$/);
     const jane = d.prepare("SELECT id, display_name, status, always_text, sms_consent_via FROM members WHERE phone = '+12085550777'").get() as { id: number; display_name: string; status: string; always_text: number; sms_consent_via: string };
     expect(jane).toMatchObject({ display_name: "Jane Smith", status: "active", always_text: 1, sms_consent_via: "join-text" });
     const inOrgs = (d.prepare("SELECT o.name FROM org_members om JOIN orgs o ON o.id = om.org_id WHERE om.member_id = ? ORDER BY o.kind DESC, o.name").all(jane.id) as { name: string }[]).map((o) => o.name);

@@ -221,5 +221,5 @@ function finishTextJoin(phone: string, wardId: number, wardName: string, name: s
   })();
   joinByText(phone);
   endTextJoin(phone);
-  return `${joinConfirmation(wardName)} You can also use the app: sign in with this number at ${appUrl()}.`;
+  return `${joinConfirmation(wardName)} To use the app too, sign in with this number: ${loginLink(phone)}`;
 }
