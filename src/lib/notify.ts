@@ -8,6 +8,7 @@ import { fallbackChannels, type ContactPref } from "./contact";
 import { DateTime } from "luxon";
 import { getOrg, orgFullName } from "./orgs";
 import { withOrg } from "./org-cookie";
+import { quietUntil } from "./quiet-hours";
 
 export type Audience = "everyone" | "admins" | "presidency" | "teachers" | `group:${number}`;
 
@@ -104,12 +105,16 @@ export async function notify(
     only?: ("push" | "text" | "email")[];
     /** Something sent to this person directly (a request, a personal message): if nothing reaches them, the presidency is asked to tell them another way. */
     followUp?: { what: string; url?: string };
+    /** A reminder going out at the time chosen for it: not held for quiet hours. */
+    scheduled?: boolean;
   } = {},
 ) {
   const fallback = opts.fallback ?? true;
   let push = 0;
   let email = 0;
   let text = 0;
+  /** Texts held for the morning (quiet hours); counted in `text` too. */
+  let held = 0;
   let reached = 0;
   const orgNames = new Map<number, string>();
 
@@ -135,20 +140,19 @@ export async function notify(
   const sendText = async (r: Recipient, url: string) => {
     if (!r.phone) return false;
     if (!orgNames.has(r.org_id)) orgNames.set(r.org_id, orgFullName(r.org_id));
-    const res = await sendSms(r.org_id, r.phone, smsBody(orgNames.get(r.org_id)!, payload, url), "notice");
-    // A private reminder: a reply to it isn't passed on, and replies to earlier texts still go where they did.
-    if (res === "sent" && payload.noReply) d().prepare("UPDATE members SET text_last_noreply = 1 WHERE id = ?").run(r.id);
-    else if (res === "sent") {
-      // Which organizations texted them lately (to ask which one a reply is for).
-      d().prepare("INSERT INTO member_text_orgs (member_id, org_id) VALUES (?, ?) ON CONFLICT DO UPDATE SET at = datetime('now')").run(r.id, r.org_id);
-      // A texted reply goes to this organization (and, after a member's message, to that member).
+    const body = smsBody(orgNames.get(r.org_id)!, payload, url);
+    const meta: TextMeta = { noReply: !!payload.noReply, replyMemberId: payload.replyTo?.memberId ?? null, replyPrivate: !!payload.replyTo?.private, asMember: !!payload.asMember };
+    // Quiet hours: late at night, the text waits for the morning (app notifications and email don't).
+    const until = opts.scheduled ? null : quietUntil(r.org_id);
+    if (until) {
       d()
-        .prepare("UPDATE members SET last_text_org_id = ?, text_reply_member_id = ?, text_reply_private = ?, text_as_member = ?, text_last_noreply = 0 WHERE id = ?")
-        .run(r.org_id, payload.replyTo?.memberId ?? null, payload.replyTo?.private ? 1 : 0, payload.asMember ? 1 : 0, r.id);
+        .prepare("INSERT INTO held_texts (org_id, member_id, phone, body, no_reply, reply_member_id, reply_private, as_member, send_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .run(r.org_id, r.id, r.phone, body, meta.noReply ? 1 : 0, meta.replyMemberId, meta.replyPrivate ? 1 : 0, meta.asMember ? 1 : 0, until);
+      held++;
+      return true;
     }
-    // They replied STOP: stop texting them; use email if they have one.
-    if (res === "opted_out")
-      d().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END, always_text = 0, sms_consent_at = NULL WHERE id = ?").run(r.id);
+    const res = await sendSms(r.org_id, r.phone, body, "notice");
+    afterText(r.id, r.org_id, meta, res);
     return res === "sent";
   };
 
@@ -226,7 +230,57 @@ export async function notify(
     if (got) reached++;
     record();
   }
-  return { push, email, text, reached };
+  return { push, email, text, reached, ...(held ? { held } : {}) } as { push: number; email: number; text: number; reached: number; held?: number };
+}
+
+interface TextMeta {
+  noReply: boolean;
+  replyMemberId: number | null;
+  replyPrivate: boolean;
+  asMember: boolean;
+}
+
+/** After a text to a member went out (or they'd replied STOP): where their texted reply goes. */
+function afterText(memberId: number, orgId: number, meta: TextMeta, res: string) {
+  // A private reminder: a reply to it isn't passed on, and replies to earlier texts still go where they did.
+  if (res === "sent" && meta.noReply) d().prepare("UPDATE members SET text_last_noreply = 1 WHERE id = ?").run(memberId);
+  else if (res === "sent") {
+    // Which organizations texted them lately (to ask which one a reply is for).
+    d().prepare("INSERT INTO member_text_orgs (member_id, org_id) VALUES (?, ?) ON CONFLICT DO UPDATE SET at = datetime('now')").run(memberId, orgId);
+    // A texted reply goes to this organization (and, after a member's message, to that member).
+    d()
+      .prepare("UPDATE members SET last_text_org_id = ?, text_reply_member_id = ?, text_reply_private = ?, text_as_member = ?, text_last_noreply = 0 WHERE id = ?")
+      .run(orgId, meta.replyMemberId, meta.replyPrivate ? 1 : 0, meta.asMember ? 1 : 0, memberId);
+  }
+  // They replied STOP: stop texting them; use email if they have one.
+  if (res === "opted_out")
+    d().prepare("UPDATE members SET contact_pref = CASE WHEN email IS NOT NULL THEN 'email' ELSE 'none' END, always_text = 0, sms_consent_at = NULL WHERE id = ?").run(memberId);
+}
+
+/** Sends the texts held overnight whose morning has come (to people still taking texts). Returns how many went. */
+export async function sendHeldTexts(now: Date = new Date()): Promise<number> {
+  const rows = d().prepare("SELECT * FROM held_texts WHERE send_at <= ? ORDER BY id LIMIT 500").all(now.toISOString()) as {
+    id: number;
+    org_id: number;
+    member_id: number;
+    phone: string;
+    body: string;
+    no_reply: number;
+    reply_member_id: number | null;
+    reply_private: number;
+    as_member: number;
+  }[];
+  let sent = 0;
+  for (const h of rows) {
+    d().prepare("DELETE FROM held_texts WHERE id = ?").run(h.id);
+    // Still theirs, still agreeing to texts (no STOP overnight), and within the ward's limit.
+    const ok = d().prepare("SELECT 1 FROM members WHERE id = ? AND phone = ? AND status = 'active' AND sms_consent_at IS NOT NULL").get(h.member_id, h.phone);
+    if (!ok || !canSendNotice(h.org_id)) continue;
+    const res = await sendSms(h.org_id, h.phone, h.body, "notice");
+    afterText(h.member_id, h.org_id, { noReply: !!h.no_reply, replyMemberId: h.reply_member_id, replyPrivate: !!h.reply_private, asMember: !!h.as_member }, res);
+    if (res === "sent") sent++;
+  }
+  return sent;
 }
 
 /** Adds ?n=<id> so opening the link marks that notification read. */

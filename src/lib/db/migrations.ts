@@ -1810,4 +1810,25 @@ CREATE TABLE text_joins (
 );
 `,
   },
+  {
+    // Quiet hours: texts a leader's action or message would send late at night wait for
+    // the morning (the organization's morning hour, in the ward's time zone).
+    id: 97,
+    sql: `
+CREATE TABLE held_texts (
+  id INTEGER PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  phone TEXT NOT NULL,
+  body TEXT NOT NULL,
+  no_reply INTEGER NOT NULL DEFAULT 0,
+  reply_member_id INTEGER,
+  reply_private INTEGER NOT NULL DEFAULT 0,
+  as_member INTEGER NOT NULL DEFAULT 0,
+  send_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX held_texts_due ON held_texts(send_at);
+`,
+  },
 ];

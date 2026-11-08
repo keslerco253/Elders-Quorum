@@ -12,6 +12,7 @@ import { saveUpload } from "@/lib/uploads";
 import { addAgendaItem } from "@/lib/meetings";
 import { hasFeature } from "@/lib/orgs";
 import { audienceLabel } from "@/lib/notify";
+import { morningText } from "@/lib/quiet-hours";
 import { optedOutOf } from "@/lib/delivery";
 
 const LINKS = ["/", "/lessons", "/calendar", "/plans", "/signups"];
@@ -77,14 +78,14 @@ export async function composeMessage(fd: FormData) {
     }
     db().prepare("INSERT INTO plan_files (name, ward_id, original_name, uploaded_by) VALUES (?, ?, ?, ?)").run(flyer.file, wardId, flyer.name, user.id);
   }
-  const { count, push, email, text, reached } = await sendToAudience({ orgId, senderId: user.id, audience, title, body: body.slice(0, 2000), link, tz, flyer });
+  const { count, push, email, text, reached, held } = await sendToAudience({ orgId, senderId: user.id, audience, title, body: body.slice(0, 2000), link, tz, flyer });
   revalidatePath("/", "layout");
   const label = audienceLabel(orgId, audience);
   toAgenda(audience === "everyone" ? "everyone" : audience.startsWith("group:") ? label : `the ${label.toLowerCase()}`, null, String(fd.get("title") || "").trim().slice(0, 120));
   const missed = count - reached;
   redirect(
     `/messages?tab=sent&msg=${encodeURIComponent(
-      `Sent to ${count}: ${push} by notification, ${email} by email, ${text} by text${missed > 0 ? `. ${missed} couldn't be reached (notifications off and no texts or emails chosen)` : ""}${audience === "everyone" && optedOutOf(orgId).length ? `. ${optedOutOf(orgId).length} turned off notifications from this organization and weren't sent it (see Sent)` : ""}.${agenda ? " Added to the next presidency meeting's agenda." : ""}`,
+      `Sent to ${count}: ${push} by notification, ${email} by email, ${text} by text${held ? ` (it's late, so ${held === text ? "the texts go" : `${held} go`} out at ${morningText(orgId)})` : ""}${missed > 0 ? `. ${missed} couldn't be reached (notifications off and no texts or emails chosen)` : ""}${audience === "everyone" && optedOutOf(orgId).length ? `. ${optedOutOf(orgId).length} turned off notifications from this organization and weren't sent it (see Sent)` : ""}.${agenda ? " Added to the next presidency meeting's agenda." : ""}`,
     )}`,
   );
 }
