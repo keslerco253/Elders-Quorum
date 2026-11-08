@@ -11,7 +11,7 @@ import { allowHit } from "./rate-limit";
 import { answerRequest, latestPendingRequest } from "./teaching-requests";
 import { DateTime } from "luxon";
 import { guestOptOut } from "./guest-signups";
-import { continueTextJoin, endTextJoin, inTextJoin, JOIN_WORD, joinByText, joinConfirmation, startTextJoin } from "./text-join";
+import { alreadyJoined, alreadyJoinedReply, continueTextJoin, endTextJoin, inTextJoin, JOIN_WORD, joinByText, joinConfirmation, startTextJoin } from "./text-join";
 
 /** The address set as "A message comes in" in Twilio. */
 export const inboundUrl = () => process.env.TWILIO_WEBHOOK_URL || `${appUrl()}/api/sms/inbound`;
@@ -190,7 +190,18 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   // JOIN: a member a leader added agrees to ward texts (and START, after a STOP, agrees
   // again; Twilio answers START itself).
   // "JOIN VILLAS" (from a texting card with the join code) is JOIN too.
-  if (word === JOIN_WORD || /^\s*join\b/i.test(body) || optOut === "START" || word === "START" || word === "UNSTOP") {
+  const isJoin = word === JOIN_WORD || /^\s*join\b/i.test(body);
+  // JOIN from someone already signed up for texts: nothing changes; they're told which
+  // account it is and where to sign in.
+  if (isJoin && optOut !== "START") {
+    const already = alreadyJoined(from);
+    if (already.length) {
+      seen.reply = alreadyJoinedReply(from, already, getWard(getOrg(orgId)?.ward_id ?? 0)?.name ?? "My Ward Link");
+      seen.note = "JOIN from someone already signed up";
+      return "ignored";
+    }
+  }
+  if (isJoin || optOut === "START" || word === "START" || word === "UNSTOP") {
     joinByText(from);
     seen.note = "joined by text";
     if (word.startsWith(JOIN_WORD)) seen.reply = joinConfirmation(getWard(getOrg(orgId)?.ward_id ?? 0)?.name ?? "My Ward Link");

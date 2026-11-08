@@ -112,7 +112,8 @@ use texting, it says "Your ward uses email".
 **Don't want to use the app?** Text **JOIN** to your ward's texting number (it's on
 the card your leaders can give you). If they haven't added you yet, the app asks a
 few questions by text: your ward's join code (only if it needs it), your name, and
-which organizations you're in. You'll get a reply saying you're signed up, and from then on reminders and messages come
+which organizations you're in. (Already signed up? It texts back the name on your
+account and the link to sign in.) You'll get a reply saying you're signed up, and from then on reminders and messages come
 by text. Reply to any text to reach your leaders. Text **STOP** anytime to stop.
 
 **Turning on app notifications:**

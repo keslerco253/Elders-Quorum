@@ -31,6 +31,21 @@ export function joinByText(phone: string): string[] {
   return people.map((p) => p.display_name);
 }
 
+/** The names on active accounts with this number already signed up for ward texts (none: not yet). */
+export function alreadyJoined(phone: string): string[] {
+  const rows = db().prepare("SELECT display_name FROM members WHERE phone = ? AND status = 'active' AND sms_consent_at IS NOT NULL ORDER BY display_name").all(phone) as { display_name: string }[];
+  return rows.map((r) => r.display_name);
+}
+
+/** The sign-in page with their number filled in. */
+export const loginLink = (phone: string) => `${appUrl()}/login?contact=${encodeURIComponent(phone.replace(/^\+1(?=\d{10}$)/, ""))}`;
+
+/** Texted back to JOIN from someone already signed up: which account, and where to sign in. */
+export function alreadyJoinedReply(phone: string, names: string[], wardName: string): string {
+  const who = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0];
+  return `${wardName}: you're already signed up. This number is on ${names.length > 1 ? "the accounts for" : "the account for"} ${who}, and you get ward texts here. To use the app, sign in with this number: ${loginLink(phone)}`;
+}
+
 /** The confirmation texted back after JOIN. */
 export const joinConfirmation = (wardName: string) =>
   `${wardName}: you're signed up for ward texts. You'll get reminders and messages here, and you can reply to reach your leaders. ${SMS_DISCLOSURE}`;

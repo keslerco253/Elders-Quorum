@@ -352,7 +352,8 @@ code, or a leader adds them.
   agreement (their page says "Agreed to ward texts … by texting JOIN"), texts back a
   confirmation, and from then on sends them every reminder and message by text; they
   can reply to any text to reach you. A couple sharing one phone are both signed
-  up. They can text STOP anytime (and START to come
+  up. JOIN from someone already signed up changes nothing: they're texted that
+  they're already signed up, the name on the account, and the sign-in link. They can text STOP anytime (and START to come
   back). Their texts count toward the ward's monthly text limit.
 - **Joining by text without being added first:** someone whose number isn't in the
   app can text **JOIN** (or **JOIN** and your join code, like "JOIN VILLAS"). The

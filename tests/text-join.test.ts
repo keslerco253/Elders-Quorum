@@ -22,10 +22,13 @@ describe("joining ward texts by texting JOIN", () => {
     });
     // It isn't saved as a message to the presidency.
     expect((d.prepare("SELECT COUNT(*) AS n FROM member_messages").get() as { n: number }).n).toBe(0);
-    // "JOIN VILLAS" (a card with the join code) is JOIN too, not a message.
+    // JOIN again ("JOIN VILLAS" from a card too, not a message): already signed up, which
+    // account, and where to sign in; their settings stay as they are.
+    d.prepare("UPDATE members SET always_text = 0 WHERE id = 5").run();
     const card: { reply?: string } = {};
-    expect(await inbound.handleInboundText({ From: "+12085550005", Body: "JOIN VILLAS" }, card)).toBe("joined");
-    expect(card.reply).toMatch(/you're signed up for ward texts/);
+    expect(await inbound.handleInboundText({ From: "+12085550005", Body: "JOIN VILLAS" }, card)).toBe("ignored");
+    expect(card.reply).toBe("Villas Ward: you're already signed up. This number is on the account for Edna Elderly, and you get ward texts here. To use the app, sign in with this number: http://localhost:3000/login?contact=2085550005");
+    expect((d.prepare("SELECT always_text FROM members WHERE id = 5").get() as { always_text: number }).always_text).toBe(0);
     expect((d.prepare("SELECT COUNT(*) AS n FROM member_messages").get() as { n: number }).n).toBe(0);
 
     // A number no one has added, where no ward takes members by text: how to get added.
