@@ -5,7 +5,7 @@ import { withOrg } from "@/lib/org-cookie";
 import { HandbookLinks } from "@/components/handbook-link";
 import { CALLINGS } from "@/lib/handbook";
 import { requireAdmin } from "@/lib/auth";
-import { orgMemberList } from "@/lib/member-list";
+import { memberShow, orgMemberList } from "@/lib/member-list";
 import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { reachableBy } from "@/lib/delivery";
@@ -20,17 +20,25 @@ export const metadata = { title: "Members" };
 export default async function MembersPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireAdmin();
   const sp = await searchParams;
-  const show = sp.show === "inactive" ? "inactive" : "active";
+  // At the ward level, also: who isn't in any organization yet.
+  const show = user.org.kind === "ward" ? memberShow(sp.show) : sp.show === "inactive" ? "inactive" : "active";
   const q = (sp.q ?? "").trim();
   const members = orgMemberList(user.org_id, { show, q });
   const added = callingNamesByMember(user.org_id);
+  const noOrgCount = user.org.kind === "ward" && show === "active" ? orgMemberList(user.org_id, { show: "noorg" }).length : 0;
 
   return (
     <>
       <PageHeader
         title="Members"
         back={{ href: "/admin", label: "Admin" }}
-        subtitle={show === "active" ? `${members.length} ${members.length === 1 ? "person belongs" : "people belong"} to ${user.orgLabel}.` : `${members.length} accounts turned off`}
+        subtitle={
+          show === "active"
+            ? `${members.length} ${members.length === 1 ? "person belongs" : "people belong"} to ${user.orgLabel}.`
+            : show === "noorg"
+              ? `${members.length} ${members.length === 1 ? "person hasn't" : "people haven't"} chosen an organization yet (Elders Quorum, Relief Society…). Open one to add them, or remind them under More → My organizations.`
+              : `${members.length} accounts turned off`
+        }
         actions={
           members.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -50,6 +58,11 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         }
       />
       <Flash msg={sp.msg} />
+      {noOrgCount > 0 && (
+        <Link href="/admin/members?show=noorg" className="mb-4 flex items-center justify-between rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
+          {noOrgCount} {noOrgCount === 1 ? "person hasn't" : "people haven't"} chosen an organization yet <span>See who ›</span>
+        </Link>
+      )}
       <HandbookLinks chapters={[CALLINGS]} />
       <p className="mb-4 rounded-lg bg-accent-soft px-4 py-3 text-sm text-accent">
         {user.org.kind === "ward"
@@ -101,6 +114,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         <select name="show" defaultValue={show} className="input w-auto">
           <option value="active">Active</option>
           <option value="inactive">Turned off</option>
+          {user.org.kind === "ward" && <option value="noorg">Not in any organization</option>}
         </select>
         <button className="btn-secondary">Search</button>
       </form>
