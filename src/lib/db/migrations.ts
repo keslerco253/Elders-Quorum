@@ -1845,4 +1845,16 @@ CREATE TABLE held_pushes (
 CREATE INDEX held_pushes_due ON held_pushes(send_at);
 `,
   },
+  {
+    // "Teacher needed" counts toward a leader's red number only until they've seen it.
+    id: 99,
+    sql: `
+CREATE TABLE need_seen (
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  seen_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (member_id, lesson_id)
+);
+`,
+  },
 ];

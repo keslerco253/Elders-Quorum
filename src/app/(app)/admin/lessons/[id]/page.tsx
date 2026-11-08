@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getLesson } from "@/lib/lessons";
 import { isPresidency } from "@/lib/permissions";
+import { markTeacherNeedsSeen } from "@/lib/admin-counts";
 import { formatDate, todayIn } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { LessonFields } from "./lesson-fields";
@@ -22,6 +23,8 @@ export default async function EditLessonPage({ params, searchParams }: { params:
   const lesson = getLesson(user.org_id, Number(id));
   if (!lesson) notFound();
   const presidency = isPresidency(user);
+  // Opened: if it needs a teacher, this leader has seen that (it stops counting toward their red number).
+  if (presidency && lesson && !lesson.teacher_id) markTeacherNeedsSeen(user.id, [lesson.id]);
   // Sunday School: that week's Come, Follow Me lesson.
   const cfm = usesCfm(user.org);
   const week = cfm ? cfmWeekOn(lesson.date) : undefined;

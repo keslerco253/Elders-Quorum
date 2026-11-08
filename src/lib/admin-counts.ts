@@ -23,16 +23,40 @@ export function volunteerLessons(orgId: number): NeedLesson[] {
  * Upcoming lessons whose teacher said they can't teach (or someone asked said no) and
  * nobody's been assigned yet (and no one has volunteered, which volunteerLessons covers).
  */
-export function teacherNeededLessons(orgId: number): NeedLesson[] {
+export function teacherNeededLessons(orgId: number, opts: { unseenBy?: number } = {}): NeedLesson[] {
+  // Only ones this leader hasn't seen since the teacher (or someone asked) said no.
+  const unseen = opts.unseenBy
+    ? `AND NOT EXISTS (SELECT 1 FROM need_seen s WHERE s.member_id = @me AND s.lesson_id = l.id AND s.seen_at >= coalesce(max(
+         coalesce((SELECT max(d.created_at) FROM lesson_declines d WHERE d.lesson_id = l.id), ''),
+         coalesce((SELECT max(r.responded_at) FROM teaching_requests r WHERE r.lesson_id = l.id AND r.status = 'declined'), '')), ''))`
+    : "";
   return db()
     .prepare(
-      `SELECT l.id, l.date, l.title FROM lessons l WHERE l.org_id = ? AND l.teacher_id IS NULL AND l.date >= date('now')
+      `SELECT l.id, l.date, l.title FROM lessons l WHERE l.org_id = @org AND l.teacher_id IS NULL AND l.date >= date('now')
          AND (EXISTS (SELECT 1 FROM lesson_declines d WHERE d.lesson_id = l.id) OR EXISTS (SELECT 1 FROM teaching_requests r WHERE r.lesson_id = l.id AND r.status = 'declined'))
          AND NOT EXISTS (SELECT 1 FROM lesson_volunteers v WHERE v.lesson_id = l.id)
          AND NOT EXISTS (SELECT 1 FROM teaching_requests r WHERE r.lesson_id = l.id AND r.status = 'pending')
+         ${unseen}
        ORDER BY l.date`,
     )
-    .all(orgId) as NeedLesson[];
+    .all(opts.unseenBy ? { org: orgId, me: opts.unseenBy } : { org: orgId }) as NeedLesson[];
+}
+
+/**
+ * A leader has seen that these lessons need a teacher (opened the lesson, or the
+ * lessons page listing it): they stop counting toward that leader's red number, and
+ * the "Teacher needed" notification about each is marked read.
+ */
+export function markTeacherNeedsSeen(memberId: number, lessonIds: number[]) {
+  const d = db();
+  const seen = d.prepare("INSERT INTO need_seen (member_id, lesson_id, seen_at) VALUES (?, ?, datetime('now')) ON CONFLICT(member_id, lesson_id) DO UPDATE SET seen_at = excluded.seen_at");
+  const read = d.prepare("UPDATE notification_log SET read_at = coalesce(read_at, datetime('now')) WHERE member_id = ? AND url LIKE ? AND title = 'Teacher needed'");
+  d.transaction(() => {
+    for (const id of lessonIds) {
+      seen.run(memberId, id);
+      read.run(memberId, `/admin/lessons/${id}%`);
+    }
+  })();
 }
 
 /** Straight to the lesson's Teacher section when there's one; the list of them when there are several. */
@@ -57,7 +81,8 @@ export function adminCounts(user: CurrentUser) {
   const visitRequests = isPresidency(user) ? one("SELECT COUNT(*) AS n FROM visit_requests WHERE org_id = ? AND status = 'open'") : 0;
   const replies = isPresidency(user) ? unreadReplies(w, user.id) : 0;
   const neededList = isPresidency(user) ? teacherNeededLessons(w) : [];
-  const teacherNeeded = neededList.length;
+  // Counted (the red number) only until this leader has seen each one.
+  const teacherNeeded = isPresidency(user) ? teacherNeededLessons(w, { unseenBy: user.id }).length : 0;
   // Visit invitations where the member asked for another time.
   const newTimes = isPresidency(user) ? one("SELECT COUNT(*) AS n FROM planned_visits WHERE org_id = ? AND invite_status = 'new_time'") : 0;
   // Open assignments no one has (never given to anyone, or the person was unable to do it).

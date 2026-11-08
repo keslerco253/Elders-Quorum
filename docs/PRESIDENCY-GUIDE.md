@@ -876,8 +876,12 @@ organization they're in.
   reminders just thank them.
 - **When a teacher can't:** they're taken off, the lesson shows **Teacher
   needed** so others can volunteer, and the presidency is notified with the
-  reason (only the presidency sees it). It shows under **Waiting on you → Teacher
-  needed** until someone is assigned, and the lesson's page shows who couldn't
+  reason (only the presidency sees it). It counts in your red number (Admin and
+  **Waiting on you → Teacher needed**) only until you've seen it: once you open
+  that lesson or Manage lessons, it stops counting for you (each leader sees it
+  once), and its notification is marked read. The lesson still shows **Teacher
+  needed** on Manage lessons until someone is assigned. If someone else later
+  can't teach that Sunday, it counts again. The lesson's page shows who couldn't
   teach and why.
 
 ## Teacher notes

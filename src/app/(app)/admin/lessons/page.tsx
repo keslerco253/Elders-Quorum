@@ -15,7 +15,7 @@ import { addSundays, fillTalks, saveRegular } from "./actions";
 import { fillRegularTeachers, regularByTeacher, regularTeachers, weekOfMonth, weeksText, WEEK_WORDS, WEEKS } from "@/lib/regular-teachers";
 import { orgRoster } from "@/lib/orgs";
 import { isPresidency } from "@/lib/permissions";
-import { teacherNeededLessons, volunteerLessons } from "@/lib/admin-counts";
+import { markTeacherNeedsSeen, teacherNeededLessons, volunteerLessons } from "@/lib/admin-counts";
 import { ensureCfmLessons, lastCfmSunday, usesCfm } from "@/lib/cfm";
 
 export const metadata = { title: "Manage lessons" };
@@ -43,6 +43,8 @@ export default async function AdminLessonsPage({
   const needs = isPresidency(user)
     ? [...teacherNeededLessons(user.org_id).map((l) => ({ ...l, why: "Teacher needed" })), ...volunteerLessons(user.org_id).map((l) => ({ ...l, why: "Volunteers to assign" }))].sort((a, b) => a.date.localeCompare(b.date))
     : [];
+  // Seen here: they stop counting toward this leader's red number (they stay listed until a teacher is assigned).
+  if (isPresidency(user)) markTeacherNeedsSeen(user.id, needs.filter((n) => n.why === "Teacher needed").map((n) => n.id));
   const fifths = lessons.filter((l) => weekOfMonth(l.date) === 5).slice(0, 3);
   // Where pasted links go: Sundays from today with no talk yet, in order.
   const open = openLessonSundays(user.org_id, today);
