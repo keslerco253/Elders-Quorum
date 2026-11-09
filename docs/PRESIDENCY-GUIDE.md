@@ -708,6 +708,25 @@ whether they've accepted.
 - **Two members sharing a number:** texts to it go to the one who signed in most
   recently.
 
+### Text from my phone (free)
+
+Where the site owner has turned it on for the ward, **Messages → New message**
+has a **📱 Text from my phone instead** button under Send. Choose who it's for
+(everyone, the presidency, upcoming teachers, a group or one person), write the
+message, and tap it. You get the list of everyone with a phone number (and who
+has none), then choose:
+- **One group text:** your phone's Messages app opens with all their numbers
+  and your words. Everyone sees each other's numbers and every reply. Best for a
+  few people (more than 10 and some phones won't send it).
+- **One at a time:** a separate, private text to each person. Tap **Text (name)**,
+  send it in Messages, come back, and tap the next one; a ✓ marks who you've done.
+
+It comes from your own number, so it costs nothing and replies come straight to
+you. The app doesn't send, save or see these texts, so they don't show in
+Messages or **Did they get it?**. It works on a phone (iPhone or Android), in
+the app or the browser, not on a computer. The site owner turns it on per ward
+(Site owner → the ward → Texting & billing → **Text from my phone**).
+
 ## Messages
 
 Tap **Messages** at the top (the speech bubble on a phone).

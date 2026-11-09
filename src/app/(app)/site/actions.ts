@@ -38,6 +38,17 @@ export async function setWardTexting(fd: FormData) {
   go(`Texting is ${on ? "on" : "off"} for ${ward.name}.`);
 }
 
+/** Lets the ward's leaders text a list from their own phone (Text from my phone), or not. */
+export async function setPhoneTexting(fd: FormData) {
+  await requireSiteOwner();
+  const ward = getWard(Number(fd.get("ward_id")));
+  if (!ward) go("That ward is gone.", true);
+  const on = fd.get("on") === "1";
+  db().prepare("UPDATE wards SET phone_texting = ? WHERE id = ?").run(on ? 1 : 0, ward.id);
+  revalidatePath("/", "layout");
+  go(`Text from my phone is ${on ? "on" : "off"} for ${ward.name}.`);
+}
+
 /** A way back in: the site owner joins a ward's bishopric (as an admin there), e.g. after losing access. */
 export async function leadWard(fd: FormData) {
   const user = await requireSiteOwner();

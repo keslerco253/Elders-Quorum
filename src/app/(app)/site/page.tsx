@@ -15,7 +15,7 @@ import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
 import { addWard, approveNewWard, declineNewWard, loadCfmSchedule, setUpReview, removeCfmYear, removeWard,
-  clearWardData, saveTextCost, saveTextLimit, setNoTexting, setPaidThrough, setSiteEmail, sendTestEmail, sendTestText, setWardTexting } from "./actions";
+  clearWardData, saveTextCost, saveTextLimit, setNoTexting, setPaidThrough, setSiteEmail, sendTestEmail, sendTestText, setPhoneTexting, setWardTexting } from "./actions";
 import { pendingWards } from "@/lib/ward-review";
 import { formatPhone } from "@/lib/contact";
 import { cfmYears, manualUrl } from "@/lib/cfm";
@@ -30,6 +30,7 @@ interface WardRow {
   created_at: string;
   texting_enabled: number;
   no_texting: number;
+  phone_texting: number;
   site_email: number;
   /** The ward's own email account, if connected. */
   ward_email: string | null;
@@ -75,7 +76,7 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
   const soon = DateTime.now().plus({ days: 14 }).toISODate()!;
   const wards = db()
     .prepare(
-      `SELECT w.id, w.name, w.created_at, w.texting_enabled, w.no_texting, w.site_email, w.texting_paid_through,
+      `SELECT w.id, w.name, w.created_at, w.texting_enabled, w.no_texting, w.phone_texting, w.site_email, w.texting_paid_through,
          (SELECT om.address FROM org_mail om JOIN orgs o ON o.id = om.org_id WHERE o.ward_id = w.id AND o.kind = 'ward') AS ward_email,
          (SELECT COUNT(*) FROM org_mail om JOIN orgs o ON o.id = om.org_id WHERE o.ward_id = w.id AND o.kind <> 'ward') AS org_emails, m.display_name AS creator, COALESCE(m.email, m.phone) AS creator_contact,
          (SELECT COUNT(*) FROM ward_members wm WHERE wm.ward_id = w.id) AS people,
@@ -253,6 +254,12 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
                         )}
                       </div>
                     )}
+                    <form action={setPhoneTexting} className="flex flex-wrap items-center gap-2">
+                      <input type="hidden" name="ward_id" value={w.id} />
+                      <input type="hidden" name="on" value={w.phone_texting ? "0" : "1"} />
+                      <span className="text-sm">Text from my phone (free, from the leader&apos;s own phone): {w.phone_texting ? "on" : "off"}</span>
+                      <SubmitButton className="btn-secondary btn-sm">{w.phone_texting ? "Turn off" : "Turn on"}</SubmitButton>
+                    </form>
                     {!w.no_texting && (
                       <form action={setPaidThrough} className="flex flex-wrap items-center gap-2">
                         <input type="hidden" name="ward_id" value={w.id} />

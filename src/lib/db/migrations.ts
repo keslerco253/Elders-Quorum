@@ -1930,6 +1930,13 @@ CREATE INDEX app_suggestions_status ON app_suggestions(status, created_at);
     id: 106,
     sql: `ALTER TABLE message_templates ADD COLUMN text TEXT;`,
   },
+  {
+    // Leaders can text a list from their own phone (free; the phone's Messages app sends it).
+    // On to try in Villas Ward (the real one); off elsewhere until the site owner turns it on.
+    id: 107,
+    sql: `ALTER TABLE wards ADD COLUMN phone_texting INTEGER NOT NULL DEFAULT 0;
+      UPDATE wards SET phone_texting = 1 WHERE name LIKE 'Villas Ward%' AND demo = 0 AND (SELECT COUNT(*) FROM ward_members wm WHERE wm.ward_id = wards.id) >= 10;`,
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */

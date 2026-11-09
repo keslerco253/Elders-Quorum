@@ -64,6 +64,8 @@ export interface Ward {
   member_messages: number;
   /** 1: email goes out from the site's own account when the ward hasn't connected one. */
   site_email: number;
+  /** 1: leaders can text a list of people from their own phone (Messages → New → Text from my phone). */
+  phone_texting: number;
 }
 
 /** Features an organization can hide when it doesn't use them. */

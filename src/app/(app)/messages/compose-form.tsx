@@ -14,6 +14,7 @@ export function ComposeForm({
   people,
   initial,
   agendaOrgs = [],
+  phoneOrgs = [],
   initialTitle = "",
   initialBody = "",
 }: {
@@ -21,6 +22,8 @@ export function ComposeForm({
   people: PersonChoice[];
   initial: string;
   agendaOrgs?: number[];
+  /** Organizations whose ward lets leaders text from their own phone. */
+  phoneOrgs?: number[];
   /** Filled in from elsewhere (e.g. something from ward council to pass on). */
   initialTitle?: string;
   initialBody?: string;
@@ -33,6 +36,7 @@ export function ComposeForm({
   // Presidency members can put what they're writing about on the next meeting's agenda.
   const chosen = isPerson ? person : to;
   const canAgenda = agendaOrgs.includes(Number(chosen.split(":")[1]));
+  const canPhone = !!chosen && phoneOrgs.includes(Number(chosen.split(":")[1]));
   return (
     <form action={composeMessage} className="card max-w-2xl space-y-4">
       <input type="hidden" name="to" value={isPerson ? person : to} />
@@ -126,6 +130,22 @@ export function ComposeForm({
       <SubmitButton pendingText="Sending…" {...(isPerson ? {} : { confirm: "Send this to everyone you chose?" })}>
         Send
       </SubmitButton>
+      {canPhone && (
+        <div className="border-t border-border pt-3">
+          {/* Opens the list (with this message) to text from the leader's own phone instead. */}
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={(e) => {
+              const body = (e.currentTarget.form?.elements.namedItem("body") as HTMLTextAreaElement | null)?.value ?? "";
+              window.location.href = `/messages/phone?${new URLSearchParams({ to: chosen, body })}`;
+            }}
+          >
+            📱 Text from my phone instead
+          </button>
+          <p className="mt-1 text-xs text-muted">Free: your phone&apos;s Messages app sends it from your own number, as one group text or one person at a time. It isn&apos;t sent or saved in the app.</p>
+        </div>
+      )}
     </form>
   );
 }
