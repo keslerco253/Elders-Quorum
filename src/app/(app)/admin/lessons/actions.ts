@@ -167,7 +167,7 @@ export async function assignTeacher(fd: FormData) {
     await notify([{ ...teacher, org_id: user.org_id }], {
       title: `You're teaching in ${user.orgLabel}`,
       body: `Thank you for teaching on ${formatDate(lesson.date)}${lesson.title ? `: "${lesson.title}"` : ""}${lesson.speaker ? ` by ${lesson.speaker}` : ""}. You can post notes for everyone to read beforehand on the lesson page.`,
-      textBody: `Thank you for teaching ${formatDate(lesson.date, "short")}${lesson.title ? `: "${lesson.title}"` : ""}${lesson.speaker ? ` by ${lesson.speaker}` : ""}.`,
+      textBody: `${formatDate(lesson.date, "short")}${lesson.title ? `: "${lesson.title}"` : ""}${lesson.speaker ? ` by ${lesson.speaker}` : ""}. Thank you!`,
       url: `/lessons/${lesson.id}`,
     }, { followUp: { what: `Assigned to teach on ${formatDate(lesson.date, "short")}`, url: `/admin/lessons/${lesson.id}` } });
   }

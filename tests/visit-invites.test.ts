@@ -25,7 +25,7 @@ describe("visit invitations", () => {
 
   it("writes a warm message with the date, time and who's coming", () => {
     expect(pv.inviteMessage("Sam", "2030-10-15", "19:00", ["Daniel Carter", "Michael Nguyen"], "the Elders Quorum presidency")).toBe(
-      "Hi Sam! We would love to come visit you and your family in your home on Tuesday, October 15 at 7:00 PM. Daniel Carter and Michael Nguyen from the Elders Quorum presidency are looking forward to seeing you. If that time doesn't work, please let us know a time that would be better for you.",
+      "Hi Sam! We'd love to visit you and your family at home on Tuesday, October 15 at 7:00 PM. Daniel Carter and Michael Nguyen from the Elders Quorum presidency are looking forward to it. If that time doesn't work, let us know a better one.",
     );
     expect(pv.inviteMessage("Sam", "2030-10-15", null, ["Daniel Carter"], "the bishopric")).toContain("Daniel Carter from the bishopric is looking forward");
   });

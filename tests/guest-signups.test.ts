@@ -69,6 +69,6 @@ describe("signing up from a public link, without an account", () => {
     const due = g.guestRemindersDue(new Date("2030-10-29T15:00:00Z"));
     expect(due.map((r) => [r.when, r.texts])).toEqual([["tomorrow", false]]);
     await g.sendGuestReminder(due[0]);
-    expect(lastTo("john@test.local")).toContain("Reminder: you signed up for Temple Cleaning (Saturday 9 AM) tomorrow");
+    expect(lastTo("john@test.local")).toContain("Reminder: Temple Cleaning (Saturday 9 AM) tomorrow");
   });
 });

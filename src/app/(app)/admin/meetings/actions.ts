@@ -104,7 +104,7 @@ export async function saveMeetingRole(fd: FormData) {
       await notify([to], {
         title: `You're giving ${giving}`,
         body: `${when}. ${user.display_name} chose you. It's in My assignments; if you can't, you can ask someone else to take it there.`,
-        textBody: `${when}. ${user.display_name} chose you. Can't? Ask someone else from My assignments.`,
+        textBody: `${when}. Can't? See My assignments.`,
         url: withOrg(`/assignments/${r.todoId}`, user.org_id),
       });
   }

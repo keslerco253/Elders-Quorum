@@ -75,7 +75,7 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     label: "Visit invitation (suggested wording)",
     about: "The message suggested when you invite a member to a visit. You can still change it each time before sending.",
     personal: true,
-    body: "Hi {first_name}! We would love to come visit you and your family in your home on {date}[ at {time}].[ {visitors} from {leaders} {is_are} looking forward to seeing you.] If that time doesn't work, please let us know a time that would be better for you.",
+    body: "Hi {first_name}! We'd love to visit you and your family at home on {date}[ at {time}].[ {visitors} from {leaders} {is_are} looking forward to it.] If that time doesn't work, let us know a better one.",
     vars: [
       v("first_name", "The member's first name", "Hyrum"),
       v("date", "The date", "Friday, October 16"),
@@ -117,6 +117,7 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     about: "To Sunday School on Sunday evening: the coming week's Come, Follow Me reading.",
     title: "This week's Come, Follow Me: {reading}",
     body: "[{lesson_title}] Tap to read this week's lesson.",
+    text: "Come, Follow Me this week: {reading}.[ {lesson_title}]",
     vars: [
       v("reading", "The week's reading", "Genesis 1–2; Moses 2–3"),
       v("lesson_title", "The lesson's title", "“In the Beginning God Created the Heaven and the Earth”"),

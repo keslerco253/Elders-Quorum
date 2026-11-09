@@ -178,6 +178,8 @@ export async function answerInvitation(plan: PlannedVisit, answer: InviteAnswer,
   await notify(audienceMembers(plan.org_id, "presidency"), {
     title: answer === "accepted" ? "Visit confirmed" : answer === "new_time" ? "Another time, please" : "Visit invitation declined",
     body,
+    // Shorter by text, to fit in one.
+    ...(answer === "new_time" ? { textBody: `${plan.member_name} can't do ${when}${text ? `: "${text}"` : "."}` } : {}),
     url: "/admin/visits",
     // A leader texting back is answering this member (not whoever wrote last).
     replyTo: { memberId: plan.member_id, private: false },

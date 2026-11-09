@@ -222,7 +222,7 @@ export function guestRemindersDue(now: Date = new Date()): GuestReminder[] {
 
 export async function sendGuestReminder(r: GuestReminder) {
   const cancel = r.token ? `${shareUrl(r.token)}/cancel?g=${r.guestId}&t=${r.cancelToken}` : "";
-  const text = `Reminder: you signed up for ${r.title} (${r.slot}) ${r.when === r.date ? `on ${r.date}` : r.when}. Thank you for serving!${cancel ? ` Can't make it? ${cancel}` : ""}`;
+  const text = `Reminder: ${r.title} (${r.slot}) ${r.when === r.date ? `on ${r.date}` : r.when}. Thank you for serving!${cancel ? ` Can't make it? ${cancel}` : ""}`;
   if (r.texts) {
     if (canSendNotice(r.orgId)) await sendSms(r.orgId, r.contact, text, "notice");
   } else if (r.kind === "email") {

@@ -129,7 +129,7 @@ export async function tellRegularTeachers(orgId: number, orgLabel: string, chang
     await notify([who], {
       title: `You're a regular teacher in ${orgLabel}`,
       body: `Thank you! You're teaching on the ${weeksText(t.all)} of each month. Your lessons show under My assignments, and you'll get a reminder the week before each one.`,
-      textBody: `Thank you! You're teaching on the ${weeksText(t.all)} of each month. You'll get a reminder the week before.`,
+      textBody: `The ${weeksText(t.all)} of each month. Thank you!`,
       url: "/assignments",
     }, { followUp: { what: `Made a regular teacher (${weeksText(t.all)} of each month)`, url } });
   }
