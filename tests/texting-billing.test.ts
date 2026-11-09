@@ -39,7 +39,8 @@ describe("texting by ward: none at all, cost, paid through", () => {
     sms.setTextCost(0.01);
     expect(sms.textCost()).toBe(0.01);
     const month = DateTime.utc().toFormat("yyyy-MM");
-    expect(sms.textsByMonth(1)).toEqual([{ month, texts: 1 }]);
+    expect(sms.textsByMonth(1)).toEqual([{ month, texts: 1, segments: 1 }]);
+    expect(sms.segmentsThisMonth(1)).toBe(1);
     expect(sms.textsByMonth(2)).toEqual([]);
   });
 

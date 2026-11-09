@@ -119,7 +119,8 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       if (!dueForDate(`d:${w.days}@${w.time}`, date, local)) continue;
       const title = w.days === 0 ? "You're teaching today" : w.days === 1 ? "You're teaching tomorrow" : "You're teaching this Sunday";
       const confirmed = !!lesson.teacher_confirmed_at;
-      const about = [lesson.title ? `"${lesson.title}"${lesson.speaker && !lesson.topic && lesson.fifth !== 1 ? ` by ${lesson.speaker}` : ""}.` : "", teacherNotesLine(lesson.id)].filter(Boolean).join(" ");
+      const talk = lesson.title ? `"${lesson.title}"${lesson.speaker && !lesson.topic && lesson.fifth !== 1 ? ` by ${lesson.speaker}` : ""}.` : "";
+      const about = [talk, teacherNotesLine(lesson.id)].filter(Boolean).join(" ");
       out.push({
         key: `lesson-teacher-${windowTag(w)}:${org.id}:${date}:${teacher.id}`,
         recipients: [teacher],
@@ -129,14 +130,15 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
               body: `${about} Thanks for confirming. Plans changed? Tap to let us know.`,
               url: respondPath(lesson.id, teacher.id),
               linkLabel: "Open",
-              textBody: `${about} Thanks for confirming. Plans changed? Reply CANT and a reason.`,
+              // A text stays short (each 153 letters costs): no notes suggestion.
+              textBody: `${talk} Thanks for confirming. Plans changed? Reply CANT and a reason.`,
             }
           : {
               title,
               body: `${about} Still planning to teach? Tap to let us know either way.`,
               url: respondPath(lesson.id, teacher.id),
               linkLabel: "Reply: teaching or not",
-              textBody: `${about} Reply TEACH if you're still teaching, or CANT and a reason if you can't.`,
+              textBody: `${talk} Reply TEACH if you're still teaching, or CANT and a reason if you can't.`,
               actions: [
                 { action: "teach", title: "I'll be teaching", url: respondPath(lesson.id, teacher.id, "teach") },
                 { action: "cant", title: "I can't teach", url: respondPath(lesson.id, teacher.id, "cant") },

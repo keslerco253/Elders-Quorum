@@ -82,13 +82,22 @@ export function setTextCost(dollars: number) {
 }
 
 /** A ward's texts by month (yyyy-mm), newest first, up to 12 months: codes, notices and replies together. */
-export function textsByMonth(wardId: number): { month: string; texts: number }[] {
+/** Segments billed this month (what the cost is counted from). */
+export function segmentsThisMonth(wardId: number): number {
+  return (
+    db()
+      .prepare(`SELECT coalesce(SUM(l.segments), 0) AS n FROM sms_log l JOIN orgs o ON o.id = l.org_id WHERE o.ward_id = ? AND l.sent_at >= strftime('%Y-%m-01 00:00:00', 'now')`)
+      .get(wardId) as { n: number }
+  ).n;
+}
+
+export function textsByMonth(wardId: number): { month: string; texts: number; segments: number }[] {
   return db()
     .prepare(
-      `SELECT substr(l.sent_at, 1, 7) AS month, COUNT(*) AS texts FROM sms_log l JOIN orgs o ON o.id = l.org_id
+      `SELECT substr(l.sent_at, 1, 7) AS month, COUNT(*) AS texts, coalesce(SUM(l.segments), 0) AS segments FROM sms_log l JOIN orgs o ON o.id = l.org_id
        WHERE o.ward_id = ? AND l.sent_at >= date('now', 'start of month', '-11 months') GROUP BY month ORDER BY month DESC`,
     )
-    .all(wardId) as { month: string; texts: number }[];
+    .all(wardId) as { month: string; texts: number; segments: number }[];
 }
 
 /**
@@ -114,8 +123,10 @@ export function codeTextFooter(code: string) {
 export type SmsResult = "sent" | "failed" | "opted_out";
 
 /** Sends a text; orgId is the organization it's for (counted against its ward's limit). */
-export async function sendSms(orgId: number | null, to: string, body: string, kind: "code" | "notice"): Promise<SmsResult> {
+export async function sendSms(orgId: number | null, to: string, text: string, kind: "code" | "notice"): Promise<SmsResult> {
   if (!phoneEnabled() || orgHasNoTexting(orgId)) return "failed";
+  // In the plain alphabet, so it's billed at 153 letters a segment, not 67.
+  const body = toGsm7(text);
   let result: SmsResult = "sent";
   if (!twilioConfigured()) {
     const dir = path.join(DATA_DIR, "outbox");
@@ -143,7 +154,7 @@ export async function sendSms(orgId: number | null, to: string, body: string, ki
       result = "failed";
     }
   }
-  if (result === "sent" && orgId) db().prepare("INSERT INTO sms_log (org_id, kind) VALUES (?, ?)").run(orgId, kind);
+  if (result === "sent" && orgId) db().prepare("INSERT INTO sms_log (org_id, kind, segments) VALUES (?, ?, ?)").run(orgId, kind, smsSegments(body));
   return result;
 }
 
@@ -158,4 +169,53 @@ export function phoneOnlyMembers(wardId: number): number {
       )
       .get(wardId, wardId) as { n: number }
   ).n;
+}
+
+// Texts are billed by the segment: 153 characters each in the plain text alphabet
+// (GSM-7), but only 67 once any other character appears (a curly quote, an arrow, an
+// emoji), which can make the same text cost 3 times as much. So every text is put in
+// the plain alphabet before it's sent.
+
+const GSM7 = new Set(
+  "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà",
+);
+/** Characters that count as two in GSM-7. */
+const GSM7_EXT = new Set("^{}\\[~]|€");
+
+const SWAPS: [RegExp, string][] = [
+  [/[\u2018\u2019\u201A\u201B\u2032\u0060\u00B4]/g, "'"],
+  [/[\u201C\u201D\u201E\u201F\u2033\u00AB\u00BB]/g, '"'],
+  [/[\u2010-\u2015\u2212]/g, "-"],
+  [/\u2026/g, "..."],
+  [/[\u2192\u27A1\u21D2]/g, "->"],
+  [/[\u2190]/g, "<-"],
+  [/[\u2022\u00B7\u25CF]/g, "-"],
+  [/[\u00A0\u2007\u202F\u2009\u200A]/g, " "],
+  [/[\u200B-\u200D\u2060\uFE0F]/g, ""],
+  [/\u2713|\u2714/g, ""],
+];
+
+/** The text in the plain text alphabet: straight quotes, -> for arrows, no emoji, plain letters. */
+export function toGsm7(text: string): string {
+  let t = text;
+  for (const [re, to] of SWAPS) t = t.replace(re, to);
+  // Quotes doubled up by quoting a title that already had them: ""Title"" -> "Title".
+  t = t.replace(/"{2,}/g, '"').replace(/'{2,}/g, "'");
+  let out = "";
+  for (const ch of t) {
+    if (GSM7.has(ch) || GSM7_EXT.has(ch)) out += ch;
+    else {
+      // Accented letters without a plain-alphabet version lose the accent (í -> i).
+      const plain = ch.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (plain.length && [...plain].every((c) => GSM7.has(c))) out += plain;
+      // Anything else (emoji, symbols) is dropped.
+    }
+  }
+  return out.replace(/[ \t]{2,}/g, " ").trim();
+}
+
+/** How many segments a (plain-alphabet) text is billed as. */
+export function smsSegments(text: string): number {
+  const units = [...text].reduce((n, c) => n + (GSM7_EXT.has(c) ? 2 : 1), 0);
+  return units <= 160 ? 1 : Math.ceil(units / 153);
 }

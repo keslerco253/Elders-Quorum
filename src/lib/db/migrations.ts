@@ -1920,6 +1920,11 @@ CREATE INDEX app_suggestions_status ON app_suggestions(status, created_at);
     id: 104,
     sql: challengeSql("w.join_code = 'YQE4W8' COLLATE NOCASE"),
   },
+  {
+    // Each sent text's billed segments (153 letters each), so a ward's cost can be counted the way Twilio bills.
+    id: 105,
+    sql: `ALTER TABLE sms_log ADD COLUMN segments INTEGER NOT NULL DEFAULT 1;`,
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */

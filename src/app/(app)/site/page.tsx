@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime } from "@/lib/time";
 import { dataOnVolume } from "@/lib/setup-code";
-import { monthlyLimit, phoneEnabled, phoneOnlyMembers, textCost, textsByMonth, textsThisMonth, twilioConfigured } from "@/lib/sms";
+import { monthlyLimit, phoneEnabled, segmentsThisMonth, phoneOnlyMembers, textCost, textsByMonth, textsThisMonth, twilioConfigured } from "@/lib/sms";
 import { DateTime } from "luxon";
 import { inboundUrl } from "@/lib/sms-inbound";
 import { emailConfigured, mailStatus } from "@/lib/mail";
@@ -203,12 +203,14 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
       {phoneEnabled() && (
         <Section title="Texting cost">
           <form action={saveTextCost} className="card flex max-w-xl flex-wrap items-center gap-2 text-sm">
-            <label htmlFor="cost">Cost of one text, in dollars</label>
+            <label htmlFor="cost">Cost of one text segment, in dollars</label>
             <input id="cost" name="cost" inputMode="decimal" defaultValue={rate} className="input w-28 py-1" />
             <SubmitButton className="btn-secondary btn-sm">Save</SubmitButton>
             <p className="hint w-full">
-              Twilio&apos;s price plus carrier fees (about $0.012). Each ward&apos;s texts and their cost are under Texting &amp; billing on its card. This month, all wards:{" "}
-              {wards.reduce((n, w) => n + textsThisMonth(w.id), 0)} texts, about {money(wards.reduce((n, w) => n + textsThisMonth(w.id), 0) * rate)}. Sign-in codes are included.
+              Twilio&apos;s price plus carrier fees (about $0.012). Twilio bills by the segment: up to 160 letters is one; longer texts are 153 letters each (the app keeps
+              most texts to 1 or 2). Each ward&apos;s texts and their cost are under Texting &amp; billing on its card. This month, all wards:{" "}
+              {wards.reduce((n, w) => n + textsThisMonth(w.id), 0)} texts in {wards.reduce((n, w) => n + segmentsThisMonth(w.id), 0)} segments, about{" "}
+              {money(wards.reduce((n, w) => n + segmentsThisMonth(w.id), 0) * rate)}. Sign-in codes are included.
             </p>
           </form>
         </Section>
@@ -229,7 +231,7 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
               <div className="text-muted">
                 {w.people} {w.people === 1 ? "person" : "people"} · {w.orgs} {w.orgs === 1 ? "organization" : "organizations"} · started {formatDate(w.created_at.slice(0, 10), "short")}
                 {w.creator && ` by ${w.creator}${w.creator_contact ? ` (${w.creator_contact})` : ""}`}
-                {phoneEnabled() && !w.no_texting && ` · ${textsThisMonth(w.id)} texts this month (about ${money(textsThisMonth(w.id) * rate)}), limit ${monthlyLimit(w.id)}`}
+                {phoneEnabled() && !w.no_texting && ` · ${textsThisMonth(w.id)} texts this month (${segmentsThisMonth(w.id)} segments, about ${money(segmentsThisMonth(w.id) * rate)}), limit ${monthlyLimit(w.id)}`}
               </div>
               <div className="flex flex-wrap gap-2">
                 <details>
@@ -275,8 +277,11 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
                           {textsByMonth(w.id).map((m) => (
                             <tr key={m.month}>
                               <td>{DateTime.fromFormat(m.month, "yyyy-MM").toFormat("LLL yyyy")}</td>
-                              <td className="text-right">{m.texts}</td>
-                              <td className="text-right">{money(m.texts * rate)}</td>
+                              <td className="text-right">
+                                {m.texts}
+                                {m.segments !== m.texts && <span className="text-muted"> ({m.segments} seg.)</span>}
+                              </td>
+                              <td className="text-right">{money(m.segments * rate)}</td>
                             </tr>
                           ))}
                           {textsByMonth(w.id).length === 0 && (

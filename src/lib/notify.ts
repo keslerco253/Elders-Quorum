@@ -3,7 +3,7 @@ import { appUrl } from "./config";
 import { emailHtml, sendMail } from "./mail";
 import { pushToMember, type PushPayload } from "./push";
 import { readUpload } from "./uploads";
-import { canSendNotice, sendSms } from "./sms";
+import { canSendNotice, sendSms, toGsm7 } from "./sms";
 import { fallbackChannels, type ContactPref } from "./contact";
 import { DateTime } from "luxon";
 import { getOrg, orgFullName } from "./orgs";
@@ -87,8 +87,10 @@ function smsBody(wardName: string, payload: PushPayload, url: string) {
   if (payload.textLink) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n${payload.textLink}: ${url}`;
   // A member's message to a leader: their words, who it's from, then the link.
   if (payload.fullText) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n${payload.textTitle ?? payload.title}\n\nReply in app: ${url}`;
-  const text = `${wardName}: ${payload.title}. ${payload.textBody ?? payload.body}`.replace(/\s+/g, " ").trim();
-  return `${text.length > 280 ? text.slice(0, 277) + "…" : text} ${url}`;
+  // At most 2 segments (306 letters), the link included.
+  const text = toGsm7(`${wardName}: ${payload.title}. ${payload.textBody ?? payload.body}`.replace(/\s+/g, " ").trim());
+  const room = 306 - url.length - 1;
+  return `${text.length > room ? text.slice(0, room - 3).trimEnd() + "..." : text} ${url}`;
 }
 
 /**
