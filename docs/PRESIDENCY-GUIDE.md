@@ -4,6 +4,62 @@ How to do everything in My Ward Link as a leader: a bishopric, an
 organization presidency, a ward administrator or the site owner. It also
 describes what members see, so you can answer their questions.
 
+## Setting up a new ward (start here)
+
+A checklist for a ward that's new to the app. Do it in this order; most steps
+take a few minutes. Whoever started the ward (or a ward administrator) does steps
+1–4; each organization's president does step 5.
+
+**1. Connect the ward's email first.** Until you do, the app sends your members
+**no email at all**, and members can't get a sign-in code by email. Only the
+bishopric and ward administrators can sign in until then.
+- Make a Gmail account for the ward (for example villas.ward@gmail.com), so it can
+  be handed to whoever serves next.
+- In that Gmail account: Google Account → Security → turn on **2-Step
+  Verification**. Then open **myaccount.google.com/apppasswords**, name it
+  "My Ward Link", and copy the 16-letter password.
+- In the app: **Admin → Ward settings → Ward email**: enter the address and that
+  password, tap **Connect**. You get a test email.
+- Every organization uses the ward's email unless it connects its own (step 5).
+
+**2. Add the bishopric and ward administrators.** Looking at the ward, **Admin →
+Members** (or **Ward members**) **→ Add a member** for each (name, and mobile number or email). Open each one and set
+**Access level: Leadership** with their calling (Bishop, 1st Counselor…). In
+**Ward settings → Ward administrators**, choose up to two people who manage the
+ward's settings and member list (the clerk is a good choice). A ward
+administrator doesn't have to be in the bishopric.
+
+**3. Give each organization a president.** **Ward settings → Organizations**:
+for each one you use, **Choose its president → Set president**. **Turn off** any
+you don't use. Each president then adds their counselors and secretary (step 5).
+
+**4. Invite the ward.** **Admin → Invite members**: show the QR code in a meeting
+(**Show on a big screen**), share the link, or **🖨️ Print a flyer** (two to a
+page). Members scan, enter their name and phone or email, then the code they're
+sent. Then they choose their organizations (More → My organizations).
+- **Texts:** texting is turned on for a ward by the site owner. Until it is,
+  members join and sign in with email. Once it's on, **Admin → Members →
+  📱 Texting card** prints cards for members who'd rather get everything by text.
+- After a week or two, check **Ward members → Not in any organization** and
+  **Ward settings → New members** for anyone who joined but didn't pick an
+  organization, or shouldn't be there.
+
+**5. Each organization's president: set up your organization.** Switch to your
+organization (tap the name at the top left), then:
+- **Admin → Members:** add your counselors and secretary; open each and set
+  **Access level: Leadership** and their calling.
+- **Admin → Settings:** turn off features you won't use; set **Reminder times**.
+- **Admin → Settings → Email (optional):** to send from your organization's own
+  Gmail (replies come to you) instead of the ward's, connect it the same way as
+  step 1. If you skip this, your email goes out from the ward's account.
+- **Lessons → Manage lessons:** **Add Sundays**, then paste the talk links to
+  fill them; set **Regular teachers** if you have them.
+- Install the phone app (or add the website to your home screen) and turn on
+  notifications: More → Contact & notifications.
+
+**Stuck?** Ask in the box at the top of this guide, or use **More → Suggest an
+improvement** to tell the site owner.
+
 ## Asking this guide
 
 **Admin → Leader guide** has a box at the top. Ask in your own words, like

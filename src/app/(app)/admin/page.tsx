@@ -7,7 +7,7 @@ import { isAdmin, isPresidency } from "@/lib/permissions";
 import { CountDot, PageHeader, Section } from "@/components/ui";
 import { openInvitations, upcomingVisits } from "@/lib/planned-visits";
 import { roleLabel, type Feature } from "@/lib/types";
-import { hasFeature } from "@/lib/orgs";
+import { hasFeature, isNewWard } from "@/lib/orgs";
 import { pendingAgenda, recordsToReview } from "@/lib/meetings";
 import { orgTodos } from "@/lib/assignments";
 import { todayIn } from "@/lib/time";
@@ -77,6 +77,11 @@ export default async function AdminPage() {
     return (
       <>
         <PageHeader title="Admin" subtitle={`Ward tools for ${user.ward.name}`} />
+        {isNewWard(user.ward_id) && (
+        <Link href="/admin/guide#setting-up-a-new-ward-start-here" className="mb-4 flex items-center justify-between rounded-xl bg-accent-soft px-4 py-3 text-sm font-medium text-accent">
+          New ward? The setup checklist: email, leaders, organizations, inviting the ward. <span>›</span>
+        </Link>
+      )}
         {wardSection}
       </>
     );
@@ -183,6 +188,11 @@ export default async function AdminPage() {
             : `Admin tools for ${user.orgLabel}`
         }
       />
+      {isNewWard(user.ward_id) && (
+        <Link href="/admin/guide#setting-up-a-new-ward-start-here" className="mb-4 flex items-center justify-between rounded-xl bg-accent-soft px-4 py-3 text-sm font-medium text-accent">
+          New ward? The setup checklist: email, leaders, organizations, inviting the ward. <span>›</span>
+        </Link>
+      )}
       <HandbookLinks chapters={[orgChapter(user.org)]} />
       {waiting.some((t) => t.count && t.show !== false) && (
         <Section title="Waiting on you">

@@ -199,6 +199,11 @@ export function setsAccess(user: CurrentUser): boolean {
   return user.org.kind === "ward" && user.wardAdmin && !wardHasBishopric(user.ward_id);
 }
 
+/** A ward started in the last 60 days (its leaders see a link to the setup checklist). */
+export function isNewWard(wardId: number): boolean {
+  return !!db().prepare("SELECT 1 FROM wards WHERE id = ? AND created_at > datetime('now', '-60 days')").get(wardId);
+}
+
 /** Selects members in an organization, with their role there as m.role / m.calling. */
 export const ORG_MEMBERS_FROM = "members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?";
 

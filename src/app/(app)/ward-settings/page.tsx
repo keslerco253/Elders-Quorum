@@ -20,7 +20,7 @@ import {
 import { db } from "@/lib/db";
 import { OrgEmail } from "../admin/settings/org-email";
 import { wardPeople } from "@/lib/announce";
-import { orgRoster, wardAdmins, wardOrg } from "@/lib/orgs";
+import { isNewWard, orgRoster, wardAdmins, wardOrg } from "@/lib/orgs";
 import { FEATURES, STANDARD_ORGS, type Feature } from "@/lib/types";
 
 export const metadata = { title: "Ward settings" };
@@ -48,6 +48,11 @@ export default async function WardSettingsPage({ searchParams }: { searchParams:
     <>
       <PageHeader title="Ward settings" back={{ href: "/admin", label: "Admin" }} subtitle={`${user.ward.name}: its organizations, join code and settings.`} />
       <Flash msg={sp.msg} />
+      {isNewWard(user.ward_id) && (
+        <Link href="/admin/guide#setting-up-a-new-ward-start-here" className="mb-4 flex items-center justify-between rounded-xl bg-accent-soft px-4 py-3 text-sm font-medium text-accent">
+          New ward? Start with the setup checklist: email, bishopric, organizations, inviting the ward. <span>›</span>
+        </Link>
+      )}
       <HandbookLinks chapters={[BISHOPRIC, MEETINGS]} />
       <Section title="Ward administrators">
         <form action={saveWardAdmins} className="card max-w-xl space-y-3 text-sm">
