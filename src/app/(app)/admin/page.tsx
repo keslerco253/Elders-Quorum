@@ -61,6 +61,9 @@ export default async function AdminPage() {
             desc: `Who joined ${user.ward.name} lately, to check they belong`,
           },
           { href: "/ward-settings", label: "Ward settings", desc: `${user.ward.name}'s organizations, join code and ward administrators` },
+          // Not in the bishopric: the ward's member list is here (the bishopric has it below).
+          ...(!isAdmin(user) && user.org.kind === "ward" ? [{ href: "/admin/members", label: "Ward members", desc: `Everyone in ${user.ward.name}: add people, their organizations, who hasn't chosen one` }] : []),
+          ...(!isAdmin(user) && user.org.kind === "ward" ? [{ href: "/admin/invite", label: "Invite members", desc: "The join code and QR code, and a flyer to print" }] : []),
         ]
       : []),
     ...(user.is_site_owner ? [{ href: "/site", label: "Site owner", desc: "Every ward, texting, backups" }] : []),

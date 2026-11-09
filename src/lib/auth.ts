@@ -6,7 +6,7 @@ import { hasAdminTab } from "./admin-counts";
 import { cache } from "react";
 import { isHttps } from "./config";
 import { createSession, deleteSession, userForSession, type Remember } from "./auth-core";
-import { isAdmin, isPresidency } from "./permissions";
+import { isAdmin, isPresidency, managesPeople } from "./permissions";
 import { FEATURES, type CurrentUser, type Feature } from "./types";
 import { ORG_COOKIE, parseOrgCookie } from "./org-cookie";
 import { hasFeature, ledOrgsAnywhere } from "./orgs";
@@ -40,6 +40,13 @@ function notALeaderHere(user: CurrentUser): never {
 export async function requireAdminTab(): Promise<CurrentUser> {
   const user = await requireUser();
   if (!isAdmin(user) && !hasAdminTab(user)) notALeaderHere(user);
+  return user;
+}
+
+/** The member list and its tools: the presidency, or the ward's administrators at the ward level. */
+export async function requirePeopleManager(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (!managesPeople(user)) notALeaderHere(user);
   return user;
 }
 

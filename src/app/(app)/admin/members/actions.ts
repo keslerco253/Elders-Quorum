@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { ORG_COOKIE, orgCookieMaxAge, orgCookieValue } from "@/lib/org-cookie";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireAdmin, requirePresidency, requireUser } from "@/lib/auth";
+import { requireAdmin, requirePresidency, requireUser, requirePeopleManager } from "@/lib/auth";
 import { isPresidency } from "@/lib/permissions";
 import { normalizeEmailAddress, normalizePhone, parseContact } from "@/lib/contact";
 import { findMemberByContact } from "@/lib/auth-core";
@@ -41,7 +41,7 @@ function go(path: string, text: string): never {
 
 export async function updateMember(fd: FormData) {
   await sameOrg(fd);
-  const user = await requireAdmin();
+  const user = await requirePeopleManager();
   const id = Number(fd.get("item_id"));
   const m = orgMemberView(user.org_id, id);
   if (!m) redirect("/admin/members");
@@ -70,7 +70,7 @@ export async function updateMember(fd: FormData) {
 
   // Turning an account off applies everywhere, so only ward leaders can.
   let status = m.status;
-  if (user.wardLeader && onlyInWard(id, user.ward_id)) {
+  if ((user.wardLeader || (user.org.kind === "ward" && user.wardAdmin)) && onlyInWard(id, user.ward_id)) {
     const s = String(fd.get("status") || m.status);
     if (s === "active" || s === "inactive") status = s;
     if (status !== "active" && onlyLeaderOf(id, user.ward_id).length) go(`/admin/members/${id}`, "They're the only presidency member of an organization. Give it another leader first.");
@@ -101,7 +101,9 @@ export async function updateMember(fd: FormData) {
 /** Out of this organization, or (from the ward-wide organization) out of the ward. */
 export async function removeMember(fd: FormData) {
   await sameOrg(fd);
-  const user = await requirePresidency();
+  // Out of the ward: the bishopric or a ward administrator; out of an organization: its presidency.
+  const user = await requirePeopleManager();
+  if (user.org.kind !== "ward" && !isPresidency(user)) redirect("/admin/members");
   const id = Number(fd.get("item_id"));
   const m = orgMemberView(user.org_id, id);
   if (!m) redirect("/admin/members");
@@ -142,7 +144,7 @@ export async function decideAccess(fd: FormData) {
  * terms and texts at first sign-in.
  */
 export async function addMember(fd: FormData) {
-  const user = await requirePresidency();
+  const user = await requirePeopleManager();
   const name = String(fd.get("name") || "").trim().slice(0, 100);
   const raw = String(fd.get("contact") || "");
   const c = parseContact(raw);
@@ -150,7 +152,8 @@ export async function addMember(fd: FormData) {
   if (!name) back("Enter their name.");
   if (!c) return back("Enter a mobile number like (208) 555-0142 or an email address.");
   if (c.kind === "email" && isOwnerEmail(c.value) && !user.is_site_owner && !findMemberByContact(c.value)) back("That email can't be used here.");
-  const role = ROLES.includes(fd.get("role") as Role) ? (fd.get("role") as Role) : "member";
+  // Leadership access is given only by the presidency (ward administrators add members).
+  const role = isPresidency(user) && ROLES.includes(fd.get("role") as Role) ? (fd.get("role") as Role) : "member";
   const existing = findMemberByContact(c.value);
   if (existing) {
     if (existing.status !== "active") redirect(`/admin/members?msg=${encodeURIComponent(`${existing.display_name}'s account is turned off or waiting for approval.`)}`);
@@ -178,7 +181,7 @@ export async function addMember(fd: FormData) {
 
 export async function emailInvite(fd: FormData) {
   await sameOrg(fd);
-  const user = await requirePresidency();
+  const user = await requirePeopleManager();
   const id = Number(fd.get("item_id"));
   const m = wardMember(id, user.org_id);
   if (!m?.email) redirect("/admin/members");

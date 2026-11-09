@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
-import { requireAdmin } from "@/lib/auth";
+import { requirePeopleManager } from "@/lib/auth";
 import { formatPhone } from "@/lib/contact";
 import { memberShow, orgMemberList, positionLabel } from "@/lib/member-list";
 import { PrintButton } from "@/components/print-button";
@@ -9,7 +9,7 @@ export const metadata = { title: "Member list" };
 
 /** A plain, printable member list (names, callings, phone and email). */
 export default async function PrintMembersPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
-  const user = await requireAdmin();
+  const user = await requirePeopleManager();
   const sp = await searchParams;
   const members = orgMemberList(user.org_id, { show: user.org.kind === "ward" ? memberShow(sp.show) : sp.show === "inactive" ? "inactive" : "active", q: sp.q ?? "" });
   const title = user.orgLabel === user.ward.name ? user.ward.name : `${user.ward.name} ${user.orgLabel}`;

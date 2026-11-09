@@ -173,6 +173,14 @@ open it):
 
 - **Ward administrators:** choose up to two people from anyone in the ward. New
   ones are notified. Clearing both hands Ward settings back to the bishopric.
+  A ward administrator doesn't have to be in the bishopric, and isn't treated as
+  bishopric: they don't get members' messages to the bishopric, its notices, or its
+  visits, meetings and assignments. Looking at the ward, they also get **Admin →
+  Ward members** (the ward's member list, including **Not in any organization**,
+  with Print and Export), where they can add people as members, fix contact info,
+  set each person's organizations, turn an account off, and remove someone from
+  the ward; and **Invite members**. Leadership access and callings stay with the
+  bishopric. The site owner always counts as a ward administrator.
 - **Ward:** the ward's name and time zone.
 - **Ward email:** the email account the ward's email goes out from, and the
   email of every organization that hasn't connected its own (see **Email
