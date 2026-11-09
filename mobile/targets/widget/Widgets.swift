@@ -278,7 +278,7 @@ struct LargeView: View {
       if !data.upcoming.isEmpty {
         VStack(alignment: .leading, spacing: 6) {
           SectionLabel(text: "Coming up")
-          ForEach(Array(data.upcoming.prefix(3).enumerated()), id: \.offset) { _, e in
+          ForEach(Array(data.upcoming.prefix(4).enumerated()), id: \.offset) { _, e in
             if let url = link(base, e.path) {
               Link(destination: url) {
                 Row(icon: "calendar", label: e.when, title: e.title, detail: "")

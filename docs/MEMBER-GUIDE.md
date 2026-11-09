@@ -428,7 +428,9 @@ The iPhone and Android app does everything the website does, plus:
   asks when the app opens, and again if you come back after more than a minute
   away; tap **Unlock** if the prompt closes.
 - **Home-screen widget:** this Sunday's lesson, this week's Come, Follow Me
-  reading, your next event, and unread messages. On iPhone, add it from the Home
+  reading, what's coming up (the same as Home's Coming up: ward events, your own
+  events, assignments, to-dos, lessons you teach, service and visits; up to 4 on the
+  large widget), and unread messages. On iPhone, add it from the Home
   Screen's widgets (iOS 17 or later); on Android, long-press the home screen →
   Widgets → My Ward Link.
 - Pull down to refresh a page, and tap the tab you're on to scroll to the top. If

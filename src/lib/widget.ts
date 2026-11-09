@@ -6,6 +6,8 @@ import { currentUserFor, hasFeature, myOrgs } from "./orgs";
 import { upcomingLessons } from "./lessons";
 import { cfmWeekOf, usesCfm } from "./cfm";
 import { eventsBetween } from "./events";
+import { eventHref, personalEventsBetween } from "./personal-events";
+import { myAssignments } from "./assignments";
 import { unreadAnswers, leaderUnread } from "./conversations";
 import { unreadAnnouncements } from "./member-inbox";
 import { unreadNotifications } from "./notification-log";
@@ -71,13 +73,35 @@ export function widgetData(user: CurrentUser, now: DateTime = DateTime.utc()): W
   const ss = orgs.find(usesCfm);
   const ssLesson = ss && week ? upcomingLessons(ss.id, week.sunday, 1).find((l) => l.date === week.sunday) : undefined;
   const study = week ? { reading: week.reading, theme: week.theme, path: ssLesson && ss ? `/lessons/${ssLesson.id}?org=${ss.id}` : "/" } : null;
-  const events = eventsBetween(user.id, now.toISO()!, now.plus({ days: 45 }).toISO()!, { joinedOnly: true })
-    .slice(0, 3)
-    .map((e) => {
+  // Coming up, as on Home: calendar events, their own events, and what's on their plate
+  // with a date (assignments, to-dos, lessons they teach, service, visits), in order.
+  const dayWord = (d: DateTime) => (d.toISODate() === today ? "Today" : d.toISODate() === local.plus({ days: 1 }).toISODate() ? "Tomorrow" : formatDate(d.toISODate()!, "short"));
+  const from = now.toISO()!;
+  const to = now.plus({ days: 45 }).toISO()!;
+  const until = local.plus({ days: 45 }).toISODate()!;
+  const items = [
+    ...[...eventsBetween(user.id, from, to, { joinedOnly: true }), ...personalEventsBetween(user.id, from, to)].map((e) => {
       const s = DateTime.fromISO(e.starts_at).setZone(tz);
-      const day = s.toISODate() === today ? "Today" : s.toISODate() === local.plus({ days: 1 }).toISODate() ? "Tomorrow" : formatDate(s.toISODate()!, "short");
-      return { title: e.title, when: `${day} · ${s.toFormat("h:mm a")}`, path: `/calendar/${e.id}?org=${e.org_id}` };
-    });
+      return {
+        at: e.starts_at,
+        title: e.title,
+        when: e.all_day ? `${dayWord(s)} · All day` : `${dayWord(s)} · ${s.toFormat("h:mm a")}`,
+        path: e.personal_event_id ? eventHref(e) : `/calendar/${e.id}?org=${e.org_id}`,
+      };
+    }),
+    ...myAssignments(user.id, today)
+      .filter((i) => !i.done && i.date && i.date >= today && i.date <= until)
+      .map((i) => {
+        const d = DateTime.fromISO(`${i.date}T${i.time ?? (i.kind === "teach" ? "09:00" : "23:59")}`, { zone: tz });
+        return {
+          at: d.toUTC().toISO()!,
+          title: i.kind === "todo" || i.kind === "mine" ? `Due: ${i.title}` : i.title,
+          when: i.time ? `${dayWord(d)} · ${d.toFormat("h:mm a")}` : dayWord(d),
+          path: i.href.startsWith("/") && !i.href.includes("org=") && i.orgId ? `${i.href}${i.href.includes("?") ? "&" : "?"}org=${i.orgId}` : i.href,
+        };
+      }),
+  ].sort((a, b) => a.at.localeCompare(b.at));
+  const events = items.slice(0, 5).map(({ title, when, path }) => ({ title, when, path }));
   const event = events[0] ?? null;
   const unread = unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id) + unreadNotifications(user.id);
   return { ward: user.ward.name, lesson, study, event, events, unread };

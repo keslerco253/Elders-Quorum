@@ -39,4 +39,18 @@ describe("home-screen widget feed", () => {
     expect(data.ward).toBe("Villas Ward");
     expect(data.study).toBeNull();
   });
+
+  it("comes up with their own events and assignments too, in order, as on Home", () => {
+    const { id } = core.createSession(2, "month");
+    const user = w.widgetUser(w.widgetKeyFor(id))!;
+    d.exec(`INSERT INTO personal_events (member_id, title, date, start_time, timezone) VALUES (2, 'Temple with Braden', '2026-10-16', '19:00', 'America/Boise')`);
+    d.exec(`INSERT INTO todos (org_id, title, assignee_id, created_by, due_date, due_time) VALUES (1, 'Final review of ministering', 2, 1, '2026-10-19', '18:00')`);
+    const data = w.widgetData(user, DateTime.fromISO("2026-10-16T12:00", { zone: "America/Boise" }).toUTC());
+    expect(data.events.map((e) => [e.title, e.when])).toEqual([
+      ["Temple with Braden", "Today · 7:00 PM"],
+      ["Service project", "Tomorrow · 10:00 AM"],
+      ["Due: Final review of ministering", "Mon, Oct 19 · 6:00 PM"],
+    ]);
+    expect(data.events[0].path).toMatch(/^\/calendar\/mine\/\d+/);
+  });
 });

@@ -119,7 +119,7 @@ function WardWidget({ state, info, c }: { state: State; info?: WidgetInfo; c: Co
   const rows: React.JSX.Element[] = [];
   if (d.lesson) rows.push(<Row key="l" label={`${d.lesson.when} · ${d.lesson.org}`} title={d.lesson.title} detail={d.lesson.subtitle} path={d.lesson.path} c={c} big={height < 150 || width < 200} />);
   if (d.study) rows.push(<Row key="s" label="Come, Follow Me" title={d.study.reading} detail={height >= 250 ? d.study.theme : undefined} path={d.study.path} c={c} />);
-  events.slice(0, height >= 250 ? 3 : 1).forEach((e, i) => rows.push(<Row key={`e${i}`} label={i === 0 ? "Next up" : "Coming up"} title={e.title} detail={e.when} path={e.path} c={c} />));
+  events.slice(0, height >= 250 ? 4 : 1).forEach((e, i) => rows.push(<Row key={`e${i}`} label={i === 0 ? "Next up" : "Coming up"} title={e.title} detail={e.when} path={e.path} c={c} />));
   // Small: just the first thing; medium: about three; large: everything.
   const fits = height < 150 || width < 200 ? 1 : height < 250 ? 2 : 6;
   return (
