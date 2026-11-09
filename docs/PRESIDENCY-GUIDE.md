@@ -1626,7 +1626,9 @@ and the member list**).
     settings, lessons, calendar…), and can switch between its organizations, but
     you aren't a member: you're not on its lists, in its audiences or sent its
     messages and notices. It's on that device only. **Leave** (in the bar) takes
-    you back to your own ward; **Site owner** back here.
+    you back to your own ward; **Site owner** back here. Home and the Calendar show that ward's
+    organization (its lessons, events, who's conducting), not your own; your own
+    assignments, to-dos and messages stay in your own ward.
   - **Texting & billing:** turn texting on or off; set its monthly limit (0 to
     100,000); set a **Paid through** date (texting turns off by itself the day
     after; you're notified two weeks before and when it does); see texts and cost

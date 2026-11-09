@@ -34,9 +34,12 @@ export function eventsBetween(
   viewerId: number,
   fromUtc: string,
   toUtc: string,
-  where: { wardId?: number; orgIds?: number[]; joinedOnly?: boolean } = {},
+  where: { wardId?: number; orgIds?: number[]; joinedOnly?: boolean; support?: boolean } = {},
 ): EventRow[] {
-  const conds = ["e.starts_at < @to", "e.ends_at >= @from", VISIBLE, "o.ward_id IN (SELECT ward_id FROM ward_members WHERE member_id = @viewer)"];
+  // The site owner's support view: everything in that ward (they aren't a member of it).
+  const conds = where.support && where.wardId
+    ? ["e.starts_at < @to", "e.ends_at >= @from"]
+    : ["e.starts_at < @to", "e.ends_at >= @from", VISIBLE, "o.ward_id IN (SELECT ward_id FROM ward_members WHERE member_id = @viewer)"];
   if (where.wardId) conds.push("o.ward_id = @ward");
   // An organization's calendar also shows events it was invited to (or the whole ward was).
   if (where.orgIds?.length) {
@@ -63,7 +66,9 @@ export function validIcsToken(eventId: number, memberId: number, token: string) 
 }
 
 /** An event in any of the member's wards that they may see. */
-export function getEvent(viewerId: number, id: number): EventRow | undefined {
+export function getEvent(viewerId: number, id: number, supportWardId?: number): EventRow | undefined {
+  // Support view (the site owner looking into a ward): any event in that ward.
+  if (supportWardId) return db().prepare(`SELECT ${EVENT_COLUMNS} FROM ${EVENT_FROM} WHERE e.id = @id AND o.ward_id = @ward`).get({ id, ward: supportWardId }) as EventRow | undefined;
   return db()
     .prepare(`SELECT ${EVENT_COLUMNS} FROM ${EVENT_FROM} WHERE e.id = @id AND ${VISIBLE} AND o.ward_id IN (SELECT ward_id FROM ward_members WHERE member_id = @viewer)`)
     .get({ id, viewer: viewerId }) as EventRow | undefined;

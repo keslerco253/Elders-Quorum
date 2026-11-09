@@ -39,7 +39,8 @@ export default async function HomePage() {
   const today = todayIn(tz);
   // Everything coming up in every organization they belong to (and their wards), not
   // just the one they're looking at.
-  const mine = myOrgs(user.id);
+  // (Support view, the site owner looking into another ward: just the organization being looked at.)
+  const mine = user.support ? [] : myOrgs(user.id);
   if (!mine.some((o) => o.id === user.org_id)) mine.push({ ...user.org, label: user.orgLabel, role: user.role });
   // Links into another organization open there (?org=).
   const inOrg = (href: string, orgId: number) => (orgId === user.org_id ? href : withOrg(href, orgId));
@@ -47,15 +48,18 @@ export default async function HomePage() {
   const lessonNexts = lessonOrgs.map((o) => ({ org: o, lesson: upcomingLessons(o.id, currentLessonDate(tz), lessonOrgs.length > 1 ? 1 : 3) }));
   const now = DateTime.now();
   // With their own events (only they see them).
-  const events = [
-    ...eventsBetween(user.id, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!, { joinedOnly: true }),
-    ...personalEventsBetween(user.id, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!),
-  ];
+  const events = user.support
+    ? eventsBetween(user.id, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!, { wardId: user.ward_id, orgIds: [user.org_id], support: true })
+    : [
+        ...eventsBetween(user.id, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!, { joinedOnly: true }),
+        ...personalEventsBetween(user.id, now.toUTC().toISO()!, now.plus({ days: 45 }).toUTC().toISO()!),
+      ];
   // Coming up: events and everything with a date on their plate (assignments, to-dos,
   // lessons they're teaching, service they signed up for), in order. Something due on a
   // date with no time comes after that day's events (a lesson, at 9 AM).
   const until = now.setZone(tz).plus({ days: 45 }).toISODate()!;
-  const dated = myAssignments(user.id, today).filter((i) => !i.done && i.date && i.date >= today && i.date <= until);
+  // Their own plate isn't this ward's (support view).
+  const dated = (user.support ? [] : myAssignments(user.id, today)).filter((i) => !i.done && i.date && i.date >= today && i.date <= until);
   const upcoming = [
     ...events.map((e) => ({ at: e.starts_at, event: e, item: undefined })),
     ...dated.map((i) => ({
@@ -75,29 +79,29 @@ export default async function HomePage() {
   // Organizations a visit can be requested from.
   const visitOrgs = mine.filter((o) => hasFeature(o, "visits"));
   const { total: pending, shortcut } = adminCounts(user);
-  const asks = pendingRequestsFor(user.id, today);
-  const invites = pendingInvitesFor(user.id, today);
+  const asks = user.support ? [] : pendingRequestsFor(user.id, today);
+  const invites = user.support ? [] : pendingInvitesFor(user.id, today);
   const hour = DateTime.now().setZone(tz).hour;
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const first = firstName(user.display_name);
   // New to the ward: hasn't chosen any of its organizations yet.
   const groups = user.orgs.filter((o) => o.kind === "group");
-  const chooseOrgs = groups.length > 0 && !groups.some((o) => o.joined);
+  const chooseOrgs = !user.support && groups.length > 0 && !groups.some((o) => o.joined);
   // What they've been asked to do, are teaching or signed up for, soon (or overdue).
-  const assignments = soonAssignments(user.id, today);
+  const assignments = user.support ? [] : soonAssignments(user.id, today);
   // Presidency members: who's conducting this Sunday in each organization they lead,
   // and anyone asking them to conduct.
-  const led = ledOrgIds(user.id);
+  const led = user.support ? [user.org_id] : ledOrgIds(user.id);
   const conducting = mine
     .filter((o) => led.includes(o.id) && hasFeature(o, "conducting"))
     .map((o) => ({ org: o, c: conductingSchedule(o.id, currentLessonDate(tz), 1)[0] }))
     .filter(({ c }) => c && (c.name || c.conference));
-  const conductAsks = swapsWaitingOn(user.id, today).filter((a) => mine.some((o) => o.id === a.org_id && hasFeature(o, "conducting")));
+  const conductAsks = (user.support ? [] : swapsWaitingOn(user.id, today)).filter((a) => mine.some((o) => o.id === a.org_id && hasFeature(o, "conducting")));
   // Someone asking them (or their whole presidency) to take an assignment.
-  const takeAsks = handoffsWaitingOn(user.id);
+  const takeAsks = user.support ? [] : handoffsWaitingOn(user.id);
   // Assignments they've been asked to accept.
-  const assignmentAsks = assignmentRequestsFor(user.id);
+  const assignmentAsks = user.support ? [] : assignmentRequestsFor(user.id);
   // A challenge their organization is in: the scores, and a nudge to log.
   const challenges = runningChallengesFor(user.ward_id, user.id, today).map((c) => ({ c, board: scoreboard(c.id) }));
 

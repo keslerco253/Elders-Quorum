@@ -27,8 +27,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const only = user.orgs.find((o) => o.id === Number(sp.o));
   // With the member's own events (only they see them) when showing everything.
   const events = [
-    ...eventsBetween(user.id, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!, { wardId: user.ward_id, orgIds: only ? [only.id] : undefined }),
-    ...(only ? [] : personalEventsBetween(user.id, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!)),
+    ...eventsBetween(user.id, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!, { wardId: user.ward_id, orgIds: only ? [only.id] : undefined, support: user.support }),
+    ...(only || user.support ? [] : personalEventsBetween(user.id, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!)),
   ].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const chip = (e: EventRow) => (e.personal_event_id ? "bg-success-soft text-success" : e.presidency_only ? "bg-warn-soft text-warn" : "bg-accent-soft text-accent");
   const keep = (extra: Record<string, string | undefined>) => {

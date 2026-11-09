@@ -27,7 +27,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
   const user = await requireUser();
   const { id } = await params;
   const sp = await searchParams;
-  const e = getEvent(user.id, Number(id));
+  const e = getEvent(user.id, Number(id), user.support ? user.ward_id : undefined);
   if (!e) notFound();
   const series = getSeries(e.org_id, e.series_id);
   const tz = user.ward.timezone;
