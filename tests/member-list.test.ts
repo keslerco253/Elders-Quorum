@@ -17,9 +17,9 @@ describe("member list export", () => {
       () => "",
     );
     const lines = csv.replace("﻿", "").trim().split("\r\n");
-    expect(lines[0]).toBe("Name,Calling,Phone,Email,Last signed in");
-    expect(lines[1]).toBe("Mark Johnson,Elders Quorum President,(208) 555-0142,mark@test.local,");
-    expect(lines[2]).toBe('"Smith, John ""Jack""",,,,');
+    expect(lines[0]).toBe("Name,First name,Last name,Calling,Phone,Email,Last signed in");
+    expect(lines[1]).toBe("Mark Johnson,Mark,Johnson,Elders Quorum President,(208) 555-0142,mark@test.local,");
+    expect(lines[2]).toBe('"Smith, John ""Jack""",John,Smith,,,,');
   });
 });
 
@@ -36,5 +36,29 @@ describe("members not in any organization", () => {
     const { orgMemberList } = await import("@/lib/member-list");
     const ward = (db().prepare("SELECT id FROM orgs WHERE ward_id = 1 AND kind = 'ward'").get() as { id: number }).id;
     expect(orgMemberList(ward, { show: "noorg" }).map((m) => m.display_name)).toEqual(["New Person"]);
+  });
+});
+
+describe("sorting members by name", () => {
+  it("finds first and last names, and sorts by either", async () => {
+    const { nameParts, lastFirst, orgMemberList } = await import("@/lib/member-list");
+    expect(nameParts("Mark A. Johnson Jr.")).toEqual({ first: "Mark", last: "Johnson", rest: "Mark A." });
+    expect(nameParts("Johnson, Mark")).toMatchObject({ first: "Mark", last: "Johnson" });
+    expect(nameParts("Cher")).toMatchObject({ first: "Cher", last: "" });
+    expect(lastFirst("Mary Ann de Vries")).toBe("Vries, Mary Ann de");
+    const { useTestDb, db } = await import("@/lib/db");
+    useTestDb(`INSERT INTO wards (id, name, timezone) VALUES (1, 'Villas Ward', 'America/Boise');`);
+    const { addToWard, wardOrg } = await import("@/lib/orgs");
+    const names = ["Zack Adams", "Amy Young", "Ben Carter", "adam Brown"];
+    names.forEach((n, i) => {
+      db().prepare("INSERT INTO members (id, name, display_name, email) VALUES (?, ?, ?, ?)").run(10 + i, n, n, `${i}@x.com`);
+      addToWard(10 + i, 1);
+    });
+    const ward = wardOrg(1).id;
+    db().prepare("UPDATE org_members SET official = 1 WHERE org_id = ?").run(ward);
+    db().prepare("UPDATE org_members SET role = 'presidency' WHERE org_id = ? AND member_id = 10").run(ward);
+    expect(orgMemberList(ward, { sort: "leaders" }).map((m) => m.display_name)).toEqual(["Zack Adams", "adam Brown", "Amy Young", "Ben Carter"]);
+    expect(orgMemberList(ward, { sort: "first" }).map((m) => m.display_name)).toEqual(["adam Brown", "Amy Young", "Ben Carter", "Zack Adams"]);
+    expect(orgMemberList(ward, { sort: "last" }).map((m) => m.display_name)).toEqual(["Zack Adams", "adam Brown", "Ben Carter", "Amy Young"]);
   });
 });

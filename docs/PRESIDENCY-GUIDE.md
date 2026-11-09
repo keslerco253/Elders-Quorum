@@ -470,7 +470,7 @@ badges, **No texts**, **Can't be reached** (see **Did they get it?**), **Turned
 off (organization) notifications**, and when they last signed in. Search by
 name, and show **Active** or **Turned off**. On a member's page you can fix their **name** even after they've signed in (unless they lead somewhere; the site owner can fix anyone's). Their phone and email lock once they've signed in, since they sign in with them; they change those, and their own name, under More → Contact & notifications (at the ward level, also **Not in any organization**: everyone in the ward who hasn't chosen an organization like Elders Quorum or Relief Society yet; a yellow "See who" bar shows how many). **Print** gives one clean page of
 names, callings, phone and email; **Export (Excel)** a spreadsheet for Excel,
-Numbers or Google Sheets. Both follow the search and contain contact info: keep
+Numbers or Google Sheets (with separate First name and Last name columns). **Sort by** **Leaders first** (the presidency, then everyone A to Z), **First name A–Z**, or **Last name A–Z** (names then show as "Johnson, Mark"; "Jr." and the like are skipped). Both follow the search and sort and contain contact info: keep
 them within leadership. For addresses, use Member Tools.
 
 **A member's page** (Admin → Members → name):

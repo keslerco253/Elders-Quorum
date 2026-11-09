@@ -1,13 +1,13 @@
 import { DateTime } from "luxon";
 import { requirePeopleManager } from "@/lib/auth";
-import { memberListCsv, memberShow, orgMemberList } from "@/lib/member-list";
+import { memberListCsv, memberShow, memberSort, orgMemberList } from "@/lib/member-list";
 import { formatDateTime } from "@/lib/time";
 
 // Leaders download their organization's member list as a spreadsheet.
 export async function GET(req: Request) {
   const user = await requirePeopleManager();
   const sp = new URL(req.url).searchParams;
-  const members = orgMemberList(user.org_id, { show: user.org.kind === "ward" ? memberShow(sp.get("show")) : sp.get("show") === "inactive" ? "inactive" : "active", q: sp.get("q") ?? "" });
+  const members = orgMemberList(user.org_id, { show: user.org.kind === "ward" ? memberShow(sp.get("show")) : sp.get("show") === "inactive" ? "inactive" : "active", q: sp.get("q") ?? "", sort: memberSort(sp.get("sort")) });
   const csv = memberListCsv(members, user.org, (m) => (m.last_login_at ? formatDateTime(m.last_login_at, user.ward.timezone, "yyyy-LL-dd") : ""));
   const name = `${user.ward.name} ${user.orgLabel === user.ward.name ? "" : user.orgLabel} members ${DateTime.now().setZone(user.ward.timezone).toFormat("yyyy-LL-dd")}`.replace(/\s+/g, " ").replace(/[^\w .-]/g, "");
   return new Response(csv, {

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { DateTime } from "luxon";
 import { requirePeopleManager } from "@/lib/auth";
 import { formatPhone } from "@/lib/contact";
-import { memberShow, orgMemberList, positionLabel } from "@/lib/member-list";
+import { lastFirst, memberShow, memberSort, orgMemberList, positionLabel } from "@/lib/member-list";
 import { PrintButton } from "@/components/print-button";
 
 export const metadata = { title: "Member list" };
@@ -11,7 +11,7 @@ export const metadata = { title: "Member list" };
 export default async function PrintMembersPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePeopleManager();
   const sp = await searchParams;
-  const members = orgMemberList(user.org_id, { show: user.org.kind === "ward" ? memberShow(sp.show) : sp.show === "inactive" ? "inactive" : "active", q: sp.q ?? "" });
+  const members = orgMemberList(user.org_id, { show: user.org.kind === "ward" ? memberShow(sp.show) : sp.show === "inactive" ? "inactive" : "active", q: sp.q ?? "", sort: memberSort(sp.sort) });
   const title = user.orgLabel === user.ward.name ? user.ward.name : `${user.ward.name} ${user.orgLabel}`;
   return (
     <div className="print-sheet">
@@ -38,7 +38,7 @@ export default async function PrintMembersPage({ searchParams }: { searchParams:
         <tbody>
           {members.map((m) => (
             <tr key={m.id} className="border-b border-border align-top break-inside-avoid">
-              <td className="py-1.5 pr-3 font-medium">{m.display_name}</td>
+              <td className="py-1.5 pr-3 font-medium">{sp.sort === "last" ? lastFirst(m.display_name) : m.display_name}</td>
               <td className="py-1.5 pr-3">{positionLabel(m, user.org)}</td>
               <td className="py-1.5 pr-3 whitespace-nowrap">{m.phone ? formatPhone(m.phone) : ""}</td>
               <td className="py-1.5 break-all">{m.email ?? ""}</td>

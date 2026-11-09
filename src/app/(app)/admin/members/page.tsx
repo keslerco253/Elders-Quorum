@@ -5,7 +5,7 @@ import { withOrg } from "@/lib/org-cookie";
 import { HandbookLinks } from "@/components/handbook-link";
 import { CALLINGS } from "@/lib/handbook";
 import { requirePeopleManager } from "@/lib/auth";
-import { memberShow, orgMemberList } from "@/lib/member-list";
+import { lastFirst, memberShow, memberSort, orgMemberList } from "@/lib/member-list";
 import { setsAccess } from "@/lib/orgs";
 import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
@@ -33,7 +33,8 @@ export default async function MembersPage({
         ? "inactive"
         : "active";
   const q = (sp.q ?? "").trim();
-  const members = orgMemberList(user.org_id, { show, q });
+  const sort = memberSort(sp.sort);
+  const members = orgMemberList(user.org_id, { show, q, sort });
   const added = callingNamesByMember(user.org_id);
   const noOrgCount =
     user.org.kind === "ward" && show === "active"
@@ -56,13 +57,13 @@ export default async function MembersPage({
           members.length > 0 && (
             <div className="flex flex-wrap gap-2">
               <Link
-                href={`/admin/members/print?${new URLSearchParams({ show, q }).toString()}`}
+                href={`/admin/members/print?${new URLSearchParams({ show, q, sort }).toString()}`}
                 className="btn-secondary btn-sm"
               >
                 🖨 Print
               </Link>
               <a
-                href={`/admin/members/export?${new URLSearchParams({ show, q }).toString()}`}
+                href={`/admin/members/export?${new URLSearchParams({ show, q, sort }).toString()}`}
                 className="btn-secondary btn-sm"
                 download
               >
@@ -183,6 +184,11 @@ export default async function MembersPage({
             <option value="noorg">Not in any organization</option>
           )}
         </select>
+        <select name="sort" defaultValue={sort} className="input w-auto" aria-label="Sort by">
+          <option value="leaders">Leaders first</option>
+          <option value="first">First name A–Z</option>
+          <option value="last">Last name A–Z</option>
+        </select>
         <button className="btn-secondary">Search</button>
       </form>
       {members.length === 0 ? (
@@ -201,7 +207,7 @@ export default async function MembersPage({
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{m.display_name}</span>
+                    <span className="font-medium">{sort === "last" ? lastFirst(m.display_name) : m.display_name}</span>
                     {m.role !== "member" && (
                       <Badge tone="info">
                         {isCalling(m.calling)
