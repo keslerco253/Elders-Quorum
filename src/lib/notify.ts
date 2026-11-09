@@ -81,7 +81,7 @@ export function audienceLabel(orgId: number, audience: Audience): string {
  * Short text for a notice, with the ward and organization so people know who
  * it's from. A personal note is just the words and the sender's name.
  */
-function smsBody(wardName: string, payload: PushPayload, url: string) {
+export function smsBody(wardName: string, payload: PushPayload, url: string) {
   if (payload.personal) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n- ${payload.personal.from}`;
   // Already says who it's from (a visit invitation): the words in full, then the link.
   if (payload.textLink) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n${payload.textLink}: ${url}`;
@@ -205,7 +205,7 @@ export async function notify(
         push++;
         got = true;
       }
-      if (opts.only.includes("text") && canText && (await sendText(r, `${appUrl()}/n/${logId}`))) {
+      if (opts.only.includes("text") && canText && (await sendText(r, payload.textUrl ? `${appUrl()}${payload.textUrl}` : `${appUrl()}/n/${logId}`))) {
         text++;
         got = true;
       }
@@ -236,7 +236,7 @@ export async function notify(
       const deliver = async (channel: "email" | "text") => {
         if (channel === "email" && (await sendEmail(r, url))) email++;
         // Texts get the short link (/n/<id>), which opens the same page.
-        else if (channel === "text" && (await sendText(r, `${appUrl()}/n/${logId}`))) text++;
+        else if (channel === "text" && (await sendText(r, payload.textUrl ? `${appUrl()}${payload.textUrl}` : `${appUrl()}/n/${logId}`))) text++;
         else return;
         got = true;
       };

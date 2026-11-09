@@ -35,6 +35,8 @@ export interface PushPayload {
   linkLabel?: string;
   /** Replaces body in a text message, e.g. to add "Reply TEACH…". */
   textBody?: string;
+  /** The link a text ends with, instead of the app's short link (e.g. straight to the talk). */
+  textUrl?: string;
   /**
    * A personal note from one leader: the text and email carry just the words,
    * signed with their name, without the ward header or a link.
