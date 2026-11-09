@@ -664,6 +664,12 @@ whether they've accepted.
 - **Who gets texts:** only members who agreed to texts (by adding their number
   themselves, or choosing texts on the welcome screen), and only for what they
   chose under Contact & notifications.
+- **What a text looks like:** it starts with who it's from ("Elders Quorum:",
+  "Relief Society:", or the ward's name for the bishopric; someone in more than one
+  ward also sees the ward) and ends with a short link. Texts are kept short and in
+  plain letters (straight quotes, no emoji), since each 153 letters is billed
+  separately: most are 1 or 2 segments. The lesson reminder is one, and its link
+  opens the talk in Gospel Library.
 - **Monthly limit:** each ward has one (500 to start), set by the site owner. It
   counts reminder and message texts plus members' texted replies, per calendar
   month. Sign-in and confirmation codes are always sent and don't count. At the

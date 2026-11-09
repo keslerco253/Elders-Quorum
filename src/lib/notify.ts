@@ -81,6 +81,18 @@ export function audienceLabel(orgId: number, audience: Audience): string {
  * Short text for a notice, with the ward and organization so people know who
  * it's from. A personal note is just the words and the sender's name.
  */
+/**
+ * Who a text is from, at its start: the organization ("Elders Quorum", or the ward's
+ * name for the bishopric). The ward is left off (it costs letters and each person is in
+ * one ward), except for someone in more than one ward: "Villas Ward Elders Quorum".
+ */
+export function textSender(memberId: number, orgId: number): string {
+  const org = getOrg(orgId);
+  if (!org) return "My Ward Link";
+  const wards = (d().prepare("SELECT COUNT(*) AS n FROM ward_members WHERE member_id = ?").get(memberId) as { n: number }).n;
+  return wards > 1 ? orgFullName(orgId) : org.kind === "ward" ? orgFullName(orgId) : org.name;
+}
+
 export function smsBody(wardName: string, payload: PushPayload, url: string) {
   if (payload.personal) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n- ${payload.personal.from}`;
   // Already says who it's from (a visit invitation): the words in full, then the link.
@@ -118,7 +130,6 @@ export async function notify(
   /** App notifications and texts held for the morning (quiet hours); counted in `push` and `text` too. */
   let held = 0;
   let reached = 0;
-  const orgNames = new Map<number, string>();
 
   // A flyer goes with each email (read once).
   const upload = payload.attachment ? readUpload(payload.attachment.file) : null;
@@ -158,8 +169,7 @@ export async function notify(
   };
   const sendText = async (r: Recipient, url: string) => {
     if (!r.phone) return false;
-    if (!orgNames.has(r.org_id)) orgNames.set(r.org_id, orgFullName(r.org_id));
-    const body = smsBody(orgNames.get(r.org_id)!, payload, url);
+    const body = smsBody(textSender(r.id, r.org_id), payload, url);
     const meta: TextMeta = { noReply: !!payload.noReply, replyMemberId: payload.replyTo?.memberId ?? null, replyPrivate: !!payload.replyTo?.private, asMember: !!payload.asMember };
     // Quiet hours: late at night, the text waits for the morning (app notifications and email don't).
     const until = quietFor(r.org_id);
