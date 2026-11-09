@@ -217,7 +217,10 @@ export function Nav({
     postToApp({ type: "tabs", items, active: exact ? highlight : null, highlight });
   }, [tabsKey, router]);
   useEffect(() => {
-    if (appHasTabs()) postToApp({ type: "badge", count: messagesCount + moreCount });
+    const count = messagesCount + moreCount;
+    if (appHasTabs()) postToApp({ type: "badge", count });
+    // The website saved to the Home Screen (or installed on a computer): the same number on its icon.
+    else if ("setAppBadge" in navigator) (count > 0 ? navigator.setAppBadge(count) : navigator.clearAppBadge()).catch(() => {});
   }, [messagesCount, moreCount]);
   useEffect(() => {
     sendWidgetKey();

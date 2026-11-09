@@ -9,6 +9,10 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { title: "Elders Quorum", body: event.data ? event.data.text() : "" };
   }
+  // The number on the Home Screen icon (where the phone or computer shows one).
+  if (typeof data.badge === "number" && self.navigator.setAppBadge) {
+    (data.badge > 0 ? self.navigator.setAppBadge(data.badge) : self.navigator.clearAppBadge()).catch(() => {});
+  }
   event.waitUntil(
     self.registration.showNotification(data.title || "Elders Quorum", {
       body: data.body || "",

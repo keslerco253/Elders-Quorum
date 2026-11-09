@@ -52,6 +52,12 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   yours uses them.
 - **A red dot on More** means unread Reminders & alerts. Unread messages show on
   **Messages**.
+- **A number on the app's icon** (the phone app, or the website saved to your
+  Home Screen) counts the same things: unread messages plus unread Reminders &
+  alerts. It updates when a notification arrives, even with the app closed, and
+  goes away as you read them. On a website saved to an iPhone's Home Screen it
+  shows once you've turned on notifications for it (More → Contact &
+  notifications). On Android, the icon usually shows a dot instead.
 - **📘 General Handbook links:** some pages (Lessons, Service, Request a visit) have
   a small **General Handbook** link that opens that chapter of the Church's
   General Handbook in your browser (or Gospel Library).

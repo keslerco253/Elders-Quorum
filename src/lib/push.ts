@@ -81,13 +81,15 @@ export async function pushToMember(memberId: number, payload: PushPayload): Prom
   if (subs.length && db().prepare("SELECT 1 FROM native_push_tokens WHERE member_id = ? AND platform = 'ios'").get(memberId)) {
     subs = subs.filter((s) => !/^https:\/\/web\.push\.apple\.com\//.test(s.endpoint));
   }
-  let ok = await pushToApp(memberId, payload);
+  // The number for the app's icon, counted now (after this notification was logged).
+  const badge = await import("./icon-badge").then((m) => m.iconBadgeCount(memberId)).catch(() => undefined);
+  let ok = await pushToApp(memberId, payload, badge);
   if (!subs.length) return ok;
   ensureVapid();
   await Promise.all(
     subs.map(async (s) => {
       try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(withFullLinks(payload)), { TTL: 60 * 60 * 24 });
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ ...withFullLinks(payload), badge }), { TTL: 60 * 60 * 24 });
         ok++;
       } catch (err) {
         const code = (err as { statusCode?: number }).statusCode;
@@ -136,11 +138,11 @@ interface ExpoTicket {
 }
 
 /** Sends to the member's phones that have the app. Returns how many were accepted. */
-async function pushToApp(memberId: number, payload: PushPayload): Promise<number> {
+async function pushToApp(memberId: number, payload: PushPayload, badge?: number): Promise<number> {
   const tokens = (db().prepare("SELECT token FROM native_push_tokens WHERE member_id = ?").all(memberId) as { token: string }[]).map((r) => r.token);
   if (!tokens.length) return 0;
   const p = withFullLinks(payload);
-  const messages = tokens.map((to) => ({ to, title: p.title, body: p.body, data: { url: p.url }, sound: "default", priority: "high", channelId: "default" }));
+  const messages = tokens.map((to) => ({ to, title: p.title, body: p.body, data: { url: p.url }, sound: "default", priority: "high", channelId: "default", ...(badge !== undefined ? { badge } : {}) }));
   try {
     const res = await fetch(EXPO_PUSH_URL, {
       method: "POST",

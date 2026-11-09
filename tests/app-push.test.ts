@@ -27,12 +27,14 @@ describe("notifications to the phone app", () => {
       Response.json({ data: [{ status: "ok", id: "x" }, { status: "error", message: "gone", details: { error: "DeviceNotRegistered" } }] }),
     );
     vi.stubGlobal("fetch", fetchMock);
+    // Two things waiting to be read: the icon shows 2.
+    d.exec("INSERT INTO notification_log (member_id, org_id, title, body, url) VALUES (1, (SELECT id FROM orgs LIMIT 1), 'a', 'a', '/'), (1, (SELECT id FROM orgs LIMIT 1), 'b', 'b', '/')");
     expect(await push.pushToMember(1, { title: "Lesson Sunday", body: "Faith", url: "/lessons/3?n=9" })).toBe(1);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://exp.host/--/api/v2/push/send");
     expect(JSON.parse(String(init.body))).toEqual([
-      { to: good, title: "Lesson Sunday", body: "Faith", data: { url: "https://mywardlink.net/lessons/3?n=9" }, sound: "default", priority: "high", channelId: "default" },
-      { to: gone, title: "Lesson Sunday", body: "Faith", data: { url: "https://mywardlink.net/lessons/3?n=9" }, sound: "default", priority: "high", channelId: "default" },
+      { to: good, title: "Lesson Sunday", body: "Faith", data: { url: "https://mywardlink.net/lessons/3?n=9" }, sound: "default", priority: "high", channelId: "default", badge: 2 },
+      { to: gone, title: "Lesson Sunday", body: "Faith", data: { url: "https://mywardlink.net/lessons/3?n=9" }, sound: "default", priority: "high", channelId: "default", badge: 2 },
     ]);
     expect((d.prepare("SELECT token FROM native_push_tokens").all() as { token: string }[]).map((r) => r.token)).toEqual([good]);
   });
