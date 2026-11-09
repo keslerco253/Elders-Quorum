@@ -19,7 +19,10 @@ export function EventForm({
   announceTo,
   inviteChoices,
   people,
+  leadersOnly = true,
 }: {
+  /** The "Leaders only" choice: for the organization's own leaders. */
+  leadersOnly?: boolean;
   e?: EventRow;
   tz: string;
   date?: string;
@@ -77,8 +80,10 @@ export function EventForm({
           end={e ? utcToLocalInput(e.ends_at, tz) : date ? `${date}T20:00` : ""}
         />
         <p className="hint">
-          Something that runs for days or months, like a temple open house? Set it to end on the last day. It shows as &ldquo;going on&rdquo; at the top of
-          the calendar each month and as &ldquo;Now through …&rdquo; on members&apos; home pages, instead of on one day.
+          Something that runs for days or months, like a temple open house? Set
+          it to end on the last day. It shows as &ldquo;going on&rdquo; at the
+          top of the calendar each month and as &ldquo;Now through …&rdquo; on
+          members&apos; home pages, instead of on one day.
         </p>
       </div>
       <RepeatFields
@@ -187,21 +192,23 @@ export function EventForm({
           </div>
         </fieldset>
       )}
-      <label className="flex items-start gap-2 text-sm">
-        <input
-          type="checkbox"
-          name="presidency_only"
-          defaultChecked={!!e?.presidency_only}
-          className="mt-1"
-        />
-        <span>
-          <strong>Leaders only</strong>
-          <span className="block text-muted">
-            Hidden from members. Visible to this organization&apos;s leaders
-            only.
+      {leadersOnly && (
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="presidency_only"
+            defaultChecked={!!e?.presidency_only}
+            className="mt-1"
+          />
+          <span>
+            <strong>Leaders only</strong>
+            <span className="block text-muted">
+              Hidden from members. Visible to this organization&apos;s leaders
+              only.
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      )}
       <label className="flex items-start gap-2 text-sm">
         <input
           type="checkbox"

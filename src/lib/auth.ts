@@ -9,7 +9,7 @@ import { createSession, deleteSession, userForSession, type Remember } from "./a
 import { isAdmin, isPresidency, managesPeople } from "./permissions";
 import { FEATURES, type CurrentUser, type Feature } from "./types";
 import { ORG_COOKIE, parseOrgCookie } from "./org-cookie";
-import { hasFeature, ledOrgsAnywhere } from "./orgs";
+import { editsEventsOf, hasFeature, ledOrgsAnywhere } from "./orgs";
 
 const COOKIE = "eq_session";
 
@@ -57,6 +57,13 @@ export async function requireAdmin(): Promise<CurrentUser> {
 }
 
 /** Ward administrators (or the site owner): ward settings, join code, organizations. */
+/** Editing an event of the organization they're looking at (see editsEventsOf). */
+export async function requireEventEditor(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (!isAdmin(user) && !editsEventsOf(user.id, user.org_id, user.wardAdmin ? user.ward_id : null)) notALeaderHere(user);
+  return user;
+}
+
 export async function requireWardAdmin(): Promise<CurrentUser> {
   const user = await requireUser();
   if (!user.wardAdmin) redirect("/");

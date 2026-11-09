@@ -1028,6 +1028,11 @@ Members can delete their own. Turn comments off entirely in Settings.
 - **Invite other organizations:** tick **The whole ward** or other
   organizations. They see it, get its reminders and can RSVP; only your
   presidency can change it.
+- **Who can change an event:** the presidency of the organization it belongs to.
+  A ward event (added at the ward level, by the bishopric) can also be changed by
+  any organization presidency in the ward and by ward administrators, so it isn't
+  stuck if whoever added it leaves the bishopric. Only the bishopric sees, changes
+  or makes its own **Leaders only** ward events.
 
 **Changing an event:** tick **Send an update** to tell people. Under **Send it
 to**, tick everyone, the presidency, any groups, the people who RSVP'd, or **the

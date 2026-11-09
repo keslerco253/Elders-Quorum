@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getEvent, googleCalendarUrl, icsPath, isAppleMobile, isOngoing, spanText } from "@/lib/events";
-import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, formatTime, parseUtc } from "@/lib/time";
 import { getSeries, recurrenceOf } from "@/lib/event-series";
 import { describeRecurrence } from "@/lib/recurrence";
@@ -14,7 +13,7 @@ import { appUrl } from "@/lib/config";
 import { SubmitButton } from "@/components/client";
 import { FlyerView } from "@/components/flyer-view";
 import { rsvp } from "../actions";
-import { hasFeature, roleIn } from "@/lib/orgs";
+import { editsEventsOf, hasFeature, roleIn } from "@/lib/orgs";
 import { Linkify } from "@/components/linkify";
 import { meetingForEvent } from "@/lib/meetings";
 import { withOrg } from "@/lib/org-cookie";
@@ -31,8 +30,8 @@ export default async function EventPage({ params, searchParams }: { params: Prom
   if (!e) notFound();
   const series = getSeries(e.org_id, e.series_id);
   const tz = user.ward.timezone;
-  // Its own organization's leaders can edit it.
-  const admin = isAdmin({ role: roleIn(user.id, e.org_id) });
+  // Its own organization's leaders can edit it; a whole-ward event, any presidency in the ward.
+  const admin = editsEventsOf(user.id, e.org_id, user.wardAdmin ? user.ward_id : null);
   const sameDay = parseUtc(e.starts_at).setZone(tz).hasSame(parseUtc(e.ends_at).setZone(tz), "day");
   const mine = (db().prepare("SELECT response FROM event_rsvps WHERE event_id = ? AND member_id = ?").get(e.id, user.id) as { response: keyof typeof LABELS } | undefined)?.response;
   const rsvps = e.rsvp_enabled

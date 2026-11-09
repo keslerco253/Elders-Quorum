@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
+import { requireEventEditor } from "@/lib/auth";
+import { isAdmin } from "@/lib/permissions";
 import { getOrgEvent } from "@/lib/events";
 import { getSeries } from "@/lib/event-series";
 import { Flash, PageHeader } from "@/components/ui";
@@ -23,7 +24,7 @@ export default async function EditEventPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string>>;
 }) {
-  const user = await requireAdmin();
+  const user = await requireEventEditor();
   const e = getOrgEvent(user, Number((await params).id));
   if (!e) notFound();
   const sp = await searchParams;
@@ -39,6 +40,7 @@ export default async function EditEventPage({
       <EventForm
         e={e}
         tz={user.ward.timezone}
+        leadersOnly={isAdmin(user)}
         series={series}
         announceTo={withSameAsBefore(
           announceChoices(

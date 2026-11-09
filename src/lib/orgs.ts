@@ -74,6 +74,21 @@ export function roleIn(memberId: number, orgId: number): Role {
   return ((db().prepare("SELECT role FROM org_members WHERE org_id = ? AND member_id = ?").get(orgId, memberId) as { role: Role } | undefined)?.role ?? "member");
 }
 
+/**
+ * Who can edit an organization's events: its own presidency; for the ward's own
+ * (whole-ward) events, also any organization presidency in the ward and the ward's
+ * administrators (`wardAdminOf`: the ward they administer).
+ */
+export function editsEventsOf(memberId: number, orgId: number, wardAdminOf?: number | null): boolean {
+  if (roleIn(memberId, orgId) === "presidency") return true;
+  const org = getOrg(orgId);
+  if (org?.kind !== "ward") return false;
+  if (wardAdminOf === org.ward_id) return true;
+  return !!db()
+    .prepare("SELECT 1 FROM org_members om JOIN orgs o ON o.id = om.org_id WHERE om.member_id = ? AND om.role = 'presidency' AND o.ward_id = ? AND o.active = 1")
+    .get(memberId, org.ward_id);
+}
+
 /** Adds a member to a ward and its ward-wide organization (no-op if already there). */
 export function addToWard(memberId: number, wardId: number) {
   const d = db();

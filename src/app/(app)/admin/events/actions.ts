@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireEventEditor } from "@/lib/auth";
+import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, localInputToUtc } from "@/lib/time";
 import { allDayRange, eventWhenText } from "@/lib/events";
 import { notify, recipientById } from "@/lib/notify";
@@ -98,10 +99,17 @@ function seriesInput(user: { id: number; org_id: number }, e: ReturnType<typeof 
 const firstEventOf = (seriesId: number) => (db().prepare("SELECT id FROM events WHERE series_id = ? ORDER BY starts_at LIMIT 1").get(seriesId) as { id: number } | undefined)?.id;
 
 export async function saveEvent(fd: FormData) {
-  const user = await requireAdmin();
-  const tz = user.ward.timezone;
   const id = Number(fd.get("item_id")) || null;
+  // Adding is for the organization's leaders; editing a whole-ward event, any presidency in the ward.
+  const user = id ? await requireEventEditor() : await requireAdmin();
+  const tz = user.ward.timezone;
   const e = readEvent(fd, tz);
+  if (!isAdmin(user)) {
+    // Not the bishopric: a bishopric-only event isn't theirs to see or change, and they can't make one.
+    const was = db().prepare("SELECT presidency_only FROM events WHERE id = ? AND org_id = ?").get(id, user.org_id) as { presidency_only: number } | undefined;
+    if (!was || was.presidency_only) redirect("/calendar");
+    e.presidencyOnly = 0;
+  }
   e.invited = readInvited(fd, user);
   const back = id ? `/admin/events/${id}` : "/admin/events/new";
   if (!e.title || !e.start || !e.end) go(back, e.allDay ? "Please give a title and a date." : "Please give a title, start and end.");
@@ -225,10 +233,10 @@ export async function saveEvent(fd: FormData) {
 }
 
 export async function deleteEvent(fd: FormData) {
-  const user = await requireAdmin();
+  const user = await requireEventEditor();
   const id = Number(fd.get("item_id"));
   const existing = db().prepare("SELECT * FROM events WHERE id = ? AND org_id = ?").get(id, user.org_id) as EventRow | undefined;
-  if (!existing) redirect("/calendar");
+  if (!existing || (existing.presidency_only && !isAdmin(user))) redirect("/calendar");
   const series = getSeries(user.org_id, existing.series_id);
   if (series && fd.get("scope") === "future") {
     const day = DateTime.fromISO(existing.starts_at, { zone: "utc" }).setZone(user.ward.timezone);
