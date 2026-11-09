@@ -711,10 +711,11 @@ whether they've accepted.
 ### Text from my phone (free)
 
 Where the site owner has turned it on for the ward, **Messages → New message**
-has a **📱 Text from my phone instead** button under Send. Choose who it's for
-(everyone, the presidency, upcoming teachers, a group or one person), write the
-message, and tap it. You get the list of everyone with a phone number (and who
-has none), then choose:
+has a **📱 Text from my phone** button near the top, right under **To**. Choose
+who it's for (everyone, the presidency, upcoming teachers, a group or one
+person) and tap it; write the message on the next page (or first, in the
+Message box, and it comes along). You get the list of everyone with a phone
+number (and who has none), then choose:
 - **One group text:** your phone's Messages app opens with all their numbers
   and your words. Everyone sees each other's numbers and every reply. Best for a
   few people (more than 10 and some phones won't send it).

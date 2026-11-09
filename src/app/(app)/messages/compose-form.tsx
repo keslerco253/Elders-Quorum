@@ -76,6 +76,22 @@ export function ComposeForm({
           </label>
         </div>
       )}
+      {canPhone && (
+        <div className="rounded-lg bg-surface-2 p-3">
+          {/* Opens the list (with this message) to text from the leader's own phone instead. */}
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={(e) => {
+              const body = (e.currentTarget.form?.elements.namedItem("body") as HTMLTextAreaElement | null)?.value ?? "";
+              window.location.href = `/messages/phone?${new URLSearchParams({ to: chosen, body })}`;
+            }}
+          >
+            📱 Text from my phone
+          </button>
+          <p className="mt-1 text-xs text-muted">Free: choose who it&apos;s for above, then tap this. Your phone&apos;s Messages app sends it from your own number, as one group text or one person at a time (you can write the message on the next page). It isn&apos;t sent or saved in the app.</p>
+        </div>
+      )}
       {!isPerson && (
         <div>
           <label className="label" htmlFor="compose-title">
@@ -130,22 +146,6 @@ export function ComposeForm({
       <SubmitButton pendingText="Sending…" {...(isPerson ? {} : { confirm: "Send this to everyone you chose?" })}>
         Send
       </SubmitButton>
-      {canPhone && (
-        <div className="border-t border-border pt-3">
-          {/* Opens the list (with this message) to text from the leader's own phone instead. */}
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={(e) => {
-              const body = (e.currentTarget.form?.elements.namedItem("body") as HTMLTextAreaElement | null)?.value ?? "";
-              window.location.href = `/messages/phone?${new URLSearchParams({ to: chosen, body })}`;
-            }}
-          >
-            📱 Text from my phone instead
-          </button>
-          <p className="mt-1 text-xs text-muted">Free: your phone&apos;s Messages app sends it from your own number, as one group text or one person at a time. It isn&apos;t sent or saved in the app.</p>
-        </div>
-      )}
     </form>
   );
 }
