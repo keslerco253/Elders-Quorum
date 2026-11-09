@@ -133,6 +133,8 @@ export interface CurrentUser extends Member {
    * administrators, or the site owner. Until any are chosen, the ward's leaders.
    */
   wardAdmin: boolean;
+  /** The site owner looking into a ward they aren't in, to fix problems (they aren't listed or notified there). */
+  support?: boolean;
 }
 
 export type LessonKind = "talk" | "general_conference" | "stake_conference";

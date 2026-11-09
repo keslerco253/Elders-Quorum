@@ -47,3 +47,26 @@ describe("an organization president who starts the ward", () => {
     expect(orgs.setsAccess(orgs.currentUserFor(db().prepare("SELECT * FROM members WHERE id = 1").get() as never, orgs.wardOrg(w.id).id)!)).toBe(false);
   });
 });
+
+describe("the site owner's support view", () => {
+  it("opens another ward with leaders' tools, without joining it; others can't", async () => {
+    const { useTestDb, db } = await import("@/lib/db");
+    useTestDb();
+    db().exec(`INSERT INTO members (id, name, display_name, email, status, is_site_owner) VALUES (1, 'O', 'Owner', 'o@x.com', 'active', 1), (2, 'X', 'Other', 'x@x.com', 'active', 0)`);
+    const orgs = await import("@/lib/orgs");
+    orgs.createWard({ name: "Home Ward", timezone: "America/Boise", creatorId: 1 });
+    const far = orgs.createWard({ name: "Far Ward", timezone: "America/Boise", creatorId: 2 });
+    const farOrg = orgs.wardOrg(far.id).id;
+    const owner = orgs.currentUserFor(db().prepare("SELECT * FROM members WHERE id = 1").get() as never, farOrg)!;
+    expect(owner).toMatchObject({ support: true, org_id: farOrg, role: "presidency", wardAdmin: true });
+    expect(orgs.inWard(1, far.id)).toBe(false);
+    const { audienceMembers } = await import("@/lib/notify");
+    expect(audienceMembers(farOrg, "presidency").map((r) => r.id)).toEqual([2]);
+    // Someone else asking for that ward stays in their own.
+    db().prepare("INSERT INTO members (id, name, display_name, email, status) VALUES (3, 'Y', 'Third', 'y@x.com', 'active')").run();
+    orgs.addToWard(3, orgs.wardOrg(1).ward_id);
+    const other = orgs.currentUserFor(db().prepare("SELECT * FROM members WHERE id = 3").get() as never, farOrg)!;
+    expect(other.ward_id).not.toBe(far.id);
+    expect(other.support).toBe(false);
+  });
+});

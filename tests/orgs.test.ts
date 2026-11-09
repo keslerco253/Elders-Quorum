@@ -246,9 +246,13 @@ describe("the organization you're looking at", () => {
     // Then the computer switches back; the phone follows.
     expect(userForSession(computer, { orgId: 1, at: 2000 })!.org_id).toBe(1);
     expect(userForSession(phone, { orgId: rs.id, at: 1000 })!.org_id).toBe(1);
-    // An organization in a ward they aren't in is ignored.
+    // An organization in a ward they aren't in: the site owner opens it (support view,
+    // on that device only); anyone else stays where they were.
     const maple = orgs.createWard({ name: "Maple Ward", timezone: "America/Boise", creatorId: 2 });
-    expect(userForSession(phone, { orgId: orgs.wardOrg(maple.id).id, at: 3000 })!.org_id).toBe(1);
+    expect(userForSession(phone, { orgId: orgs.wardOrg(maple.id).id, at: 3000 })).toMatchObject({ org_id: orgs.wardOrg(maple.id).id, support: true });
+    expect(userForSession(computer)!.org_id).toBe(1);
+    d.prepare("UPDATE members SET is_site_owner = 0 WHERE id = 1").run();
+    expect(userForSession(phone, { orgId: orgs.wardOrg(maple.id).id, at: 4000 })!.org_id).toBe(1);
   });
 });
 

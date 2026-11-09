@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { suggestionCounts } from "@/lib/suggestions";
+import { wardOrg } from "@/lib/orgs";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime } from "@/lib/time";
@@ -13,7 +14,7 @@ import { appUrl } from "@/lib/config";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
-import { addWard, approveNewWard, declineNewWard, leadWard, loadCfmSchedule, setUpReview, removeCfmYear, removeWard,
+import { addWard, approveNewWard, declineNewWard, loadCfmSchedule, setUpReview, removeCfmYear, removeWard,
   clearWardData, saveTextCost, saveTextLimit, setNoTexting, setPaidThrough, setSiteEmail, sendTestEmail, sendTestText, setWardTexting } from "./actions";
 import { pendingWards } from "@/lib/ward-review";
 import { formatPhone } from "@/lib/contact";
@@ -315,12 +316,10 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
                     {w.site_email ? "Stop using the site's email" : "Use the site's email"}
                   </SubmitButton>
                 </form>
-                <form action={leadWard}>
-                  <input type="hidden" name="ward_id" value={w.id} />
-                  <SubmitButton className="btn-secondary btn-sm" confirm={`Join the ${w.name} bishopric in the app, so you can manage it?`}>
-                    Manage this ward
-                  </SubmitButton>
-                </form>
+                {/* Open it to fix problems, without joining it (support view). */}
+                <a href={`/admin?org=${wardOrg(w.id).id}`} className="btn-secondary btn-sm">
+                  Open this ward
+                </a>
                 <details>
                   <summary className="btn-secondary btn-sm cursor-pointer">Clear…</summary>
                   <form action={clearWardData} className="mt-2 space-y-2">

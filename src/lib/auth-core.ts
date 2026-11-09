@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { DateTime } from "luxon";
 import { db } from "./db";
 import type { CurrentUser, Member } from "./types";
-import { addToWard, currentUserFor, getOrg, inWard } from "./orgs";
+import { addToWard, currentUserFor, getOrg, inWard, isSiteOwner } from "./orgs";
 import { parseContact } from "./contact";
 
 export const REMEMBER_OPTIONS = {
@@ -159,6 +159,9 @@ export function userForSession(sessionId: string | undefined, wanted?: { orgId: 
   const wantedOrg = wanted && getOrg(wanted.orgId);
   if (wanted && wantedOrg && inWard(member.id, wantedOrg.ward_id) && wanted.at > member.last_org_at && wanted.orgId !== member.last_org_id) {
     d.prepare("UPDATE members SET last_org_id = ?, last_org_at = ? WHERE id = ?").run(wanted.orgId, wanted.at, member.id);
+    orgId = wanted.orgId;
+  } else if (wanted && wantedOrg && wanted.at > member.last_org_at && isSiteOwner(member) && !inWard(member.id, wantedOrg.ward_id)) {
+    // The site owner looking into another ward (support view): on this device only, not saved to their account.
     orgId = wanted.orgId;
   } else if (!orgId) orgId = wanted?.orgId;
   return currentUserFor(member, orgId);

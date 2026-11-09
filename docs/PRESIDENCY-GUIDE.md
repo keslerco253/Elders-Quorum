@@ -1620,7 +1620,13 @@ and the member list**).
   they're in no other ward, and emails them.
 - **Each ward's card:** texting status, people and organizations, texts this month
   and their cost, and:
-  - **Manage this ward:** join its bishopric so you can manage it.
+  - **Open this ward:** look into it to fix problems (support view), without
+    joining it. A yellow **Support view** bar shows at the top of every page. You
+    have the bishopric's and every organization's leader tools there (members,
+    settings, lessons, calendar…), and can switch between its organizations, but
+    you aren't a member: you're not on its lists, in its audiences or sent its
+    messages and notices. It's on that device only. **Leave** (in the bar) takes
+    you back to your own ward; **Site owner** back here.
   - **Texting & billing:** turn texting on or off; set its monthly limit (0 to
     100,000); set a **Paid through** date (texting turns off by itself the day
     after; you're notified two weeks before and when it does); see texts and cost

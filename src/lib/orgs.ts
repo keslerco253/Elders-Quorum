@@ -131,7 +131,10 @@ export function isSiteOwner(member: Pick<Member, "is_site_owner" | "email" | "em
 
 export function currentUserFor(member: Member, wantedOrg?: number): CurrentUser | null {
   member = { ...member, is_site_owner: isSiteOwner(member) ? 1 : 0 };
-  const org = pickOrg(member.id, wantedOrg);
+  // The site owner can open any ward to fix problems (support view), without joining it.
+  const asked = wantedOrg ? getOrg(wantedOrg) : undefined;
+  const support = !!member.is_site_owner && !!asked && asked.active === 1 && !inWard(member.id, asked.ward_id);
+  const org = support ? asked : pickOrg(member.id, wantedOrg);
   if (!org) return null;
   const ward = getWard(org.ward_id)!;
   const rows = db().prepare("SELECT org_id, role, calling, official, notify FROM org_members WHERE member_id = ?").all(member.id) as MembershipRow[];
@@ -141,7 +144,8 @@ export function currentUserFor(member: Member, wantedOrg?: number): CurrentUser 
     return {
       ...o,
       label: orgLabel(o, ward),
-      role: r?.role ?? "member",
+      // In support view: the leaders' tools in every organization (without being listed in any).
+      role: support ? "presidency" : (r?.role ?? "member"),
       calling: r && isCalling(r.calling) ? r.calling : null,
       joined: !!r,
       official: !!r?.official,
@@ -161,8 +165,9 @@ export function currentUserFor(member: Member, wantedOrg?: number): CurrentUser 
     calling: here.calling,
     orgs,
     wards: memberWards(member.id),
-    wardLeader: wardEntry?.role === "presidency" || startedLeaderless(ward, member.id),
-    wardAdmin: isWardAdmin(member, ward.id, wardEntry?.role === "presidency" || startedLeaderless(ward, member.id)),
+    wardLeader: support || wardEntry?.role === "presidency" || startedLeaderless(ward, member.id),
+    wardAdmin: support || isWardAdmin(member, ward.id, wardEntry?.role === "presidency" || startedLeaderless(ward, member.id)),
+    support,
   };
 }
 
