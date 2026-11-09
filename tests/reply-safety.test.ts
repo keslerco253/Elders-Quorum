@@ -77,3 +77,25 @@ describe("members' replies always reach someone", () => {
     expect(await text("+12085559999", "Hello?")).toEqual({ result: "unknown_sender", reply: undefined });
   });
 });
+
+describe("a texted reply from someone in two wards", () => {
+  it("asks which ward when no one texted them lately, then delivers it there", async () => {
+    const d = (await import("@/lib/db")).useTestDb();
+    d.exec(`INSERT INTO members (id, name, display_name, phone, status, sms_consent_at) VALUES
+      (1, 'A', 'Leader A', '+12085550101', 'active', datetime('now')),
+      (2, 'B', 'Leader B', '+12085550102', 'active', datetime('now')),
+      (5, 'M', 'Mover', '+12085550105', 'active', datetime('now'))`);
+    const orgs = await import("@/lib/orgs");
+    const villas = orgs.createWard({ name: "Villas Ward", timezone: "America/Boise", creatorId: 1 });
+    const maple = orgs.createWard({ name: "Maple Ward", timezone: "America/Boise", creatorId: 2 });
+    orgs.addToWard(5, villas.id);
+    orgs.addToWard(5, maple.id);
+    const inbound = await import("@/lib/sms-inbound");
+    const out: { reply?: string } = {};
+    expect(await inbound.handleInboundText({ From: "+12085550105", Body: "Can someone help me move Saturday?" }, out)).toBe("asked_which");
+    expect(out.reply).toBe("Which ward is your message for? Reply 1 for Maple Ward or 2 for Villas Ward.");
+    expect(await inbound.handleInboundText({ From: "+12085550105", Body: "2" }, {})).toBe("saved");
+    const saved = d.prepare("SELECT o.ward_id FROM member_messages mm JOIN orgs o ON o.id = mm.org_id WHERE mm.member_id = 5").all() as { ward_id: number }[];
+    expect(saved.map((r) => r.ward_id)).toEqual([villas.id]);
+  });
+});

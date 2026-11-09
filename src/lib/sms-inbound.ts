@@ -6,7 +6,7 @@ import { receiveReply, recentMessageFor, recentReplies, sendAnswer, threadForTex
 import { sendSms, twilioConfigured } from "./sms";
 import { closedText, orgTakesMessages } from "./message-routing";
 import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching";
-import { getOrg, getWard, homeOf, orgFullName, orgLabel } from "./orgs";
+import { getOrg, getWard, homeOf, memberWards, orgFullName, orgLabel } from "./orgs";
 import { allowHit } from "./rate-limit";
 import { answerRequest, latestPendingRequest } from "./teaching-requests";
 import { DateTime } from "luxon";
@@ -349,10 +349,34 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   if (lately.length > 1) {
     const options = lately.slice(0, 3);
     db().prepare("INSERT OR REPLACE INTO sms_member_pending (member_id, body, options) VALUES (?, ?, ?)").run(member.id, body, JSON.stringify(options));
-    const names = options.map((id, i) => `${i + 1} for ${orgLabel(getOrg(id)!)}`);
+    // Organizations in different wards are named with their ward ("Villas Ward Elders Quorum").
+    const wardsAsked = new Set(options.map((id) => getOrg(id)?.ward_id)).size > 1;
+    const name = (id: number) => (wardsAsked ? orgFullName(id) : orgLabel(getOrg(id)!));
+    const names = options.map((id, i) => `${i + 1} for ${name(id)}`);
     seen.reply = `Which is your message for? Reply ${names.length > 2 ? names.slice(0, -1).join(", ") + ", or " + names.at(-1) : names.join(" or ")}.`;
-    seen.note = `Asked which organization (${options.map((id) => orgLabel(getOrg(id)!)).join(", ")})`;
+    seen.note = `Asked which organization (${options.map(name).join(", ")})`;
     return "asked_which";
+  }
+  // In more than one ward, and no one texted them lately: ask which ward it's for (each
+  // ward's organization they belong to, else the ward itself).
+  if (!lately.length) {
+    const wards = memberWards(member.id);
+    if (wards.length > 1) {
+      const options = wards.slice(0, 3).map((w) => {
+        const own = db()
+          .prepare(
+            `SELECT o.id FROM org_members om JOIN orgs o ON o.id = om.org_id WHERE om.member_id = ? AND o.ward_id = ? AND o.active = 1
+             ORDER BY o.id = ? DESC, om.role = 'presidency' DESC, (o.kind = 'group' AND om.official = 1) DESC, o.kind = 'ward' DESC LIMIT 1`,
+          )
+          .get(member.id, w.id, orgId) as { id: number } | undefined;
+        return own?.id ?? (db().prepare("SELECT id FROM orgs WHERE ward_id = ? AND kind = 'ward'").get(w.id) as { id: number }).id;
+      });
+      db().prepare("INSERT OR REPLACE INTO sms_member_pending (member_id, body, options) VALUES (?, ?, ?)").run(member.id, body, JSON.stringify(options));
+      const names = options.map((id, i) => `${i + 1} for ${orgFullName(id)}`);
+      seen.reply = `Which ward is your message for? Reply ${names.length > 2 ? names.slice(0, -1).join(", ") + ", or " + names.at(-1) : names.join(" or ")}.`;
+      seen.note = `Asked which ward (${wards.map((w) => w.name).join(", ")})`;
+      return "asked_which";
+    }
   }
   seen.note = await deliverTextReply(member, orgId, body);
   return "saved";

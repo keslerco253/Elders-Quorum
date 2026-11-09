@@ -795,6 +795,10 @@ sent), it goes into their conversation and every presidency member is notified
 - **Two organizations texted them in the last 3 days?** Their text first gets
   "Which is your message for? Reply 1 for … or 2 for …" (up to 3). With no
   number in 30 minutes, it goes to whoever texted last.
+- **In more than one ward?** (a family that moved, say) When no organization texted
+  them in the last 3 days, their text first gets "Which ward is your message for?
+  Reply 1 for Maple Ward or 2 for Villas Ward." When the organizations that texted
+  them are in different wards, the choices name the ward too.
 - A member who texted gets an app notification saying where it went.
 - **Went to the wrong place?** Tap **Forward…** under it: send it to another
   organization's presidency (or bishopric) or one leader. They see a "Forwarded
