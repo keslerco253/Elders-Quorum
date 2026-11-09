@@ -22,6 +22,8 @@ export function PhoneTexter({ orgId, initial, choices, people, links, body: star
   const [otherLink, setOtherLink] = useState("");
   const [mode, setMode] = useState<"group" | "each">("each");
   const [done, setDone] = useState<Set<number>>(new Set());
+  // Group texts sent, by batch number (a big list is split into groups of 10 or fewer).
+  const [sentGroups, setSentGroups] = useState<Set<number>>(new Set());
   const [device, setDevice] = useState<{ apple: boolean; phone: boolean }>({ apple: false, phone: true });
   useEffect(() => {
     const ua = navigator.userAgent;
@@ -44,7 +46,11 @@ export function PhoneTexter({ orgId, initial, choices, people, links, body: star
   const choose = (v: string) => {
     setTo(v);
     setDone(new Set());
+    setSentGroups(new Set());
   };
+  // Evenly sized batches of at most GROUP_MAX (23 people: 8, 8 and 7).
+  const batchCount = Math.ceil(list.length / GROUP_MAX);
+  const batches = Array.from({ length: batchCount }, (_, i) => list.slice(Math.round((i * list.length) / batchCount), Math.round(((i + 1) * list.length) / batchCount)));
 
   return (
     <div className="card max-w-2xl space-y-4">
@@ -158,7 +164,8 @@ export function PhoneTexter({ orgId, initial, choices, people, links, body: star
             <span>
               <strong>One group text</strong> to all {list.length}
               <span className="block text-xs text-muted">
-                The same words for everyone; everyone sees each other&apos;s numbers and every reply.{list.length > GROUP_MAX ? ` With more than ${GROUP_MAX} people, some phones won't send it.` : ""}
+                The same words for everyone; everyone sees each other&apos;s numbers and every reply.
+                {list.length > GROUP_MAX ? ` More than ${GROUP_MAX} is too many for some phones, so it's split into ${batchCount} group texts of ${GROUP_MAX} or fewer: send each one.` : ""}
               </span>
             </span>
           </label>
@@ -167,10 +174,40 @@ export function PhoneTexter({ orgId, initial, choices, people, links, body: star
 
       {list.length === 0 ? (
         <p className="text-sm text-muted">{to === pick ? "Tick the people to text." : "No one here has a phone number."}</p>
-      ) : !each ? (
+      ) : !each && batches.length === 1 ? (
         <a href={smsHref(list.map((p) => p.phone), textFor(), device.apple)} className="btn-primary inline-flex">
           📱 Open a group text to {list.length}
         </a>
+      ) : !each ? (
+        <div className="space-y-2">
+          <p className="text-sm text-muted">
+            Tap a group, send it in Messages, come back and tap the next one. {sentGroups.size} of {batches.length} sent.
+          </p>
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {batches.map((g, i) => (
+              <li key={i} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                <span className={`min-w-0 ${sentGroups.has(i) ? "text-muted" : ""}`}>
+                  <strong>
+                    {sentGroups.has(i) ? "✓ " : ""}Group {i + 1}
+                  </strong>{" "}
+                  ({g.length}): {g.map((p) => p.name).join(", ")}
+                </span>
+                <a
+                  href={smsHref(g.map((p) => p.phone), textFor(), device.apple)}
+                  onClick={() => setSentGroups((s) => new Set(s).add(i))}
+                  className={`${sentGroups.has(i) || i !== batches.findIndex((_, j) => !sentGroups.has(j)) ? "btn-secondary" : "btn-primary"} btn-sm shrink-0`}
+                >
+                  {sentGroups.has(i) ? "Again" : "📱 Text"}
+                </a>
+              </li>
+            ))}
+          </ul>
+          {sentGroups.size > 0 && (
+            <button type="button" className="link text-sm" onClick={() => setSentGroups(new Set())}>
+              Start over
+            </button>
+          )}
+        </div>
       ) : (
         <div className="space-y-3">
           {next ? (

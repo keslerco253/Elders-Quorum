@@ -729,7 +729,10 @@ has a **📱 Text from my phone** button near the top, right under **To**. Tap i
 - **Send it as:** **One at a time** (a private text to each, with their name: tap
   **Text (name)**, send it in Messages, come back, tap the next; a ✓ marks who's
   done) or **One group text** (everyone sees each other's numbers and every
-  reply; more than 10 and some phones won't send it).
+  reply). More than 10 people is too many for some phones, so a bigger list is
+  split into even group texts of 10 or fewer (23 people: 8, 7 and 8), each listed
+  with who's in it. Tap **📱 Text** on Group 1, send it, come back and tap the
+  next; a ✓ marks the groups sent.
 
 It comes from your own number, so it costs nothing and replies come straight to
 you. The app doesn't send, save or see these texts, so they don't show in
