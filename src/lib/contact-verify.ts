@@ -26,7 +26,7 @@ export async function startContactVerification(member: Member, kind: ContactKind
   if (kind === "email" && !canEmail(home.orgId)) return { ok: false, reason: "Your ward hasn't connected an email account to the app yet, so it can't send a code to an email. Please ask your ward leaders." };
   const sent =
     kind === "phone"
-      ? (await sendSms(home.orgId, value, `${appName}: ${code} is your code to confirm this number for ward texts. ${SMS_DISCLOSURE}${codeTextFooter(code)}`, "code")) === "sent"
+      ? (await sendSms(home.orgId, value, `${appName} texts: your code is ${code}. ${SMS_DISCLOSURE}${codeTextFooter(code)}`, "code")) === "sent"
       : await sendMail({
           to: value,
           subject: `Confirm your email: ${code}`,

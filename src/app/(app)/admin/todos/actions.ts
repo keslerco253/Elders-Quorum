@@ -103,6 +103,7 @@ export async function saveTodo(fd: FormData) {
     reached = (await notify([assignee!], {
       title: "Would you be willing to accept this assignment?",
       body: `${title}${due ? ` (due ${dueText(due, dueTime)})` : ""}. From ${user.display_name}. Tap to accept or let them know you can't.`,
+      textFull: `Will you accept this assignment? ${title}${due ? ` (due ${dueText(due, dueTime)})` : ""}. From ${user.display_name}.`,
       url: withOrg(`/assignments/${todoId}`, user.org_id),
       ...(flyerFile ? { attachment: { file: flyerFile, name: flyerName ?? "Attachment" } } : {}),
     }, { followUp: { what: `Assignment request: ${title}` } })).reached > 0;

@@ -38,17 +38,21 @@ export function alreadyJoined(phone: string): string[] {
 }
 
 /** The sign-in page with their number filled in. */
-export const loginLink = (phone: string) => `${appUrl()}/login?contact=${encodeURIComponent(phone.replace(/^\+1(?=\d{10}$)/, ""))}`;
+export const loginLink = (phone: string) => {
+  const us = phone.replace(/^\+1(?=\d{10}$)/, "");
+  // A US number in the short form (mywardlink.net/in/2085550100); others as typed.
+  return /^\d{10}$/.test(us) ? `${appUrl()}/in/${us}` : `${appUrl()}/login?contact=${encodeURIComponent(us)}`;
+};
 
 /** Texted back to JOIN from someone already signed up: which account, and where to sign in. */
 export function alreadyJoinedReply(phone: string, names: string[], wardName: string): string {
   const who = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0];
-  return `${wardName}: you're already signed up. This number is on ${names.length > 1 ? "the accounts for" : "the account for"} ${who}, and you get ward texts here. To use the app, sign in with this number: ${loginLink(phone)}`;
+  return `${wardName}: you're already signed up (${who}). Sign in to the app: ${loginLink(phone)}`;
 }
 
 /** The confirmation texted back after JOIN. */
 export const joinConfirmation = (wardName: string) =>
-  `${wardName}: you're signed up for ward texts. You'll get reminders and messages here, and you can reply to reach your leaders. ${SMS_DISCLOSURE}`;
+  `${wardName} texts: you're signed up! ${SMS_DISCLOSURE}`;
 
 /** "(208) 555-0100", or "" when texting isn't set up. */
 export const textingNumberDisplay = () => (textingNumber() ? formatPhone(textingNumber()) : "");
@@ -180,7 +184,7 @@ export function continueTextJoin(phone: string, body: string): string {
     const orgs = joinableOrgs(wardId);
     if (!orgs.length) return finishTextJoin(phone, wardId, ward.name, name, []);
     setStep(phone, "orgs", wardId, name);
-    return `Thanks, ${name.split(" ")[0]}! Which are you part of? Reply with the numbers (like 1 or 1 3), or NONE:\n${orgs.map((o, i) => `${i + 1} ${o.name}`).join("\n")}`;
+    return `Thanks, ${name.split(" ")[0]}! Which are you part of? Reply with numbers (like 1 3) or NONE:\n${orgs.map((o, i) => `${i + 1} ${o.name}`).join("\n")}`;
   }
   // Which organizations (by number), or none.
   const orgs = joinableOrgs(wardId);
@@ -188,7 +192,7 @@ export function continueTextJoin(phone: string, body: string): string {
   if (!picks.length && !/^\s*(none|no|skip|0)\b/i.test(body)) {
     if (row.attempts >= 3) return finishTextJoin(phone, wardId, ward.name, row.name, []);
     tried();
-    return `Please reply with the numbers of the ones you're part of (like 1 or 1 3), or NONE:\n${orgs.map((o, i) => `${i + 1} ${o.name}`).join("\n")}`;
+    return `Reply with the numbers you're part of (like 1 3) or NONE:\n${orgs.map((o, i) => `${i + 1} ${o.name}`).join("\n")}`;
   }
   return finishTextJoin(
     phone,
@@ -221,5 +225,5 @@ function finishTextJoin(phone: string, wardId: number, wardName: string, name: s
   })();
   joinByText(phone);
   endTextJoin(phone);
-  return `${joinConfirmation(wardName)} To use the app too, sign in with this number: ${loginLink(phone)}`;
+  return `${joinConfirmation(wardName)} App: ${loginLink(phone)}`;
 }

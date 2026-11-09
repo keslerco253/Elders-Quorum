@@ -93,15 +93,21 @@ export function textSender(memberId: number, orgId: number): string {
   return wards > 1 ? orgFullName(orgId) : org.kind === "ward" ? orgFullName(orgId) : org.name;
 }
 
+/** Sentences a text drops to fit in one: what the link already offers. */
+const TEXT_FILLER = /(?<=[.!?"”)]|^) *(?:Tap (?:to|for|below|here)|Open the app|Take a look)[^.!?]*[.!?]/g;
+
 export function smsBody(wardName: string, payload: PushPayload, url: string) {
-  if (payload.personal) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n- ${payload.personal.from}`;
+  if (payload.personal) return `${(payload.textFull ?? payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n- ${payload.personal.from}`;
   // Already says who it's from (a visit invitation): the words in full, then the link.
   if (payload.textLink) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n${payload.textLink}: ${url}`;
   // A member's message to a leader: their words, who it's from, then the link.
   if (payload.fullText) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n${payload.textTitle ?? payload.title}\n\nReply in app: ${url}`;
-  // At most 2 segments (306 letters), the link included.
-  const words = payload.textFull ?? `${payload.title}. ${payload.textBody ?? payload.body}`;
-  const text = toGsm7(`${wardName}: ${words}`.replace(/\s+/g, " ").trim());
+  // One segment (160 letters, the link included) when it can be; never more than 2 (306).
+  const body = payload.textBody ?? payload.body;
+  const words = payload.textFull ?? (payload.title ? `${payload.title}${/[.!?:]$/.test(payload.title.trim()) ? "" : "."} ${body}` : body);
+  let text = toGsm7(`${wardName}: ${words}`.replace(/\s+/g, " ").trim());
+  // "Tap to …" and "Open the app …" say what the link is for; a text can do without them.
+  if (text.length + 1 + url.length > 160) text = text.replace(TEXT_FILLER, "").replace(/\s+/g, " ").trim();
   const room = 306 - url.length - 1;
   return `${text.length > room ? text.slice(0, room - 3).trimEnd() + "..." : text} ${url}`;
 }

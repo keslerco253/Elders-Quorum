@@ -47,7 +47,7 @@ export type InboundResult =
 /** Answer to a texted reply to one of their own private reminders (which isn't passed to anyone). */
 export const PRIVATE_REMINDER_REPLY = "That was your private reminder, so your reply wasn't sent to anyone. To message your leaders, text again or use the app.";
 export const UNKNOWN_NUMBER_REPLY =
-  "My Ward Link: this phone number isn't connected to anyone in the app, so your message wasn't delivered. Please text from the number your ward leaders have for you, or message them in the app.";
+  "My Ward Link: this number isn't connected to anyone in the app, so your message wasn't delivered. Text from the number your leaders have, or use the app.";
 
 /** What the app texts back after a teacher's TEACH / CANT reply. */
 export const AUTO_REPLIES: Partial<Record<InboundResult, string>> = {
@@ -204,7 +204,7 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   if (isJoin || optOut === "START" || word === "START" || word === "UNSTOP") {
     joinByText(from);
     seen.note = "joined by text";
-    if (word.startsWith(JOIN_WORD)) seen.reply = `${joinConfirmation(getWard(getOrg(orgId)?.ward_id ?? 0)?.name ?? "My Ward Link")} To use the app too, sign in with this number: ${loginLink(from)}`;
+    if (word.startsWith(JOIN_WORD)) seen.reply = `${joinConfirmation(getWard(getOrg(orgId)?.ward_id ?? 0)?.name ?? "My Ward Link")} App: ${loginLink(from)}`;
     return "joined";
   }
   if (optOut === "HELP" || optOut === "START" || SKIP_WORDS.includes(word)) return "ignored";

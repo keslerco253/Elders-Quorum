@@ -13,7 +13,7 @@ describe("joining ward texts by texting JOIN", () => {
     const inbound = await import("@/lib/sms-inbound");
     const out: { reply?: string } = {};
     expect(await inbound.handleInboundText({ From: "+12085550005", Body: "join" }, out)).toBe("joined");
-    expect(out.reply).toMatch(/^Villas Ward: you're signed up for ward texts\..*Reply HELP for help, STOP to opt out\. To use the app too, sign in with this number: http:\/\/localhost:3000\/login\?contact=2085550005$/);
+    expect(out.reply).toMatch(/^Villas Ward texts: you're signed up! Msg freq varies\. Msg&data rates may apply\. Reply HELP for help, STOP to opt out\. App: http:\/\/localhost:3000\/in\/2085550005$/);
     expect(d.prepare("SELECT sms_consent_via, always_text, contact_pref, sms_consent_at IS NOT NULL AS agreed FROM members WHERE id = 5").get()).toEqual({
       sms_consent_via: "text",
       always_text: 1,
@@ -27,7 +27,7 @@ describe("joining ward texts by texting JOIN", () => {
     d.prepare("UPDATE members SET always_text = 0 WHERE id = 5").run();
     const card: { reply?: string } = {};
     expect(await inbound.handleInboundText({ From: "+12085550005", Body: "JOIN VILLAS" }, card)).toBe("ignored");
-    expect(card.reply).toBe("Villas Ward: you're already signed up. This number is on the account for Edna Elderly, and you get ward texts here. To use the app, sign in with this number: http://localhost:3000/login?contact=2085550005");
+    expect(card.reply).toBe("Villas Ward: you're already signed up (Edna Elderly). Sign in to the app: http://localhost:3000/in/2085550005");
     expect((d.prepare("SELECT always_text FROM members WHERE id = 5").get() as { always_text: number }).always_text).toBe(0);
     expect((d.prepare("SELECT COUNT(*) AS n FROM member_messages").get() as { n: number }).n).toBe(0);
 
@@ -59,8 +59,8 @@ describe("joining ward texts by texting JOIN", () => {
     expect(orgs.reply).toContain("2 Relief Society");
     const done = await say("2");
     expect(done.result).toBe("joined");
-    expect(done.reply).toMatch(/^Villas Ward: you're signed up for ward texts\./);
-    expect(done.reply).toMatch(/sign in with this number: http:\/\/localhost:3000\/login\?contact=2085550777$/);
+    expect(done.reply).toMatch(/^Villas Ward texts: you're signed up!/);
+    expect(done.reply).toMatch(/App: http:\/\/localhost:3000\/in\/2085550777$/);
     const jane = d.prepare("SELECT id, display_name, status, always_text, sms_consent_via FROM members WHERE phone = '+12085550777'").get() as { id: number; display_name: string; status: string; always_text: number; sms_consent_via: string };
     expect(jane).toMatchObject({ display_name: "Jane Smith", status: "active", always_text: 1, sms_consent_via: "join-text" });
     const inOrgs = (d.prepare("SELECT o.name FROM org_members om JOIN orgs o ON o.id = om.org_id WHERE om.member_id = ? ORDER BY o.kind DESC, o.name").all(jane.id) as { name: string }[]).map((o) => o.name);
@@ -86,7 +86,7 @@ describe("joining ward texts by texting JOIN", () => {
     expect(await say("+12085550111", "nope")).toMatch(/didn't match/);
     expect(await say("+12085550111", "maple")).toMatch(/^Welcome to Maple Ward/);
     // No organizations to choose: in with their name.
-    expect(await say("+12085550111", "Sam Lee")).toMatch(/^Maple Ward: you're signed up/);
+    expect(await say("+12085550111", "Sam Lee")).toMatch(/^Maple Ward texts: you're signed up/);
     // JOIN with the code skips the question.
     expect(await say("+12085550222", "JOIN VILLAS")).toMatch(/^Welcome to Villas Ward/);
     // STOP ends it.

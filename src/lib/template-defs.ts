@@ -44,6 +44,7 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     title: "Visit reminder",
     personal: true,
     body: "Hi {first_name}! Just a quick reminder that [{visitors} from ]{leaders} {is_are} planning to {visit_kind} {day}[ at {time}]. If something has come up, please just let us know by replying to this message. See you soon!",
+    text: "Hi {first_name}! Reminder: {who} will {visit_kind} {day}[ at {time}]. Something come up? Just reply.",
     vars: [
       v("first_name", "The member's first name", "Hyrum"),
       v("visitors", "Who's going", "Mark Johnson and Sam Hill"),
@@ -52,6 +53,7 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
       v("day", '"today" or "tomorrow"', "today"),
       v("time", "The time (blank if none)", "7:00 PM"),
       v("is_are", '"is" or "are", to match who\'s coming', "are"),
+      v("who", 'Who\'s going, or "we" if no one is named', "Mark Johnson and Sam Hill"),
     ],
   },
   {

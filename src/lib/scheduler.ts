@@ -133,6 +133,8 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       const confirmed = !!lesson.teacher_confirmed_at;
       const talk = lesson.title ? `"${lesson.title}"${lesson.speaker && !lesson.topic && lesson.fifth !== 1 ? ` by ${lesson.speaker}` : ""}.` : "";
       const about = [talk, teacherNotesLine(lesson.id)].filter(Boolean).join(" ");
+      // A text names just the talk (the teacher knows who gave it), so it stays one text.
+      const textTalk = lesson.title ? `"${lesson.title}".` : "";
       out.push({
         key: `lesson-teacher-${windowTag(w)}:${org.id}:${date}:${teacher.id}`,
         recipients: [teacher],
@@ -143,14 +145,14 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
               url: respondPath(lesson.id, teacher.id),
               linkLabel: "Open",
               // A text stays short (each 153 letters costs): no notes suggestion.
-              textBody: `${talk} Thanks for confirming. Plans changed? Reply CANT and a reason.`,
+              textBody: `${textTalk} Thanks for confirming! Plans changed? Reply CANT and why.`,
             }
           : {
               title,
               body: `${about} Still planning to teach? Tap to let us know either way.`,
               url: respondPath(lesson.id, teacher.id),
               linkLabel: "Reply: teaching or not",
-              textBody: `${talk} Reply TEACH if you're still teaching, or CANT and a reason if you can't.`,
+              textBody: `${textTalk} Still teaching? Reply TEACH, or CANT and a reason.`,
               actions: [
                 { action: "teach", title: "I'll be teaching", url: respondPath(lesson.id, teacher.id, "teach") },
                 { action: "cant", title: "I can't teach", url: respondPath(lesson.id, teacher.id, "cant") },
@@ -376,6 +378,7 @@ function visitReminders(org: OrgCtx, now: DateTime): DueNotification[] {
         day: today ? "today" : "tomorrow",
         time: p.time ? DateTime.fromISO(p.time).toFormat("h:mm a") : "",
         is_are: (p.visitors ?? "").includes(",") ? "are" : "is",
+        who: joinNames(p.visitors?.split(", ") ?? []) || "we",
       });
       if (member)
         out.push({

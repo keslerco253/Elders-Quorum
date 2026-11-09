@@ -32,8 +32,10 @@ export function TemplateEditor({
   const textBox = useRef<HTMLTextAreaElement>(null);
   const samples = Object.fromEntries(def.vars.map((v) => [v.name, v.sample]));
   const hasText = def.text !== undefined;
-  const asText = hasText ? `${textFrom}: ${fillTemplate(x, samples)}`.replace(/\s+/g, " ").trim() : "";
-  const letters = asText.length + TEXT_LINK_LENGTH;
+  // A personal one is just the words, signed; others start with who it's from and end with a link.
+  const filled = fillTemplate(x, samples).replace(/\s+/g, " ").trim();
+  const asText = !hasText ? "" : def.personal ? `${filled}\n\n- ${signature}` : `${textFrom}: ${filled}`;
+  const letters = asText.length + (def.personal ? 0 : TEXT_LINK_LENGTH);
   const insert = (name: string) => {
     const inText = hasText && focus === "text";
     const el = inText ? textBox.current : box.current;
@@ -70,7 +72,7 @@ export function TemplateEditor({
           </label>
           <textarea ref={textBox} id={`${def.key}-text`} name="text" value={x} onChange={(e) => setX(e.target.value)} onFocus={() => setFocus("text")} rows={2} maxLength={300} className="input" />
           <p className="mt-1 text-xs text-muted">
-            The shorter wording sent by text. It has to fit in one text ({ONE_TEXT} letters), counting &quot;{textFrom}:&quot; at the start and the link at the end.
+            The shorter wording sent by text. It has to fit in one text ({ONE_TEXT} letters), {def.personal ? <>counting &quot;- {signature}&quot; at the end.</> : <>counting &quot;{textFrom}:&quot; at the start and the link at the end.</>}
           </p>
         </div>
       )}
@@ -105,8 +107,9 @@ export function TemplateEditor({
               {letters} of {ONE_TEXT} letters{letters > ONE_TEXT ? ` (too long by ${letters - ONE_TEXT})` : ""}
             </span>
           </div>
-          <div>
-            {asText} <span className="text-muted">https://mywardlink.net/l/123</span>
+          <div className="whitespace-pre-wrap">
+            {asText}
+            {!def.personal && <span className="text-muted"> https://mywardlink.net/l/123</span>}
           </div>
           <p className="mt-1 text-xs text-muted">With the sample fill-ins. A much longer talk title or name can still run into a second text.</p>
         </div>

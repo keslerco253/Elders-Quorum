@@ -129,6 +129,7 @@ export async function receiveReply(member: { id: number; org_id: number; display
     await notify([to], {
       title: `Private message from ${member.display_name}`,
       body: "Open the app to read it. You can answer privately there, or by replying to this text.",
+      textFull: `Private message from ${member.display_name}. Read it in the app; to answer privately, reply to this text.`,
       url: `/admin/replies/${member.id}?private=1#end`,
       linkLabel: "Read it",
       replyTo: { memberId: member.id, private: true },

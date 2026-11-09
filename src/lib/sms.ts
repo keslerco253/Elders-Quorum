@@ -27,7 +27,7 @@ export const phoneOptInVisible = () => phoneEnabled() || process.env.SMS_PENDING
 /** The number members text (JOIN, replies): the app's Twilio number (a sample one for testing without Twilio). */
 export const textingNumber = () => FROM() || (process.env.SMS_DEV_OUTBOX === "1" ? "+12085550100" : "");
 
-export const SMS_DISCLOSURE = "Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to opt out.";
+export const SMS_DISCLOSURE = "Msg freq varies. Msg&data rates may apply. Reply HELP for help, STOP to opt out.";
 
 /** Texts sent this calendar month (UTC) for a ward, all its organizations together. */
 export function textsThisMonth(wardId: number, kind?: "code" | "notice" | "reply"): number {
@@ -117,7 +117,7 @@ export function canSendNotice(orgId: number) {
  */
 export function codeTextFooter(code: string) {
   const host = new URL(appUrl()).hostname;
-  return host === "localhost" ? "" : `\n\n@${host} #${code}`;
+  return host === "localhost" ? "" : `\n@${host} #${code}`;
 }
 
 export type SmsResult = "sent" | "failed" | "opted_out";

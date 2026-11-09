@@ -54,6 +54,12 @@ export function pendingRequestsFor(memberId: number, today: string): TeachingReq
 const lessonLabel = (r: Pick<TeachingRequest, "lesson_date" | "lesson_title" | "lesson_speaker">) =>
   `${formatDate(r.lesson_date, "short")}${r.lesson_title ? ` ("${r.lesson_title}"${r.lesson_speaker ? ` by ${r.lesson_speaker}` : ""})` : ""}`;
 
+/** The texted request: who asked, unless leaving them out keeps it to one text. */
+function teachText(lesson: string, asker: string, note: string, org: string) {
+  const full = `Will you teach ${lesson}? ${asker} asked.${note} Reply TEACH, or CANT and a reason.`;
+  return note || `${org}: ${full}`.length + 31 <= 160 ? full : `Will you teach ${lesson}? Reply TEACH, or CANT and a reason.`;
+}
+
 /** Sends the request. Returns an error message, or null when sent. */
 export async function askToTeach(asker: { id: number; org_id: number; display_name: string }, lessonId: number, memberId: number, message: string, today: string) {
   const d = db();
@@ -77,7 +83,8 @@ export async function askToTeach(asker: { id: number; org_id: number; display_na
     body: `${asker.display_name} asked if you'd teach in ${getOrg(asker.org_id)?.name ?? "your class"} on ${lessonLabel(r)}.${note} Tap to answer.`,
     url: askPath(r),
     linkLabel: "Answer",
-    textBody: `${asker.display_name} asked if you'd teach in ${getOrg(asker.org_id)?.name ?? "your class"} on ${lessonLabel(r)}.${note} Reply TEACH to accept, or CANT and a reason.`,
+    // The text says who it's from at the start ("Elders Quorum:"), so not again here.
+    textFull: teachText(lessonLabel(r), asker.display_name, note, getOrg(asker.org_id)?.name ?? ""),
     actions: [
       { action: "accept", title: "Yes, I'll teach", url: askPath(r, "accept") },
       { action: "decline", title: "I can't", url: askPath(r, "decline") },

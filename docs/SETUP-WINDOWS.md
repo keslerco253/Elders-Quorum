@@ -183,9 +183,8 @@ can be handed to the next president.
      activity reminders and announcements by text."
    - **Sample message 1:** "482913 is your Villas Ward Elders Quorum sign-in code.
      It expires in 20 minutes. Reply STOP to opt out."
-   - **Sample message 2:** "Villas Ward Elders Quorum: Tomorrow's lesson: Abide in
-     My Love. Tap to read the talk and share your thoughts.
-     https://YOUR-ADDRESS/lessons/12"
+   - **Sample message 2:** "Elders Quorum: This Sunday's lesson: Abide in My Love.
+     By Elder Quentin L. Cook. https://YOUR-ADDRESS/l/12"
    - **How users opt in:** "Members join at https://YOUR-ADDRESS/join by
      entering their own mobile number and checking a box that says: 'If I give a
      mobile number, I agree to receive sign-in codes and quorum messages by text.

@@ -35,7 +35,7 @@ export async function sendLoginCode(member: Member, via: ContactKind, token: str
     // Someone the presidency added hasn't agreed to texts yet, so they just get the code they asked for.
     const body =
       (member.sms_consent_at || (member as Member & { text_consent_pending?: number }).text_consent_pending) && !member.last_login_at
-        ? `${appName}: ${code} is your sign-in code (expires in 20 minutes). You're signed up for ward texts. ${SMS_DISCLOSURE}`
+        ? `${appName} texts: ${code} is your sign-in code. ${SMS_DISCLOSURE}`
         : `${code} is your ${appName} sign-in code. It expires in 20 minutes. Reply STOP to opt out.`;
     const res = await sendSms(home.orgId, member.phone, body + codeTextFooter(code), "code");
     if (res === "sent") markCodeSent(token, "phone");
