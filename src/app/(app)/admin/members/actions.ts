@@ -11,7 +11,7 @@ import { normalizeEmailAddress, normalizePhone, parseContact } from "@/lib/conta
 import { findMemberByContact } from "@/lib/auth-core";
 import { sendInviteEmail } from "@/lib/invite";
 import { isLastPresidency, isOwnerEmail, leaderCanEditContact, onlyInWard, onlyLeaderOf, removeFromOrg, removeFromWard } from "@/lib/accounts";
-import { addToOrg, managedOrgs, orgMemberView, wardMember } from "@/lib/orgs";
+import { addToOrg, managedOrgs, orgMemberView, wardMember, setsAccess } from "@/lib/orgs";
 import { appUrl } from "@/lib/config";
 import { sendAccountNotice } from "@/lib/login-code";
 import { CALLINGS, isCalling, roleLabel, type Role } from "@/lib/types";
@@ -82,7 +82,7 @@ export async function updateMember(fd: FormData) {
   // A new number hasn't agreed to texts; the member can agree under More → Contact & notifications.
   if (phone !== m.phone) db().prepare("UPDATE members SET sms_consent_at = NULL WHERE id = ?").run(id);
   if (status !== "active") db().prepare("DELETE FROM sessions WHERE member_id = ?").run(id);
-  if (isPresidency(user)) {
+  if (setsAccess(user)) {
     // Role and calling are for this organization only; one president (or bishop) at a time.
     const r = fd.get("role") as Role;
     const role = ROLES.includes(r) ? r : m.role;
@@ -153,7 +153,7 @@ export async function addMember(fd: FormData) {
   if (!c) return back("Enter a mobile number like (208) 555-0142 or an email address.");
   if (c.kind === "email" && isOwnerEmail(c.value) && !user.is_site_owner && !findMemberByContact(c.value)) back("That email can't be used here.");
   // Leadership access is given only by the presidency (ward administrators add members).
-  const role = isPresidency(user) && ROLES.includes(fd.get("role") as Role) ? (fd.get("role") as Role) : "member";
+  const role = setsAccess(user) && ROLES.includes(fd.get("role") as Role) ? (fd.get("role") as Role) : "member";
   const existing = findMemberByContact(c.value);
   if (existing) {
     if (existing.status !== "active") redirect(`/admin/members?msg=${encodeURIComponent(`${existing.display_name}'s account is turned off or waiting for approval.`)}`);

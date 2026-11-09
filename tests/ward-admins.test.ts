@@ -25,3 +25,25 @@ describe("ward administrators", () => {
     expect([1, 2, 3, 4].map((id) => me(id)!.wardAdmin)).toEqual([false, true, true, true]);
   });
 });
+
+describe("an organization president who starts the ward", () => {
+  it("leads that organization and administers the ward, not the bishopric, and can add the bishop", async () => {
+    const { useTestDb, db } = await import("@/lib/db");
+    useTestDb();
+    db().prepare("INSERT INTO members (id, name, display_name, email, status) VALUES (1, 'M', 'Mark', 'm@x.com', 'active')").run();
+    const orgs = await import("@/lib/orgs");
+    const w = orgs.createWard({ name: "New Ward", timezone: "America/Boise", creatorId: 1, leads: "Elders Quorum" });
+    const eq = (db().prepare("SELECT id FROM orgs WHERE ward_id = ? AND name = 'Elders Quorum'").get(w.id) as { id: number }).id;
+    expect(orgs.roleIn(1, eq)).toBe("presidency");
+    expect(orgs.roleIn(1, orgs.wardOrg(w.id).id)).toBe("member");
+    expect(orgs.wardAdmins(w.id).map((a) => a.id)).toEqual([1]);
+    expect(orgs.wardHasBishopric(w.id)).toBe(false);
+    const me = orgs.currentUserFor(db().prepare("SELECT * FROM members WHERE id = 1").get() as never, orgs.wardOrg(w.id).id)!;
+    expect(me.wardAdmin).toBe(true);
+    expect(orgs.setsAccess(me)).toBe(true);
+    // Once there's a bishop, leadership access is the bishopric's.
+    db().prepare("INSERT INTO members (id, name, display_name, email, status) VALUES (2, 'B', 'Bishop', 'b@x.com', 'active')").run();
+    orgs.addToOrg(2, orgs.wardOrg(w.id).id, { role: "presidency", calling: "bishop" });
+    expect(orgs.setsAccess(orgs.currentUserFor(db().prepare("SELECT * FROM members WHERE id = 1").get() as never, orgs.wardOrg(w.id).id)!)).toBe(false);
+  });
+});

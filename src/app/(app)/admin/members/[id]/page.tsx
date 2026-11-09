@@ -8,7 +8,7 @@ import { formatDate, formatDateTime } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { callingLabel, CALLINGS, leadersWord, roleLabel } from "@/lib/types";
-import { managedOrgs, orgMemberView, orgsInWard } from "@/lib/orgs";
+import { managedOrgs, orgMemberView, orgsInWard, setsAccess } from "@/lib/orgs";
 import { formatPhone } from "@/lib/contact";
 import { leaderCanEditContact, onlyInWard } from "@/lib/accounts";
 import {
@@ -40,6 +40,8 @@ export default async function MemberPage({
   // A ward administrator (looking at the ward) manages people without being the bishopric.
   const manager = managesPeople(user);
   const wardAdminOnly = manager && !presidency;
+  // Leadership access and callings (a ward administrator too, until the ward has a bishopric).
+  const access = setsAccess(user);
   const addedCallings = callingNamesByMember(user.org_id).get(m.id) ?? [];
   // Name and contact are theirs once they sign in (or if they lead, or are in another ward).
   const locked = !leaderCanEditContact(m.id, user.ward_id);
@@ -250,7 +252,7 @@ export default async function MemberPage({
               : `, or ${{ text: "text", email: "email", both: "text and email", none: "nothing else" }[m.contact_pref]} if push doesn't reach them`}
             .
           </p>
-          {presidency && (
+          {access && (
             // The Calling box shows only while Leadership is chosen (before saving too).
             <div className="access-fields grid gap-4 sm:grid-cols-2">
               <div>
@@ -270,7 +272,7 @@ export default async function MemberPage({
                   </option>
                 </select>
               </div>
-              {user.wardLeader && onlyInWard(m.id, user.ward_id) && (
+              {(user.wardLeader || wardAdminOnly) && onlyInWard(m.id, user.ward_id) && (
                 <div>
                   <label className="label" htmlFor="status">
                     Status
@@ -319,7 +321,7 @@ export default async function MemberPage({
               </p>
             </div>
           )}
-          {wardAdminOnly && onlyInWard(m.id, user.ward_id) && (
+          {wardAdminOnly && !access && onlyInWard(m.id, user.ward_id) && (
             <div>
               <label className="label" htmlFor="status">
                 Status

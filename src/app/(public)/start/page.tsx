@@ -4,7 +4,7 @@ import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
 import { DEFAULT_TZ } from "@/lib/time";
 import { phoneOptInVisible } from "@/lib/sms";
-import { callingLabel, CALLINGS } from "@/lib/types";
+import { callingLabel, CALLINGS, STANDARD_ORGS } from "@/lib/types";
 import { startWard } from "../actions";
 import { needsSetup } from "@/lib/wards";
 import { dataOnVolume } from "@/lib/setup-code";
@@ -78,9 +78,17 @@ export default async function StartWardPage({ searchParams }: { searchParams: Pr
                 {callingLabel(c, { kind: "ward", name: "" })}
               </option>
             ))}
+            {STANDARD_ORGS.map((o) => (
+              <option key={o} value={`org:${o}`}>
+                {o} President
+              </option>
+            ))}
             <option value="">Something else (e.g. ward clerk)</option>
           </select>
-          <p className="hint">You&apos;ll lead the ward in the app with the bishopric. You can add them, and change this, later.</p>
+          <p className="hint">
+            In the bishopric (or something else): you lead the ward in the app until the bishopric is added. An organization&apos;s president: you lead that organization
+            and manage the ward as its administrator, without being in the bishopric; you add the bishop when he&apos;s ready.
+          </p>
         </div>
         <div>
           <label className="label" htmlFor="contact">

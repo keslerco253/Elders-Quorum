@@ -162,8 +162,15 @@ standard organizations) but stays **under review**: whoever started it sees
 nothing is sent from it, until the site owner checks it's real and approves it
 (usually within a day). The site owner is notified with the starter's name and
 contact. The starter is emailed when it's approved (or, if declined, with the
-site owner's note). The starter leads it until its bishopric is added. A ward
-the site owner starts opens right away.
+site owner's note). A starter in the bishopric (or "something else") leads it
+until its bishopric is added. A starter who chose an organization's president
+(like **Elders Quorum President**) becomes that organization's president and the
+ward's administrator, not bishopric: they set up the ward (Ward settings, Ward
+members, Invite) and, until the ward has a bishopric, can give the bishop and his
+counselors their access and callings (Ward members → open him → Access level:
+Leadership, Calling: Bishop). After that, leadership access is the bishopric's,
+and the starter stays a ward administrator. A ward the site owner starts opens
+right away.
 
 ## Ward settings (ward administrators)
 

@@ -16,7 +16,7 @@ import { wardByJoinCode } from "@/lib/wards";
 import { addToWard, createWard } from "@/lib/orgs";
 import { tellOwnerAboutNewWard } from "@/lib/ward-review";
 import { DEFAULT_TZ, validZone } from "@/lib/time";
-import { CALLINGS, isCalling, type Member } from "@/lib/types";
+import { CALLINGS, isCalling, STANDARD_ORGS, type Member } from "@/lib/types";
 
 const q = (params: Record<string, string>) => new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
 /** Where to go after signing in: a page on this site (never another site). */
@@ -252,6 +252,7 @@ export async function startWard(formData: FormData) {
     timezone,
     creatorId: memberId,
     calling: isCalling(calling) && CALLINGS.ward.includes(calling) ? calling : null,
+    leads: calling.startsWith("org:") && STANDARD_ORGS.includes(calling.slice(4)) ? calling.slice(4) : null,
     texting: first,
     pending: first ? undefined : { stake: String(formData.get("stake") || "").trim().slice(0, 80), note: String(formData.get("note") || "").trim().slice(0, 1000) },
   });

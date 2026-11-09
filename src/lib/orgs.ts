@@ -177,6 +177,23 @@ function startedLeaderless(ward: { id: number; created_by: number | null }, memb
     .get(ward.id);
 }
 
+/** Whether a ward has anyone (active) with leadership access at the ward level: its bishopric. */
+export function wardHasBishopric(wardId: number): boolean {
+  return !!db()
+    .prepare("SELECT 1 FROM org_members om JOIN orgs o ON o.id = om.org_id JOIN members m ON m.id = om.member_id WHERE o.ward_id = ? AND o.kind = 'ward' AND om.role = 'presidency' AND m.status = 'active'")
+    .get(wardId);
+}
+
+/**
+ * Who can give leadership access and callings in the organization they're looking at:
+ * its presidency, or (at the ward level, while the ward has no bishopric yet) a ward
+ * administrator, so whoever started the ward can add the bishop.
+ */
+export function setsAccess(user: CurrentUser): boolean {
+  if (user.role === "presidency") return true;
+  return user.org.kind === "ward" && user.wardAdmin && !wardHasBishopric(user.ward_id);
+}
+
 /** Selects members in an organization, with their role there as m.role / m.calling. */
 export const ORG_MEMBERS_FROM = "members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?";
 
@@ -194,7 +211,17 @@ export function newJoinCode(): string {
  * A new ward with its ward-wide organization. The person who creates it leads
  * that organization (with the bishopric, once they're added).
  */
-export function createWard(opts: { name: string; timezone: string; creatorId: number; calling?: Calling | null; texting?: boolean; noTexting?: boolean; pending?: { stake: string; note: string } }): Ward {
+export function createWard(opts: {
+  name: string;
+  timezone: string;
+  creatorId: number;
+  calling?: Calling | null;
+  /** The creator leads this organization (e.g. "Elders Quorum") rather than the ward: they're its president and a ward administrator, not the bishopric. */
+  leads?: string | null;
+  texting?: boolean;
+  noTexting?: boolean;
+  pending?: { stake: string; note: string };
+}): Ward {
   const d = db();
   return d.transaction(() => {
     const wardId = Number(
@@ -209,7 +236,13 @@ export function createWard(opts: { name: string; timezone: string; creatorId: nu
     for (const name of STANDARD_ORGS) addOrg.run(wardId, name);
     d.prepare("INSERT INTO ward_plans (ward_id, name, legacy_kind) VALUES (?, 'Temple & Family History Plan', 'temple'), (?, 'Ward Mission Plan', 'mission')").run(wardId, wardId);
     addToWard(opts.creatorId, wardId);
-    d.prepare("UPDATE org_members SET role = 'presidency', calling = ? WHERE org_id = ? AND member_id = ?").run(opts.calling ?? null, wardOrg(wardId).id, opts.creatorId);
+    const led = opts.leads ? (d.prepare("SELECT id FROM orgs WHERE ward_id = ? AND kind = 'group' AND name = ?").get(wardId, opts.leads) as { id: number } | undefined) : undefined;
+    if (led) {
+      // An organization's president starting the ward: its president, and the ward's administrator (until the bishopric is added).
+      d.prepare("INSERT OR IGNORE INTO org_members (org_id, member_id) VALUES (?, ?)").run(led.id, opts.creatorId);
+      d.prepare("UPDATE org_members SET role = 'presidency', calling = 'president', official = 1, notify = 1 WHERE org_id = ? AND member_id = ?").run(led.id, opts.creatorId);
+      d.prepare("INSERT OR IGNORE INTO ward_admins (ward_id, member_id) VALUES (?, ?)").run(wardId, opts.creatorId);
+    } else d.prepare("UPDATE org_members SET role = 'presidency', calling = ? WHERE org_id = ? AND member_id = ?").run(opts.calling ?? null, wardOrg(wardId).id, opts.creatorId);
     return getWard(wardId)!;
   })();
 }

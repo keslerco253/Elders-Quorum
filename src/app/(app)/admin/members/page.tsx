@@ -6,6 +6,7 @@ import { HandbookLinks } from "@/components/handbook-link";
 import { CALLINGS } from "@/lib/handbook";
 import { requirePeopleManager } from "@/lib/auth";
 import { memberShow, orgMemberList } from "@/lib/member-list";
+import { setsAccess } from "@/lib/orgs";
 import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { reachableBy } from "@/lib/delivery";
@@ -134,7 +135,7 @@ export default async function MembersPage({
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {isPresidency(user) && (
+              {setsAccess(user) && (
                 <div>
                   <label className="label" htmlFor="add-role">
                     Access level
