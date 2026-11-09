@@ -13,7 +13,7 @@ import { deleteTodo } from "../admin/todos/actions";
 
 export const metadata = { title: "My assignments" };
 
-const KIND_WORDS = { todo: "Assignment", mine: "My to-do", teach: "Teaching", serve: "Service" } as const;
+const KIND_WORDS = { todo: "Assignment", mine: "My to-do", teach: "Teaching", serve: "Service", visit: "Visit" } as const;
 
 /** Everything on a member's plate: assignments from a presidency, lessons they teach, service they signed up for. */
 export default async function MyAssignmentsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {

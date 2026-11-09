@@ -4,6 +4,7 @@ import { withOrg } from "./org-cookie";
 import { hasFeature, myOrgs } from "./orgs";
 import { formatDate } from "./time";
 import { personalTodos } from "./personal-todos";
+import { VISIT_TYPES } from "./visits";
 
 // Presidency assignments (the todos table), and a member's "My assignments": what the
 // presidency asked them to do, the lessons they're teaching and the service they signed up for.
@@ -112,7 +113,7 @@ export function todoNotes(todoId: number, includePrivate: boolean): TodoNote[] {
     .all(todoId) as TodoNote[];
 }
 
-export type MyItemKind = "todo" | "mine" | "teach" | "serve";
+export type MyItemKind = "todo" | "mine" | "teach" | "serve" | "visit";
 
 /** One line in My assignments. */
 export interface MyItem {
@@ -246,6 +247,35 @@ export function myAssignments(memberId: number, today: string, opts: { past?: bo
     });
   }
 
+  // Visits they're going on (planned by a presidency, agreed or not sent as an invitation).
+  const visitOrgs = new Set(orgs.filter((o) => hasFeature(o, "visits") && inOrgs(o)).map((o) => o.id));
+  const visits = past
+    ? []
+    : (db()
+        .prepare(
+          `SELECT p.id, p.org_id, p.date, p.time, p.type, m.display_name AS member_name,
+             (SELECT 1 FROM org_members om WHERE om.org_id = p.org_id AND om.member_id = @me AND om.role = 'presidency') AS leads
+           FROM planned_visits p JOIN planned_visit_visitors vv ON vv.planned_id = p.id AND vv.member_id = @me JOIN members m ON m.id = p.member_id
+           WHERE p.date >= @today AND (p.invite_status IS NULL OR p.invite_status = 'accepted') ORDER BY p.date, p.time`,
+        )
+        .all({ me: memberId, today }) as { id: number; org_id: number; date: string; time: string | null; type: string; member_name: string; leads: number | null }[]);
+  for (const v of visits) {
+    if (!visitOrgs.has(v.org_id)) continue;
+    items.push({
+      kind: "visit",
+      key: `visit:${v.id}`,
+      title: `Visit ${v.member_name}`,
+      date: v.date,
+      time: v.time,
+      orgId: v.org_id,
+      orgLabel: label.get(v.org_id) ?? "",
+      // The presidency's visits page (others going along see it here).
+      href: v.leads ? link("/admin/visits", v.org_id) : "/assignments",
+      detail: `${dueText(v.date, v.time)} · ${VISIT_TYPES[v.type] ?? v.type}`,
+      done: false,
+    });
+  }
+
   // Soonest first (no date last); past ones newest first.
   const sortKey = (i: MyItem) => i.date ?? (past ? "0000" : "9999");
   return items.sort((a, b) => (past ? sortKey(b).localeCompare(sortKey(a)) : sortKey(a).localeCompare(sortKey(b))));
@@ -257,7 +287,7 @@ export function soonAssignments(memberId: number, today: string): MyItem[] {
   return myAssignments(memberId, today).filter((i) => i.flag?.tone === "danger" || i.flag?.text === "Please confirm" || i.flag?.text === "Please respond" || (i.date !== null && i.date <= until) || ((i.kind === "todo" || i.kind === "mine") && !i.date));
 }
 
-export const KIND_ICONS: Record<MyItemKind, string> = { todo: "📋", mine: "📝", teach: "📖", serve: "👥" };
+export const KIND_ICONS: Record<MyItemKind, string> = { todo: "📋", mine: "📝", teach: "📖", serve: "👥", visit: "🏠" };
 
 /** "Thu, Oct 30" or "Thu, Oct 30 at 7:00 PM". */
 export function dueText(date: string, time: string | null): string {

@@ -325,7 +325,8 @@ Tap **Messages** at the top (the speech bubble on a phone).
 - 📋 **Assignments** from a presidency or bishopric;
 - 📝 **your own to-dos**;
 - 📖 **lessons you're teaching**;
-- 👥 **service you signed up for**.
+- 👥 **service you signed up for**;
+- 🏠 **visits you're going on** (a home visit your presidency planned with you as a visitor).
 
 **Coming up** and **Done and past** tabs. Tap one to open it.
 
