@@ -11,17 +11,29 @@ describe("text from my phone", () => {
     const eq = orgs.createOrg(w.id, "Elders Quorum").id;
     for (const id of [2, 3, 4]) orgs.addToWard(id, w.id);
     d.prepare("INSERT OR REPLACE INTO org_members (org_id, member_id, role, official, notify) VALUES (?, 1, 'presidency', 1, 1), (?, 2, 'member', 1, 1), (?, 3, 'member', 1, 1), (?, 4, 'presidency', 1, 1)").run(eq, eq, eq, eq);
-    const { phoneTextList } = await import("@/lib/phone-text");
+    const { phoneTextData } = await import("@/lib/phone-text");
     // Off for the ward: not offered.
-    expect(phoneTextList({ id: 1 }, `aud:${eq}:everyone`)).toBeNull();
+    expect(phoneTextData({ id: 1 }, `aud:${eq}:everyone`)).toBeNull();
     d.prepare("UPDATE wards SET phone_texting = 1 WHERE id = ?").run(w.id);
-    const all = phoneTextList({ id: 1 }, `aud:${eq}:everyone`)!;
-    expect(all.people.map((p) => [p.name, p.phone])).toEqual([["Amy Allen", "+12085550002"], ["Ben Brown", null], ["Cal Cole", "+12085550004"]]);
-    expect(phoneTextList({ id: 1 }, `aud:${eq}:presidency`)!.people.map((p) => p.name)).toEqual(["Cal Cole"]);
-    expect(phoneTextList({ id: 1 }, `person:${eq}:2`)!.people.map((p) => p.name)).toEqual(["Amy Allen"]);
+    const data = phoneTextData({ id: 1 }, `aud:${eq}:everyone`)!;
+    // Everyone in the organization (not the leader), with their numbers and first names.
+    expect(data.people.map((p) => [p.name, p.first, p.phone])).toEqual([["Amy Allen", "Amy", "+12085550002"], ["Ben Brown", "Ben", null], ["Cal Cole", "Cal", "+12085550004"]]);
+    const ids = (v: string) => data.choices.find((c) => c.value === v)!.ids;
+    expect(ids(`aud:${eq}:everyone`)).toEqual([2, 3, 4]);
+    expect(ids(`aud:${eq}:presidency`)).toEqual([4]);
+    expect(phoneTextData({ id: 1 }, `person:${eq}:2`)!.choices.at(-1)).toEqual({ value: `person:${eq}:2`, label: "Amy Allen", ids: [2] });
+    expect(phoneTextData({ id: 1 }, `pick:${eq}`)!.initial).toBe(`pick:${eq}`);
+    expect(data.links.map((l) => l.label)).toContain("Calendar");
     // Not a leader there: nothing.
-    expect(phoneTextList({ id: 2 }, `aud:${eq}:everyone`)).toBeNull();
+    expect(phoneTextData({ id: 2 }, `aud:${eq}:everyone`)).toBeNull();
 
+    const { personalText } = await import("@/lib/sms-link");
+    const names = ["Amy", "Sam"];
+    expect(personalText("This is a test", { first: "Hyrum", names })).toBe("Hyrum, this is a test");
+    expect(personalText("I'll be late", { first: "Hyrum", names })).toBe("Hyrum, I'll be late");
+    expect(personalText("Sam is bringing chairs.", { first: "Hyrum", names })).toBe("Hyrum, Sam is bringing chairs.");
+    expect(personalText("EQ meets at 7", { first: "Hyrum", names, link: "https://mywardlink.net/calendar/4" })).toBe("Hyrum, EQ meets at 7\nhttps://mywardlink.net/calendar/4");
+    expect(personalText("Same for all", { link: "https://x.org" })).toBe("Same for all\nhttps://x.org");
     const { smsHref } = await import("@/lib/sms-link");
     expect(smsHref(["+12085550002", "+12085550004"], "Meeting at 7?", true)).toBe("sms:/open?addresses=+12085550002,+12085550004&body=Meeting%20at%207%3F");
     expect(smsHref(["+12085550002"], "Hi & bye", true)).toBe("sms:+12085550002&body=Hi%20%26%20bye");

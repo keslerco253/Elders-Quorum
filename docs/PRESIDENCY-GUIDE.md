@@ -711,16 +711,25 @@ whether they've accepted.
 ### Text from my phone (free)
 
 Where the site owner has turned it on for the ward, **Messages → New message**
-has a **📱 Text from my phone** button near the top, right under **To**. Choose
-who it's for (everyone, the presidency, upcoming teachers, a group or one
-person) and tap it; write the message on the next page (or first, in the
-Message box, and it comes along). You get the list of everyone with a phone
-number (and who has none), then choose:
-- **One group text:** your phone's Messages app opens with all their numbers
-  and your words. Everyone sees each other's numbers and every reply. Best for a
-  few people (more than 10 and some phones won't send it).
-- **One at a time:** a separate, private text to each person. Tap **Text (name)**,
-  send it in Messages, come back, and tap the next one; a ✓ marks who you've done.
+has a **📱 Text from my phone** button near the top, right under **To**. Tap it
+(what you chose and anything you wrote come along). On the next page:
+- **To:** everyone in the organization, the presidency, upcoming teachers, any of
+  its message groups, or **Choose people…** (everyone in the organization, ticked
+  one by one; anyone without a phone number is greyed out). It shows how many
+  have a phone number, and who has none (send them the message in the app).
+- **Message**, and **Start with their first name** (on by default): each text
+  begins "Hyrum, …". The first letter of your message is made small, unless it
+  starts with "I", an abbreviation (EQ) or someone's name. One at a time only:
+  a group text is the same for everyone.
+- **Add a link** (on its own line at the end): the next lesson (in the app, or
+  the talk itself in Gospel Library, which needs no sign-in), the Calendar, a
+  coming event or service sign-up, or **Another link…** (any web address, like a
+  Zoom link). Links into the app work for members who use it.
+- **Preview** shows exactly what the next person gets.
+- **Send it as:** **One at a time** (a private text to each, with their name: tap
+  **Text (name)**, send it in Messages, come back, tap the next; a ✓ marks who's
+  done) or **One group text** (everyone sees each other's numbers and every
+  reply; more than 10 and some phones won't send it).
 
 It comes from your own number, so it costs nothing and replies come straight to
 you. The app doesn't send, save or see these texts, so they don't show in
