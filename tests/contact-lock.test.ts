@@ -66,3 +66,20 @@ describe("who leaders may change the sign-in contact of", () => {
     delete process.env.OWNER_EMAIL;
   });
 });
+
+describe("fixing a member's name", () => {
+  it("is allowed after they've signed in, but not for leaders; the site owner can fix any", async () => {
+    const { useTestDb, db } = await import("@/lib/db");
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role, last_login_at) VALUES
+        (1, 1, 'P', 'Pres', 'p@x.com', 'presidency', '2026-10-01'), (2, 1, 'M', 'Mem', 'm@x.com', 'member', '2026-10-01');
+    `);
+    void db;
+    const { leaderCanEditContact, leaderCanEditName } = await import("@/lib/accounts");
+    expect(leaderCanEditContact(2, 1)).toBe(false);
+    expect(leaderCanEditName(2, 1, false)).toBe(true);
+    expect(leaderCanEditName(1, 1, false)).toBe(false);
+    expect(leaderCanEditName(1, 1, true)).toBe(true);
+  });
+});

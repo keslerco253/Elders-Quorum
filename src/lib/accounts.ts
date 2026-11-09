@@ -98,6 +98,26 @@ export function leaderCanEditContact(memberId: number, wardId: number): boolean 
   return !!m && !m.last_login_at && !m.is_site_owner && !leads && onlyInWard(memberId, wardId);
 }
 
+/**
+ * Whether a leader may change someone's name (not their phone or email, which they
+ * sign in with): anyone in the ward who doesn't lead anywhere, even once they've
+ * signed in. The site owner may change anyone's name.
+ */
+export function leaderCanEditName(memberId: number, wardId: number, editorIsSiteOwner: boolean): boolean {
+  if (editorIsSiteOwner) return true;
+  const d = db();
+  const m = d.prepare("SELECT is_site_owner FROM members WHERE id = ?").get(memberId) as { is_site_owner: number } | undefined;
+  if (!m || m.is_site_owner || !d.prepare("SELECT 1 FROM ward_members WHERE ward_id = ? AND member_id = ?").get(wardId, memberId)) return false;
+  return !d
+    .prepare(
+      `SELECT 1 WHERE EXISTS (SELECT 1 FROM org_members WHERE member_id = @id AND role = 'presidency')
+         OR EXISTS (SELECT 1 FROM member_callings mc JOIN org_callings c ON c.id = mc.calling_id WHERE mc.member_id = @id AND c.leader = 1)
+         OR EXISTS (SELECT 1 FROM ward_admins WHERE member_id = @id)
+         OR EXISTS (SELECT 1 FROM wards WHERE reply_backup_id = @id)`,
+    )
+    .get({ id: memberId });
+}
+
 /** Belongs to this ward and no other (so turning their account off affects only this ward). */
 export function onlyInWard(memberId: number, wardId: number): boolean {
   const wards = db().prepare("SELECT ward_id FROM ward_members WHERE member_id = ?").all(memberId) as { ward_id: number }[];

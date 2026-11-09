@@ -5,7 +5,7 @@ import { phoneEnabled, phoneOptInVisible, SMS_DISCLOSURE, memberTextable } from 
 import { Flash, PageHeader, Section } from "@/components/ui";
 import { CodeInput } from "@/components/code-input";
 import { SubmitButton } from "@/components/client";
-import { addContact, confirmContact, removeContact, setDelivery } from "./actions";
+import { addContact, confirmContact, removeContact, setDelivery, saveMyName } from "./actions";
 import { PushToggle } from "@/components/push-toggle";
 
 export const metadata = { title: "Contact & notifications" };
@@ -88,6 +88,13 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
         </form>
       )}
 
+      <Section title="Your name">
+        <form action={saveMyName} className="card flex max-w-xl flex-wrap items-center gap-2">
+          <input name="name" required minLength={2} maxLength={100} defaultValue={user.display_name} className="input min-w-0 flex-1" aria-label="Your name" autoComplete="name" />
+          <SubmitButton className="btn-secondary">Save</SubmitButton>
+          <p className="hint basis-full">How your name shows to your leaders and on lists in the app.</p>
+        </form>
+      </Section>
       <Section title="Phone and email">
         <div className="card divide-y divide-border py-1">
           {row("phone", "Mobile number", user.phone)}

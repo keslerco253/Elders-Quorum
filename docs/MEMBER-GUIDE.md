@@ -446,8 +446,8 @@ it, Done or Not adding, with any note back), and you're told when it changes.
 
 ## Your account and privacy
 
-- **Your phone and email:** More → Contact & notifications. Your name is the one
-  you gave when you joined (or that your leaders entered).
+- **Your name, phone and email:** More → Contact & notifications. Change your
+  name under **Your name** and tap **Save**.
 - **Appearance:** More → Appearance: Automatic, Light or Dark.
 - **Sign out:** More → **Sign out** (it also stops notifications on that device).
 - **Delete my account:** More → **Delete my account**, type DELETE. This removes

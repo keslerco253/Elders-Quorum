@@ -184,7 +184,7 @@ open it):
   bishopric: they don't get members' messages to the bishopric, its notices, or its
   visits, meetings and assignments. Looking at the ward, they also get **Admin →
   Ward members** (the ward's member list, including **Not in any organization**,
-  with Print and Export), where they can add people as members, fix contact info,
+  with Print and Export), where they can add people as members, fix names and contact info,
   set each person's organizations, turn an account off, and remove someone from
   the ward; and **Invite members**. Leadership access and callings stay with the
   bishopric. The site owner always counts as a ward administrator.
@@ -412,7 +412,7 @@ everyone who joined the ward; in an organization, everyone who chose it, plus
 anyone a leader added). Each row shows calling or role, **Phone** and **Email**
 badges, **No texts**, **Can't be reached** (see **Did they get it?**), **Turned
 off (organization) notifications**, and when they last signed in. Search by
-name, and show **Active** or **Turned off** (at the ward level, also **Not in any organization**: everyone in the ward who hasn't chosen an organization like Elders Quorum or Relief Society yet; a yellow "See who" bar shows how many). **Print** gives one clean page of
+name, and show **Active** or **Turned off**. On a member's page you can fix their **name** even after they've signed in (unless they lead somewhere; the site owner can fix anyone's). Their phone and email lock once they've signed in, since they sign in with them; they change those, and their own name, under More → Contact & notifications (at the ward level, also **Not in any organization**: everyone in the ward who hasn't chosen an organization like Elders Quorum or Relief Society yet; a yellow "See who" bar shows how many). **Print** gives one clean page of
 names, callings, phone and email; **Export (Excel)** a spreadsheet for Excel,
 Numbers or Google Sheets. Both follow the search and contain contact info: keep
 them within leadership. For addresses, use Member Tools.

@@ -10,7 +10,7 @@ import { isPresidency } from "@/lib/permissions";
 import { normalizeEmailAddress, normalizePhone, parseContact } from "@/lib/contact";
 import { findMemberByContact } from "@/lib/auth-core";
 import { sendInviteEmail } from "@/lib/invite";
-import { isLastPresidency, isOwnerEmail, leaderCanEditContact, onlyInWard, onlyLeaderOf, removeFromOrg, removeFromWard } from "@/lib/accounts";
+import { isLastPresidency, isOwnerEmail, leaderCanEditContact, leaderCanEditName, onlyInWard, onlyLeaderOf, removeFromOrg, removeFromWard } from "@/lib/accounts";
 import { addToOrg, managedOrgs, orgMemberView, wardMember, setsAccess } from "@/lib/orgs";
 import { appUrl } from "@/lib/config";
 import { sendAccountNotice } from "@/lib/login-code";
@@ -47,7 +47,9 @@ export async function updateMember(fd: FormData) {
   if (!m) redirect("/admin/members");
   // Someone who signs in, or belongs to another ward, keeps their own name and contact.
   const canEditContact = leaderCanEditContact(id, user.ward_id);
-  const name = canEditContact ? String(fd.get("name") || "").trim().slice(0, 100) : m.display_name;
+  // The name can be fixed more often than the phone and email (which they sign in with).
+  const canEditName = canEditContact || leaderCanEditName(id, user.ward_id, !!user.is_site_owner);
+  const name = canEditName && fd.has("name") ? String(fd.get("name") || "").trim().slice(0, 100) : m.display_name;
   const rawEmail = canEditContact ? String(fd.get("email") || "").trim() : (m.email ?? "");
   const rawPhone = canEditContact ? String(fd.get("phone") || "").trim() : (m.phone ?? "");
   // Left as they were, they're kept (even an old one that wouldn't pass today's check).

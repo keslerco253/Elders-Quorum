@@ -10,7 +10,7 @@ import { SubmitButton } from "@/components/client";
 import { callingLabel, CALLINGS, leadersWord, roleLabel } from "@/lib/types";
 import { managedOrgs, orgMemberView, orgsInWard, setsAccess } from "@/lib/orgs";
 import { formatPhone } from "@/lib/contact";
-import { leaderCanEditContact, onlyInWard } from "@/lib/accounts";
+import { leaderCanEditContact, leaderCanEditName, onlyInWard } from "@/lib/accounts";
 import {
   emailInvite,
   removeMember,
@@ -45,6 +45,8 @@ export default async function MemberPage({
   const addedCallings = callingNamesByMember(user.org_id).get(m.id) ?? [];
   // Name and contact are theirs once they sign in (or if they lead, or are in another ward).
   const locked = !leaderCanEditContact(m.id, user.ward_id);
+  // The name can be fixed more often than the phone and email (which they sign in with).
+  const nameLocked = locked && !leaderCanEditName(m.id, user.ward_id, !!user.is_site_owner);
   const lastVisit = presidency
     ? (db()
         .prepare(
@@ -190,7 +192,8 @@ export default async function MemberPage({
                 required
                 className="input"
                 defaultValue={m.display_name}
-                disabled={locked}
+                maxLength={100}
+                disabled={nameLocked}
               />
             </div>
           </div>
@@ -244,7 +247,7 @@ export default async function MemberPage({
           )}
           <p className="hint -mt-2">
             {locked
-              ? `Either one can be used to sign in, so only ${firstName(m.display_name)} can change them (More → Contact & notifications, with a code sent to the new number or email). `
+              ? `The phone and email can be used to sign in, so only ${firstName(m.display_name)} can change them (More → Contact & notifications, with a code sent to the new number or email). ${nameLocked ? "Their name too, since they lead in the ward (they change it under More → Contact & notifications). " : "You can fix their name. "}`
               : "Either one can be used to sign in. Change these only to help a member who hasn't signed in yet (for example, a typo). "}
             They get notifications by push
             {m.always_email || (m.always_text && m.sms_consent_at)

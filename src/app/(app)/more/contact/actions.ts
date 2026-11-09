@@ -12,6 +12,16 @@ function go(text: string, extra = ""): never {
   redirect(`/more/contact?msg=${encodeURIComponent(text)}${extra}`);
 }
 
+/** Changes their own name (how it shows to leaders and on lists). */
+export async function saveMyName(fd: FormData) {
+  const user = await requireUser();
+  const name = String(fd.get("name") || "").replace(/\s+/g, " ").trim().slice(0, 100);
+  if (name.length < 2) go("Please enter your name.");
+  db().prepare("UPDATE members SET name = ?, display_name = ?, updated_at = datetime('now') WHERE id = ?").run(name, name, user.id);
+  revalidatePath("/", "layout");
+  go("Name saved.");
+}
+
 export async function addContact(fd: FormData) {
   const user = await requireUser();
   const c = parseContact(String(fd.get("value") || ""));
