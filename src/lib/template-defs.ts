@@ -20,9 +20,19 @@ export interface TemplateDef {
   /** Texts show the title too, unless the message is "personal" (just the words, signed). */
   title?: string;
   body: string;
+  /**
+   * Its own wording for texts, kept to one text (160 letters with who it's from and the
+   * link). Without one, a text is the title and the message.
+   */
+  text?: string;
   personal?: boolean;
   vars: TemplateVar[];
 }
+
+/** Letters in one text segment; a text with more is billed as several (153 letters each). */
+export const ONE_TEXT = 160;
+/** About how long the link at the end of a text is (" https://mywardlink.net/l/123"). */
+export const TEXT_LINK_LENGTH = 29;
 
 const v = (name: string, desc: string, sample: string): TemplateVar => ({ name, desc, sample });
 
@@ -91,6 +101,7 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     about: "To everyone (except the teacher) on Sunday evening for the next Sunday's lesson, and Saturday morning.",
     title: "{day}'s lesson[: {lesson_title}]",
     body: "[By {speaker}.] [Taught by {teacher}.] Tap to read the talk and share your thoughts.",
+    text: "{day}'s lesson[: {lesson_title}].[ By {speaker}.]",
     vars: [
       v("day", '"This Sunday" or "Tomorrow"', "This Sunday"),
       v("lesson_title", "The talk's title", "Be One with Christ"),

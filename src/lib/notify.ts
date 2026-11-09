@@ -100,7 +100,8 @@ export function smsBody(wardName: string, payload: PushPayload, url: string) {
   // A member's message to a leader: their words, who it's from, then the link.
   if (payload.fullText) return `${(payload.textBody ?? payload.body).trim().slice(0, 900)}\n\n${payload.textTitle ?? payload.title}\n\nReply in app: ${url}`;
   // At most 2 segments (306 letters), the link included.
-  const text = toGsm7(`${wardName}: ${payload.title}. ${payload.textBody ?? payload.body}`.replace(/\s+/g, " ").trim());
+  const words = payload.textFull ?? `${payload.title}. ${payload.textBody ?? payload.body}`;
+  const text = toGsm7(`${wardName}: ${words}`.replace(/\s+/g, " ").trim());
   const room = 306 - url.length - 1;
   return `${text.length > room ? text.slice(0, room - 3).trimEnd() + "..." : text} ${url}`;
 }

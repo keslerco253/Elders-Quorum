@@ -35,6 +35,8 @@ export interface PushPayload {
   linkLabel?: string;
   /** Replaces body in a text message, e.g. to add "Reply TEACH…". */
   textBody?: string;
+  /** A text's whole wording (after who it's from, before the link), from the message's own text wording. */
+  textFull?: string;
   /** The link a text ends with, instead of the app's short link (e.g. straight to the talk). */
   textUrl?: string;
   /**

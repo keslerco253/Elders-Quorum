@@ -1925,6 +1925,11 @@ CREATE INDEX app_suggestions_status ON app_suggestions(status, created_at);
     id: 105,
     sql: `ALTER TABLE sms_log ADD COLUMN segments INTEGER NOT NULL DEFAULT 1;`,
   },
+  {
+    // A message's own wording for texts (kept short; each 153 letters is billed), for the messages that have one.
+    id: 106,
+    sql: `ALTER TABLE message_templates ADD COLUMN text TEXT;`,
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */

@@ -39,5 +39,15 @@ describe("message wording", () => {
       t.resetTemplate(eq, "event_reminder");
       expect(t.orgTemplate(eq, "event_reminder").custom).toBe(false);
     });
+
+    it("sends an organization's own text wording for a text, and the app's to others", () => {
+      const vars = { day: "This Sunday", lesson_title: "O Be Wise", speaker: "Elder Cook", teacher: "Sam" };
+      expect(t.renderTemplate(eq, "lesson_reminder", vars).textFull).toBe("This Sunday's lesson: O Be Wise. By Elder Cook.");
+      t.saveTemplate(eq, "lesson_reminder", "{day}'s lesson[: {lesson_title}]", "Come ready.", 1, "Read {lesson_title} before {day}!");
+      expect(t.renderTemplate(eq, "lesson_reminder", vars).textFull).toBe("Read O Be Wise before This Sunday!");
+      expect(t.renderTemplate(rs, "lesson_reminder", vars).textFull).toBe("This Sunday's lesson: O Be Wise. By Elder Cook.");
+      // Templates without a text wording have none.
+      expect(t.renderTemplate(eq, "event_reminder", { event: "X", date_time: "Sat", location: "" }).textFull).toBeUndefined();
+    });
   });
 });

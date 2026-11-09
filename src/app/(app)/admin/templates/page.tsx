@@ -1,6 +1,7 @@
 import { requirePresidency } from "@/lib/auth";
 import { TEMPLATE_DEFS } from "@/lib/template-defs";
 import { orgTemplate } from "@/lib/templates";
+import { orgFullName } from "@/lib/orgs";
 import { formatDateTime } from "@/lib/time";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -13,6 +14,7 @@ export const metadata = { title: "Message wording" };
 export default async function TemplatesPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePresidency();
   const sp = await searchParams;
+  const textFrom = user.org.kind === "ward" ? orgFullName(user.org_id) : user.org.name;
   const signature = user.org.kind === "ward" ? "The bishopric" : `The ${user.orgLabel} presidency`;
   return (
     <>
@@ -37,7 +39,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
                   <div className="mt-1 text-sm text-muted">{def.about}</div>
                 </summary>
                 <div className="mt-4 space-y-3">
-                  <TemplateEditor key={`${t.title}|${t.body}`} def={def} title={t.title} body={t.body} signature={signature} save={saveMessageTemplate} />
+                  <TemplateEditor key={`${t.title}|${t.body}|${t.text}`} def={def} title={t.title} body={t.body} text={t.text} textFrom={textFrom} signature={signature} save={saveMessageTemplate} />
                   {t.custom && (
                     <form action={resetMessageTemplate} className="flex flex-wrap items-center gap-3 border-t border-border pt-3 text-xs text-muted">
                       <input type="hidden" name="key" value={def.key} />

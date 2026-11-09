@@ -668,8 +668,9 @@ whether they've accepted.
   "Relief Society:", or the ward's name for the bishopric; someone in more than one
   ward also sees the ward) and ends with a short link. Texts are kept short and in
   plain letters (straight quotes, no emoji), since each 153 letters is billed
-  separately: most are 1 or 2 segments. The lesson reminder is one, and its link
-  opens the talk in Gospel Library.
+  separately: most are 1 or 2 segments. The lesson reminder is one, using its
+  own **Text message** wording (Admin → Message wording), and its link opens the
+  talk in Gospel Library.
 - **Monthly limit:** each ward has one (500 to start), set by the site owner. It
   counts reminder and message texts plus members' texted replies, per calendar
   month. Sign-in and confirmation codes are always sent and don't count. At the
@@ -1591,6 +1592,12 @@ wording**. Open one to change its title (up to 120 characters) and text (up to
   `[ at {location}]` disappears for an event with no place.
 - The preview shows how it will read. A message can't be blank; **Reset to the
   app's wording** undoes your changes and shows who changed it last.
+- **Text message** (the lesson reminder): the shorter wording sent by text. It
+  must fit in one text, 160 letters counting "Elders Quorum:" at the start and
+  the link at the end. **As a text** shows it with sample fill-ins and counts
+  the letters as you type; a save over 160 is refused and says how much to cut.
+  A much longer talk title or name than the sample can still make a second text
+  (never more than two).
 
 ## A member's home page
 

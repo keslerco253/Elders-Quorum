@@ -62,13 +62,13 @@ const windowTag = (w: LessonWhen) => (w.days === 7 && w.time === "19:00" ? "sun"
 /** Where the teacher's notes for the class stand. */
 
 /**
- * A lesson reminder's text, kept to one segment: who gave the talk, and a short link
- * straight to the talk in the Church's library ("…lesson: O Be Wise. By President D.
- * Todd Christofferson. mywardlink.net/l/57"). Only for a talk with a link.
+ * A lesson reminder text's link: straight to the talk in the Church's library
+ * (mywardlink.net/l/57), for a talk with a link. Its wording is the organization's
+ * (the lesson reminder's text wording, under Message wording).
  */
-function lessonText(lesson: { id: number; url: string; speaker: string; topic: number; fifth: number | null; kind: string }): { textBody?: string; textUrl?: string } {
+function lessonText(lesson: { id: number; url: string; speaker: string; topic: number; fifth: number | null; kind: string }): { textUrl?: string } {
   if (lesson.kind !== "talk" || lesson.topic || lesson.fifth === 1 || !/^https:\/\//.test(lesson.url)) return {};
-  return { textBody: lesson.speaker ? `By ${lesson.speaker}.` : "", textUrl: `/l/${lesson.id}` };
+  return { textUrl: `/l/${lesson.id}` };
 }
 
 function teacherNotesLine(lessonId: number) {
