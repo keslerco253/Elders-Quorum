@@ -42,7 +42,8 @@ export default async function MyOrganizationsPage({ searchParams }: { searchPara
           )}
           <p className="hint mt-2">
             &quot;I belong&quot; puts you on that organization&apos;s member list for its leaders (visits, teaching, messages). Notifications are its reminders, events and
-            messages. Leaders always get their organization&apos;s notifications.
+            messages: you can get them without belonging (a parent following Young Women, for example), and you won&apos;t be on its list. Leaders always get
+            their organization&apos;s notifications.
           </p>
         </Section>
         {wardOrg && (
