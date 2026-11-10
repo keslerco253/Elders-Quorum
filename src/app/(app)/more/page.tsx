@@ -45,22 +45,18 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
       <PageHeader title="More" />
       <Flash msg={sp.msg} tone="warn" />
       <Section title="Go to">
-        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+        {/* The same cards as the Admin page. */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {links.map((l) => (
-            <li key={l.href}>
-              <Link href={l.href} className="flex items-center justify-between px-4 py-3 hover:bg-surface-2">
-                <span>
-                  <span className="block font-medium">{l.label}</span>
-                  <span className="text-sm text-muted">{l.desc}</span>
-                </span>
-                <span className="flex items-center gap-2">
-                  <CountDot n={l.count} />
-                  <span className="text-muted">›</span>
-                </span>
-              </Link>
-            </li>
+            <Link key={l.href} href={l.href} className="card flex items-start justify-between gap-3 hover:bg-surface-2">
+              <span>
+                <span className="block font-semibold">{l.label}</span>
+                <span className="text-sm text-muted">{l.desc}</span>
+              </span>
+              <CountDot n={l.count} />
+            </Link>
           ))}
-        </ul>
+        </div>
       </Section>
       <Section title="Church apps">
         <QuickLinks />
