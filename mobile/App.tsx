@@ -310,6 +310,22 @@ function Main() {
   const [start, setStart] = useState<string | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Can't reach the app (it's restarting for an update, or the phone is offline): try
+  // again every few seconds, and open the page by itself once it answers.
+  useEffect(() => {
+    if (!failed) return;
+    const t = setInterval(() => {
+      fetch(`${APP_URL}/api/health`, { cache: "no-store" })
+        .then((r) => {
+          if (!r.ok) return;
+          setFailed(false);
+          setLoading(true);
+          web.current?.reload();
+        })
+        .catch(() => {});
+    }, 4000);
+    return () => clearInterval(t);
+  }, [failed]);
   const [loading, setLoading] = useState(true);
   const shownOnce = useRef(false);
   const [tabs, setTabs] = useState<Tab[]>([]);
@@ -511,7 +527,9 @@ function Main() {
       {failed ? (
         <View style={[styles.fill, styles.center, { backgroundColor: c.bg }]}>
           <Text style={[styles.title, { color: c.text }]}>{"Can't reach My Ward Link"}</Text>
-          <Text style={[styles.body, { color: c.muted }]}>Check your internet connection and try again.</Text>
+          <Text style={[styles.body, { color: c.muted }]}>
+            {"It may be updating (that takes under a minute), or your phone is offline. It opens again by itself once it's back."}
+          </Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => {
