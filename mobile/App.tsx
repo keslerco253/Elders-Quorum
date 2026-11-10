@@ -525,7 +525,8 @@ function Main() {
     <SafeAreaView style={[styles.fill, { backgroundColor: c.bg }]} edges={Platform.OS === "android" ? (tabs.length && !keyboard ? ["top"] : ["top", "bottom"]) : []}>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       {failed ? (
-        <View style={[styles.fill, styles.center, { backgroundColor: c.bg }]}>
+        // Over the whole screen (the page underneath keeps its place, so it would show below a half-screen message).
+        <View style={[StyleSheet.absoluteFill, styles.center, styles.onTop, { backgroundColor: c.bg }]}>
           <Text style={[styles.title, { color: c.text }]}>{"Can't reach My Ward Link"}</Text>
           <Text style={[styles.body, { color: c.muted }]}>
             {"It may be updating (that takes under a minute), or your phone is offline. It opens again by itself once it's back."}
@@ -547,6 +548,7 @@ function Main() {
         ref={web}
         source={{ uri: start }}
         style={[styles.fill, { backgroundColor: c.bg }, failed && styles.hidden]}
+        containerStyle={failed ? styles.hidden : undefined}
         applicationNameForUserAgent="MyWardLinkApp/1.0"
         injectedJavaScriptBeforeContentLoaded={`window.MyWardLinkApp = { platform: ${JSON.stringify(Platform.OS)}, tabs: true, widget: true, files: true }; if (document.documentElement) document.documentElement.classList.add("in-app"); true;`}
         onMessage={onMessage}
@@ -613,6 +615,7 @@ export default function App() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   hidden: { display: "none" },
+  onTop: { zIndex: 10, elevation: 10 },
   center: { alignItems: "center", justifyContent: "center", padding: 24 },
   title: { fontSize: 20, fontWeight: "700", marginBottom: 8, textAlign: "center" },
   body: { fontSize: 15, textAlign: "center", marginBottom: 20 },
