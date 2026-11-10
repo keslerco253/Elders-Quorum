@@ -63,6 +63,20 @@ export function orgMemberList(orgId: number, opts: { show?: MemberShow; q?: stri
   return list;
 }
 
+/**
+ * People who get an organization's notifications without belonging to it (a parent
+ * following Young Women): not on its member list, so shown to its leaders separately.
+ */
+export function orgFollowers(orgId: number): { id: number; display_name: string }[] {
+  return db()
+    .prepare(
+      `SELECT m.id, m.display_name FROM members m JOIN org_members om ON om.member_id = m.id AND om.org_id = ?
+       WHERE m.status = 'active' AND om.official = 0 AND om.role = 'member' AND om.notify = 1
+       ORDER BY m.display_name COLLATE NOCASE`,
+    )
+    .all(orgId) as { id: number; display_name: string }[];
+}
+
 /** "Elders Quorum President", "Presidency", or "" for members. */
 export function positionLabel(m: ListedMember, org: Pick<Org, "kind" | "name">): string {
   if (m.role === "member") return "";

@@ -472,6 +472,10 @@ name, and show **Active** or **Turned off**. On a member's page you can fix thei
 names, callings, phone and email; **Export (Excel)** a spreadsheet for Excel,
 Numbers or Google Sheets (with separate First name and Last name columns). **Sort by** **Leaders first** (the presidency, then everyone A to Z), **First name A–Z**, or **Last name A–Z** (names then show as "Johnson, Mark"; "Jr." and the like are skipped). Both follow the search and sort and contain contact info: keep
 them within leadership. For addresses, use Member Tools.
+Below the list, **Also getting (organization) notifications** names people who
+chose to get your organization's reminders, events and messages without
+belonging to it (a parent following Young Women, for example, under More → My
+organizations). They aren't on your member list or counted in it.
 
 **A member's page** (Admin → Members → name):
 - **Access level** and **Calling**. You can't take Leadership from the last

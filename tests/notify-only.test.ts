@@ -14,5 +14,10 @@ describe("getting an organization's notifications without belonging to it (a par
     expect(audienceMembers(yw, "everyone").map((r) => r.id).sort()).toEqual([1, 2, 3]); // Mom gets its notices
     expect(orgMemberList(yw).map((m) => m.display_name)).toEqual(["YW President", "Girl"]); // but isn't on its list
     expect(orgMemberList(orgs.wardOrg(w.id).id, { show: "noorg" }).map((m) => m.display_name)).toContain("Mom"); // nor counted as in it
+    // Its leaders see her apart, as following it.
+    const { orgFollowers } = await import("@/lib/member-list");
+    expect(orgFollowers(yw).map((f) => f.display_name)).toEqual(["Mom"]);
+    d.prepare("UPDATE org_members SET notify = 0 WHERE org_id = ? AND member_id = 3").run(yw);
+    expect(orgFollowers(yw)).toEqual([]);
   });
 });

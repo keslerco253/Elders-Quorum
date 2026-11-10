@@ -5,7 +5,7 @@ import { withOrg } from "@/lib/org-cookie";
 import { HandbookLinks } from "@/components/handbook-link";
 import { CALLINGS } from "@/lib/handbook";
 import { requirePeopleManager } from "@/lib/auth";
-import { lastFirst, memberShow, memberSort, orgMemberList } from "@/lib/member-list";
+import { lastFirst, memberShow, memberSort, orgFollowers, orgMemberList } from "@/lib/member-list";
 import { setsAccess } from "@/lib/orgs";
 import { formatDateTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
@@ -36,6 +36,8 @@ export default async function MembersPage({
   const sort = memberSort(sp.sort);
   const members = orgMemberList(user.org_id, { show, q, sort });
   const added = callingNamesByMember(user.org_id);
+  // Following without belonging (a parent following Young Women): listed apart from the members.
+  const followers = user.org.kind === "group" && show === "active" ? orgFollowers(user.org_id) : [];
   const noOrgCount =
     user.org.kind === "ward" && show === "active"
       ? orgMemberList(user.org_id, { show: "noorg" }).length
@@ -246,6 +248,24 @@ export default async function MembersPage({
             </li>
           ))}
         </ul>
+      )}
+      {followers.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-1 text-base font-semibold">
+            Also getting {user.orgLabel} notifications ({followers.length})
+          </h2>
+          <p className="mb-2 text-sm text-muted">
+            Not members (a parent, for example): they chose to get its reminders, events and messages under More → My organizations. They
+            aren&apos;t on the list above or counted in it.
+          </p>
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+            {followers.map((f) => (
+              <li key={f.id} className="px-4 py-2.5">
+                {sort === "last" ? lastFirst(f.display_name) : f.display_name}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </>
   );
