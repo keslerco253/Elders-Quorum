@@ -20,6 +20,8 @@ function go(text: string, ok = true): never {
  */
 export async function saveMyOrganizations(fd: FormData) {
   const user = await requireUser();
+  // Support view: these are another ward's organizations, and saving would join the owner to them.
+  if (user.support) redirect("/more");
   const d = db();
   d.transaction(() => {
     for (const o of user.orgs) {

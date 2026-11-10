@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth";
+import { SupportNotice } from "@/components/support-notice";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { callingLabel, roleLabel } from "@/lib/types";
@@ -8,6 +9,7 @@ export const metadata = { title: "My organizations" };
 
 export default async function MyOrganizationsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
+  if (user.support) return <SupportNotice user={user} title="My organizations" what="My organizations are the ones you belong to (choosing here would join you to this ward)." />;
   const sp = await searchParams;
   const groups = user.orgs.filter((o) => o.kind === "group");
   const wardOrg = user.orgs.find((o) => o.kind === "ward");

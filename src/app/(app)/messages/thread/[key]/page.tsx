@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { SupportNotice } from "@/components/support-notice";
 import { requireUser } from "@/lib/auth";
 import { ledOrgIds, presidencyContacts } from "@/lib/conversations";
 import { openMemberThread } from "@/lib/member-inbox";
@@ -19,6 +20,7 @@ export const metadata = { title: "Conversation" };
 /** A member's conversation with their leaders (all of them, or one privately), like a text thread. */
 export default async function MemberThreadPage({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
+  if (user.support) return <SupportNotice user={user} title="Messages" what="Messages are your own conversations, in your own ward." />;
   const { key } = await params;
   const sp = await searchParams;
   const tz = user.ward.timezone;

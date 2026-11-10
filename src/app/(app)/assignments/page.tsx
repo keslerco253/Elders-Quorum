@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SupportNotice } from "@/components/support-notice";
 import { requireUser } from "@/lib/auth";
 import { givenBy, KIND_ICONS, myAssignments, STATUS_LABELS, type MyItem } from "@/lib/assignments";
 import { formatDate } from "@/lib/time";
@@ -18,6 +19,7 @@ const KIND_WORDS = { todo: "Assignment", mine: "My to-do", teach: "Teaching", se
 /** Everything on a member's plate: assignments from a presidency, lessons they teach, service they signed up for. */
 export default async function MyAssignmentsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
+  if (user.support) return <SupportNotice user={user} title="My assignments" what="My assignments are your own." />;
   const sp = await searchParams;
   const today = todayIn(user.ward.timezone);
   const pastView = sp.view === "past";

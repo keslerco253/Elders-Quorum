@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SupportNotice } from "@/components/support-notice";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { ledOrgIds } from "@/lib/conversations";
@@ -21,6 +22,7 @@ const LINK_LABELS: Record<string, string> = { "/lessons": "Lessons", "/calendar"
 /** One message an organization sent (to everyone, a group, ...), with a private reply to its leaders. */
 export default async function AnnouncementPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
+  if (user.support) return <SupportNotice user={user} title="Messages" what="Messages are your own conversations, in your own ward." />;
   const { id } = await params;
   const sp = await searchParams;
   const a = openAnnouncement(user.id, Number(id));

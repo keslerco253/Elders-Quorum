@@ -20,19 +20,22 @@ export const metadata = { title: "More" };
 export default async function MorePage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
   const sp = await searchParams;
-  const unread = unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id);
-  const newNotes = unreadNotifications(user.id);
+  // In support view (looking into another ward), nothing of the owner's own ward shows here.
+  const own = !user.support;
+  const unread = own ? unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id) : 0;
+  const newNotes = own ? unreadNotifications(user.id) : 0;
+  const mine = own ? myOrgs(user.id) : user.orgs;
   // Messages holds what every one of their organizations sent them (the ward's too), not just the one they're looking at.
-  const from = myOrgs(user.id).map((o) => o.label);
+  const from = mine.map((o) => o.label);
   const fromText = from.length > 1 ? `${from.slice(0, -1).join(", ")} and ${from.at(-1)}` : (from[0] ?? user.orgLabel);
   const links: { href: string; label: string; desc: string; count?: number }[] = [
-    ...(myOrgs(user.id).some((o) => hasFeature(o, "visits")) ? [{ href: "/more/visit", label: "Request a visit", desc: "Ask your leaders to come by, talk, or help" }] : []),
+    ...(own && mine.some((o) => hasFeature(o, "visits")) ? [{ href: "/more/visit", label: "Request a visit", desc: "Ask your leaders to come by, talk, or help" }] : []),
     { href: "/assignments", label: "My assignments", desc: "What you've been asked to do, lessons you're teaching, service you signed up for" },
     { href: "/notifications", label: "Reminders & alerts", count: newNotes, desc: "Every reminder and alert the app sent you (messages are in Messages)" },
     ...(hasFeature(user.org, "signups") ? [{ href: "/signups", label: "Service", desc: "Service projects, meals, rides and more" }] : []),
     { href: "/messages", label: "Messages", count: unread, desc: `Messages from ${fromText}, and your conversations with their leaders` },
     { href: "/journal", label: "My Journal", desc: "Write about your day. Only you can see it; print it or download it any time" },
-    ...(myOrgs(user.id).some((o) => hasFeature(o, "challenges")) ? [{ href: "/challenges", label: "Challenges", desc: "Friendly competitions between organizations: who's ahead, and log what you did" }] : []),
+    ...(mine.some((o) => hasFeature(o, "challenges")) ? [{ href: "/challenges", label: "Challenges", desc: "Friendly competitions between organizations: who's ahead, and log what you did" }] : []),
     { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },
     { href: "/more/home", label: "Customize Home", desc: "Put your Home page sections in the order you like, or hide some" },
     { href: "/more/reminders", label: "Reminder settings", desc: "When and how you're reminded about lessons, events, service and assignments" },

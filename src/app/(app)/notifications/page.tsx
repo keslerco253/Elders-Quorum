@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SupportNotice } from "@/components/support-notice";
 import { OrgLink } from "@/components/org-link";
 import { requireUser } from "@/lib/auth";
 import { notificationsFor } from "@/lib/notification-log";
@@ -16,6 +17,7 @@ function openUrl(url: string, id: number) {
 
 export default async function NotificationsPage() {
   const user = await requireUser();
+  if (user.support) return <SupportNotice user={user} title="Reminders & alerts" what="Reminders & alerts are the ones sent to you." />;
   const list = notificationsFor(user.id);
   const unread = list.filter((n) => !n.read_at).length;
   return (

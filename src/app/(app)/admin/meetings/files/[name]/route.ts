@@ -12,7 +12,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ name: s
   const { name } = await params;
   if (!user) return Response.redirect(new URL(`/login?next=${encodeURIComponent(`/admin/meetings/files/${name}`)}`, appUrl()), 302);
   const f = db().prepare("SELECT org_id, original_name FROM agenda_files WHERE name = ?").get(name) as { org_id: number; original_name: string } | undefined;
-  const file = f && ledOrgIds(user.id).includes(f.org_id) ? readUpload(name) : null;
+  // In support view, the ward being looked into.
+  const file = f && (ledOrgIds(user.id).includes(f.org_id) || (user.support && user.orgs.some((o) => o.id === f.org_id))) ? readUpload(name) : null;
   if (!f || !file) return new Response("Not found", { status: 404 });
   const label = f.original_name.replace(/[^\w.\- ()]/g, "") || "file";
   return new Response(new Uint8Array(file.data), {

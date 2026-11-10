@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SupportNotice } from "@/components/support-notice";
 import { redirect } from "next/navigation";
 import { Linkify } from "@/components/linkify";
 import { FlyerThumb } from "@/components/flyer-thumb";
@@ -17,6 +18,7 @@ export const metadata = { title: "Messages" };
 
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
+  if (user.support) return <SupportNotice user={user} title="Messages" what="Messages are your own conversations, in your own ward." />;
   const sp = await searchParams;
   const tz = user.ward.timezone;
   // Leaders get an inbox of everyone writing to them, plus their own conversation as a member.

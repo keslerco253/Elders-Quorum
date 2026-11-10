@@ -30,8 +30,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         // Ward administrators, the site owner and the backup person have theirs there too.
         isAdmin={isAdmin(user) || ledOrgsAnywhere(user.id).length > 0 || hasAdminTab(user)}
         adminCount={counts.total + passOnCount(user)}
-        moreCount={unreadNotifications(user.id)}
-        messagesCount={unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id)}
+        // In support view, nothing of the owner's own (their ward's) is counted here.
+        moreCount={user.support ? 0 : unreadNotifications(user.id)}
+        messagesCount={user.support ? 0 : unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id)}
       />
       <NotificationSeen />
       <StayFresh />

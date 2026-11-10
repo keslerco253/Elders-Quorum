@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SupportNotice } from "@/components/support-notice";
 import { requireUser } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { ledOrgsAnywhere } from "@/lib/orgs";
@@ -9,6 +10,7 @@ export const metadata = { title: "Admin" };
 /** Admin is per organization: someone looking at one they don't lead picks one they do. */
 export default async function LeaderPage() {
   const user = await requireUser();
+  if (user.support) return <SupportNotice user={user} title="Admin" what="This lists the organizations you lead in your own ward." />;
   if (isAdmin(user)) redirect("/admin");
   const led = ledOrgsAnywhere(user.id);
   if (!led.length) redirect("/");

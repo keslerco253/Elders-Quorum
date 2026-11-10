@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SupportNotice } from "@/components/support-notice";
 import { requireUser } from "@/lib/auth";
 import { composeChoices, memberComposeChoices } from "@/lib/compose";
 import { Empty, Flash, PageHeader } from "@/components/ui";
@@ -11,6 +12,7 @@ export const metadata = { title: "New message" };
 
 export default async function NewMessagePage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
+  if (user.support) return <SupportNotice user={user} title="New message" what="New messages are sent from the organizations you lead, to their members." />;
   const sp = await searchParams;
   const { orgs, people } = composeChoices(user.id);
   // Members (and leaders writing as a member) write to their leaders or a group.

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SupportNotice } from "@/components/support-notice";
 import { HandbookLinks } from "@/components/handbook-link";
 import { MINISTERING } from "@/lib/handbook";
 import { requireUser } from "@/lib/auth";
@@ -16,6 +17,7 @@ const TONES = { open: "info", scheduled: "success", done: "neutral", closed: "ne
 
 export default async function VisitRequestPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requireUser();
+  if (user.support) return <SupportNotice user={user} title="Request a visit" what="A visit request goes to your own leaders." />;
   const sp = await searchParams;
   const tz = user.ward.timezone;
   const requests = myVisitRequests(user.id);

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SupportNotice } from "@/components/support-notice";
 import { Linkify } from "@/components/linkify";
 import { notFound } from "next/navigation";
 import { firstName } from "@/lib/names";
@@ -23,6 +24,7 @@ export const metadata = { title: "Conversation" };
 
 export default async function ConversationPage({ params, searchParams }: { params: Promise<{ memberId: string }>; searchParams: Promise<Record<string, string>> }) {
   const user = await requirePresidency();
+  if (user.support) return <SupportNotice user={user} title="Messages" what="Conversations with members are private between them and their leaders." />;
   const sp = await searchParams;
   const memberId = Number((await params).memberId);
   const member = db().prepare("SELECT m.id, m.display_name, m.phone, m.email, m.contact_pref FROM members m JOIN ward_members wm ON wm.member_id = m.id AND wm.ward_id = ? WHERE m.id = ?").get(user.ward_id, memberId) as

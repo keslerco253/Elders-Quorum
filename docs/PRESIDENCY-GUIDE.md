@@ -1745,7 +1745,11 @@ and the member list**).
     messages and notices. It's on that device only. **Leave** (in the bar) takes
     you back to your own ward; **Site owner** back here. Home and the Calendar show that ward's
     organization (its lessons, events, who's conducting), not your own; your own
-    assignments, to-dos and messages stay in your own ward.
+    assignments, to-dos and messages stay in your own ward. Nothing from your own
+    ward shows there: Messages (and New message), My assignments, Reminders &
+    alerts, My organizations and Request a visit say "Not shown in support view"
+    with a button back to your ward, and the red counts are left off. That ward's
+    conversations with members stay private to its members and leaders.
   - **Texting & billing:** turn texting on or off; set its monthly limit (0 to
     100,000); set a **Paid through** date (texting turns off by itself the day
     after; you're notified two weeks before and when it does); see texts and cost
