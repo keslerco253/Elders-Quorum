@@ -1763,6 +1763,14 @@ and the member list**).
   went out and the last failure** (with the error, e.g. a bad Gmail app password),
   the address links point to, and the Twilio incoming-message webhook. **Send me a
   test email** and **Send me a test text** (needs your phone and text consent).
+- **The site's email account** (what sign-in codes and wards set to use the
+  site's email send from) shows with its sender name and whether it's **set
+  here** or **from the server's settings** (SMTP_USER). **Change the site's
+  email account**: enter its address, a Gmail app password and a sender name
+  (Not Gmail? for another provider) and tap **Connect**; it signs in to check,
+  then emails you a test. The password is kept sealed. Leave the password blank
+  to change only the sender name. **Use the server's settings instead** goes
+  back. Use an account just for the site, not a ward's or an organization's.
 - **Incoming texts:** the last 25 (in 30 days) and where each went: saved as a
   message, asked which organization, a teaching reply, an unknown number, opted
   out. Only where it went is kept, not the words.

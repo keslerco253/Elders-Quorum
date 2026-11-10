@@ -9,7 +9,7 @@ import { sendLoginCode } from "@/lib/login-code";
 import { addToWard, clearWardCalendar, clearWardMessages, clearWardService, createWard, deleteWard, getWard, wardOrg } from "@/lib/orgs";
 import { validZone } from "@/lib/time";
 import type { Member } from "@/lib/types";
-import { emailHtml, sendMail } from "@/lib/mail";
+import { checkMailLogin, clearSiteMail, emailHtml, renameSiteMail, saveSiteMail, savedSiteMailPassword, sendMail, siteMailInfo } from "@/lib/mail";
 import { sendSms, setTextCost } from "@/lib/sms";
 import { formatPhone } from "@/lib/contact";
 import { approveWard, declineWard } from "@/lib/ward-review";
@@ -134,7 +134,43 @@ export async function sendTestEmail() {
   const user = await requireSiteOwner();
   if (!user.email) go("Your account has no email address.", true);
   const ok = await sendMail({ to: user.email, subject: "Test email", text: "Email is working.", html: emailHtml("It works!", "Email from the app is working.") });
-  go(ok ? `Test email sent to ${user.email}.` : "Sending failed. Check SMTP_USER and SMTP_PASS in the server's settings.", !ok);
+  go(ok ? `Test email sent to ${user.email}.` : "Sending failed. Check the site's email account (Email and texting, above).", !ok);
+}
+
+/**
+ * The site's own email account (what sign-in codes and wards without their own account
+ * send from): set here instead of in the server's settings. Checked by signing in first,
+ * then a test email goes to the site owner.
+ */
+export async function saveSiteMailAccount(fd: FormData) {
+  const user = await requireSiteOwner();
+  const address = String(fd.get("address") || "").trim().toLowerCase();
+  const typed = String(fd.get("password") || "").replace(/\s+/g, "");
+  const fromName = String(fd.get("from_name") || "").trim().slice(0, 80) || "My Ward Link";
+  const host = String(fd.get("host") || "").trim() || "smtp.gmail.com";
+  const port = Number(fd.get("port")) || 465;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address)) go("Enter the email address.", true);
+  const current = siteMailInfo();
+  // Only the sender name changed: keep the saved password.
+  if (!typed && current?.source === "app" && current.address === address) {
+    renameSiteMail(fromName);
+    go(`Saved: the site's email now sends as "${fromName}".`);
+  }
+  const password = typed || (current?.source === "app" && current.address === address ? savedSiteMailPassword() : null);
+  if (!password) go("Enter the app password for that email account.", true);
+  const problem = await checkMailLogin(address, password, host, port);
+  if (problem) go(problem, true);
+  saveSiteMail(address, password, fromName, host, port);
+  const sent = user.email ? await sendMail({ to: user.email, subject: "The site's email is connected", text: `Email from ${address} is working.`, html: emailHtml("It works!", `The site's email now sends from ${address}.`) }) : false;
+  go(`The site's email now sends from ${address}.${sent ? ` A test went to ${user.email}.` : ""}`);
+}
+
+/** Back to the account in the server's settings (SMTP_USER and SMTP_PASS). */
+export async function resetSiteMailToServer() {
+  await requireSiteOwner();
+  clearSiteMail();
+  const now = siteMailInfo();
+  go(now ? `The site's email is back to the server's settings: ${now.address}.` : "Removed. The server has no email account set, so the site sends no email of its own now.");
 }
 
 export async function sendTestText() {

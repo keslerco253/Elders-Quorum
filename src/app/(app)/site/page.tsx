@@ -9,13 +9,13 @@ import { dataOnVolume } from "@/lib/setup-code";
 import { monthlyLimit, phoneEnabled, segmentsThisMonth, phoneOnlyMembers, textCost, textsByMonth, textsThisMonth, twilioConfigured } from "@/lib/sms";
 import { DateTime } from "luxon";
 import { inboundUrl } from "@/lib/sms-inbound";
-import { emailConfigured, mailStatus } from "@/lib/mail";
+import { emailConfigured, mailStatus, siteMailInfo } from "@/lib/mail";
 import { appUrl } from "@/lib/config";
 import { Badge, Flash, PageHeader, Section } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { TimezoneSelect } from "@/components/timezone-select";
 import { addWard, approveNewWard, declineNewWard, loadCfmSchedule, setUpReview, removeCfmYear, removeWard,
-  clearWardData, saveTextCost, saveTextLimit, setNoTexting, setPaidThrough, setSiteEmail, sendTestEmail, sendTestText, setPhoneTexting, setWardTexting } from "./actions";
+  clearWardData, saveTextCost, saveTextLimit, setNoTexting, setPaidThrough, setSiteEmail, sendTestEmail, sendTestText, setPhoneTexting, setWardTexting, saveSiteMailAccount, resetSiteMailToServer } from "./actions";
 import { pendingWards } from "@/lib/ward-review";
 import { formatPhone } from "@/lib/contact";
 import { cfmYears, manualUrl } from "@/lib/cfm";
@@ -69,6 +69,7 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
   const tz = user.ward.timezone;
   // Whether email is getting out (sign-in codes depend on it).
   const mail = mailStatus();
+  const siteMail = siteMailInfo();
   // Texting cost, and when paid texting runs out.
   const rate = textCost();
   const money = (n: number) => `$${n.toFixed(2)}`;
@@ -382,7 +383,49 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
         <div className="card max-w-xl space-y-3 text-sm">
           <div className="flex flex-wrap items-center gap-2">
             Email: {emailConfigured() ? <Badge tone="success">Connected</Badge> : <Badge tone="warn">Not set up: emails are saved to data/outbox</Badge>}
+            {siteMail && (
+              <span className="text-muted">
+                {siteMail.fromName} &lt;{siteMail.address}&gt; · {siteMail.source === "app" ? "set here" : "from the server's settings"}
+              </span>
+            )}
           </div>
+          <p className="text-muted">
+            The site&apos;s own account sends sign-in codes and email for wards set to use the site&apos;s email. Organizations and wards with their own
+            account (Admin → Settings, Ward settings → Ward email) send from theirs.
+          </p>
+          <details>
+            <summary className="cursor-pointer font-semibold text-accent">Change the site&apos;s email account</summary>
+            <form action={saveSiteMailAccount} className="mt-3 space-y-3">
+              <label className="block">
+                <span className="label">Email address</span>
+                <input name="address" type="email" required defaultValue={siteMail?.source === "app" ? siteMail.address : ""} autoComplete="off" className="input" placeholder="mywardlink@gmail.com" />
+              </label>
+              <label className="block">
+                <span className="label">App password</span>
+                <input name="password" type="password" autoComplete="new-password" className="input" placeholder={siteMail?.source === "app" ? "Leave blank to keep the saved one" : "16 letters from Google"} />
+              </label>
+              <label className="block">
+                <span className="label">Sender name</span>
+                <input name="from_name" defaultValue={siteMail?.source === "app" ? siteMail.fromName : "My Ward Link"} maxLength={80} className="input" />
+              </label>
+              <details>
+                <summary className="cursor-pointer text-xs text-muted">Not Gmail?</summary>
+                <div className="mt-2 flex gap-2">
+                  <input name="host" placeholder="smtp.gmail.com" className="input" aria-label="Outgoing (SMTP) server" />
+                  <input name="port" type="number" placeholder="465" className="input w-24" aria-label="Port" />
+                </div>
+              </details>
+              <p className="text-xs text-muted">Use an account just for the site (not a ward&apos;s). It&apos;s checked by signing in, then a test email comes to you. The password is kept sealed.</p>
+              <SubmitButton pendingText="Checking…">Connect</SubmitButton>
+            </form>
+            {siteMail?.source === "app" && (
+              <form action={resetSiteMailToServer} className="mt-2">
+                <SubmitButton className="btn-secondary btn-sm" confirm="Go back to the account in the server's settings (SMTP_USER)?">
+                  Use the server&apos;s settings instead
+                </SubmitButton>
+              </form>
+            )}
+          </details>
           {emailConfigured() && (
             <p className="text-muted">
               Last email sent: {mail.lastSent ? formatDateTime(mail.lastSent, tz) : "none yet since this was added"}.

@@ -3,7 +3,7 @@ import path from "path";
 import nodemailer, { type Transporter } from "nodemailer";
 import { DATA_DIR, db } from "./db";
 import { orgFullName } from "./orgs";
-import { openSecret } from "./secret-box";
+import { openSecret, sealSecret } from "./secret-box";
 
 export interface MailMessage {
   to: string;
@@ -123,23 +123,72 @@ async function sendFromAccount(m: OrgMail, msg: MailMessage): Promise<boolean> {
   }
 }
 
-let transporter: Transporter | null | undefined;
+/** The site's own email account, set by the site owner in the app (Site owner → Email); sealed like the organizations'. */
+type SavedSiteMail = { address: string; secret: string; from_name: string; host: string; port: number; updated_at: string };
 
-function getTransporter() {
-  if (transporter !== undefined) return transporter;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!user || !pass) {
-    transporter = null;
+function savedSiteMail(): SavedSiteMail | null {
+  try {
+    const raw = (db().prepare("SELECT value FROM app_settings WHERE key = 'site_mail'").get() as { value: string } | undefined)?.value;
+    return raw ? (JSON.parse(raw) as SavedSiteMail) : null;
+  } catch {
     return null;
   }
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT || 465),
-    secure: Number(process.env.SMTP_PORT || 465) === 465,
-    auth: { user, pass },
-  });
-  return transporter;
+}
+
+/** The site's email account: the one set in the app, else the server's settings (SMTP_USER and SMTP_PASS). */
+function siteAccount(): { address: string; pass: string; fromName: string; host: string; port: number; stamp: string } | null {
+  const saved = savedSiteMail();
+  if (saved) {
+    const pass = openSecret(saved.secret);
+    if (pass) return { address: saved.address, pass, fromName: saved.from_name, host: saved.host, port: saved.port, stamp: `app:${saved.updated_at}` };
+  }
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!user || !pass) return null;
+  const port = Number(process.env.SMTP_PORT || 465);
+  return { address: user, pass, fromName: process.env.MAIL_FROM_NAME || "Elders Quorum", host: process.env.SMTP_HOST || "smtp.gmail.com", port, stamp: "server" };
+}
+
+/** What the site owner sees: the site's address and sender name, and where it's set. */
+export function siteMailInfo(): { address: string; fromName: string; source: "app" | "server" } | null {
+  const a = siteAccount();
+  return a ? { address: a.address, fromName: a.fromName, source: a.stamp === "server" ? "server" : "app" } : null;
+}
+
+export function saveSiteMail(address: string, password: string, fromName: string, host = "smtp.gmail.com", port = 465) {
+  const value: SavedSiteMail = { address, secret: sealSecret(password), from_name: fromName, host, port, updated_at: new Date().toISOString() };
+  db().prepare("INSERT INTO app_settings (key, value) VALUES ('site_mail', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(JSON.stringify(value));
+}
+
+/** The sender name only (the password stays as saved). */
+export function renameSiteMail(fromName: string): boolean {
+  const saved = savedSiteMail();
+  if (!saved) return false;
+  db().prepare("UPDATE app_settings SET value = ? WHERE key = 'site_mail'").run(JSON.stringify({ ...saved, from_name: fromName, updated_at: new Date().toISOString() }));
+  return true;
+}
+
+/** Back to the server's settings. */
+export function clearSiteMail() {
+  db().prepare("DELETE FROM app_settings WHERE key = 'site_mail'").run();
+}
+
+/** The saved account's password, to keep it when only the address or name changes. */
+export function savedSiteMailPassword(): string | null {
+  const saved = savedSiteMail();
+  return saved ? openSecret(saved.secret) : null;
+}
+
+let transporter: { stamp: string; t: Transporter } | null = null;
+
+function getTransporter() {
+  const a = siteAccount();
+  if (!a) return null;
+  if (transporter?.stamp === a.stamp + a.address) return transporter.t;
+  transporter?.t.close();
+  const t = nodemailer.createTransport({ host: a.host, port: a.port, secure: a.port === 465, auth: { user: a.address, pass: a.pass } });
+  transporter = { stamp: a.stamp + a.address, t };
+  return t;
 }
 
 export const emailConfigured = () => getTransporter() !== null;
@@ -173,8 +222,8 @@ async function sendFromSite(msg: MailMessage): Promise<boolean> {
     return true;
   }
   try {
-    const fromName = process.env.MAIL_FROM_NAME || "Elders Quorum";
-    await t.sendMail({ from: `"${fromName}" <${process.env.SMTP_USER}>`, ...msg });
+    const a = siteAccount()!;
+    await t.sendMail({ from: { name: a.fromName, address: a.address }, ...msg });
     noteMail("mail_last_sent", new Date().toISOString());
     return true;
   } catch (err) {
