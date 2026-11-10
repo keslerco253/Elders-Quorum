@@ -28,8 +28,9 @@ const LINKS: Record<"library" | "tools", { name: string; desc: string; icon: Rea
       ios: "https://apps.apple.com/app/id391093033",
       android: "intent://#Intent;package=org.lds.ldstools;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dorg.lds.ldstools;end",
       desktop: "https://directory.churchofjesuschrist.org/",
-      // Our app opens Member Tools, or the App Store when it isn't installed (Safari would show an error instead).
-      "app-ios": "membertools://",
+      // Member Tools has no documented link that opens it directly (one that isn't answered does
+      // nothing at all), so our iPhone app opens its App Store page: "Open" when it's installed.
+      "app-ios": "itms-apps://apps.apple.com/app/id391093033",
       "app-android": "intent://#Intent;package=org.lds.ldstools;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dorg.lds.ldstools;end",
     },
   },
