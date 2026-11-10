@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { leaderUnread, unreadAnswers } from "@/lib/conversations";
 import { unreadAnnouncements } from "@/lib/member-inbox";
 import { unreadNotifications } from "@/lib/notification-log";
-import { callingLabel, leadersWord, roleLabel } from "@/lib/types";
+import { callingLabel, roleLabel } from "@/lib/types";
 import { hasFeature, myOrgs } from "@/lib/orgs";
 import { formatPhone } from "@/lib/contact";
 import { CountDot, Flash, PageHeader, Section } from "@/components/ui";
@@ -22,12 +22,15 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const unread = unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id);
   const newNotes = unreadNotifications(user.id);
+  // Messages holds what every one of their organizations sent them (the ward's too), not just the one they're looking at.
+  const from = myOrgs(user.id).map((o) => o.label);
+  const fromText = from.length > 1 ? `${from.slice(0, -1).join(", ")} and ${from.at(-1)}` : (from[0] ?? user.orgLabel);
   const links: { href: string; label: string; desc: string; count?: number }[] = [
     ...(myOrgs(user.id).some((o) => hasFeature(o, "visits")) ? [{ href: "/more/visit", label: "Request a visit", desc: "Ask your leaders to come by, talk, or help" }] : []),
     { href: "/assignments", label: "My assignments", desc: "What you've been asked to do, lessons you're teaching, service you signed up for" },
     { href: "/notifications", label: "Reminders & alerts", count: newNotes, desc: "Every reminder and alert the app sent you (messages are in Messages)" },
     ...(hasFeature(user.org, "signups") ? [{ href: "/signups", label: "Service", desc: "Service projects, meals, rides and more" }] : []),
-    { href: "/messages", label: "Messages", count: unread, desc: `Messages from ${user.orgLabel} and replies from its ${leadersWord(user.org)}` },
+    { href: "/messages", label: "Messages", count: unread, desc: `Messages from ${fromText}, and your conversations with their leaders` },
     { href: "/journal", label: "My Journal", desc: "Write about your day. Only you can see it; print it or download it any time" },
     ...(myOrgs(user.id).some((o) => hasFeature(o, "challenges")) ? [{ href: "/challenges", label: "Challenges", desc: "Friendly competitions between organizations: who's ahead, and log what you did" }] : []),
     { href: "/more/organizations", label: "My organizations", desc: "Which organizations you belong to and get notifications from" },
