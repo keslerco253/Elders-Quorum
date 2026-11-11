@@ -1786,21 +1786,21 @@ and the member list**).
   went out and the last failure** (with the error, e.g. a bad Gmail app password),
   the address links point to, and the Twilio incoming-message webhook. **Send me a
   test email** and **Send me a test text** (needs your phone and text consent).
-- **Text a picture to make a to-do** (site owner only): text a photo (a
-  wedding invitation, a flyer, an appointment card; front and back together is
-  fine) to the app's texting number from your own phone. The app answers right
-  away, Claude reads the picture, and a minute later you get a text: "Added to
-  your to-dos: Wedding reception…, Sat, Dec 12, 6:00 PM to 8:00 PM, 506 N 1000 E,
-  Firth, Idaho. Text reminders 1 day and 3 hours before." with a link. It's one
-  of your private to-dos (My assignments) on that date, with the time and place
-  in its notes, and the picture is kept with it (tap it to see it full size). A
-  note typed with the picture helps it read; or text **EVENT** first (with a note
-  if you like, e.g. "EVENT Brooke's wedding"), get "Ready", then send the picture.
+- **Text a picture to put it on your calendar** (site owner only): text a photo
+  (a wedding invitation, a flyer, an appointment card; front and back together is
+  fine) to the app's texting number from your own phone, or text **EVENT** first
+  (with a note if you like, e.g. "EVENT Brooke's wedding"), get "Ready", then send
+  the picture. The app answers right away; Claude reads the picture, and a minute
+  later you get: "Posted to your calendar: Wedding reception…, Sat, Dec 12, 6:00 PM
+  to 8:00 PM, 506 N 1000 E, Firth, Idaho. Text reminders 1 day and 3 hours
+  before." with a link. It's one of your own events (like **+ My event**): its
+  start and end time, the place under where, the details in its notes, text
+  reminders a day and 3 hours before (change them like any other), and the
+  pictures kept with it (tap to see them full size; deleted with the event).
   Pictures sent within a few seconds of each other (a phone often sends the front
-  and back as separate texts) are read together as one to-do. The answer says
-  "Posted to your to-dos:" with what it was. No date on the picture: it says so
-  and adds nothing. Pictures from anyone else are handled like any other text.
-  Needs ANTHROPIC_API_KEY on the server.
+  and back as separate texts) are read together as one event. No date on the
+  picture: it says so and adds nothing. Pictures from anyone else are handled like
+  any other text. Needs ANTHROPIC_API_KEY on the server.
 - **The site's email account** (what sign-in codes and wards set to use the
   site's email send from) shows with its sender name and whether it's **set
   here** or **from the server's settings** (SMTP_USER). **Change the site's

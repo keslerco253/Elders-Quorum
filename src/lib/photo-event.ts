@@ -4,12 +4,14 @@ import { appUrl } from "./config";
 import { db } from "./db";
 import { homeOf } from "./orgs";
 import { getWard } from "./orgs";
-import { savePersonalTodo, type TodoReminder } from "./personal-todos";
+import { type TodoReminder } from "./personal-todos";
+import { savePersonalEvent } from "./personal-events";
 import { saveUpload } from "./uploads";
 
 // The site owner texts a photo (a wedding invitation, a flyer) to the app's texting
-// number. Claude reads it, and it becomes one of their private to-dos on that date, with
-// text reminders a day and three hours before; the photo is kept with the to-do.
+// number. Claude reads it, and it becomes one of their own events on their calendar (like
+// + My event: its time, where, and details), with text reminders a day and three hours
+// before; the photo is kept with the event.
 // Needs ANTHROPIC_API_KEY on the server.
 
 export const photoTodoConfigured = () => !!process.env.ANTHROPIC_API_KEY;
@@ -100,10 +102,10 @@ const REMINDERS: TodoReminder[] = [
 ];
 
 /**
- * Turns texted pictures into a to-do for this member. Returns the text to send back:
- * what was added (with a link), or what went wrong.
+ * Turns texted pictures into an event on this member's calendar. Returns the text to send
+ * back: what was posted (with a link), or what went wrong.
  */
-export async function photoToTodo(memberId: number, media: { url: string; type: string }[], caption: string): Promise<string> {
+export async function photoToEvent(memberId: number, media: { url: string; type: string }[], caption: string): Promise<string> {
   if (!photoTodoConfigured()) return "My Ward Link: reading pictures isn't set up yet (ANTHROPIC_API_KEY on the server).";
   const fetched = (await Promise.all(media.slice(0, 4).map((m) => fetchMedia(m.url)))).filter((f): f is { data: Buffer; type: string } => !!f);
   const pictures = fetched.filter((f): f is { data: Buffer; type: ClaudeType } => (CLAUDE_TYPES as readonly string[]).includes(f.type));
@@ -119,14 +121,24 @@ export async function photoToTodo(memberId: number, media: { url: string; type: 
   }
   if (!reading) return "My Ward Link: I couldn't read that picture just now. Please try again in a minute.";
   const date = /^\d{4}-\d{2}-\d{2}$/.test(reading.date) ? reading.date : "";
-  if (!reading.found || !date) return `My Ward Link: I couldn't find a date on that picture${reading.problem ? ` (${reading.problem})` : ""}. Add it as a to-do in the app instead.`;
+  if (!reading.found || !date) return `My Ward Link: I couldn't find a date on that picture${reading.problem ? ` (${reading.problem})` : ""}. Add it with + My event on the calendar instead.`;
   const time = /^\d{2}:\d{2}$/.test(reading.start_time) ? reading.start_time : null;
   const end = /^\d{2}:\d{2}$/.test(reading.end_time) ? reading.end_time : null;
   const hm = (t: string) => DateTime.fromFormat(t, "HH:mm").toFormat("h:mm a");
   const when = time ? `${hm(time)}${end ? ` to ${hm(end)}` : ""}` : "";
-  const notes = [when && `Time: ${when}`, reading.location && `Where: ${reading.location}`, reading.details].filter(Boolean).join("\n");
   const title = (reading.title || "From a picture").slice(0, 200);
-  const id = savePersonalTodo(memberId, null, { title, notes, due_date: date, due_time: time, reminders: REMINDERS });
+  // An end before its start (or none): an hour long, as + My event would show it.
+  const id = savePersonalEvent(memberId, null, {
+    title,
+    notes: reading.details.slice(0, 2000),
+    location: reading.location.slice(0, 300),
+    date,
+    start_time: time ?? "00:00",
+    end_time: time && end && end > time ? end : null,
+    all_day: !time,
+    timezone: tz,
+    reminders: REMINDERS,
+  });
   if (!id) return "My Ward Link: that couldn't be saved. Please try again.";
   // Keep the pictures with it (all of them, including any Claude couldn't read).
   const names: string[] = [];
@@ -137,7 +149,7 @@ export async function photoToTodo(memberId: number, media: { url: string; type: 
       // Not a kind of picture that's kept.
     }
   }
-  db().prepare("UPDATE personal_todos SET images = ? WHERE id = ?").run(JSON.stringify(names), id);
+  db().prepare("UPDATE personal_events SET images = ? WHERE id = ?").run(JSON.stringify(names), id);
   const day = DateTime.fromISO(date).toFormat("ccc, LLL d");
-  return `Posted to your to-dos: ${title}, ${day}${when ? `, ${when}` : ""}${reading.location ? `, ${reading.location}` : ""}. Text reminders 1 day and 3 hours before. ${appUrl()}/assignments/mine/${id}`;
+  return `Posted to your calendar: ${title}, ${day}${when ? `, ${when}` : ""}${reading.location ? `, ${reading.location}` : ""}. Text reminders 1 day and 3 hours before. ${appUrl()}/calendar/mine/${id}`;
 }

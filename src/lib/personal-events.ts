@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import { db } from "./db";
+import { deleteUpload } from "./uploads";
 import { storeReminders, TODO_WHEN, type TodoReminder } from "./personal-todos";
 import type { EventRow } from "./types";
 import { describeRecurrence, occurrenceDates, type Pattern } from "./recurrence";
@@ -28,7 +29,18 @@ export interface PersonalEvent {
   repeat_until: string | null;
   /** JSON list of dates (yyyy-mm-dd) taken off a repeating event. */
   skip_dates: string;
+  /** JSON: stored file names of pictures kept with it (a texted photo it was made from). */
+  images: string;
 }
+
+/** The pictures kept with an event (see PersonalEvent.images). */
+export const eventImages = (e: Pick<PersonalEvent, "images">): string[] => {
+  try {
+    return (JSON.parse(e.images || "[]") as unknown[]).filter((n): n is string => typeof n === "string");
+  } catch {
+    return [];
+  }
+};
 
 const skips = (e: Pick<PersonalEvent, "skip_dates">): string[] => {
   try {
@@ -148,7 +160,10 @@ export function savePersonalEvent(
 }
 
 export function deletePersonalEvent(memberId: number, id: number) {
+  const e = getPersonalEvent(memberId, id);
   db().prepare("DELETE FROM personal_events WHERE id = ? AND member_id = ?").run(id, memberId);
+  // Its pictures go with it.
+  if (e) for (const name of eventImages(e)) deleteUpload(name);
 }
 
 /** A member's own events between two UTC instants, shaped like calendar events. */

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { canTextTodos } from "@/lib/personal-todos";
-import { getPersonalEvent, occurrences, repeatText } from "@/lib/personal-events";
+import { eventImages, getPersonalEvent, occurrences, repeatText } from "@/lib/personal-events";
 import { formatDate } from "@/lib/time";
 import { memberCanText } from "../../../more/reminders/can-text";
 import { Flash, PageHeader } from "@/components/ui";
@@ -46,6 +46,16 @@ export default async function PersonalEventPage({ params, searchParams }: { para
           </SubmitButton>
         </form>
       </div>
+      {eventImages(event).length > 0 && (
+        <div className="mb-4 flex max-w-xl flex-wrap gap-3">
+          {eventImages(event).map((name) => (
+            <a key={name} href={`/calendar/mine/${event.id}/picture/${name}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-border">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/calendar/mine/${event.id}/picture/${name}`} alt="The picture this event was made from" className="h-48 w-auto object-contain" />
+            </a>
+          ))}
+        </div>
+      )}
       <PersonalEventForm key={event.id} event={event} canText={canTextTodos(user.id)} textReady={memberCanText(user)} canEmail={!!user.email} />
     </>
   );

@@ -27,7 +27,7 @@ const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a
 describe("a picture texted in by the site owner", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("becomes a to-do on that date, with text reminders a day and 3 hours before and the picture kept", async () => {
+  it("becomes an event on their calendar, with its time and place, text reminders a day and 3 hours before, and the picture kept", async () => {
     process.env.ANTHROPIC_API_KEY = "test";
     process.env.TWILIO_ACCOUNT_SID = "AC1";
     process.env.TWILIO_AUTH_TOKEN = "t";
@@ -49,23 +49,22 @@ describe("a picture texted in by the site owner", () => {
         return Response.json({ sid: "SM1" });
       }),
     );
-    const { photoToTodo } = await import("@/lib/photo-todo");
-    const reply = await photoToTodo(1, [{ url: "https://api.twilio.com/2010-04-01/Accounts/AC1/Messages/MM1/Media/ME1", type: "image/png" }], "");
-    expect(reply).toMatch(/^Posted to your to-dos: Wedding reception: Ashton Daniels & Brooke Boyle, Sat, Dec 12, 6:00 PM to 8:00 PM, 506 N 1000 E, Firth, Idaho\. Text reminders 1 day and 3 hours before\. http.*\/assignments\/mine\/\d+$/);
-    const todo = d.prepare("SELECT * FROM personal_todos WHERE member_id = 1").get() as { title: string; due_date: string; due_time: string; notes: string; reminders: string; images: string };
-    expect(todo).toMatchObject({ due_date: "2026-12-12", due_time: "18:00" });
-    expect(todo.notes).toContain("Where: 506 N 1000 E, Firth, Idaho");
-    expect(JSON.parse(todo.reminders).map((r: { when: string; text: unknown }) => [r.when, !!r.text])).toEqual([["m:1440", true], ["m:180", true]]);
-    const images = JSON.parse(todo.images) as string[];
+    const { photoToEvent } = await import("@/lib/photo-event");
+    const reply = await photoToEvent(1, [{ url: "https://api.twilio.com/2010-04-01/Accounts/AC1/Messages/MM1/Media/ME1", type: "image/png" }], "");
+    expect(reply).toMatch(/^Posted to your calendar: Wedding reception: Ashton Daniels & Brooke Boyle, Sat, Dec 12, 6:00 PM to 8:00 PM, 506 N 1000 E, Firth, Idaho\. Text reminders 1 day and 3 hours before\. http.*\/calendar\/mine\/\d+$/);
+    const ev = d.prepare("SELECT * FROM personal_events WHERE member_id = 1").get() as { id: number; title: string; date: string; start_time: string; end_time: string; all_day: number; location: string; notes: string; reminders: string; images: string };
+    expect(ev).toMatchObject({ date: "2026-12-12", start_time: "18:00", end_time: "20:00", all_day: 0, location: "506 N 1000 E, Firth, Idaho" });
+    expect(ev.notes).toContain("Seth and Tiffany Boyle");
+    expect(JSON.parse(ev.reminders).map((r: { when: string; text: unknown }) => [r.when, !!r.text])).toEqual([["m:1440", true], ["m:180", true]]);
+    const images = JSON.parse(ev.images) as string[];
     expect(images).toHaveLength(1);
     const { readUpload } = await import("@/lib/uploads");
     expect(readUpload(images[0])?.type).toBe("image/png");
-    // It shows on their calendar that day, at its time (only theirs).
-    const { personalTodosBetween, eventHref } = await import("@/lib/personal-events");
-    const onCalendar = personalTodosBetween(1, "2026-12-01T00:00:00Z", "2027-01-01T00:00:00Z", "America/Boise");
-    expect(onCalendar.map((e) => [e.title, e.starts_at, e.all_day])).toEqual([["Wedding reception: Ashton Daniels & Brooke Boyle", "2026-12-13T01:00:00.000Z", 0]]);
-    expect(eventHref(onCalendar[0])).toMatch(/^\/assignments\/mine\/\d+$/);
-    expect(personalTodosBetween(2, "2026-12-01T00:00:00Z", "2027-01-01T00:00:00Z", "America/Boise")).toEqual([]);
+    // On their calendar that day, 6 to 8 PM, only theirs.
+    const { personalEventsBetween, deletePersonalEvent } = await import("@/lib/personal-events");
+    const onCalendar = personalEventsBetween(1, "2026-12-01T00:00:00Z", "2027-01-01T00:00:00Z");
+    expect(onCalendar.map((e) => [e.title, e.starts_at, e.ends_at])).toEqual([["Wedding reception: Ashton Daniels & Brooke Boyle", "2026-12-13T01:00:00Z", "2026-12-13T03:00:00Z"]]);
+    expect(personalEventsBetween(2, "2026-12-01T00:00:00Z", "2027-01-01T00:00:00Z")).toEqual([]);
     // Claude got the picture itself.
     const call = (create.mock.calls[0] as unknown as [{ messages: { content: { type: string }[] }[] }])[0];
     expect(call.messages[0].content[0].type).toBe("image");
@@ -95,8 +94,12 @@ describe("a picture texted in by the site owner", () => {
     const batch = (create.mock.calls[before] as unknown as [{ messages: { content: { type: string; text?: string }[] }[] }])[0].messages[0].content;
     expect(batch.filter((b) => b.type === "image")).toHaveLength(2);
     expect(batch.find((b) => b.type === "text")?.text).toContain("Brooke's wedding");
-    // Posted as one to-do, keeping both pictures.
-    await vi.waitFor(() => expect(JSON.parse((d.prepare("SELECT images FROM personal_todos ORDER BY id DESC LIMIT 1").get() as { images: string }).images)).toHaveLength(2));
+    // Posted as one event, keeping both pictures.
+    await vi.waitFor(() => expect(JSON.parse((d.prepare("SELECT images FROM personal_events ORDER BY id DESC LIMIT 1").get() as { images: string }).images)).toHaveLength(2));
+    // Deleting the event deletes its pictures.
+    const first = JSON.parse((d.prepare("SELECT images FROM personal_events WHERE id = ?").get(ev.id) as { images: string }).images) as string[];
+    deletePersonalEvent(1, ev.id);
+    expect(readUpload(first[0])).toBeNull();
 
     const amy: { reply?: string } = {};
     expect(await handleInboundText({ From: "+12085550002", Body: "here's a picture", NumMedia: "1", MediaUrl0: "https://api.twilio.com/x", MediaContentType0: "image/png" }, amy)).not.toBe("photo_todo");

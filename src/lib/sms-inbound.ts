@@ -7,7 +7,7 @@ import { sendSms, twilioConfigured } from "./sms";
 import { closedText, orgTakesMessages } from "./message-routing";
 import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching";
 import { getOrg, getWard, homeOf, isSiteOwner, memberWards, orgFullName, orgLabel } from "./orgs";
-import { photoToTodo } from "./photo-todo";
+import { photoToEvent } from "./photo-event";
 import type { Member } from "./types";
 import { allowHit } from "./rate-limit";
 import { answerRequest, latestPendingRequest } from "./teaching-requests";
@@ -124,7 +124,7 @@ const nameOf = (id: number) => (db().prepare("SELECT display_name FROM members W
 async function routeText(params: Record<string, string>, seen: Seen): Promise<InboundResult> {
   const from = normalizePhone(params.From || "");
   const body = (params.Body || "").trim();
-  // The site owner texting a picture (an invitation, a flyer): it becomes one of their to-dos.
+  // The site owner texting a picture (an invitation, a flyer): it becomes an event on their calendar.
   // "EVENT" first (with a note, if they like) gets it ready for the picture.
   if (from && /^\s*(event|to-?do)\b/i.test(body) && !Number(params.NumMedia || 0)) {
     const owner = photoSender(from);
@@ -132,7 +132,7 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
       waitingNote.set(owner.id, { note: body.replace(/^\s*(event|to-?do)\b[\s:,.-]*/i, "").trim(), until: Date.now() + 30 * 60_000 });
       seen.memberId = owner.id;
       seen.note = "Ready for a picture";
-      seen.reply = "Ready. Send the picture (front and back is fine) and I'll make it a to-do.";
+      seen.reply = "Ready. Send the picture (front and back is fine) and I'll put it on your calendar.";
       return "photo_todo";
     }
   }
@@ -141,9 +141,9 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     if (owner) {
       const media = Array.from({ length: Math.min(Number(params.NumMedia), 4) }, (_, i) => ({ url: params[`MediaUrl${i}`] || "", type: params[`MediaContentType${i}`] || "" })).filter((m) => m.url);
       seen.memberId = owner.id;
-      seen.note = "Picture to a to-do";
+      seen.note = "Picture to a calendar event";
       // Only the first picture of a batch is answered; the rest join it.
-      if (collectPicture(owner, from, media, body)) seen.reply = "Got it. Reading the picture now; I'll text you when it's posted to your to-dos.";
+      if (collectPicture(owner, from, media, body)) seen.reply = "Got it. Reading the picture now; I'll text you when it's posted to your calendar.";
       return "photo_todo";
     }
   }
@@ -472,7 +472,7 @@ function collectPicture(owner: { id: number; orgId: number | null }, phone: stri
     waitingNote.delete(owner.id);
     const caption = [waiting && waiting.until > Date.now() ? waiting.note : "", ...batch.notes].filter(Boolean).join(" ");
     // Reading takes longer than Twilio waits for an answer: the result is texted after.
-    void photoToTodo(owner.id, batch.media, caption)
+    void photoToEvent(owner.id, batch.media, caption)
       .then((reply) => sendSms(owner.orgId, phone, reply, "notice"))
       .catch((err) => console.error("[sms] picture to-do failed", err));
   }, PICTURE_WAIT_MS);

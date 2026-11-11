@@ -1984,6 +1984,11 @@ CREATE TABLE member_blocks (
     id: 110,
     sql: `ALTER TABLE personal_todos ADD COLUMN images TEXT NOT NULL DEFAULT '[]';`,
   },
+  {
+    // Pictures kept with a member's own event (one made from a texted photo of an invitation).
+    id: 111,
+    sql: `ALTER TABLE personal_events ADD COLUMN images TEXT NOT NULL DEFAULT '[]';`,
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */

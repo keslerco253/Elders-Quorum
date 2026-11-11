@@ -1,5 +1,14 @@
 import { db } from "./db";
 import { deleteAccount } from "./accounts";
+import { deleteUpload } from "./uploads";
+
+const listOf = (json: string): string[] => {
+  try {
+    return (JSON.parse(json) as unknown[]).filter((n): n is string => typeof n === "string");
+  } catch {
+    return [];
+  }
+};
 
 // How long member-contributed information is kept. Shown to members on /privacy.
 const ISO_NOW_MINUS = (modifier: string) => `strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '${modifier}')`;
@@ -11,6 +20,7 @@ export function runRetention() {
   const run = (label: string, sql: string) => {
     counts[label] = d.prepare(sql).run().changes;
   };
+  const pictures: string[] = [];
   d.transaction(() => {
     // Sign-ups: 30 days after their date (180 days after creation if undated).
     run("signups", `DELETE FROM signups WHERE (date IS NOT NULL AND date < date('now', '-30 days')) OR (date IS NULL AND created_at < datetime('now', '-180 days'))`);
@@ -50,14 +60,20 @@ export function runRetention() {
       .prepare("UPDATE challenge_entries SET member_id = NULL WHERE member_id IS NOT NULL AND challenge_id IN (SELECT id FROM challenges WHERE ends_on < date('now', '-30 days'))")
       .run().changes;
     // Members' own to-dos: 6 months after they're done.
+    for (const r of d.prepare(`SELECT images FROM personal_todos WHERE done = 1 AND done_at < datetime('now', '-6 months') AND images <> '[]'`).all() as { images: string }[]) pictures.push(...listOf(r.images));
     run("personal_todos", `DELETE FROM personal_todos WHERE done = 1 AND done_at < datetime('now', '-6 months')`);
     // A member's own calendar events: 30 days after their date.
-    run("personal_events", `DELETE FROM personal_events WHERE date < date('now', '-30 days') AND (repeat IS NULL OR (repeat_until IS NOT NULL AND repeat_until < date('now', '-30 days')))`);
+    const oldEvents = `date < date('now', '-30 days') AND (repeat IS NULL OR (repeat_until IS NOT NULL AND repeat_until < date('now', '-30 days')))`;
+    // Their pictures go with them (and with old done to-dos, above).
+    for (const r of d.prepare(`SELECT images FROM personal_events WHERE ${oldEvents} AND images <> '[]'`).all() as { images: string }[]) pictures.push(...listOf(r.images));
+    run("personal_events", `DELETE FROM personal_events WHERE ${oldEvents}`);
     // "Couldn't reach" items 30 days after someone handled them; unhandled ones after 6 months.
     run("unreached", `DELETE FROM unreached WHERE (done_at IS NOT NULL AND done_at < datetime('now', '-30 days')) OR created_at < datetime('now', '-6 months')`);
     // Message history after a year.
     run("messages", `DELETE FROM messages WHERE created_at < datetime('now', '-365 days')`);
   })();
+  // The pictures of what was just deleted (files, after the database change is made).
+  for (const name of pictures) deleteUpload(name);
   // Members who haven't signed in for 12 months (leaders are kept).
   const stale = d
     .prepare(
