@@ -51,7 +51,7 @@ describe("a picture texted in by the site owner", () => {
     );
     const { photoToTodo } = await import("@/lib/photo-todo");
     const reply = await photoToTodo(1, [{ url: "https://api.twilio.com/2010-04-01/Accounts/AC1/Messages/MM1/Media/ME1", type: "image/png" }], "");
-    expect(reply).toMatch(/^Added to your to-dos: Wedding reception: Ashton Daniels & Brooke Boyle, Sat, Dec 12, 6:00 PM to 8:00 PM, 506 N 1000 E, Firth, Idaho\. Text reminders 1 day and 3 hours before\. http.*\/assignments\/mine\/\d+$/);
+    expect(reply).toMatch(/^Posted to your to-dos: Wedding reception: Ashton Daniels & Brooke Boyle, Sat, Dec 12, 6:00 PM to 8:00 PM, 506 N 1000 E, Firth, Idaho\. Text reminders 1 day and 3 hours before\. http.*\/assignments\/mine\/\d+$/);
     const todo = d.prepare("SELECT * FROM personal_todos WHERE member_id = 1").get() as { title: string; due_date: string; due_time: string; notes: string; reminders: string; images: string };
     expect(todo).toMatchObject({ due_date: "2026-12-12", due_time: "18:00" });
     expect(todo.notes).toContain("Where: 506 N 1000 E, Firth, Idaho");
@@ -66,9 +66,32 @@ describe("a picture texted in by the site owner", () => {
 
     // Through the texting number: only the site owner's pictures are read; the answer comes right away.
     const { handleInboundText } = await import("@/lib/sms-inbound");
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const out: { reply?: string } = {};
     expect(await handleInboundText({ From: "+12085550001", Body: "", NumMedia: "1", MediaUrl0: "https://api.twilio.com/2010-04-01/Accounts/AC1/Messages/MM1/Media/ME2", MediaContentType0: "image/png" }, out)).toBe("photo_todo");
     expect(out.reply).toMatch(/Reading the picture now/);
+    // EVENT first (with a note), then the front and back as two texts: read together, as one to-do.
+    // (The first picture is read once no more come.)
+    await vi.runAllTimersAsync();
+    const ready: { reply?: string } = {};
+    expect(await handleInboundText({ From: "+12085550001", Body: "Event Brooke's wedding" }, ready)).toBe("photo_todo");
+    expect(ready.reply).toMatch(/^Ready\. Send the picture/);
+    const before = create.mock.calls.length;
+    const front: { reply?: string } = {};
+    const back: { reply?: string } = {};
+    await handleInboundText({ From: "+12085550001", Body: "", NumMedia: "1", MediaUrl0: "https://api.twilio.com/2010-04-01/Accounts/AC1/Messages/MM1/Media/ME3", MediaContentType0: "image/png" }, front);
+    await handleInboundText({ From: "+12085550001", Body: "", NumMedia: "1", MediaUrl0: "https://api.twilio.com/2010-04-01/Accounts/AC1/Messages/MM1/Media/ME4", MediaContentType0: "image/png" }, back);
+    expect(front.reply).toMatch(/Reading the picture now/);
+    expect(back.reply).toBeUndefined();
+    await vi.runAllTimersAsync();
+    vi.useRealTimers();
+    await vi.waitFor(() => expect(create.mock.calls.length).toBe(before + 1));
+    const batch = (create.mock.calls[before] as unknown as [{ messages: { content: { type: string; text?: string }[] }[] }])[0].messages[0].content;
+    expect(batch.filter((b) => b.type === "image")).toHaveLength(2);
+    expect(batch.find((b) => b.type === "text")?.text).toContain("Brooke's wedding");
+    // Posted as one to-do, keeping both pictures.
+    await vi.waitFor(() => expect(JSON.parse((d.prepare("SELECT images FROM personal_todos ORDER BY id DESC LIMIT 1").get() as { images: string }).images)).toHaveLength(2));
+
     const amy: { reply?: string } = {};
     expect(await handleInboundText({ From: "+12085550002", Body: "here's a picture", NumMedia: "1", MediaUrl0: "https://api.twilio.com/x", MediaContentType0: "image/png" }, amy)).not.toBe("photo_todo");
   });

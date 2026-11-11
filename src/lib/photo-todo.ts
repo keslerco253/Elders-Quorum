@@ -139,5 +139,5 @@ export async function photoToTodo(memberId: number, media: { url: string; type: 
   }
   db().prepare("UPDATE personal_todos SET images = ? WHERE id = ?").run(JSON.stringify(names), id);
   const day = DateTime.fromISO(date).toFormat("ccc, LLL d");
-  return `Added to your to-dos: ${title}, ${day}${when ? `, ${when}` : ""}${reading.location ? `, ${reading.location}` : ""}. Text reminders 1 day and 3 hours before. ${appUrl()}/assignments/mine/${id}`;
+  return `Posted to your to-dos: ${title}, ${day}${when ? `, ${when}` : ""}${reading.location ? `, ${reading.location}` : ""}. Text reminders 1 day and 3 hours before. ${appUrl()}/assignments/mine/${id}`;
 }

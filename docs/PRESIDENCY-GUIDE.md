@@ -1794,7 +1794,11 @@ and the member list**).
   Firth, Idaho. Text reminders 1 day and 3 hours before." with a link. It's one
   of your private to-dos (My assignments) on that date, with the time and place
   in its notes, and the picture is kept with it (tap it to see it full size). A
-  note typed with the picture helps it read. No date on the picture: it says so
+  note typed with the picture helps it read; or text **EVENT** first (with a note
+  if you like, e.g. "EVENT Brooke's wedding"), get "Ready", then send the picture.
+  Pictures sent within a few seconds of each other (a phone often sends the front
+  and back as separate texts) are read together as one to-do. The answer says
+  "Posted to your to-dos:" with what it was. No date on the picture: it says so
   and adds nothing. Pictures from anyone else are handled like any other text.
   Needs ANTHROPIC_API_KEY on the server.
 - **The site's email account** (what sign-in codes and wards set to use the

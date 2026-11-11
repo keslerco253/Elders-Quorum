@@ -125,17 +125,25 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   const from = normalizePhone(params.From || "");
   const body = (params.Body || "").trim();
   // The site owner texting a picture (an invitation, a flyer): it becomes one of their to-dos.
+  // "EVENT" first (with a note, if they like) gets it ready for the picture.
+  if (from && /^\s*(event|to-?do)\b/i.test(body) && !Number(params.NumMedia || 0)) {
+    const owner = photoSender(from);
+    if (owner) {
+      waitingNote.set(owner.id, { note: body.replace(/^\s*(event|to-?do)\b[\s:,.-]*/i, "").trim(), until: Date.now() + 30 * 60_000 });
+      seen.memberId = owner.id;
+      seen.note = "Ready for a picture";
+      seen.reply = "Ready. Send the picture (front and back is fine) and I'll make it a to-do.";
+      return "photo_todo";
+    }
+  }
   if (from && Number(params.NumMedia || 0) > 0) {
     const owner = photoSender(from);
     if (owner) {
       const media = Array.from({ length: Math.min(Number(params.NumMedia), 4) }, (_, i) => ({ url: params[`MediaUrl${i}`] || "", type: params[`MediaContentType${i}`] || "" })).filter((m) => m.url);
       seen.memberId = owner.id;
       seen.note = "Picture to a to-do";
-      // Reading it takes longer than Twilio waits for an answer: the result is texted after.
-      void photoToTodo(owner.id, media, body)
-        .then((reply) => sendSms(owner.orgId, from, reply, "notice"))
-        .catch((err) => console.error("[sms] picture to-do failed", err));
-      seen.reply = "Got it. Reading the picture now; I'll text you when it's on your to-dos.";
+      // Only the first picture of a batch is answered; the rest join it.
+      if (collectPicture(owner, from, media, body)) seen.reply = "Got it. Reading the picture now; I'll text you when it's posted to your to-dos.";
       return "photo_todo";
     }
   }
@@ -442,4 +450,32 @@ function photoSender(phone: string): { id: number; orgId: number | null } | null
   const rows = db().prepare("SELECT * FROM members WHERE phone = ? AND status = 'active'").all(phone) as Member[];
   const owner = rows.find((m) => isSiteOwner(m));
   return owner ? { id: owner.id, orgId: homeOf(owner.id).orgId } : null;
+}
+
+/** A note sent with EVENT, waiting for the picture (half an hour). */
+const waitingNote = new Map<number, { note: string; until: number }>();
+/** Pictures arriving close together (a phone sends the front and back as separate texts): read as one. */
+const batches = new Map<number, { media: { url: string; type: string }[]; notes: string[]; timer: ReturnType<typeof setTimeout> }>();
+/** How long to wait for more pictures before reading them. */
+export const PICTURE_WAIT_MS = 15_000;
+
+/** Adds pictures to this owner's batch, read once no more come for a moment. True for the batch's first. */
+function collectPicture(owner: { id: number; orgId: number | null }, phone: string, media: { url: string; type: string }[], note: string): boolean {
+  const old = batches.get(owner.id);
+  if (old) clearTimeout(old.timer);
+  const batch = old ?? { media: [], notes: [], timer: setTimeout(() => {}, 0) };
+  batch.media.push(...media);
+  if (note.trim()) batch.notes.push(note.trim());
+  batch.timer = setTimeout(() => {
+    batches.delete(owner.id);
+    const waiting = waitingNote.get(owner.id);
+    waitingNote.delete(owner.id);
+    const caption = [waiting && waiting.until > Date.now() ? waiting.note : "", ...batch.notes].filter(Boolean).join(" ");
+    // Reading takes longer than Twilio waits for an answer: the result is texted after.
+    void photoToTodo(owner.id, batch.media, caption)
+      .then((reply) => sendSms(owner.orgId, phone, reply, "notice"))
+      .catch((err) => console.error("[sms] picture to-do failed", err));
+  }, PICTURE_WAIT_MS);
+  batches.set(owner.id, batch);
+  return !old;
 }
