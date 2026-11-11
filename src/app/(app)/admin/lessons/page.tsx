@@ -332,7 +332,7 @@ export default async function AdminLessonsPage({
                       </div>
                     )}
                   </div>
-                  {conf && <Badge tone="info">Conference</Badge>}
+                  {conf && <Badge tone="info">{l.kind === "sacrament_only" ? "No lesson" : "Conference"}</Badge>}
                   <span className="text-muted">›</span>
                 </Link>
               </li>

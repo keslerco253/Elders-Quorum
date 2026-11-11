@@ -72,7 +72,7 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
 
       {conf ? (
         <div className="card">
-          <p>There is no {user.orgLabel} lesson this Sunday. Please attend {conf}.</p>
+          <p>{lesson.kind === "sacrament_only" ? `There is no ${user.orgLabel} lesson this Sunday: it's sacrament meeting only.` : `There is no ${user.orgLabel} lesson this Sunday. Please attend ${conf}.`}</p>
           {lesson.kind === "general_conference" && (
             <a href="https://www.churchofjesuschrist.org/study/general-conference" className="btn-primary mt-4" target="_blank" rel="noreferrer">
               General Conference in Gospel Library
