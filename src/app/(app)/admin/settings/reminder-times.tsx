@@ -72,12 +72,14 @@ export function ReminderTimes({ org }: { org: Org }) {
         )}
         {lessons && (
           <fieldset className="space-y-2">
-            <legend className="label">Conference Sunday reminder (to everyone)</legend>
+            <legend className="label">No-lesson Sunday reminder (to everyone)</legend>
             <LessonRows name="conference" value={s.conference} />
             <p className="hint">
-              For a General or Stake Conference Sunday (no lesson): that
-              there&apos;s no class and where to watch. Set it apart from the
-              lesson reminder, or choose No reminder.
+              Sent instead of the lesson reminder on a General or Stake
+              Conference Sunday, or a Sunday with only sacrament meeting
+              (Easter, Christmas): that there&apos;s no lesson, by app, text or
+              email as each member chose. Set it apart from the lesson
+              reminder, or choose No reminder.
             </p>
           </fieldset>
         )}

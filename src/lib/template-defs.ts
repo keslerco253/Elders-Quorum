@@ -125,13 +125,13 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
   },
   {
     key: "lesson_conference",
-    label: "No lesson (conference weekend)",
-    about: "Instead of the lesson reminder on a General or Stake Conference weekend.",
+    label: "No lesson (conference, or sacrament meeting only)",
+    about: "Instead of the lesson reminder on a General or Stake Conference weekend, or a Sunday with only sacrament meeting (Easter, Christmas).",
     title: "{day}: {conference}",
     body: "No {org} lesson {this_week}. We hope to see you at {conference}.",
     vars: [
       v("day", '"This Sunday" or "Tomorrow"', "This Sunday"),
-      v("conference", '"General Conference" or "Stake Conference"', "General Conference"),
+      v("conference", '"General Conference", "Stake Conference" or "sacrament meeting"', "General Conference"),
       v("org", "Your organization", "Elders Quorum"),
       v("this_week", '"this week" or "tomorrow"', "this week"),
     ],

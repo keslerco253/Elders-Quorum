@@ -46,5 +46,13 @@ describe("a Sunday with only sacrament meeting (Easter, Christmas)", () => {
     const due = collectDue(DateTime.fromISO("2027-03-21T19:00", { zone: "America/Boise" }).toUTC()).find((n) => n.key.startsWith("lesson-"));
     expect(due?.payload.title).toBe("This Sunday: sacrament meeting");
     expect(due?.payload.body).toContain("We hope to see you at sacrament meeting.");
+    // Members who get their reminders by text get it as one text.
+    const { smsBody } = await import("@/lib/notify");
+    const { smsSegments } = await import("@/lib/sms");
+    const text = smsBody("Elders Quorum", due!.payload, "https://mywardlink.net/n/12345");
+    expect(text).toBe("Elders Quorum: This Sunday: sacrament meeting. No Elders Quorum lesson this week. We hope to see you at sacrament meeting. https://mywardlink.net/n/12345");
+    expect(smsSegments(text)).toBe(1);
+    // It goes to everyone who gets the organization's notices, instead of the lesson reminder.
+    expect(due!.recipients.map((r) => r.id)).toContain(1);
   });
 });
