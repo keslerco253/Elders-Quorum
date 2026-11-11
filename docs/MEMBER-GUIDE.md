@@ -274,6 +274,9 @@ add a reason), or text back **TEACH** or **CANT**.
     **Delete just (that date)** takes off only that one, **Delete every date**
     the whole thing, and changes you save apply to every date. If you've subscribed to the
   calendar (below) and chose to include them, your own events show there too.
+- **Your to-dos:** a private to-do with a due date (My assignments) shows on your
+  calendar that day too, marked **🔒 My to-do**: at its time, or all day without
+  one. Only you see it. Tap it to open the to-do; once it's done it comes off.
 - **Meetings you're invited to** (like an activities committee): you get an
   invitation, and the meeting shows on your calendar and Home's Coming up marked
   **Invited**. Open it to see when and where, the agenda, who's giving the

@@ -60,6 +60,12 @@ describe("a picture texted in by the site owner", () => {
     expect(images).toHaveLength(1);
     const { readUpload } = await import("@/lib/uploads");
     expect(readUpload(images[0])?.type).toBe("image/png");
+    // It shows on their calendar that day, at its time (only theirs).
+    const { personalTodosBetween, eventHref } = await import("@/lib/personal-events");
+    const onCalendar = personalTodosBetween(1, "2026-12-01T00:00:00Z", "2027-01-01T00:00:00Z", "America/Boise");
+    expect(onCalendar.map((e) => [e.title, e.starts_at, e.all_day])).toEqual([["Wedding reception: Ashton Daniels & Brooke Boyle", "2026-12-13T01:00:00.000Z", 0]]);
+    expect(eventHref(onCalendar[0])).toMatch(/^\/assignments\/mine\/\d+$/);
+    expect(personalTodosBetween(2, "2026-12-01T00:00:00Z", "2027-01-01T00:00:00Z", "America/Boise")).toEqual([]);
     // Claude got the picture itself.
     const call = (create.mock.calls[0] as unknown as [{ messages: { content: { type: string }[] }[] }])[0];
     expect(call.messages[0].content[0].type).toBe("image");

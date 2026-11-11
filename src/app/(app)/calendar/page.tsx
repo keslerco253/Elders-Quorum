@@ -7,7 +7,7 @@ import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, formatTime } from "@/lib/time";
 import { Badge, Empty, Flash, PageHeader } from "@/components/ui";
 import { hasFeature } from "@/lib/orgs";
-import { eventHref, personalEventsBetween } from "@/lib/personal-events";
+import { eventHref, personalEventsBetween, personalTodosBetween } from "@/lib/personal-events";
 import type { EventRow } from "@/lib/types";
 
 export const metadata = { title: "Calendar" };
@@ -29,8 +29,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const events = [
     ...eventsBetween(user.id, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!, { wardId: user.ward_id, orgIds: only ? [only.id] : undefined, support: user.support }),
     ...(only || user.support ? [] : personalEventsBetween(user.id, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!)),
+    // Their own to-dos with a due date, on that day.
+    ...(only || user.support ? [] : personalTodosBetween(user.id, gridStart.toUTC().toISO()!, gridEnd.toUTC().toISO()!, user.ward.timezone)),
   ].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-  const chip = (e: EventRow) => (e.personal_event_id ? "bg-success-soft text-success" : e.presidency_only ? "bg-warn-soft text-warn" : "bg-accent-soft text-accent");
+  const chip = (e: EventRow) => (e.personal_event_id || e.personal_todo_id ? "bg-success-soft text-success" : e.presidency_only ? "bg-warn-soft text-warn" : "bg-accent-soft text-accent");
   const keep = (extra: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries({ o: only ? String(only.id) : undefined, ...extra })) if (v) p.set(k, v);
@@ -165,7 +167,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 </div>
                 <div className="pointer-events-none relative flex flex-wrap gap-0.5 sm:hidden">
                   {list.map((e) => (
-                    <span key={e.id} className={`h-1.5 w-1.5 rounded-full ${e.personal_event_id ? "bg-success" : e.presidency_only ? "bg-warn" : "bg-accent"}`} />
+                    <span key={e.id} className={`h-1.5 w-1.5 rounded-full ${e.personal_event_id || e.personal_todo_id ? "bg-success" : e.presidency_only ? "bg-warn" : "bg-accent"}`} />
                   ))}
                 </div>
               </div>
@@ -202,14 +204,16 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 font-semibold">
                     {e.title}{" "}
-                    {e.personal_event_id ? (
+                    {e.personal_todo_id ? (
+                      <Badge tone="success">🔒 My to-do</Badge>
+                    ) : e.personal_event_id ? (
                       <Badge tone="success">🔒 Only you</Badge>
                     ) : e.invited_meeting_id ? (
                       <Badge tone="info">Invited</Badge>
                     ) : e.presidency_only ? (
                       <Badge tone="warn">Leaders only</Badge>
                     ) : null}
-                    {showOrg && !e.personal_event_id && <Badge>{e.org_label}</Badge>}
+                    {showOrg && !e.personal_event_id && !e.personal_todo_id && <Badge>{e.org_label}</Badge>}
                   </div>
                   <div className="text-sm text-muted">
                     {isOngoing(e)

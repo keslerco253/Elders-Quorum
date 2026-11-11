@@ -187,5 +187,43 @@ export function personalEventsBetween(memberId: number, fromUtc: string, toUtc: 
 }
 
 /** Where a calendar entry opens: a member's own event, a meeting they're invited to, or the event. */
-export const eventHref = (e: Pick<EventRow, "id" | "personal_event_id" | "personal_date" | "invited_meeting_id">) =>
-  e.personal_event_id ? `/calendar/mine/${e.personal_event_id}${e.personal_date ? `?on=${e.personal_date}` : ""}` : e.invited_meeting_id ? `/meetings/${e.invited_meeting_id}` : `/calendar/${e.id}`;
+export const eventHref = (e: Pick<EventRow, "id" | "personal_event_id" | "personal_todo_id" | "personal_date" | "invited_meeting_id">) =>
+  e.personal_todo_id ? `/assignments/mine/${e.personal_todo_id}` : e.personal_event_id ? `/calendar/mine/${e.personal_event_id}${e.personal_date ? `?on=${e.personal_date}` : ""}` : e.invited_meeting_id ? `/meetings/${e.invited_meeting_id}` : `/calendar/${e.id}`;
+
+/**
+ * A member's own to-dos due between two UTC instants (not done), as calendar entries only
+ * they see: at their time (an hour long), or all day when they have no time.
+ */
+export function personalTodosBetween(memberId: number, fromUtc: string, toUtc: string, tz: string): EventRow[] {
+  const day = (u: string, days: number) => DateTime.fromISO(u, { zone: "utc" }).plus({ days }).toISODate()!;
+  const rows = db()
+    .prepare("SELECT id, title, notes, due_date, due_time FROM personal_todos WHERE member_id = ? AND done = 0 AND due_date BETWEEN ? AND ? ORDER BY due_date, due_time")
+    .all(memberId, day(fromUtc, -1), day(toUtc, 1)) as { id: number; title: string; notes: string; due_date: string; due_time: string | null }[];
+  return rows
+    .map((t) => {
+      const start = DateTime.fromISO(`${t.due_date}T${t.due_time ?? "00:00"}`, { zone: tz });
+      const end = t.due_time ? start.plus({ hours: 1 }) : start.endOf("day");
+      return { t, starts: start.toUTC().toISO()!, ends: end.toUTC().toISO()! };
+    })
+    .filter(({ starts, ends }) => starts < toUtc && ends >= fromUtc)
+    .map(({ t, starts, ends }) => ({
+      id: -(2_000_000_000 + t.id),
+      personal_todo_id: t.id,
+      all_day: t.due_time ? 0 : 1,
+      org_id: 0,
+      title: t.title,
+      description: t.notes,
+      location: "",
+      starts_at: starts,
+      ends_at: ends,
+      presidency_only: 0,
+      rsvp_enabled: 0,
+      reminder_minutes: null,
+      reminder2_minutes: null,
+      flyer_file: null,
+      flyer_name: null,
+      series_id: null,
+      invited: "",
+      org_label: "Only you",
+    }));
+}

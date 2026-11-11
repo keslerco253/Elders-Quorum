@@ -212,6 +212,8 @@ export interface EventRow {
   invited_meeting_id?: number | null;
   /** A member's own event (only they see it), shown on their calendar like the others. */
   personal_event_id?: number;
+  /** A member's own to-do with a due date (only they see it), shown on their calendar on that day. */
+  personal_todo_id?: number;
   /** The date of a repeating own event this entry is (it opens on that date). */
   personal_date?: string;
   /** No start time: the whole day (or days), from midnight to 11:59 PM. */
