@@ -3,7 +3,7 @@ import { lessonOn } from "./lessons";
 import { getOrg, hasFeature } from "./orgs";
 import { audienceMembers, type Recipient } from "./notify";
 import { sundays } from "./time";
-import { callingLabel, type Calling } from "./types";
+import { callingLabel, noLessonLabel, type Calling } from "./types";
 
 // Who conducts each Sunday. It follows the presidency's callings by month: the
 // president (or bishop) January, April, July and October; the first counselor
@@ -125,7 +125,7 @@ export function conductingSchedule(orgId: number, from: string, weeks = 8): Cond
       )
       .get(orgId, date) as Conductor["pending"] | undefined;
     const lesson = lessonOn(orgId, date);
-    const conference = lesson && lesson.kind !== "talk" ? (lesson.kind === "general_conference" ? "General Conference" : "Stake Conference") : null;
+    const conference = lesson ? noLessonLabel(lesson.kind) : null;
     const calling = !org
       ? ""
       : how.mode === "rotation"

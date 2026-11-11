@@ -12,9 +12,9 @@ import { unreadAnswers, leaderUnread } from "./conversations";
 import { unreadAnnouncements } from "./member-inbox";
 import { unreadNotifications } from "./notification-log";
 import { currentLessonDate, formatDate } from "./time";
-import type { CurrentUser, LessonKind, Member } from "./types";
+import { noLessonLabel, type CurrentUser, type LessonKind, type Member } from "./types";
 
-const conferenceLabelText = (kind: LessonKind) => (kind === "general_conference" ? "General Conference" : kind === "stake_conference" ? "Stake Conference" : null);
+const conferenceLabelText = (kind: LessonKind) => noLessonLabel(kind);
 
 // The phone's home-screen widget. It can't use the app's sign-in cookie, so the
 // app gets a widget key for its session: the session's (hashed) id plus a

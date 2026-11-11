@@ -1937,6 +1937,28 @@ CREATE INDEX app_suggestions_status ON app_suggestions(status, created_at);
     sql: `ALTER TABLE wards ADD COLUMN phone_texting INTEGER NOT NULL DEFAULT 0;
       UPDATE wards SET phone_texting = 1 WHERE name LIKE 'Villas Ward%' AND demo = 0 AND (SELECT COUNT(*) FROM ward_members wm WHERE wm.ward_id = wards.id) >= 10;`,
   },
+  {
+    // A Sunday with only sacrament meeting (Easter, Christmas): no lesson and no teacher.
+    // The list of kinds is part of the table, so the table is rebuilt with the new one.
+    id: 108,
+    fkOff: true,
+    sql: `CREATE TABLE lessons_new (
+  id INTEGER PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES "orgs"(id),
+  date TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'talk' CHECK (kind IN ('talk','general_conference','stake_conference','sacrament_only')),
+  title TEXT NOT NULL DEFAULT '',
+  speaker TEXT NOT NULL DEFAULT '',
+  url TEXT NOT NULL DEFAULT '',
+  teacher_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')), teacher_confirmed_at TEXT, cfm_auto INTEGER NOT NULL DEFAULT 0, teacher_auto INTEGER NOT NULL DEFAULT 0, regular_done INTEGER NOT NULL DEFAULT 0, topic INTEGER NOT NULL DEFAULT 0, fifth INTEGER, no_teacher INTEGER NOT NULL DEFAULT 0,
+  UNIQUE (org_id, date)
+);
+INSERT INTO lessons_new (id, org_id, date, kind, title, speaker, url, teacher_id, created_at, teacher_confirmed_at, cfm_auto, teacher_auto, regular_done, topic, fifth, no_teacher)
+  SELECT id, org_id, date, kind, title, speaker, url, teacher_id, created_at, teacher_confirmed_at, cfm_auto, teacher_auto, regular_done, topic, fifth, no_teacher FROM lessons;
+DROP TABLE lessons;
+ALTER TABLE lessons_new RENAME TO lessons;`,
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */

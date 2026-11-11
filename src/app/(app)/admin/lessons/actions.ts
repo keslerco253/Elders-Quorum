@@ -10,13 +10,13 @@ import { getLesson, markFifthSundays, markGeneralConferences, openLessonSundays 
 import { fallbackTitle, fetchTalkInfo, fetchTalkInfos } from "@/lib/talk-info";
 import { notify, recipientById } from "@/lib/notify";
 import { formatDate, sundays, todayIn } from "@/lib/time";
-import type { LessonKind, Member } from "@/lib/types";
+import { noLessonLabel, type LessonKind, type Member } from "@/lib/types";
 import { wardMember } from "@/lib/orgs";
 import { refillCfmLesson, usesCfm } from "@/lib/cfm";
 import { fillRegularTeachers, saveRegularTeachers, tellRegularTeachers, weeksText } from "@/lib/regular-teachers";
 import { orgRoster } from "@/lib/orgs";
 
-const KINDS: LessonKind[] = ["talk", "general_conference", "stake_conference"];
+const KINDS: LessonKind[] = ["talk", "general_conference", "stake_conference", "sacrament_only"];
 function go(path: string, text: string): never {
   redirect(`${path}${path.includes("?") ? "&" : "?"}msg=${encodeURIComponent(text)}`);
 }
@@ -115,13 +115,15 @@ export async function saveLesson(fd: FormData) {
     );
     if (other) d.prepare("UPDATE lessons SET date = ?, cfm_auto = 0 WHERE id = ?").run(lesson.date, other.id);
   })();
-  // No teacher needed now: whoever was teaching is taken off and told.
+  // No teacher needed now (no teacher for a 5th Sunday, or no lesson at all: a
+  // conference, sacrament meeting only): whoever was teaching is taken off and told.
   let tookOff = "";
-  if (noTeacher && lesson.teacher_id) {
+  const noLesson = noLessonLabel(kind);
+  if ((noTeacher || noLesson) && lesson.teacher_id) {
     d.prepare("UPDATE lessons SET teacher_id = NULL, teacher_confirmed_at = NULL, teacher_auto = 0 WHERE id = ?").run(lesson.id);
     removeTeacherNotes(lesson.id, lesson.teacher_id);
     const was = recipientById(lesson.teacher_id, user.org_id);
-    if (was) await notify([was], { title: "You're not teaching after all", body: `No teacher is needed on ${formatDate(lesson.date, "short")}${title ? ` (${title})` : ""}. Thank you for being willing.`, url: `/lessons/${lesson.id}` });
+    if (was) await notify([was], { title: "You're not teaching after all", body: `${noLesson ? "There's no lesson" : "No teacher is needed"} on ${formatDate(lesson.date, "short")}${noLesson ? ` (${noLesson})` : title ? ` (${title})` : ""}. Thank you for being willing.`, url: `/lessons/${lesson.id}` });
     tookOff = ` ${lesson.teacher_name ?? "The teacher"} was taken off and told.`;
   }
   if (tookOff) {

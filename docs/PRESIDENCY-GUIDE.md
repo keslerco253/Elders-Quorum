@@ -913,8 +913,13 @@ requests are separate: turn off **Visits and visit requests** in Settings.
 **Lessons → Manage lessons** (presidency) lists every Sunday, with its own
 **Waiting on you** box (Teacher needed, Volunteers to assign). Tap a Sunday to:
 - Change **This Sunday is**: a talk, **A lesson on an assigned topic**, General
-  Conference or Stake Conference. For a talk, paste its link and leave the title
-  and speaker blank to have them looked up.
+  Conference, Stake Conference, or **Sacrament meeting only** (Easter, Christmas
+  on a Sunday). For a talk, paste its link and leave the title and speaker blank
+  to have them looked up.
+- **No lesson** (a conference, or sacrament meeting only): the Sunday needs no
+  teacher, shows "no lesson", and its reminder says so ("This Sunday: sacrament
+  meeting. No Elders Quorum lesson this week. We hope to see you at sacrament
+  meeting."). If someone was teaching it, they're taken off and told.
 - **5th Sundays** (the 29th to 31st) are set to **A 5th Sunday lesson**
   automatically (not a talk), so pasting talk links and regular teachers skip
   them. Fill in **What it is** (an area broadcast, a combined meeting, a topic),

@@ -11,7 +11,10 @@ import { respondPath } from "./teaching";
 import { formatDate, formatDateTime, sundays } from "./time";
 import { reminderSettings, type LessonWhen } from "./reminder-settings";
 import type { PushPayload } from "./push";
-import type { EventRow } from "./types";
+import type { EventRow, LessonKind } from "./types";
+
+/** Where everyone will be instead of the lesson, for "We hope to see you at …". */
+const noLessonWhere = (kind: LessonKind) => (kind === "general_conference" ? "General Conference" : kind === "stake_conference" ? "Stake Conference" : "sacrament meeting");
 import { eventAudience, eventWhenText, reminderAnchor } from "./events";
 import { daysBetween, dueForDate, dueForStart, ownSettings, reminderTime, whenLabel, type Mornings, type ReminderChannel } from "./reminder-prefs";
 import { getOrg, getWard, hasFeature, homeOf, pickOrg } from "./orgs";
@@ -108,7 +111,7 @@ function lessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       if (cfm && w.days >= 2) {
         payload = { ...renderTemplate(org.id, "cfm_week", { reading: lesson.title, lesson_title: lesson.speaker }), url: `/lessons/${lesson.id}` };
       } else if (lesson.kind !== "talk") {
-        const conf = lesson.kind === "general_conference" ? "General Conference" : "Stake Conference";
+        const conf = noLessonWhere(lesson.kind);
         payload = {
           ...renderTemplate(org.id, "lesson_conference", { day: when, conference: conf, org: org.label, this_week: w.days === 0 ? "today" : w.days === 1 ? "tomorrow" : "this week" }),
           url: `/lessons/${lesson.id}`,
@@ -188,7 +191,7 @@ function myLessonReminders(org: OrgCtx, now: DateTime): DueNotification[] {
         ? {
             ...renderTemplate(org.id, "lesson_conference", {
               day,
-              conference: lesson.kind === "general_conference" ? "General Conference" : "Stake Conference",
+              conference: noLessonWhere(lesson.kind),
               org: org.label,
               this_week: days === 1 ? "tomorrow" : days === 0 ? "today" : "this week",
             }),

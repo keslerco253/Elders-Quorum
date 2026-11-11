@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import type { LessonKind } from "@/lib/types";
+import { noLessonLabel, type LessonKind } from "@/lib/types";
 
 export function DateChip({ date, highlight }: { date: string; highlight?: boolean }) {
   const d = DateTime.fromISO(date);
@@ -12,5 +12,5 @@ export function DateChip({ date, highlight }: { date: string; highlight?: boolea
 }
 
 export function conferenceLabel(kind: LessonKind) {
-  return kind === "general_conference" ? "General Conference" : kind === "stake_conference" ? "Stake Conference" : null;
+  return noLessonLabel(kind);
 }

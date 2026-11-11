@@ -139,7 +139,7 @@ export interface CurrentUser extends Member {
   support?: boolean;
 }
 
-export type LessonKind = "talk" | "general_conference" | "stake_conference";
+export type LessonKind = "talk" | "general_conference" | "stake_conference" | "sacrament_only";
 
 export interface Lesson {
   id: number;
@@ -269,4 +269,8 @@ export const LESSON_KIND_LABELS: Record<LessonKind, string> = {
   talk: "Lesson",
   general_conference: "General Conference",
   stake_conference: "Stake Conference",
+  sacrament_only: "Sacrament meeting only",
 };
+
+/** A Sunday with no lesson: what it is ("General Conference"), or null for a lesson. */
+export const noLessonLabel = (kind: LessonKind): string | null => (kind === "talk" ? null : LESSON_KIND_LABELS[kind]);

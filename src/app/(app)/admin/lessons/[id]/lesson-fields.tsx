@@ -20,6 +20,7 @@ export function LessonFields({ kind, date, url, title, speaker, cfm, noTeacher =
             {!cfm && <option value="fifth">A 5th Sunday lesson</option>}
             <option value="general_conference">General Conference (no lesson)</option>
             <option value="stake_conference">Stake Conference (no lesson)</option>
+            <option value="sacrament_only">Sacrament meeting only (no lesson)</option>
           </select>
         </div>
         <div>
@@ -29,7 +30,10 @@ export function LessonFields({ kind, date, url, title, speaker, cfm, noTeacher =
           <input id="date" name="date" type="date" defaultValue={date} className="input" />
         </div>
       </div>
-      {fifth ? (
+      {["general_conference", "stake_conference", "sacrament_only"].includes(k) ? (
+        // No lesson this Sunday: nothing to fill in.
+        <p className="rounded-lg bg-surface-2 px-3 py-2 text-sm text-muted">No lesson and no teacher this Sunday. Members see it on Lessons, and their reminder says so.</p>
+      ) : fifth ? (
         <>
           <div>
             <label className="label" htmlFor="title">
