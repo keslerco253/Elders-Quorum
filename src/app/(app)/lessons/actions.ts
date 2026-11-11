@@ -14,6 +14,7 @@ import { announceNotes } from "@/lib/notes-notify";
 import { confirmTeaching, declineTeaching } from "@/lib/teaching";
 import { leadersWord } from "@/lib/types";
 import { hasFeature } from "@/lib/orgs";
+import { blockMember, reportComment } from "@/lib/moderation";
 
 const back = (id: number, text: string, anchor = "") =>
   redirect(`/lessons/${id}?msg=${encodeURIComponent(text)}${anchor}`);
@@ -144,6 +145,32 @@ export async function deleteOwnComment(fd: FormData) {
   db().prepare("DELETE FROM comments WHERE id = ?").run(id);
   revalidatePath(`/lessons/${c.lesson_id}`);
   back(c.lesson_id, "Comment deleted.", "#comments");
+}
+
+/** Reports a comment to the presidency: it's hidden for this member right away, and the presidency decides. */
+export async function reportCommentAction(fd: FormData) {
+  const user = await requireUser();
+  const lessonId = Number(fd.get("lesson_id"));
+  const r = reportComment(Number(fd.get("item_id")), user.id, String(fd.get("reason") || ""));
+  if (!r) return back(lessonId, "That comment can't be reported.", "#comments");
+  await notify(audienceMembers(r.orgId, "presidency"), {
+    title: "A comment was reported",
+    body: "A member reported a lesson comment. Look at it and hide it or keep it under Admin → Comments.",
+    url: "/admin/comments#reported",
+    noReply: true,
+  });
+  revalidatePath(`/lessons/${r.lessonId}`);
+  back(r.lessonId, "Thanks for letting us know. The comment is hidden for you, and your leaders will look at it.", "#comments");
+}
+
+/** Blocks a member: nothing they post shows to this member any more (they're not told). */
+export async function blockMemberAction(fd: FormData) {
+  const user = await requireUser();
+  const lessonId = Number(fd.get("lesson_id"));
+  const name = (db().prepare("SELECT display_name FROM members WHERE id = ?").get(Number(fd.get("member_id"))) as { display_name: string } | undefined)?.display_name;
+  if (!name || !blockMember(user.id, Number(fd.get("member_id")))) back(lessonId, "That person can't be blocked.", "#comments");
+  revalidatePath(`/lessons/${lessonId}`);
+  back(lessonId, `${name} is blocked: you won't see their comments. Unblock them under More → Blocked people.`, "#comments");
 }
 
 export async function saveTeacherNotes(fd: FormData) {

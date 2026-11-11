@@ -10,6 +10,7 @@ import { orgTodos } from "./assignments";
 import { recordsToReview } from "./meetings";
 import { newMembersToReview } from "./new-members";
 import { todayIn } from "./time";
+import { openReportCount } from "./moderation";
 
 interface NeedLesson {
   id: number;
@@ -73,7 +74,8 @@ export function adminCounts(user: CurrentUser) {
   const one = (sql: string) => (d.prepare(sql).get(w) as { n: number }).n;
   if (!isAdmin(user))
     return { comments: 0, notes: 0, eventRequests: 0, access: 0, volunteers: 0, visitRequests: 0, replies: 0, teacherNeeded: 0, newTimes: 0, unassigned: 0, notAccepted: 0, unreached: 0, overdue: 0, toReview: 0, newMembers: 0, total: user.wardAdmin ? newMembersToReview(user.ward_id) : 0, volunteersHref: "/admin/lessons", teacherNeededHref: "/admin/lessons", shortcut: "/admin" };
-  const comments = one("SELECT COUNT(*) AS n FROM comments c JOIN lessons l ON l.id = c.lesson_id WHERE l.org_id = ? AND c.status = 'pending'");
+  // Comments waiting for approval, and comments members reported.
+  const comments = one("SELECT COUNT(*) AS n FROM comments c JOIN lessons l ON l.id = c.lesson_id WHERE l.org_id = ? AND c.status = 'pending'") + openReportCount(w);
   const notes = one("SELECT COUNT(*) AS n FROM lesson_notes n JOIN lessons l ON l.id = n.lesson_id WHERE l.org_id = ? AND n.status = 'pending'");
   const eventRequests = one("SELECT COUNT(*) AS n FROM event_requests WHERE org_id = ? AND status = 'pending'");
   // Old join requests (from before join codes were required), for the bishopric.

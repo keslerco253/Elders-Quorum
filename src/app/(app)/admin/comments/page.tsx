@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { formatDate, formatDateTime } from "@/lib/time";
 import { Empty, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
-import { approveAll, moderateComment } from "./actions";
+import { approveAll, decideReport, moderateComment } from "./actions";
+import { openReports } from "@/lib/moderation";
 
 export const metadata = { title: "Comments to approve" };
 
@@ -36,6 +37,7 @@ export default async function CommentsPage({ searchParams }: { searchParams: Pro
        ORDER BY c.created_at`,
     )
     .all(user.org_id) as Row[];
+  const reported = openReports(user.org_id);
 
   return (
     <>
@@ -54,6 +56,39 @@ export default async function CommentsPage({ searchParams }: { searchParams: Pro
         }
       />
       <Flash msg={sp.msg} />
+      {reported.length > 0 && (
+        <section id="reported" className="mb-6 scroll-mt-20">
+          <h2 className="mb-2 text-base font-semibold">Reported by members ({reported.length})</h2>
+          <p className="mb-3 text-sm text-muted">
+            Already hidden for whoever reported it. Hide it from everyone, or keep it. Members can also block someone, so they no longer see that person&apos;s comments.
+          </p>
+          <div className="space-y-3">
+            {reported.map((r) => (
+              <div key={r.comment_id} className="card border-warn">
+                <div className="text-xs text-muted">
+                  <Link href={`/lessons/${r.lesson_id}#comments`} className="link">
+                    {formatDate(r.lesson_date, "short")} · {r.lesson_title || "Lesson"}
+                  </Link>{" "}
+                  · reported {r.reports === 1 ? "once" : `${r.reports} times`}, last {formatDateTime(r.last_at, user.ward.timezone, "LLL d, h:mm a")}
+                </div>
+                <div className="mt-2 font-semibold">{r.author}</div>
+                <p className="mt-1 whitespace-pre-wrap">{r.body}</p>
+                {r.reasons && <p className="mt-1 text-sm text-muted">Why: {r.reasons}</p>}
+                <form action={decideReport} className="mt-3 flex gap-2">
+                  <input type="hidden" name="item_id" value={r.comment_id} />
+                  <SubmitButton name="decision" value="hide" className="btn-danger btn-sm">
+                    Hide it from everyone
+                  </SubmitButton>
+                  <SubmitButton name="decision" value="keep" className="btn-secondary btn-sm">
+                    Keep it
+                  </SubmitButton>
+                </form>
+              </div>
+            ))}
+          </div>
+          <h2 className="mt-6 mb-2 text-base font-semibold">Waiting for approval</h2>
+        </section>
+      )}
       {rows.length === 0 ? (
         <Empty>All caught up. No comments are waiting.</Empty>
       ) : (

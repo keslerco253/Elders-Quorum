@@ -94,9 +94,12 @@ export function commentThread(lessonId: number, viewerId: number): CommentView[]
       `SELECT c.id, c.parent_id, c.member_id, m.display_name AS author, c.body, c.status, c.created_at
        FROM comments c JOIN members m ON m.id = c.member_id
        WHERE c.lesson_id = ? AND (c.status = 'approved' OR (c.status = 'pending' AND c.member_id = ?))
+         -- Not what they reported, or anything from someone they blocked.
+         AND c.id NOT IN (SELECT comment_id FROM comment_reports WHERE reporter_id = ?)
+         AND c.member_id NOT IN (SELECT blocked_id FROM member_blocks WHERE member_id = ?)
        ORDER BY c.created_at, c.id`,
     )
-    .all(lessonId, viewerId) as Omit<CommentView, "replies">[];
+    .all(lessonId, viewerId, viewerId, viewerId) as Omit<CommentView, "replies">[];
   const byId = new Map<number, CommentView>(rows.map((r) => [r.id, { ...r, replies: [] }]));
   const top: CommentView[] = [];
   for (const c of byId.values()) {

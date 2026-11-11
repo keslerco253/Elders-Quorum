@@ -20,7 +20,10 @@ export default function TermsPage() {
       <h3>Using the app</h3>
       <ul>
         <li>Join only for yourself, with your own mobile number or email.</li>
-        <li>Keep comments and posts kind and appropriate. Leaders review comments and teacher notes before others see them and may remove anything.</li>
+        <li>Keep comments and posts kind and appropriate. There is no tolerance for objectionable content or abusive users. Leaders review comments and teacher notes before others see them and may remove anything.</li>
+        <li>
+          If you see something objectionable, tap <strong>Report</strong> on it: it&apos;s hidden for you right away, and your ward&apos;s leaders review it (usually within a day) and remove it when it breaks these terms. Tap <strong>Block</strong> to stop seeing anything someone posts; unblock them any time under More → Blocked people.
+        </li>
         <li>Your ward&apos;s leaders may turn off an account that misuses the app.</li>
       </ul>
       <h3>{brand} text messages (SMS)</h3>

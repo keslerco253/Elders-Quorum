@@ -1049,6 +1049,13 @@ including leaders', waits in **Admin → Comments to approve** (the member sees
 all** when several wait). Tap **Hide** on any approved comment on the lesson page.
 Members can delete their own. Turn comments off entirely in Settings.
 
+**Reported comments:** any member can tap **Report** under a comment (it's hidden
+for them right away) or **Block** someone (they no longer see that person's
+comments; nobody is told). A report notifies the presidency and shows at the top
+of **Admin → Comments to approve** under **Reported by members**, with how many
+reported it and why, counted in the Admin number. Tap **Hide it from everyone**
+or **Keep it**. Look at reports within a day: app stores expect it.
+
 ## Calendar
 
 **Adding an event:** **Calendar → Add (organization) event**, or tap a day →

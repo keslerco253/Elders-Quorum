@@ -217,6 +217,10 @@ back. Things that need your answer always stay at the top.
   comment → Post comment**, or **Reply** to someone's. Comments appear after a
   leader approves them (yours shows "Waiting for approval" until then). You can
   delete your own.
+- **Report or block:** under someone's comment, **Report** sends it to your
+  leaders and hides it for you right away; they hide it from everyone if it
+  isn't appropriate. **Block** hides everything that person posts from you (they
+  aren't told). Unblock them under **More → Blocked people**.
 - **Offering to teach:** on a lesson that shows **Teacher needed**, tap **I'd like
   to teach this**. Your leaders are told; **Withdraw** if your plans change.
 - **Topic lessons:** some lessons have an **Assigned topic** with **Open the link

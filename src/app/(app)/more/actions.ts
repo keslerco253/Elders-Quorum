@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { endSession, requireUser } from "@/lib/auth";
 import { deleteAccount, onlyLeaderOf } from "@/lib/accounts";
+import { unblockMember } from "@/lib/moderation";
 
 export async function setTheme(fd: FormData) {
   const user = await requireUser();
@@ -29,4 +30,12 @@ export async function deleteMyAccount(fd: FormData) {
   endAllJournalSessions(user.id);
   deleteAccount(user.id);
   redirect("/login?ok=" + encodeURIComponent("Your account and everything you posted have been deleted."));
+}
+
+/** Unblocks someone: their comments show again. */
+export async function unblock(fd: FormData) {
+  const user = await requireUser();
+  unblockMember(user.id, Number(fd.get("member_id")));
+  revalidatePath("/", "layout");
+  redirect("/more?msg=" + encodeURIComponent("Unblocked."));
 }

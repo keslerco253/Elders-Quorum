@@ -1959,6 +1959,26 @@ INSERT INTO lessons_new (id, org_id, date, kind, title, speaker, url, teacher_id
 DROP TABLE lessons;
 ALTER TABLE lessons_new RENAME TO lessons;`,
   },
+  {
+    // Reporting a comment to the presidency (hidden for whoever reported it), and
+    // blocking someone so you no longer see what they post.
+    id: 109,
+    sql: `CREATE TABLE comment_reports (
+  id INTEGER PRIMARY KEY,
+  comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+  reporter_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  handled_at TEXT,
+  UNIQUE (comment_id, reporter_id)
+);
+CREATE TABLE member_blocks (
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  blocked_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (member_id, blocked_id)
+);`,
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */

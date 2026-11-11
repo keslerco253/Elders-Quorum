@@ -222,8 +222,12 @@ and the review notes below point it out.
 >
 > Content from members (lesson comments, messages) only goes to their own
 > ward's leaders: comments wait for a leader's approval before anyone else sees
-> them, and leaders can hide any comment. Accounts can be deleted in the app
-> (More → Delete my account).
+> them, and leaders can hide any comment. Any member can tap Report under a
+> comment (hidden for them at once; the ward's leaders are notified and hide it
+> from everyone if it breaks the terms) or Block its author (they no longer see
+> that person's comments; More → Blocked people to unblock). The terms
+> (mywardlink.net/terms) say there is no tolerance for objectionable content or
+> abusive users. Accounts can be deleted in the app (More → Delete my account).
 
 ---
 

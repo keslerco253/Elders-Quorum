@@ -9,7 +9,7 @@ import { isAdmin } from "@/lib/permissions";
 import { Badge, Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { conferenceLabel } from "@/components/lesson-bits";
-import { addComment, cantTeach, confirmTeach, deleteOwnComment, saveTeacherNotes, volunteer } from "../actions";
+import { addComment, blockMemberAction, cantTeach, confirmTeach, deleteOwnComment, reportCommentAction, saveTeacherNotes, volunteer } from "../actions";
 import { getNotes } from "@/lib/lesson-notes";
 import { renderMarkdown } from "@/lib/markdown";
 import { askPath, pendingRequestsFor } from "@/lib/teaching-requests";
@@ -51,6 +51,24 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
               Delete
             </SubmitButton>
           </form>
+        )}
+        {c.member_id !== user.id && c.status === "approved" && (
+          <>
+            <form action={reportCommentAction}>
+              <input type="hidden" name="item_id" value={c.id} />
+              <input type="hidden" name="lesson_id" value={lesson.id} />
+              <SubmitButton className="text-xs text-muted hover:text-danger" pendingText="Reporting…" confirm="Report this comment to your leaders? It will be hidden for you.">
+                Report
+              </SubmitButton>
+            </form>
+            <form action={blockMemberAction}>
+              <input type="hidden" name="member_id" value={c.member_id} />
+              <input type="hidden" name="lesson_id" value={lesson.id} />
+              <SubmitButton className="text-xs text-muted hover:text-danger" pendingText="Blocking…" confirm={`Block ${c.author}? You won't see their comments anymore. They aren't told.`}>
+                Block
+              </SubmitButton>
+            </form>
+          </>
         )}
         {admin && c.member_id !== user.id && c.status === "approved" && (
           <form action={moderateComment}>

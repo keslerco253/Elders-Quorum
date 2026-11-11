@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { handleReport } from "@/lib/moderation";
 
 function safeReturn(v: FormDataEntryValue | null) {
   const s = String(v || "/admin/comments");
@@ -35,4 +36,14 @@ export async function approveAll() {
     .run(user.id, user.org_id);
   revalidatePath("/admin/comments");
   redirect("/admin/comments?msg=All%20comments%20approved.");
+}
+
+/** A reported comment: hide it from everyone, or keep it (still hidden for whoever reported it). */
+export async function decideReport(fd: FormData) {
+  const user = await requireAdmin();
+  const hide = fd.get("decision") === "hide";
+  const ok = handleReport(user.org_id, Number(fd.get("item_id")), hide, user.id);
+  revalidatePath("/admin/comments");
+  revalidatePath("/lessons", "layout");
+  redirect(`/admin/comments?msg=${encodeURIComponent(!ok ? "That comment is gone." : hide ? "Hidden from everyone." : "Kept. It stays hidden for whoever reported it.")}#reported`);
 }

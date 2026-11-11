@@ -131,7 +131,7 @@ export default async function AdminPage() {
     {
       href: "/admin/comments",
       label: "Comments to approve",
-      desc: "Lesson comments and replies",
+      desc: "Lesson comments and replies, and any a member reported",
       count: c.comments,
       show: has("comments"),
     },

@@ -13,7 +13,8 @@ import { PushToggle } from "@/components/push-toggle";
 import { AppLockToggle } from "@/components/app-lock-toggle";
 import { signOut } from "../../(public)/actions";
 import { SignOutForm } from "@/components/sign-out-form";
-import { deleteMyAccount, setTheme } from "./actions";
+import { deleteMyAccount, setTheme, unblock } from "./actions";
+import { blockedBy } from "@/lib/moderation";
 
 export const metadata = { title: "More" };
 
@@ -25,6 +26,7 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
   const unread = own ? unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id) : 0;
   const newNotes = own ? unreadNotifications(user.id) : 0;
   const mine = own ? myOrgs(user.id) : user.orgs;
+  const blocked = own ? blockedBy(user.id) : [];
   // Messages holds what every one of their organizations sent them (the ward's too), not just the one they're looking at.
   const from = mine.map((o) => o.label);
   const fromText = from.length > 1 ? `${from.slice(0, -1).join(", ")} and ${from.at(-1)}` : (from[0] ?? user.orgLabel);
@@ -77,6 +79,26 @@ export default async function MorePage({ searchParams }: { searchParams: Promise
           ))}
         </form>
       </Section>
+      {blocked.length > 0 && (
+        <Section title="Blocked people">
+          <div className="card space-y-2 text-sm">
+            <p className="text-muted">You don&apos;t see their comments. They aren&apos;t told.</p>
+            <ul className="divide-y divide-border">
+              {blocked.map((b) => (
+                <li key={b.id} className="flex items-center justify-between gap-2 py-2">
+                  <span>{b.display_name}</span>
+                  <form action={unblock}>
+                    <input type="hidden" name="member_id" value={b.id} />
+                    <SubmitButton className="btn-secondary btn-sm" pendingText="…">
+                      Unblock
+                    </SubmitButton>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Section>
+      )}
       <Section title="Account">
         <div className="card space-y-1 text-sm">
           <div className="font-semibold">{user.display_name}</div>
