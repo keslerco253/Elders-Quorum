@@ -82,6 +82,26 @@ describe("unassigned assignments wait on the presidency", () => {
   });
 });
 
+describe("the Admin number", () => {
+  it("adds up every red number on the Admin page, overdue assignments included", async () => {
+    const { useTestDb, db } = await import("@/lib/db");
+    useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'W', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, role) VALUES (1, 1, 'P', 'Pres', 'p@x.com', 'presidency'), (4, 1, 'M', 'Sam', 'm@x.com', 'member');
+    `);
+    const { createSession, userForSession } = await import("@/lib/auth-core");
+    const { adminCounts } = await import("@/lib/admin-counts");
+    const count = () => adminCounts(userForSession(createSession(1, "month").id)!);
+    const before = count();
+    // An assignment given to Sam, due last week and not done: overdue.
+    const org = userForSession(createSession(1, "month").id)!.org_id;
+    db().prepare("INSERT INTO todos (org_id, title, assignee_id, due_date, done, accept_status) VALUES (?, 'Visit the Allens', 4, '2020-01-01', 0, 'accepted')").run(org);
+    const after = count();
+    expect(after.overdue).toBe(before.overdue + 1);
+    expect(after.total).toBe(before.total + 1);
+  });
+});
+
 describe("assignment requests", () => {
   it("waits for the person to accept: no reminders until then, and the presidency sees it", async () => {
     useTestDb(`

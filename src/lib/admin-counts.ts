@@ -6,6 +6,10 @@ import { hasFeature } from "./orgs";
 import { unreachedCount } from "./unreached";
 import { unreadReplies } from "./conversations";
 import { handlesBackup, messagesNeedingHome } from "./message-routing";
+import { orgTodos } from "./assignments";
+import { recordsToReview } from "./meetings";
+import { newMembersToReview } from "./new-members";
+import { todayIn } from "./time";
 
 interface NeedLesson {
   id: number;
@@ -68,7 +72,7 @@ export function adminCounts(user: CurrentUser) {
   const w = user.org_id;
   const one = (sql: string) => (d.prepare(sql).get(w) as { n: number }).n;
   if (!isAdmin(user))
-    return { comments: 0, notes: 0, eventRequests: 0, access: 0, volunteers: 0, visitRequests: 0, replies: 0, teacherNeeded: 0, newTimes: 0, unassigned: 0, notAccepted: 0, unreached: 0, total: 0, volunteersHref: "/admin/lessons", teacherNeededHref: "/admin/lessons", shortcut: "/admin" };
+    return { comments: 0, notes: 0, eventRequests: 0, access: 0, volunteers: 0, visitRequests: 0, replies: 0, teacherNeeded: 0, newTimes: 0, unassigned: 0, notAccepted: 0, unreached: 0, overdue: 0, toReview: 0, newMembers: 0, total: user.wardAdmin ? newMembersToReview(user.ward_id) : 0, volunteersHref: "/admin/lessons", teacherNeededHref: "/admin/lessons", shortcut: "/admin" };
   const comments = one("SELECT COUNT(*) AS n FROM comments c JOIN lessons l ON l.id = c.lesson_id WHERE l.org_id = ? AND c.status = 'pending'");
   const notes = one("SELECT COUNT(*) AS n FROM lesson_notes n JOIN lessons l ON l.id = n.lesson_id WHERE l.org_id = ? AND n.status = 'pending'");
   const eventRequests = one("SELECT COUNT(*) AS n FROM event_requests WHERE org_id = ? AND status = 'pending'");
@@ -93,6 +97,13 @@ export function adminCounts(user: CurrentUser) {
   const unreached = isPresidency(user) ? unreachedCount(w) : 0;
   // Assignment requests the person hasn't accepted yet.
   const notAccepted = isPresidency(user) && hasFeature(user.org, "todos") ? one("SELECT COUNT(*) AS n FROM todos WHERE org_id = ? AND done = 0 AND assignee_id IS NOT NULL AND accept_status = 'pending'") : 0;
+  // The other red numbers on the Admin page: overdue assignments, presidency records to
+  // review, and (for ward administrators) new members to check.
+  const planning = isPresidency(user) && hasFeature(user.org, "todos");
+  const today = todayIn(user.ward.timezone);
+  const overdue = planning ? orgTodos(w).filter((t) => !t.done && t.due_date && t.due_date < today).length : 0;
+  const toReview = planning ? recordsToReview(w, today).length : 0;
+  const newMembers = user.wardAdmin ? newMembersToReview(user.ward_id) : 0;
   const volunteersHref = lessonsNeedHref(volunteerList);
   const teacherNeededHref = lessonsNeedHref(neededList);
   // Where each kind of item is handled. When everything waiting is in one place, go straight there.
@@ -107,6 +118,9 @@ export function adminCounts(user: CurrentUser) {
     [unassigned, "/admin/todos?show=unassigned"],
     [notAccepted, "/admin/todos?show=pending"],
     [unreached, "/admin/unreached"],
+    [overdue, "/admin/todos"],
+    [toReview, "/admin/meetings"],
+    [newMembers, "/ward-settings/new-members"],
   ].filter(([n]) => Number(n) > 0) as [number, string][];
   return {
     volunteersHref,
@@ -124,8 +138,11 @@ export function adminCounts(user: CurrentUser) {
     unassigned,
     notAccepted,
     unreached,
-    // Unread messages from members count on the Messages tab, not here.
-    total: comments + notes + eventRequests + access + volunteers + visitRequests + teacherNeeded + newTimes + unassigned + notAccepted + unreached,
+    overdue,
+    toReview,
+    newMembers,
+    // Every red number on the Admin page, added up. Unread messages from members count on the Messages tab, not here.
+    total: comments + notes + eventRequests + access + volunteers + visitRequests + teacherNeeded + newTimes + unassigned + notAccepted + unreached + overdue + toReview + newMembers,
   };
 }
 
