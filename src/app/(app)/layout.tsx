@@ -8,6 +8,7 @@ import { unreadAnnouncements } from "@/lib/member-inbox";
 import { unreadNotifications } from "@/lib/notification-log";
 import { NotificationSeen } from "@/components/notification-seen";
 import { StayFresh } from "@/components/stay-fresh";
+import { Dictation } from "@/components/dictation";
 import { PushOwner } from "@/components/push-owner";
 import { Disclaimer } from "@/components/disclaimer";
 
@@ -36,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       />
       <NotificationSeen />
       <StayFresh />
+      <Dictation />
       <PushOwner memberId={user.id} />
       <main className="app-main mx-auto max-w-5xl px-4 pt-5 pb-28 md:pb-12">
         {user.support && (

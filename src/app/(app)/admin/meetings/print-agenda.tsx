@@ -60,6 +60,15 @@ export function PrintAgendaButton({ meetingId, finished = false }: { meetingId: 
   return <PrintLink href={`/admin/meetings/${meetingId}/print`} handoff={() => agendaHandoffAction(meetingId)} label={finished ? "🖨️ Print notes" : "🖨️ Print agenda"} />;
 }
 
+/** 📄 Review agenda: the agenda laid out like the printed one, to read on screen (it can be printed from there). */
+export function ReviewAgendaButton({ meetingId, finished = false, from = "list" }: { meetingId: number; finished?: boolean; from?: "list" | "meeting" }) {
+  return (
+    <a href={`/admin/meetings/${meetingId}/print?view=1${from === "meeting" ? "&back=meeting" : ""}`} className="btn-secondary btn-sm">
+      📄 {finished ? "Review notes" : "Review agenda"}
+    </a>
+  );
+}
+
 /** Past meetings' notes for review: choose how far back, then print. */
 export function PrintPastNotes({ ranges }: { ranges: [string, string][] }) {
   const [months, setMonths] = useState(ranges[0][0]);

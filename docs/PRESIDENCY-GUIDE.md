@@ -1406,6 +1406,9 @@ place. Only the presidency (or bishopric) sees it.
   has it, when it's due, and Overdue, Not accepted yet or Unassigned. Tap one to
   change it or add a note. It's on the printed agenda too, above a table for new
   assignments.
+- **📄 Review agenda** (next to Print agenda): the same clean layout as the
+  printed agenda, to read on your screen, with **← Back** and **🖨️ Print** at the
+  top. On a finished meeting it's **Review notes**.
 - **🖨️ Print agenda** (at the top here, or next to the agenda on the meeting's
   page): a clean page with the meeting's date, time and place, the prayers and
   spiritual thought, each agenda item numbered with lines for notes, and a table

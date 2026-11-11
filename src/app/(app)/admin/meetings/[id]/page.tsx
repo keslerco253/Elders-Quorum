@@ -18,7 +18,7 @@ import { KeepDraft } from "@/components/keep-draft";
 import { AutoGrow } from "@/components/auto-grow";
 import { stopRepeating, addAgenda, deleteMeeting, finish, inviteToMeetingAction, saveMeeting, saveMeetingRole, startVideo, uninviteAction } from "../actions";
 import { RoleNotifyBox, RoleSelect } from "../role-select";
-import { PrintAgendaButton } from "../print-agenda";
+import { PrintAgendaButton, ReviewAgendaButton } from "../print-agenda";
 import { MeetingReminderFields } from "../reminder-fields";
 import { DOCUMENT_ACCEPT } from "@/lib/upload-names";
 import { SectionSelect } from "../section-select";
@@ -172,6 +172,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
             title="Agenda"
             actions={
               <div className="flex flex-wrap gap-2">
+                <ReviewAgendaButton meetingId={m.id} finished={held} from="meeting" />
                 <PrintAgendaButton meetingId={m.id} finished={held} />
                 {!held &&
                   (editing ? (

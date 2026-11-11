@@ -63,6 +63,11 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   General Handbook in your browser (or Gospel Library).
 - **Can't find something?** Your organization may not use it (for example Plans
   or Service). Ask your leaders.
+- **🎤 Talk instead of typing:** in any box you write in, a small microphone
+  shows at its right edge (on a computer in Chrome or Edge, and in Safari). Tap
+  it and talk; your words are typed in. Tap it again to stop. The first time,
+  allow the microphone. On a phone you can also use the microphone on your
+  keyboard.
 - **Delete and remove buttons** ask first: the button turns red and says **Tap
   again to confirm**, and the question shows near the bottom of the screen. Tap
   it again to go ahead (a quick double tap doesn't count), or wait and it goes

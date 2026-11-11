@@ -16,7 +16,7 @@ import { HandbookLinks } from "@/components/handbook-link";
 import { MEETINGS, orgChapter } from "@/lib/handbook";
 import { addAgenda, newMeeting, saveMeetingRole, saveMeetingWhen, saveVideoLink, startVideo } from "./actions";
 import { RoleNotifyBox, RoleSelect } from "./role-select";
-import { PrintAgendaButton, PrintPastNotes } from "./print-agenda";
+import { PrintAgendaButton, PrintPastNotes, ReviewAgendaButton } from "./print-agenda";
 import { NOTES_RANGES } from "@/lib/agenda-print";
 import { MeetingReminderFields } from "./reminder-fields";
 import { DOCUMENT_ACCEPT } from "@/lib/upload-names";
@@ -146,6 +146,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                 ✏️ {next ? "Edit meeting" : "Edit agenda"}
               </Link>
             )}
+            {next && <ReviewAgendaButton meetingId={next.id} />}
             {next && <PrintAgendaButton meetingId={next.id} />}
             {next && (
               <Link href={`/admin/meetings/${next.id}`} className="btn-primary btn-sm">

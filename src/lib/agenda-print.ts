@@ -61,8 +61,14 @@ const PAGE_CSS = `  @page { size: letter; margin: 0.7in 0.75in; }
 
 const PRINT_ON_LOAD = `<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},300)})</script>`;
 
-/** Print and Close above the page (not printed); "outside": in the phone's browser, which can't close it. */
-function toolbar(kind?: "browser" | "outside") {
+// Reading it on screen: Print sends it to the phone app's print screen there (the app's
+// window can't print by itself), else the browser's. The bar isn't printed.
+const REVIEW_PRINT = `<script>function mwlPrint(){var a=window.MyWardLinkApp,w=window.ReactNativeWebView;if(a&&a.files&&w){var d=document.documentElement.cloneNode(true);var b=d.querySelector(".bar");if(b)b.remove();d.querySelectorAll("script").forEach(function(s){s.remove()});w.postMessage(JSON.stringify({type:"print",html:"<!doctype html>"+d.outerHTML}));}else if(a){alert("This version of the app can't print. Update the app, or print from a computer.");}else{window.print();}}</script>`;
+
+/** Print and Close above the page (not printed); "outside": in the phone's browser, which can't close it; "review": to read on screen, with Back and Print. */
+function toolbar(kind?: "browser" | "outside" | "review", back = "/admin/meetings") {
+  if (kind === "review")
+    return `<div class="bar"><a href="${back}" style="margin-right:auto">← Back</a><button type="button" onclick="mwlPrint()">🖨️ Print</button></div>${REVIEW_PRINT}`;
   if (kind === "browser")
     return `<div class="bar"><a href="/admin/meetings" onclick="window.close();var h=this.href;setTimeout(function(){location.href=h},200);return false;">✕ Close</a><button type="button" onclick="window.print()">Print</button></div>${PRINT_ON_LOAD}`;
   if (kind === "outside") return `<div class="bar"><span class="tip">No print screen? Tap the Share button, then Print.</span><button type="button" onclick="window.print()">Print</button></div>${PRINT_ON_LOAD}`;
@@ -118,7 +124,7 @@ const whenText = (m: Meeting) =>
  * prayers, each agenda item with the notes taken on it, other notes, and the
  * assignments made. Oldest first.
  */
-export function recordsPrintHtml(orgId: number, meetings: Meeting[], o: { toolbar?: "browser" | "outside"; range?: string } = {}): string | null {
+export function recordsPrintHtml(orgId: number, meetings: Meeting[], o: { toolbar?: "browser" | "outside" | "review"; back?: string; range?: string } = {}): string | null {
   const h = orgHeading(orgId);
   if (!h) return null;
   const list = [...meetings].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
@@ -166,7 +172,7 @@ export function recordsPrintHtml(orgId: number, meetings: Meeting[], o: { toolba
 <style>
 ${PAGE_CSS}
 </style></head><body>
-${toolbar(o.toolbar)}
+${toolbar(o.toolbar, o.back)}
 <header>
   <div class="group">${html(h.heading)}</div>
   <h1>${list.length === 1 ? "Meeting notes" : "Meeting notes for review"}</h1>
@@ -177,7 +183,7 @@ ${list.length ? list.map(block).join("\n") : `<p class="none">No finished meetin
 </body></html>`;
 }
 
-export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?: "browser" | "outside" } = {}): string | null {
+export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?: "browser" | "outside" | "review"; back?: string } = {}): string | null {
   const m = getMeeting(orgId, meetingId);
   const org = getOrg(orgId);
   if (!m || !org) return null;
@@ -204,7 +210,7 @@ export function agendaPrintHtml(orgId: number, meetingId: number, o: { toolbar?:
         .join("")
     : `<p class="none">Nothing on the agenda yet.</p>`;
   const title = `${meetingName(orgId, m)}: ${day.toFormat("LLL d")}`;
-  const bar = toolbar(o.toolbar);
+  const bar = toolbar(o.toolbar, o.back);
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${html(title)}</title>
@@ -243,7 +249,7 @@ export const NOTES_RANGES: [string, string][] = [
 ];
 
 /** Finished meetings from the last few months (or all), to print for review. */
-export function pastNotesHtml(orgId: number, months: string | null, today: string, o: { toolbar?: "browser" | "outside" } = {}) {
+export function pastNotesHtml(orgId: number, months: string | null, today: string, o: { toolbar?: "browser" | "outside" | "review"; back?: string } = {}) {
   const range = NOTES_RANGES.find(([k]) => k === months) ?? NOTES_RANGES[0];
   const from = range[0] === "all" ? "" : DateTime.fromISO(today).minus({ months: Number(range[0]) }).toISODate()!;
   const meetings = orgMeetings(orgId).filter((m) => m.held_at && m.date >= from);
