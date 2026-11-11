@@ -6,7 +6,9 @@ import { receiveReply, recentMessageFor, recentReplies, sendAnswer, threadForTex
 import { sendSms, twilioConfigured } from "./sms";
 import { closedText, orgTakesMessages } from "./message-routing";
 import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching";
-import { getOrg, getWard, homeOf, memberWards, orgFullName, orgLabel } from "./orgs";
+import { getOrg, getWard, homeOf, isSiteOwner, memberWards, orgFullName, orgLabel } from "./orgs";
+import { photoToTodo } from "./photo-todo";
+import type { Member } from "./types";
 import { allowHit } from "./rate-limit";
 import { answerRequest, latestPendingRequest } from "./teaching-requests";
 import { DateTime } from "luxon";
@@ -41,7 +43,8 @@ export type InboundResult =
   | "request_declined"
   | "request_taken"
   | "asked_which"
-  | "joined";
+  | "joined"
+  | "photo_todo";
 
 /** Texted back (once a month) to a number that isn't anyone's in the app. */
 /** Answer to a texted reply to one of their own private reminders (which isn't passed to anyone). */
@@ -121,6 +124,21 @@ const nameOf = (id: number) => (db().prepare("SELECT display_name FROM members W
 async function routeText(params: Record<string, string>, seen: Seen): Promise<InboundResult> {
   const from = normalizePhone(params.From || "");
   const body = (params.Body || "").trim();
+  // The site owner texting a picture (an invitation, a flyer): it becomes one of their to-dos.
+  if (from && Number(params.NumMedia || 0) > 0) {
+    const owner = photoSender(from);
+    if (owner) {
+      const media = Array.from({ length: Math.min(Number(params.NumMedia), 4) }, (_, i) => ({ url: params[`MediaUrl${i}`] || "", type: params[`MediaContentType${i}`] || "" })).filter((m) => m.url);
+      seen.memberId = owner.id;
+      seen.note = "Picture to a to-do";
+      // Reading it takes longer than Twilio waits for an answer: the result is texted after.
+      void photoToTodo(owner.id, media, body)
+        .then((reply) => sendSms(owner.orgId, from, reply, "notice"))
+        .catch((err) => console.error("[sms] picture to-do failed", err));
+      seen.reply = "Got it. Reading the picture now; I'll text you when it's on your to-dos.";
+      return "photo_todo";
+    }
+  }
   if (!from || !body) return "ignored";
   const row = db()
     .prepare(
@@ -417,4 +435,11 @@ export async function deliverHeldReplies() {
     const [first] = JSON.parse(h.options) as number[];
     if (member && first) await deliverTextReply(member, first, h.body);
   }
+}
+
+/** The site owner, by the phone a picture came from (only they can text pictures in). */
+function photoSender(phone: string): { id: number; orgId: number | null } | null {
+  const rows = db().prepare("SELECT * FROM members WHERE phone = ? AND status = 'active'").all(phone) as Member[];
+  const owner = rows.find((m) => isSiteOwner(m));
+  return owner ? { id: owner.id, orgId: homeOf(owner.id).orgId } : null;
 }

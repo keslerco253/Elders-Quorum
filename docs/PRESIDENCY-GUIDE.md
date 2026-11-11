@@ -1786,6 +1786,17 @@ and the member list**).
   went out and the last failure** (with the error, e.g. a bad Gmail app password),
   the address links point to, and the Twilio incoming-message webhook. **Send me a
   test email** and **Send me a test text** (needs your phone and text consent).
+- **Text a picture to make a to-do** (site owner only): text a photo (a
+  wedding invitation, a flyer, an appointment card; front and back together is
+  fine) to the app's texting number from your own phone. The app answers right
+  away, Claude reads the picture, and a minute later you get a text: "Added to
+  your to-dos: Wedding reception…, Sat, Dec 12, 6:00 PM to 8:00 PM, 506 N 1000 E,
+  Firth, Idaho. Text reminders 1 day and 3 hours before." with a link. It's one
+  of your private to-dos (My assignments) on that date, with the time and place
+  in its notes, and the picture is kept with it (tap it to see it full size). A
+  note typed with the picture helps it read. No date on the picture: it says so
+  and adds nothing. Pictures from anyone else are handled like any other text.
+  Needs ANTHROPIC_API_KEY on the server.
 - **The site's email account** (what sign-in codes and wards set to use the
   site's email send from) shows with its sender name and whether it's **set
   here** or **from the server's settings** (SMTP_USER). **Change the site's

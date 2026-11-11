@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { canTextTodos, getPersonalTodo, todoRepeatText } from "@/lib/personal-todos";
+import { canTextTodos, getPersonalTodo, todoImages, todoRepeatText } from "@/lib/personal-todos";
 import { memberCanText } from "../../../more/reminders/can-text";
 import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
@@ -34,6 +34,16 @@ export default async function TodoPage({ params, searchParams }: { params: Promi
           </SubmitButton>
         </form>
       </div>
+      {todoImages(todo).length > 0 && (
+        <div className="mb-4 flex max-w-xl flex-wrap gap-3">
+          {todoImages(todo).map((name) => (
+            <a key={name} href={`/assignments/mine/${todo.id}/picture/${name}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-border">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/assignments/mine/${todo.id}/picture/${name}`} alt="The picture this to-do was made from" className="h-48 w-auto object-contain" />
+            </a>
+          ))}
+        </div>
+      )}
       <TodoForm key={todo.id} todo={todo} canText={canTextTodos(user.id)} textReady={memberCanText(user)} canEmail={!!user.email} />
     </>
   );

@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { deleteUpload } from "./uploads";
 import { db } from "./db";
 import { ledOrgIds } from "./conversations";
 import { WHEN_OPTIONS } from "./reminder-prefs";
@@ -25,7 +26,18 @@ export interface PersonalTodo {
   /** Repeats from its due date: marking it done adds the next one. */
   repeat: Pattern | null;
   repeat_until: string | null;
+  /** JSON: stored file names of pictures kept with it (a texted photo it was made from). */
+  images: string;
 }
+
+/** The pictures kept with a to-do. */
+export const todoImages = (t: Pick<PersonalTodo, "images">): string[] => {
+  try {
+    return (JSON.parse(t.images || "[]") as unknown[]).filter((n): n is string => typeof n === "string");
+  } catch {
+    return [];
+  }
+};
 
 /** "Every week on Tuesday", or null when it doesn't repeat. */
 export const todoRepeatText = (t: Pick<PersonalTodo, "repeat" | "due_date" | "repeat_until">) =>
@@ -166,7 +178,10 @@ export function setPersonalTodoDone(memberId: number, id: number, done: boolean)
 }
 
 export function deletePersonalTodo(memberId: number, id: number) {
+  const t = getPersonalTodo(memberId, id);
   db().prepare("DELETE FROM personal_todos WHERE id = ? AND member_id = ?").run(id, memberId);
+  // Its pictures go with it.
+  if (t) for (const name of todoImages(t)) deleteUpload(name);
 }
 
 /** Reminders as saved (JSON), after cleanReminders. */
