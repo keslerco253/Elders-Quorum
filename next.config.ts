@@ -28,7 +28,8 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Strict-Transport-Security", value: "max-age=31536000" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          // The microphone only for this site itself (talking instead of typing); no camera or location.
+          { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" },
         ],
       },
     ];
