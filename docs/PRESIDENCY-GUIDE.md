@@ -1839,20 +1839,29 @@ and the member list**).
     picture. A picture on its own is an event too.
   - **TODO** (or **To do** or **To-do**) and what to do, a picture, or both: on your to-do list (My
     assignments). "TODO visit dad" just goes on the list; "TODO call the bishop
-    Friday 3pm" is due then, with text reminders the day before and when it's due.
-  - **EVENT** or **TODO** by itself: "Ready", then send the picture or the words.
+    Friday 3pm" is due then, with its reminders (to start: a text the day before
+    and when it's due).
+  - **EVENT** or **TODO** by itself: "Ready", then send the picture or the words;
+    the next words or picture you text in the next half hour are for it.
   - Claude reads the words and pictures (needs ANTHROPIC_API_KEY on the server;
     without it a TODO is added just as typed). A picture with more than one date
     makes one for each: a birthday invitation with an RSVP date gives the party (at
-    its time and place, text reminders a day and 3 hours before) and **RSVP for…**
-    (all day, with who to answer in its notes, text reminders the morning before
-    and that morning), both with the picture. Pictures and words sent within a few
+    its time and place) and **RSVP for…** (all day, with who to answer in its
+    notes), each with its own reminders and the picture. Pictures and words sent within a few
     seconds of each other are read together. The app answers "Got it" right away
     and texts "Posted to your calendar:" or "Posted to your to-dos:" with what it
     was and a link. Pictures are kept with what they made (tap to see them full
     size; deleted when nothing uses them). Nothing is sent to anyone else; texts
     starting EVENT or TODO from anyone else, and their pictures, are handled like
     any other text.
+  - **Their reminders:** Site owner → **Texted events and to-dos** sets what each
+    kind starts with: **Events** (to start: a text 1 day and 3 hours before),
+    **Deadlines** like an RSVP (a text the day before and that morning) and
+    **To-dos with a due date** (a text the day before and when it's due). Add or
+    remove reminders, pick when (from **When it starts** to 2 weeks before), and
+    tick **App**, **Email** and/or **Text** (up to 3 texts) for each. **Back to
+    the starting ones** undoes your changes. The "Posted…" text says which
+    reminders it got; open the item to change just that one.
 - **The site's email account** (what sign-in codes and wards set to use the
   site's email send from) shows with its sender name and whether it's **set
   here** or **from the server's settings** (SMTP_USER). **Change the site's

@@ -122,6 +122,13 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
         </span>
         {ideas.new > 0 && <Badge tone="warn">{ideas.new} new</Badge>}
       </Link>
+      <Link href="/site/texted" className="card mb-4 flex items-center justify-between gap-3 hover:bg-surface-2">
+        <span>
+          <strong>Texted events and to-dos</strong>
+          <span className="block text-sm text-muted">The reminders that what you text in (EVENT, TODO, a picture) starts with: when, and by text, app or email.</span>
+        </span>
+        <span aria-hidden>›</span>
+      </Link>
       <Section title="Who has site-owner access">
         <div className="card space-y-2 text-sm">
           <ul>

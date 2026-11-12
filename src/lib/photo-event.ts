@@ -4,7 +4,7 @@ import { appUrl } from "./config";
 import { db } from "./db";
 import { homeOf } from "./orgs";
 import { getWard } from "./orgs";
-import { savePersonalTodo, type TodoReminder } from "./personal-todos";
+import { cleanReminders, savePersonalTodo, TODO_WHEN, type TodoReminder } from "./personal-todos";
 import { savePersonalEvent } from "./personal-events";
 import { saveUpload } from "./uploads";
 
@@ -116,6 +116,14 @@ async function readPictures(pictures: { data: Buffer; type: ClaudeType }[], capt
   }
 }
 
+/** What the site owner texts in, and the reminders each gets (Site owner → Texted events and to-dos). */
+export type TextedKind = "event" | "deadline" | "todo";
+export const TEXTED_KINDS: { kind: TextedKind; title: string; hint: string }[] = [
+  { kind: "event", title: "Events", hint: "Counted from when it starts (9 AM for one with no time)." },
+  { kind: "deadline", title: "Deadlines (an RSVP or sign-up date)", hint: "All day: counted from 9 AM that day, so \"When it starts\" is that morning." },
+  { kind: "todo", title: "To-dos with a due date", hint: "Counted from when it's due (9 AM without a time). A to-do with no date gets none." },
+];
+
 /** The event: a text a day before and 3 hours before. */
 const EVENT_REMINDERS: TodoReminder[] = [
   { when: "m:1440", push: false, text: true, email: false },
@@ -132,6 +140,48 @@ const TODO_REMINDERS: TodoReminder[] = [
   { when: "m:1440", push: false, text: true, email: false },
   { when: "m:0", push: false, text: true, email: false },
 ];
+
+export const TEXTED_DEFAULTS: Record<TextedKind, TodoReminder[]> = { event: EVENT_REMINDERS, deadline: DEADLINE_REMINDERS, todo: TODO_REMINDERS };
+
+const settingKey = (memberId: number) => `texted_reminders:${memberId}`;
+
+/** The reminders this site owner chose for what they text in, or the starting ones. */
+export function textedReminders(memberId: number, kind: TextedKind): TodoReminder[] {
+  try {
+    const saved = JSON.parse((db().prepare("SELECT value FROM app_settings WHERE key = ?").get(settingKey(memberId)) as { value: string } | undefined)?.value ?? "{}");
+    if (Array.isArray(saved[kind])) return saved[kind] as TodoReminder[];
+  } catch {
+    // Unreadable: the starting ones.
+  }
+  return TEXTED_DEFAULTS[kind];
+}
+
+/** Saves one kind's reminders (null: back to the starting ones). */
+export function saveTextedReminders(memberId: number, kind: TextedKind, list: TodoReminder[] | null) {
+  const d = db();
+  let saved: Record<string, unknown> = {};
+  try {
+    saved = JSON.parse((d.prepare("SELECT value FROM app_settings WHERE key = ?").get(settingKey(memberId)) as { value: string } | undefined)?.value ?? "{}");
+  } catch {
+    saved = {};
+  }
+  if (list) saved[kind] = cleanReminders(memberId, list);
+  else delete saved[kind];
+  d.prepare("INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(settingKey(memberId), JSON.stringify(saved));
+}
+
+/** "texts 1 day and 3 hours before" for the answer text: when, and how. */
+export function remindersSummary(list: TodoReminder[], kind: TextedKind): string {
+  if (!list.length) return "no reminders";
+  const label = (w: string) =>
+    w === "m:0" ? (kind === "todo" ? "when it's due" : kind === "deadline" ? "that morning" : "when it starts") : (TODO_WHEN.find(([k]) => k === w)?.[1] ?? w).toLowerCase();
+  const ways = new Set(list.flatMap((r) => (["text", "push", "email"] as const).filter((k) => r[k])));
+  const how = ways.size === 1 ? { text: "text reminders", push: "app reminders", email: "email reminders" }[[...ways][0]] : "reminders";
+  // "1 day and 3 hours before", "1 day before and that morning".
+  const parts = list.map((r) => label(r.when));
+  const short = parts.map((p, i) => (p.endsWith(" before") && parts[i + 1]?.endsWith(" before") ? p.slice(0, -" before".length) : p));
+  return `${how} ${short.length > 1 ? `${short.slice(0, -1).join(", ")} and ${short.at(-1)}` : short[0]}`;
+}
 
 /** Pictures texted in (no keyword, or EVENT): events on the calendar. */
 export const photoToEvent = (memberId: number, media: { url: string; type: string }[], caption: string) => textedItems(memberId, "event", media, caption);
@@ -188,10 +238,11 @@ export async function textedItems(memberId: number, kind: "event" | "todo", medi
     const when = time ? `, ${hm(time)}${end ? ` to ${hm(end)}` : ""}` : "";
     if (kind === "todo") {
       const notes = [end && `Until ${hm(end)}`, e.location && `Where: ${e.location}`, e.details].filter(Boolean).join("\n").slice(0, 2000);
-      const id = savePersonalTodo(memberId, null, { title, notes, due_date: date, due_time: time, reminders: date ? TODO_REMINDERS : [] });
+      const reminders = date ? textedReminders(memberId, "todo") : [];
+      const id = savePersonalTodo(memberId, null, { title, notes, due_date: date, due_time: time, reminders });
       if (!id) continue;
       if (names.length) db().prepare("UPDATE personal_todos SET images = ? WHERE id = ?").run(JSON.stringify(names), id);
-      posted.push(`${title}${date ? `, due ${day}${when} (text reminders the day before and when it's due)` : ""} ${appUrl()}/assignments/mine/${id}`);
+      posted.push(`${title}${date ? `, due ${day}${when} (${remindersSummary(reminders, "todo")})` : ""} ${appUrl()}/assignments/mine/${id}`);
       continue;
     }
     const id = savePersonalEvent(memberId, null, {
@@ -203,12 +254,12 @@ export async function textedItems(memberId: number, kind: "event" | "todo", medi
       end_time: end,
       all_day: !time,
       timezone: tz,
-      reminders: deadline ? DEADLINE_REMINDERS : EVENT_REMINDERS,
+      reminders: textedReminders(memberId, deadline ? "deadline" : "event"),
     });
     if (!id) continue;
     if (names.length) db().prepare("UPDATE personal_events SET images = ? WHERE id = ?").run(JSON.stringify(names), id);
-    const reminders = deadline ? "reminders the day before and that morning" : "reminders 1 day and 3 hours before";
-    posted.push(`${title}, ${day}${when}${e.location ? `, ${e.location}` : ""} (text ${reminders}) ${appUrl()}/calendar/mine/${id}`);
+    const reminders = remindersSummary(textedReminders(memberId, deadline ? "deadline" : "event"), deadline ? "deadline" : "event");
+    posted.push(`${title}, ${day}${when}${e.location ? `, ${e.location}` : ""} (${reminders}) ${appUrl()}/calendar/mine/${id}`);
   }
   if (!posted.length) return "My Ward Link: that couldn't be saved. Please try again.";
   const where = kind === "todo" ? "to-dos" : "calendar";

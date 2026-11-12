@@ -125,7 +125,7 @@ describe("a picture texted in by the site owner", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array(PNG), { headers: { "content-type": "image/png" } })));
     const { photoToEvent } = await import("@/lib/photo-event");
     const reply = await photoToEvent(1, [{ url: "https://api.twilio.com/2010-04-01/Accounts/AC1/Messages/MM9/Media/ME9", type: "image/png" }], "");
-    expect(reply).toMatch(/^Posted 2 events to your calendar:\n1\. RSVP for Darik's 1st birthday, Wed, Dec 2 \(text reminders the day before and that morning\) http\S+\n2\. Darik's 1st birthday party, Sat, Dec 5, 2:00 PM to 4:00 PM, 408 Buckboard Ln, Idaho Falls \(text reminders 1 day and 3 hours before\) http\S+$/);
+    expect(reply).toMatch(/^Posted 2 events to your calendar:\n1\. RSVP for Darik's 1st birthday, Wed, Dec 2 \(text reminders 1 day before and that morning\) http\S+\n2\. Darik's 1st birthday party, Sat, Dec 5, 2:00 PM to 4:00 PM, 408 Buckboard Ln, Idaho Falls \(text reminders 1 day and 3 hours before\) http\S+$/);
     const rows = d.prepare("SELECT id, title, date, all_day, start_time, end_time, notes, reminders, images FROM personal_events ORDER BY date").all() as { id: number; title: string; date: string; all_day: number; notes: string; reminders: string; images: string }[];
     expect(rows.map((r) => [r.title, r.date, r.all_day])).toEqual([["RSVP for Darik's 1st birthday", "2026-12-02", 1], ["Darik's 1st birthday party", "2026-12-05", 0]]);
     expect(rows[0].notes).toContain("(208) 821-6036");
@@ -139,6 +139,35 @@ describe("a picture texted in by the site owner", () => {
     expect(readUpload(picture)).not.toBeNull();
     deletePersonalEvent(1, rows[1].id);
     expect(readUpload(picture)).toBeNull();
+    reading = WEDDING;
+  });
+
+  it("uses the reminders the site owner chose (Site owner → Texted events and to-dos)", async () => {
+    process.env.ANTHROPIC_API_KEY = "test";
+    process.env.TWILIO_ACCOUNT_SID = "AC1";
+    process.env.TWILIO_AUTH_TOKEN = "t";
+    const d = (await import("@/lib/db")).useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'Villas Ward', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, phone, role) VALUES (1, 1, 'M', 'Mark', 'm@x.com', '+12085550001', 'presidency');
+    `);
+    d.prepare("UPDATE members SET is_site_owner = 1 WHERE id = 1").run();
+    const pe = await import("@/lib/photo-event");
+    expect(pe.textedReminders(1, "event")).toEqual(pe.TEXTED_DEFAULTS.event);
+    // A text a day before, and a text and an app notification when it starts.
+    pe.saveTextedReminders(1, "event", [
+      { when: "m:0", push: true, text: true, email: false },
+      { when: "m:1440", push: false, text: true, email: false },
+    ]);
+    reading = { found: true, problem: "", events: [{ kind: "event", title: "Dentist", date: "2026-12-03", start_time: "14:00", end_time: "", location: "", details: "" }] };
+    expect(await pe.textedItems(1, "event", [], "dentist dec 3 2pm")).toMatch(/\(reminders 1 day before and when it starts\)/);
+    const row = d.prepare("SELECT reminders FROM personal_events").get() as { reminders: string };
+    expect(JSON.parse(row.reminders)).toEqual([
+      { when: "m:1440", push: 0, text: 1, email: 0 },
+      { when: "m:0", push: 1, text: 1, email: 0 },
+    ]);
+    // Back to the starting ones.
+    pe.saveTextedReminders(1, "event", null);
+    expect(pe.textedReminders(1, "event")).toEqual(pe.TEXTED_DEFAULTS.event);
     reading = WEDDING;
   });
 
@@ -157,7 +186,7 @@ describe("a picture texted in by the site owner", () => {
     expect(await textedItems(1, "todo", [], "visit dad")).toMatch(/^Posted to your to-dos: Visit Dad http\S+\/assignments\/mine\/\d+$/);
     // With a date and time: due then, text reminders the day before and when it's due.
     reading = { found: true, problem: "", events: [{ kind: "event", title: "Call the bishop", date: "2026-12-04", start_time: "15:00", end_time: "", location: "", details: "" }] };
-    expect(await textedItems(1, "todo", [], "call the bishop friday 3pm")).toMatch(/^Posted to your to-dos: Call the bishop, due Fri, Dec 4, 3:00 PM \(text reminders the day before and when it's due\)/);
+    expect(await textedItems(1, "todo", [], "call the bishop friday 3pm")).toMatch(/^Posted to your to-dos: Call the bishop, due Fri, Dec 4, 3:00 PM \(text reminders 1 day before and when it's due\)/);
     // Reading isn't set up: added as typed.
     delete process.env.ANTHROPIC_API_KEY;
     expect(await textedItems(1, "todo", [], "pick up the chairs")).toMatch(/^Posted to your to-dos: pick up the chairs /);
