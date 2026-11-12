@@ -177,12 +177,12 @@ describe("replies to the presidency", () => {
     expect(conv.wardConversations(1, 3).some((c) => c.recipient_id === 1)).toBe(
       false,
     );
-    // (1 = the earlier whole-presidency text; the private one isn't counted for them.)
-    expect(conv.unreadReplies(1, 3)).toBe(1);
+    // (0: the earlier whole-presidency text was answered, and the private one isn't counted for them.)
+    expect(conv.unreadReplies(1, 3)).toBe(0);
     expect(conv.wardConversations(1, 1).some((c) => c.recipient_id === 1)).toBe(
       true,
     );
-    expect(conv.unreadReplies(1, 1)).toBe(2);
+    expect(conv.unreadReplies(1, 1)).toBe(1); // just the private one (the earlier text was answered)
 
     // The president answers privately; a text back from the member stays private.
     expect(

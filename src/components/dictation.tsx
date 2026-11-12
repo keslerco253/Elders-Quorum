@@ -69,7 +69,10 @@ export function Dictation() {
   useEffect(() => {
     if (!Ctor) return;
     const onFocus = (e: FocusEvent) => {
-      if (writable(e.target)) setField(e.target);
+      if (!writable(e.target)) return;
+      // Moving to another box stops listening for the old one.
+      if (rec.current && target.current !== e.target) rec.current.stop();
+      setField(e.target);
     };
     const onBlur = () =>
       // Tapping the microphone keeps the box; going elsewhere hides it.
@@ -90,7 +93,13 @@ export function Dictation() {
     let raf = 0;
     const place = () => {
       raf = 0;
-      setBox(field.isConnected ? field.getBoundingClientRect() : null);
+      if (!field.isConnected) {
+        // The box is gone (sent, or a new page): stop listening.
+        rec.current?.stop();
+        setField(null);
+        return;
+      }
+      setBox(field.getBoundingClientRect());
     };
     const later = () => {
       if (!raf) raf = requestAnimationFrame(place);

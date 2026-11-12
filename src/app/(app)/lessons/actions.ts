@@ -167,8 +167,9 @@ export async function reportCommentAction(fd: FormData) {
 export async function blockMemberAction(fd: FormData) {
   const user = await requireUser();
   const lessonId = Number(fd.get("lesson_id"));
-  const name = (db().prepare("SELECT display_name FROM members WHERE id = ?").get(Number(fd.get("member_id"))) as { display_name: string } | undefined)?.display_name;
-  if (!name || !blockMember(user.id, Number(fd.get("member_id")))) back(lessonId, "That person can't be blocked.", "#comments");
+  const blockedId = Number(fd.get("member_id"));
+  if (!blockMember(user.id, blockedId)) back(lessonId, "That person can't be blocked.", "#comments");
+  const name = (db().prepare("SELECT display_name FROM members WHERE id = ?").get(blockedId) as { display_name: string }).display_name;
   revalidatePath(`/lessons/${lessonId}`);
   back(lessonId, `${name} is blocked: you won't see their comments. Unblock them under More → Blocked people.`, "#comments");
 }

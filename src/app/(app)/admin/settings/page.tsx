@@ -25,7 +25,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const presidency = db()
     .prepare("SELECT m.id, m.display_name FROM org_members om JOIN members m ON m.id = om.member_id WHERE om.org_id = ? AND om.role = 'presidency' ORDER BY m.display_name")
     .all(user.org_id) as { id: number; display_name: string }[];
-  const lead = messageLead(user.org_id);
+  const chosenLead = (db().prepare("SELECT message_lead_id FROM orgs WHERE id = ?").get(user.org_id) as { message_lead_id: number | null }).message_lead_id;
+  const lead = chosenLead ? null : messageLead(user.org_id);
   return (
     <>
       <PageHeader title="Settings" back={{ href: "/admin", label: "Admin" }} />
@@ -115,7 +116,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <label className="label" htmlFor="message-lead">
                 Message lead
               </label>
-              <select id="message-lead" name="message_lead" className="input" defaultValue={lead ?? ""}>
+              <select id="message-lead" name="message_lead" className="input" defaultValue={chosenLead ?? ""}>
+                <option value="">The president{lead ? ` (${presidency.find((p) => p.id === lead)?.display_name ?? ""})` : ""}</option>
                 {presidency.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.display_name}

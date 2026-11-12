@@ -150,9 +150,9 @@ function siteAccount(): { address: string; pass: string; fromName: string; host:
 }
 
 /** What the site owner sees: the site's address and sender name, and where it's set. */
-export function siteMailInfo(): { address: string; fromName: string; source: "app" | "server" } | null {
+export function siteMailInfo(): { address: string; fromName: string; host: string; port: number; source: "app" | "server" } | null {
   const a = siteAccount();
-  return a ? { address: a.address, fromName: a.fromName, source: a.stamp === "server" ? "server" : "app" } : null;
+  return a ? { address: a.address, fromName: a.fromName, host: a.host, port: a.port, source: a.stamp === "server" ? "server" : "app" } : null;
 }
 
 export function saveSiteMail(address: string, password: string, fromName: string, host = "smtp.gmail.com", port = 465) {

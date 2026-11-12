@@ -10,11 +10,12 @@ self.addEventListener("push", (event) => {
     data = { title: "Elders Quorum", body: event.data ? event.data.text() : "" };
   }
   // The number on the Home Screen icon (where the phone or computer shows one).
-  if (typeof data.badge === "number" && self.navigator.setAppBadge) {
-    (data.badge > 0 ? self.navigator.setAppBadge(data.badge) : self.navigator.clearAppBadge()).catch(() => {});
-  }
+  const badge =
+    typeof data.badge === "number" && self.navigator.setAppBadge
+      ? (data.badge > 0 ? self.navigator.setAppBadge(data.badge) : self.navigator.clearAppBadge()).catch(() => {})
+      : Promise.resolve();
   event.waitUntil(
-    self.registration.showNotification(data.title || "Elders Quorum", {
+    Promise.all([badge, self.registration.showNotification(data.title || "Elders Quorum", {
       body: data.body || "",
       icon: "/icon-192.png",
       badge: "/icon-192.png",
@@ -26,7 +27,7 @@ self.addEventListener("push", (event) => {
       // One notification per conversation: a newer message from the same person replaces the
       // older one (still alerting), instead of a pile of separate notifications.
       ...(data.tag ? { tag: data.tag, renotify: true } : {}),
-    }),
+    })]),
   );
 });
 

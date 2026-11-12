@@ -159,6 +159,7 @@ export function Nav({
   adminCount,
   moreCount = 0,
   messagesCount = 0,
+  keepBadge = false,
 }: {
   current: SwitchTarget;
   ward: string;
@@ -169,6 +170,8 @@ export function Nav({
   moreCount?: number;
   /** Unread messages: answers to them, and (for leaders) members writing to them. */
   messagesCount?: number;
+  /** Support view: leave the icon's number alone (it's the owner's own). */
+  keepBadge?: boolean;
 }) {
   const path = usePathname();
   const router = useRouter();
@@ -217,11 +220,12 @@ export function Nav({
     postToApp({ type: "tabs", items, active: exact ? highlight : null, highlight });
   }, [tabsKey, router]);
   useEffect(() => {
+    if (keepBadge) return;
     const count = messagesCount + moreCount;
     if (appHasTabs()) postToApp({ type: "badge", count });
     // The website saved to the Home Screen (or installed on a computer): the same number on its icon.
     else if ("setAppBadge" in navigator) (count > 0 ? navigator.setAppBadge(count) : navigator.clearAppBadge()).catch(() => {});
-  }, [messagesCount, moreCount]);
+  }, [messagesCount, moreCount, keepBadge]);
   useEffect(() => {
     sendWidgetKey();
     return () => {

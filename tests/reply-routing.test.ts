@@ -91,4 +91,41 @@ describe("who hears about a member's message", () => {
     expect(due[0].payload.title).toContain("2 member messages waiting");
     expect(collectDue(at8.minus({ hours: 2 })).filter((n) => n.key.startsWith("msg-summary:"))).toHaveLength(0);
   });
+
+  it("a reply after a leader answered notifies again (it isn't folded)", async () => {
+    const before = mailTo("couns@");
+    await conv.receiveReply(member(2), "What time?", "app", 7);
+    expect(mailTo("couns@")).toBe(before + 1);
+  });
+
+  it("No reply needed clears the member's earlier messages too, and the Admin count agrees", async () => {
+    await conv.receiveReply(member(4), "one", "app", null);
+    await conv.receiveReply(member(4), "two", "app", null);
+    expect(conv.leaderInbox(3).find((r) => r.member_id === 4)!.unread).toBeGreaterThan(1);
+    conv.markNoReplyNeeded(1, 4, { private: false }, 1);
+    expect(conv.leaderInbox(3).find((r) => r.member_id === 4)!.unread).toBe(0);
+    const inboxTotal = conv.leaderInbox(3).filter((r) => r.org_id === 1).reduce((n, r) => n + r.unread, 0);
+    expect(conv.unreadReplies(1, 3)).toBe(inboxTotal);
+  });
+
+  it("skips a leader who chose None when picking who it's for", () => {
+    const leaders = [
+      { id: 1, name: "Pres", email: "pres@test.local" },
+      { id: 3, name: "Couns", email: "couns@test.local" },
+    ] as unknown as import("@/lib/notify").Recipient[];
+    d.exec("UPDATE orgs SET message_lead_id = NULL WHERE id = 1");
+    d.exec("UPDATE org_members SET msg_notify = 'none' WHERE org_id = 1 AND member_id = 1");
+    expect(rn.whoToNotify(1, 5, null, leaders).map((r) => r.id)).toEqual([3]);
+    d.exec("UPDATE org_members SET msg_notify = 'mine' WHERE org_id = 1");
+  });
+
+  it("an old claim, or one by someone released, no longer hides the conversation", async () => {
+    await conv.receiveReply(member(5), "Still there?", "app", null);
+    rn.claimConversation(1, 5, 3);
+    expect(conv.leaderInbox(1).find((r) => r.member_id === 5)!.unread).toBe(0);
+    d.exec("UPDATE conversation_claims SET claimed_at = datetime('now', '-4 days') WHERE member_id = 5");
+    expect(conv.leaderInbox(1).find((r) => r.member_id === 5)).toMatchObject({ claimed_by: null });
+    expect(conv.leaderInbox(1).find((r) => r.member_id === 5)!.unread).toBeGreaterThan(0);
+    expect(rn.claimOf(1, 5)).toBeUndefined();
+  });
 });

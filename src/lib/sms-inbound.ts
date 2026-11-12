@@ -92,9 +92,10 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   // words, with a picture, or both; a picture on its own is an event.
   const keyword = body.match(/^\s*(event|to[\s-]?do)\b[\s:,.-]*/i);
   const pictures = Number(params.NumMedia || 0);
-  if (from && (keyword || pictures > 0)) {
-    const owner = photoSender(from);
-    if (owner) {
+  const owner = from ? photoSender(from) : null;
+  // After EVENT or TODO on its own, the next words or picture are for it.
+  if (owner && (keyword || pictures > 0 || (body && waitingKind(owner.id)))) {
+    {
       const kind = keyword && /^to/i.test(keyword[1]) ? "todo" : keyword ? "event" : null;
       const note = keyword ? body.slice(keyword[0].length).trim() : body;
       const media = Array.from({ length: Math.min(pictures, 4) }, (_, i) => ({ url: params[`MediaUrl${i}`] || "", type: params[`MediaContentType${i}`] || "" })).filter((m) => m.url);
@@ -107,7 +108,7 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
         return "photo_todo";
       }
       // Only the first text of a batch is answered; the rest join it.
-      if (collectTexted(owner, from, kind, media, note))
+      if (collectTexted(owner, from!, kind, media, note))
         seen.reply = `Got it. I'll text you when it's posted to your ${(kind ?? waitingKind(owner.id) ?? "event") === "todo" ? "to-dos" : "calendar"}.`;
       return "photo_todo";
     }
@@ -361,20 +362,28 @@ export const PICTURE_WAIT_MS = 15_000;
 
 /** Adds a text to this owner's batch. True for the batch's first. */
 function collectTexted(owner: { id: number; orgId: number | null }, phone: string, kind: "event" | "todo" | null, media: { url: string; type: string }[], note: string): boolean {
-  const old = batches.get(owner.id);
+  let old = batches.get(owner.id);
   if (old) clearTimeout(old.timer);
+  // A different keyword starts its own item: read what came before now.
+  if (old && kind && old.kind && old.kind !== kind) {
+    readBatch(owner, phone, old);
+    old = undefined;
+  }
   const batch = old ?? { kind: null, media: [], notes: [], timer: setTimeout(() => {}, 0) };
   batch.kind ??= kind;
   batch.media.push(...media);
   if (note.trim()) batch.notes.push(note.trim());
-  batch.timer = setTimeout(() => {
-    batches.delete(owner.id);
-    const as = batch.kind ?? waitingKind(owner.id) ?? "event";
-    waiting.delete(owner.id);
-    void textedItems(owner.id, as, batch.media, batch.notes.join(" "))
-      .then((reply) => sendSms(owner.orgId, phone, reply, "notice"))
-      .catch((err) => console.error("[sms] texted item failed", err));
-  }, PICTURE_WAIT_MS);
+  batch.timer = setTimeout(() => readBatch(owner, phone, batch), PICTURE_WAIT_MS);
   batches.set(owner.id, batch);
   return !old;
+}
+
+type Batch = { kind: "event" | "todo" | null; media: { url: string; type: string }[]; notes: string[] };
+function readBatch(owner: { id: number; orgId: number | null }, phone: string, batch: Batch) {
+  if (batches.get(owner.id) === batch) batches.delete(owner.id);
+  const as = batch.kind ?? waitingKind(owner.id) ?? "event";
+  waiting.delete(owner.id);
+  void textedItems(owner.id, as, batch.media, batch.notes.join(" "))
+    .then((reply) => sendSms(owner.orgId, phone, reply, "notice"))
+    .catch((err) => console.error("[sms] texted item failed", err));
 }

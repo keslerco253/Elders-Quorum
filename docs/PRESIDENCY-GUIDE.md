@@ -688,8 +688,10 @@ whether they've accepted.
   and reminders, assignment requests, private-message notices, and the lesson and
   visit reminders (those two use their own **Text message** wording under Admin →
   Message wording). When a text would run long, sentences like "Tap to read it"
-  are left out, since the link does that. Messages you write yourself (and a visit
-  invitation) are sent in full, up to 2 segments.
+  are left out, since the link does that. Announcements are cut to 2 segments
+  (with the link to read the rest). Your answers to a member, messages to a group,
+  members' messages to you and visit invitations are sent in full (up to 900
+  letters, so a long one costs more segments).
 - **Monthly limit:** each ward has one (500 to start), set by the site owner. It
   counts reminder and message texts plus members' texted replies, per calendar
   month. Sign-in and confirmation codes are always sent and don't count. At the
@@ -698,8 +700,8 @@ whether they've accepted.
 - **Texting off** (by the site owner, or past the ward's paid-through date):
   sign-in codes are still texted; everything else goes by notification or email.
   **No texting at all:** nothing is texted, not even codes.
-- **What texts look like:** notices read "(Ward Organization): Title. Text",
-  shortened to 280 characters, with a short link that opens the right page.
+- **What texts look like:** notices read "(Organization): Title. Text", at most
+  2 segments (306 letters, link included), with a short link that opens the right page.
   With the phone app installed the link opens the app; in a phone's browser
   someone not signed in sees **Open the app** on the sign-in page, and signing
   in there still lands on the right page. (Opening links straight in the app
@@ -829,29 +831,14 @@ leader's account is deleted, their private conversations are deleted with it.
 
 **When a member writes to you,** your text, email and notification carry their
 whole message, so you can read it without opening the app (except private
-messages, which say only who it's from). To answer, **just
-reply to that text**: it goes to the member (privately if theirs was private),
-signed with your name. Or answer in the app with the link. Replying to an
-**email** doesn't reach them; use the button in the email.
-- A texted answer goes to the member whose message came to you most recently
-  (in the last 3 days).
-- **More than one person writing:** the app holds your reply and texts "Who is
-  this for? Reply 1 for … or 2 for …" (up to 6 names). Answer with the number
-  within 15 minutes, or the held reply is dropped and you'll need to send it
-  again. Once you've answered one, your next reply goes to the one still waiting.
-  If you lead in more than one ward or organization, everyone waiting on you is
-  included.
-- **Pick the person yourself:** start your reply with their name and a comma,
-  e.g. "Hyrum, see you at 7". A first name is enough; if two people who wrote
-  have that name, the app asks which (or use the full name). A colon works too
-  ("Hyrum: see you at 7") and leaves the name off.
-- Replies to teaching requests (TEACH / CANT) are still handled as teaching
-  answers.
+messages, which say only who it's from). The text ends with **Reply in app**
+and a link; the email has an **Answer** button. Answer in the app: texting back
+or replying to the email doesn't reach them (see **Answering them** below).
 
 **When members reply to you** (in the app, or by texting back to anything you
 sent), it goes into their conversation. Every presidency member sees it in
 Messages, but only the one it's for is notified (a private message notifies just
-that person):
+that person, unless they chose **None** below):
 - **Who it's for:** whoever sent what they're answering (the message, the event,
   the assignment, the sign-up, the visit invitation; for a lesson reminder, that
   Sunday's conductor). With no clear sender, the presidency's **message lead**
@@ -859,11 +846,15 @@ that person):
   members).
 - **Your choice** (Admin → Settings → Messages from members): **Only ones for me**
   (the default), **Every member message**, or **None** (you'll check Messages).
+  If the one it's for chose None, it goes to another leader instead, so someone
+  always hears.
 - **Quick follow-ups fold in:** more messages from the same member within 10
-  minutes don't notify again.
+  minutes don't notify again (unless a leader answered in between).
 - **✋ I've got it:** on a conversation, tells the rest of the presidency you're
-  answering. It drops off their unread list and shows "{name} has it" in the
-  inbox. Answering or marking **No reply needed** clears it.
+  answering. It drops off their unread list and shows "✋ (name) has it" in the
+  inbox instead of **Needs reply**. Someone else can tap **I'll take it**; you
+  can tap **Let it go**. Answering or marking **No reply needed** clears it. It
+  also lapses after 3 days, or if that person is no longer in the presidency.
 - **Answered = done:** once anyone answers, it's no longer unread for anyone.
 - **Evening summary** (off unless you turn it on, each person for themselves):
   one notification about 8 PM if member messages are still waiting for an answer.
@@ -996,8 +987,8 @@ The **Lessons** tab has **Upcoming** and **Past** (a lesson moves to Past after
 1 PM that Sunday) and 🔔 **Reminder settings**. A lesson's page has **Read the talk in
 Gospel Library** (or this week's Come, Follow Me, or the topic's link), the
 teacher (with ✓ confirmed), the teacher's notes once shared, **I'd like to teach
-this**, and **Study thoughts** (comments). Conference Sundays say there's no
-lesson, with a link to General Conference. Home shows "This Sunday" for each
+this**, and **Study thoughts** (comments). Conference and sacrament-meeting-only
+Sundays say there's no lesson (General Conference with a link to it). Home shows "This Sunday" for each
 organization they're in.
 
 ## Teachers

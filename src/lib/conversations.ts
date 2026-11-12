@@ -119,17 +119,19 @@ export async function receiveReply(member: { id: number; org_id: number; display
   const backup = presidency.length || !org ? [] : backupReceivers(org.ward_id, member.id);
   // Only link messages this member actually received.
   const msg = messageId ? (db().prepare("SELECT 1 FROM message_recipients WHERE message_id = ? AND member_id = ?").get(messageId, member.id) ? messageId : null) : null;
-  db()
+  const newId = db()
     .prepare("INSERT INTO member_messages (org_id, member_id, direction, message_id, body, via, recipient_id, needs_home) VALUES (?, ?, 'in', ?, ?, ?, ?, ?)")
-    .run(member.org_id, member.id, msg, text, via, recipientId, presidency.length ? 0 : 1);
+    .run(member.org_id, member.id, msg, text, via, recipientId, presidency.length ? 0 : 1).lastInsertRowid;
   let where: string;
   // Several messages in a row (a member texting "Hi" / "can you" / "help Saturday?"): one
-  // notice for the first; the rest are in the conversation.
+  // notice for the first; the rest are in the conversation. A reply after a leader
+  // answered is new, though.
   const followUp = !!db()
     .prepare(
-      "SELECT 1 FROM member_messages WHERE org_id = ? AND member_id = ? AND direction = 'in' AND recipient_id IS ? AND created_at > datetime('now', '-10 minutes') AND id < (SELECT MAX(id) FROM member_messages WHERE org_id = ? AND member_id = ?)",
+      `SELECT 1 FROM member_messages e WHERE e.org_id = @org AND e.member_id = @member AND e.direction = 'in' AND e.recipient_id IS @to AND e.created_at > datetime('now', '-10 minutes') AND e.id < @id
+         AND NOT EXISTS (SELECT 1 FROM member_messages a WHERE a.org_id = e.org_id AND a.member_id = e.member_id AND a.recipient_id IS e.recipient_id AND a.direction = 'out' AND a.id > e.id)`,
     )
-    .get(member.org_id, member.id, recipientId, member.org_id, member.id);
+    .get({ org: member.org_id, member: member.id, to: recipientId, id: newId });
   // Leaders read the whole message in the notification, text or email; answering is in the app.
   if (to) {
     where = to.display_name;
@@ -222,6 +224,16 @@ export function inbox(memberId: number, orgId: number, limit = 20): InboxMessage
     .all(memberId, orgId, limit) as InboxMessage[];
 }
 
+/** An "I've got it" that still counts: by someone still in the presidency, in the last 3 days. */
+const LIVE_CLAIM = `cc.claimed_at > datetime('now', '-3 days') AND EXISTS (SELECT 1 FROM org_members om WHERE om.org_id = cc.org_id AND om.member_id = cc.claimed_by AND om.role = 'presidency')`;
+
+/**
+ * A member's message (alias `m`) still waiting on the viewer (`@viewer`): not answered, not
+ * marked no reply needed (that message or a later one), and not "I've got it" by another leader.
+ */
+const STILL_WAITING = (m: string) => `AND NOT EXISTS (SELECT 1 FROM member_messages a WHERE a.org_id = ${m}.org_id AND a.member_id = ${m}.member_id AND a.recipient_id IS ${m}.recipient_id AND a.id >= ${m}.id AND (a.direction = 'out' OR a.no_reply_at IS NOT NULL))
+           AND NOT (${m}.recipient_id IS NULL AND EXISTS (SELECT 1 FROM conversation_claims cc WHERE cc.org_id = ${m}.org_id AND cc.member_id = ${m}.member_id AND cc.claimed_by <> @viewer AND ${LIVE_CLAIM}))`;
+
 /** Threads this presidency member may see (whole presidency, and private to them), most recent first. */
 export function wardConversations(orgId: number, viewerId: number): ConversationSummary[] {
   return db()
@@ -229,11 +241,8 @@ export function wardConversations(orgId: number, viewerId: number): Conversation
       `SELECT c.member_id, mem.display_name AS member_name, c.recipient_id, c.body AS last_body, c.direction AS last_direction, c.created_at AS last_at,
          (SELECT COUNT(*) FROM member_messages u WHERE u.org_id = c.org_id AND u.member_id = c.member_id AND u.recipient_id IS c.recipient_id AND u.direction = 'in'
            AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = u.id AND r.viewer_id = @viewer)
-           -- Not once someone answered it, marked it no reply needed, or said "I've got it".
-           AND u.no_reply_at IS NULL
-           AND NOT EXISTS (SELECT 1 FROM member_messages a WHERE a.org_id = u.org_id AND a.member_id = u.member_id AND a.recipient_id IS u.recipient_id AND a.direction = 'out' AND a.id > u.id)
-           AND NOT (u.recipient_id IS NULL AND EXISTS (SELECT 1 FROM conversation_claims cc WHERE cc.org_id = u.org_id AND cc.member_id = u.member_id AND cc.claimed_by <> @viewer))) AS unread,
-         (SELECT m2.display_name FROM conversation_claims cc JOIN members m2 ON m2.id = cc.claimed_by WHERE c.recipient_id IS NULL AND cc.org_id = c.org_id AND cc.member_id = c.member_id) AS claimed_by_name
+           ${STILL_WAITING("u")}) AS unread,
+         (SELECT m2.display_name FROM conversation_claims cc JOIN members m2 ON m2.id = cc.claimed_by WHERE c.recipient_id IS NULL AND cc.org_id = c.org_id AND cc.member_id = c.member_id AND ${LIVE_CLAIM}) AS claimed_by_name
        FROM member_messages c JOIN members mem ON mem.id = c.member_id
        WHERE c.org_id = @org AND (c.recipient_id IS NULL OR c.recipient_id = @viewer)
          AND c.id = (SELECT MAX(id) FROM member_messages x WHERE x.org_id = c.org_id AND x.member_id = c.member_id AND x.recipient_id IS c.recipient_id)
@@ -247,10 +256,11 @@ export function unreadReplies(orgId: number, viewerId: number): number {
   return (
     db()
       .prepare(
-        `SELECT COUNT(*) AS n FROM member_messages m WHERE m.org_id = ? AND m.direction = 'in' AND (m.recipient_id IS NULL OR m.recipient_id = ?) AND m.member_id <> ?
-           AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = m.id AND r.viewer_id = ?)`,
+        `SELECT COUNT(*) AS n FROM member_messages m WHERE m.org_id = @org AND m.direction = 'in' AND (m.recipient_id IS NULL OR m.recipient_id = @viewer) AND m.member_id <> @viewer
+           AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = m.id AND r.viewer_id = @viewer)
+           ${STILL_WAITING("m")}`,
       )
-      .get(orgId, viewerId, viewerId, viewerId) as { n: number }
+      .get({ org: orgId, viewer: viewerId }) as { n: number }
   ).n;
 }
 
@@ -352,12 +362,9 @@ export function leaderInbox(viewerId: number, opts: { unreadOnly?: boolean; q?: 
          CASE WHEN o.kind = 'ward' THEN w.name ELSE w.name || ' · ' || o.name END AS org_label,
          (SELECT COUNT(*) FROM member_messages u WHERE u.org_id = c.org_id AND u.member_id = c.member_id AND u.recipient_id IS c.recipient_id AND u.direction = 'in'
            AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = u.id AND r.viewer_id = @viewer)
-           -- Not once someone answered it, marked it no reply needed, or said "I've got it".
-           AND u.no_reply_at IS NULL
-           AND NOT EXISTS (SELECT 1 FROM member_messages a WHERE a.org_id = u.org_id AND a.member_id = u.member_id AND a.recipient_id IS u.recipient_id AND a.direction = 'out' AND a.id > u.id)
-           AND NOT (u.recipient_id IS NULL AND EXISTS (SELECT 1 FROM conversation_claims cc WHERE cc.org_id = u.org_id AND cc.member_id = u.member_id AND cc.claimed_by <> @viewer))) AS unread,
-         (SELECT m2.display_name FROM conversation_claims cc JOIN members m2 ON m2.id = cc.claimed_by WHERE c.recipient_id IS NULL AND cc.org_id = c.org_id AND cc.member_id = c.member_id) AS claimed_by_name,
-         (SELECT cc.claimed_by FROM conversation_claims cc WHERE c.recipient_id IS NULL AND cc.org_id = c.org_id AND cc.member_id = c.member_id) AS claimed_by
+           ${STILL_WAITING("u")}) AS unread,
+         (SELECT m2.display_name FROM conversation_claims cc JOIN members m2 ON m2.id = cc.claimed_by WHERE c.recipient_id IS NULL AND cc.org_id = c.org_id AND cc.member_id = c.member_id AND ${LIVE_CLAIM}) AS claimed_by_name,
+         (SELECT cc.claimed_by FROM conversation_claims cc WHERE c.recipient_id IS NULL AND cc.org_id = c.org_id AND cc.member_id = c.member_id AND ${LIVE_CLAIM}) AS claimed_by
        FROM member_messages c JOIN members mem ON mem.id = c.member_id JOIN orgs o ON o.id = c.org_id JOIN wards w ON w.id = o.ward_id
          LEFT JOIN members au ON au.id = c.author_id
        WHERE c.org_id IN (${orgIds.map((_, i) => `@o${i}`).join(",")}) AND (c.recipient_id IS NULL OR c.recipient_id = @viewer) AND c.member_id <> @viewer

@@ -33,6 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         adminCount={counts.total + passOnCount(user)}
         // In support view, nothing of the owner's own (their ward's) is counted here.
         moreCount={user.support ? 0 : unreadNotifications(user.id)}
+        keepBadge={!!user.support}
         messagesCount={user.support ? 0 : unreadAnswers(user.id) + unreadAnnouncements(user.id) + leaderUnread(user.id)}
       />
       <NotificationSeen />

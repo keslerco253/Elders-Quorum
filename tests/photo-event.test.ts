@@ -187,6 +187,16 @@ describe("a picture texted in by the site owner", () => {
     const ready: { reply?: string } = {};
     await handleInboundText({ From: "+12085550001", Body: "TODO" }, ready);
     expect(ready.reply).toMatch(/^Ready\. Text what to do/);
+    // ...and the plain words that come next are that to-do (not a message to anyone).
+    reading = { found: true, problem: "", events: [{ kind: "event", title: "Call the bishop", date: "", start_time: "", end_time: "", location: "", details: "" }] };
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const next: { reply?: string } = {};
+    expect(await handleInboundText({ From: "+12085550001", Body: "call the bishop" }, next)).toBe("photo_todo");
+    expect(next.reply).toBe("Got it. I'll text you when it's posted to your to-dos.");
+    await vi.runAllTimersAsync();
+    vi.useRealTimers();
+    await vi.waitFor(() => expect((d.prepare("SELECT COUNT(*) AS n FROM personal_todos").get() as { n: number }).n).toBe(5));
+    expect(d.prepare("SELECT COUNT(*) AS n FROM member_messages").get()).toEqual({ n: 0 });
     reading = WEDDING;
   });
 });

@@ -7,9 +7,9 @@ describe("the site's email account", () => {
     process.env.MAIL_FROM_NAME = "Elders Quorum";
     const d = (await import("@/lib/db")).useTestDb();
     const mail = await import("@/lib/mail");
-    expect(mail.siteMailInfo()).toEqual({ address: "villaseldersquorum@gmail.com", fromName: "Elders Quorum", source: "server" });
+    expect(mail.siteMailInfo()).toEqual({ address: "villaseldersquorum@gmail.com", fromName: "Elders Quorum", host: "smtp.gmail.com", port: 465, source: "server" });
     mail.saveSiteMail("mywardlink@gmail.com", "abcdefghijklmnop", "My Ward Link");
-    expect(mail.siteMailInfo()).toEqual({ address: "mywardlink@gmail.com", fromName: "My Ward Link", source: "app" });
+    expect(mail.siteMailInfo()).toEqual({ address: "mywardlink@gmail.com", fromName: "My Ward Link", host: "smtp.gmail.com", port: 465, source: "app" });
     const raw = (d.prepare("SELECT value FROM app_settings WHERE key = 'site_mail'").get() as { value: string }).value;
     expect(raw).not.toContain("abcdefghijklmnop");
     expect(mail.savedSiteMailPassword()).toBe("abcdefghijklmnop");

@@ -85,7 +85,7 @@ export async function saveLesson(fd: FormData) {
   const noTeacher = fifth && fd.get("no_teacher") === "on" ? 1 : 0;
   const rawUrl = String(fd.get("url") || "").trim();
   // Only web links (never javascript: or data:).
-  const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : rawUrl && !/^[a-z][a-z0-9+.-]*:/i.test(rawUrl) ? `https://${rawUrl}` : "";
+  let url = /^https?:\/\//i.test(rawUrl) ? rawUrl : rawUrl && !/^[a-z][a-z0-9+.-]*:/i.test(rawUrl) ? `https://${rawUrl}` : "";
   let title = String(fd.get("title") || "").trim();
   let speaker = String(fd.get("speaker") || "").trim();
   if (!topic && !fifth && url && url !== lesson.url && (!title || !speaker)) {
@@ -93,6 +93,9 @@ export async function saveLesson(fd: FormData) {
     title ||= info.title;
     speaker ||= info.speaker;
   }
+  // A Sunday with no lesson has no title, link or speaker boxes: keep what it had (a Come,
+  // Follow Me lesson marked as conference keeps its reading, for if it's changed back).
+  if (["general_conference", "stake_conference", "sacrament_only"].includes(kind)) ({ title, speaker, url } = lesson);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(fd.get("date"))) ? String(fd.get("date")) : lesson.date;
   const d = db();
   // Moving it to a Sunday that already has a lesson (even a blank one) swaps the two.

@@ -64,8 +64,10 @@ export function pointPerson(orgId: number, memberId: number, messageId: number |
  */
 export function whoToNotify(orgId: number, memberId: number, messageId: number | null, receivers: Recipient[]): Recipient[] {
   if (!receivers.length) return [];
-  const ids = new Set(receivers.map((r) => r.id));
-  const point = [pointPerson(orgId, memberId, messageId), messageLead(orgId)].find((id): id is number => !!id && ids.has(id)) ?? receivers[0].id;
+  // The one it's for must be someone who'll hear about it (not a leader who chose None).
+  const ids = new Set(receivers.filter((r) => msgNotify(orgId, r.id) !== "none").map((r) => r.id));
+  if (!ids.size) return [];
+  const point = [pointPerson(orgId, memberId, messageId), messageLead(orgId)].find((id): id is number => !!id && ids.has(id)) ?? [...ids][0];
   return receivers.filter((r) => {
     const pref = msgNotify(orgId, r.id);
     return pref === "all" || (pref === "mine" && r.id === point);
@@ -75,7 +77,7 @@ export function whoToNotify(orgId: number, memberId: number, messageId: number |
 /** A conversation someone said "I've got it" for (whole-presidency thread). */
 export function claimOf(orgId: number, memberId: number): { claimed_by: number; name: string; claimed_at: string } | undefined {
   return db()
-    .prepare("SELECT c.claimed_by, m.display_name AS name, c.claimed_at FROM conversation_claims c JOIN members m ON m.id = c.claimed_by WHERE c.org_id = ? AND c.member_id = ?")
+    .prepare("SELECT c.claimed_by, m.display_name AS name, c.claimed_at FROM conversation_claims c JOIN members m ON m.id = c.claimed_by JOIN org_members om ON om.org_id = c.org_id AND om.member_id = c.claimed_by AND om.role = 'presidency' WHERE c.org_id = ? AND c.member_id = ? AND c.claimed_at > datetime('now', '-3 days')")
     .get(orgId, memberId) as { claimed_by: number; name: string; claimed_at: string } | undefined;
 }
 

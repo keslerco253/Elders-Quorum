@@ -25,7 +25,8 @@ export function reportComment(commentId: number, reporterId: number, reason: str
 
 export function blockMember(memberId: number, blockedId: number): boolean {
   if (!blockedId || memberId === blockedId) return false;
-  if (!db().prepare("SELECT 1 FROM members WHERE id = ?").get(blockedId)) return false;
+  // Only someone who shares a ward with them (so no one can look up other wards' members).
+  if (!db().prepare("SELECT 1 FROM ward_members a JOIN ward_members b ON b.ward_id = a.ward_id WHERE a.member_id = ? AND b.member_id = ?").get(memberId, blockedId)) return false;
   db().prepare("INSERT OR IGNORE INTO member_blocks (member_id, blocked_id) VALUES (?, ?)").run(memberId, blockedId);
   return true;
 }

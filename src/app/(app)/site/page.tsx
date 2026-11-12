@@ -412,8 +412,8 @@ export default async function SiteOwnerPage({ searchParams }: { searchParams: Pr
               <details>
                 <summary className="cursor-pointer text-xs text-muted">Not Gmail?</summary>
                 <div className="mt-2 flex gap-2">
-                  <input name="host" placeholder="smtp.gmail.com" className="input" aria-label="Outgoing (SMTP) server" />
-                  <input name="port" type="number" placeholder="465" className="input w-24" aria-label="Port" />
+                  <input name="host" placeholder="smtp.gmail.com" defaultValue={siteMail?.host === "smtp.gmail.com" ? "" : (siteMail?.host ?? "")} className="input" aria-label="Outgoing (SMTP) server" />
+                  <input name="port" type="number" placeholder="465" defaultValue={siteMail?.port === 465 ? "" : (siteMail?.port ?? "")} className="input w-24" aria-label="Port" />
                 </div>
               </details>
               <p className="text-xs text-muted">Use an account just for the site (not a ward&apos;s). It&apos;s checked by signing in, then a test email comes to you. The password is kept sealed.</p>

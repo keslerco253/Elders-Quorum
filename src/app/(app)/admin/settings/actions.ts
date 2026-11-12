@@ -198,7 +198,8 @@ export async function saveMemberMessages(fd: FormData) {
     .prepare("UPDATE org_members SET member_messages = ?, msg_notify = ?, msg_summary = ? WHERE org_id = ? AND member_id = ?")
     .run(fd.get("my_messages") === "on" ? 1 : 0, notifyPref, fd.get("msg_summary") === "on" ? 1 : 0, user.org_id, user.id);
   const lead = Number(fd.get("message_lead"));
-  if (lead && db().prepare("SELECT 1 FROM org_members WHERE org_id = ? AND member_id = ? AND role = 'presidency'").get(user.org_id, lead))
+  if (!lead) db().prepare("UPDATE orgs SET message_lead_id = NULL WHERE id = ?").run(user.org_id);
+  else if (db().prepare("SELECT 1 FROM org_members WHERE org_id = ? AND member_id = ? AND role = 'presidency'").get(user.org_id, lead))
     db().prepare("UPDATE orgs SET message_lead_id = ? WHERE id = ?").run(lead, user.org_id);
   revalidatePath("/", "layout");
   go("Saved.");

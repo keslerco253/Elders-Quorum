@@ -152,7 +152,7 @@ export async function saveSiteMailAccount(fd: FormData) {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address)) go("Enter the email address.", true);
   const current = siteMailInfo();
   // Only the sender name changed: keep the saved password.
-  if (!typed && current?.source === "app" && current.address === address) {
+  if (!typed && current?.source === "app" && current.address === address && current.host === host && current.port === port) {
     renameSiteMail(fromName);
     go(`Saved: the site's email now sends as "${fromName}".`);
   }
