@@ -425,7 +425,7 @@ function Main() {
 
   const onMessage = useCallback(
     async (e: WebViewMessageEvent) => {
-      let msg: { type?: string; url?: string; title?: string; text?: string; items?: Tab[]; active?: string | null; count?: number; on?: boolean; key?: string; highlight?: string | null; html?: string; name?: string; mime?: string; base64?: string };
+      let msg: { type?: string; url?: string; title?: string; text?: string; items?: Tab[]; active?: string | null; count?: number; on?: boolean; key?: string; highlight?: string | null; html?: string; name?: string; mime?: string; base64?: string; has?: boolean };
       try {
         msg = JSON.parse(e.nativeEvent.data);
       } catch {
@@ -436,6 +436,10 @@ function Main() {
       if (msg.type === "ready" || msg.type === "enablePush") tellWeb({ type: "push", ...(await getPushToken(msg.type === "enablePush")) });
       else if (msg.type === "openSettings") Linking.openSettings().catch(() => {});
       else if (msg.type === "open" && msg.url) openOutside(msg.url);
+      // The answer to the check above: no app navigation on this page, so no tabs.
+      else if (msg.type === "navCheck") {
+        if (!msg.has) setTabs([]);
+      }
       // The tabs for this organization and page, with their counts.
       else if (msg.type === "tabs" && Array.isArray(msg.items)) {
         tabsAt.current = Date.now();
@@ -510,7 +514,11 @@ function Main() {
   const loaded = useCallback(() => {
     const started = pageLoadAt.current;
     setTimeout(() => {
-      if (tabsAt.current < started) setTabs([]);
+      // No tabs since this page started loading: ask the page whether it has the app's
+      // navigation before taking them away (Android can report a load twice, after the
+      // page already sent its tabs). A picture, PDF or sign-in page doesn't.
+      if (tabsAt.current < started)
+        web.current?.injectJavaScript(`window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: "navCheck", has: !!window.__mwlNavigate })); true;`);
     }, 2000);
     setLoading(false);
     if (!shownOnce.current) {
