@@ -11,8 +11,13 @@ on:
         type: choice
         options: [all, ios, android]
         default: all
+      kind:
+        description: "store: for App Store / Google Play. test: an Android app file to install on your own phone (no store)"
+        type: choice
+        options: [store, test]
+        default: store
       submit:
-        description: Send them to App Store Connect / Google Play when built
+        description: Send them to App Store Connect / Google Play when built (store builds only)
         type: boolean
         default: false
 
@@ -35,4 +40,10 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
       - run: npm ci
       - name: Start the builds (they run on Expo's servers; follow them at expo.dev)
-        run: eas build --platform ${{ inputs.platform }} --profile production --non-interactive --no-wait ${{ inputs.submit && '--auto-submit' || '' }}
+        run: |
+          if [ "${{ inputs.kind }}" = "test" ]; then
+            # A test app file (APK) for Android phones; iPhones can't install one this way.
+            eas build --platform android --profile preview --non-interactive --no-wait
+          else
+            eas build --platform ${{ inputs.platform }} --profile production --non-interactive --no-wait ${{ inputs.submit && '--auto-submit' || '' }}
+          fi

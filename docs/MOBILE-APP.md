@@ -108,6 +108,17 @@ account, a free Firebase account (Google), and Node.js on your PC
 
 ## Testing before release
 
+- **Not Expo Go:** the app has parts Expo Go can't run (the home-screen widget,
+  push notifications set up for the store app), and Expo Go only opens projects
+  on its own SDK version ("Project is incompatible with this version of Expo
+  Go"). Use a test build instead.
+- **Android test build (quickest):** GitHub → Actions → **Build phone apps** →
+  Run workflow, with **kind: test**. In about 15–20 minutes expo.dev (Projects →
+  My Ward Link → Builds) shows the finished build with a QR code and an
+  **Install** link. Open it on the Android phone and install the file (allow
+  "install unknown apps" for your browser when asked). Install a newer
+  test build over it the same way. From a computer:
+  `npx eas-cli@latest build --platform android --profile preview`.
 - **iPhone (TestFlight):** after a build finishes, run
   `npx eas-cli@latest submit --platform ios --latest`, or tick "send" in the
   GitHub workflow. In App Store Connect → TestFlight, add yourself and the
