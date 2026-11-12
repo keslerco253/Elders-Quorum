@@ -325,6 +325,10 @@ Tap **Messages** at the top (the speech bubble on a phone).
   whole presidency (or bishopric), **Only** one leader (private: the rest don't see
   it), or a group you can send to. You can write to the leaders of organizations you
   belong to, and to the bishopric.
+- **Who sees it:** a message to the whole presidency (or bishopric) can be read by
+  all of them. The leader it's for (whoever sent what you're answering) is the one
+  notified, and any of them may answer. A private message is seen only by that
+  one leader.
 - **Conversations** read like a text thread. Under your last message it says
   **Delivered**, then **Seen** once a leader reads it.
 - **Sent** lists what you've written.
