@@ -1791,7 +1791,7 @@ and the member list**).
   - **EVENT** and what it is, a picture, or both: on your calendar as your own
     events (like **+ My event**). "EVENT dentist Dec 3 2pm" works without a
     picture. A picture on its own is an event too.
-  - **TODO** and what to do, a picture, or both: on your to-do list (My
+  - **TODO** (or **To do** or **To-do**) and what to do, a picture, or both: on your to-do list (My
     assignments). "TODO visit dad" just goes on the list; "TODO call the bishop
     Friday 3pm" is due then, with text reminders the day before and when it's due.
   - **EVENT** or **TODO** by itself: "Ready", then send the picture or the words.

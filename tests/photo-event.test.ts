@@ -177,6 +177,12 @@ describe("a picture texted in by the site owner", () => {
     vi.useRealTimers();
     await vi.waitFor(() => expect((d.prepare("SELECT COUNT(*) AS n FROM personal_todos").get() as { n: number }).n).toBe(4));
     expect(d.prepare("SELECT COUNT(*) AS n FROM member_messages").get()).toEqual({ n: 0 });
+    // "to do", "to-do" and "todo" all work, any capitals.
+    for (const word of ["To do", "TO-DO", "todo"]) {
+      const r: { reply?: string } = {};
+      await handleInboundText({ From: "+12085550001", Body: word }, r);
+      expect(r.reply).toMatch(/^Ready\. Text what to do/);
+    }
     // TODO on its own: ready for what's next.
     const ready: { reply?: string } = {};
     await handleInboundText({ From: "+12085550001", Body: "TODO" }, ready);

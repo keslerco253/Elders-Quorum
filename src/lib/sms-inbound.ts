@@ -126,7 +126,7 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   const body = (params.Body || "").trim();
   // The site owner texting things to remember: TODO (to-do list) or EVENT (calendar), in
   // words, with a picture, or both; a picture on its own is an event.
-  const keyword = body.match(/^\s*(event|to-?do)\b[\s:,.-]*/i);
+  const keyword = body.match(/^\s*(event|to[\s-]?do)\b[\s:,.-]*/i);
   const pictures = Number(params.NumMedia || 0);
   if (from && (keyword || pictures > 0)) {
     const owner = photoSender(from);
