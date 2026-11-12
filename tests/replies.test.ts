@@ -245,183 +245,26 @@ describe("replies to the presidency", () => {
     expect(shortLinkTarget(nid, null)).toBe("/");
     expect(shortLinkTarget(nid, 2)).toBe("/");
 
-    // The leader replies to that text: it goes to the member, privately, like answering in the app.
+    // The leader texts back: it isn't sent to anyone; they're told to answer in the app, with a link to that conversation.
     const beforeAnswer = new Set(fs.readdirSync(path.join(dir, "outbox")));
-    expect(await lib.handleInboundText({ From: "+12085550199", Body: "Happy to help. I'll call you tonight." })).toBe("answer_sent");
-    const thread = conv.conversation(1, 2, { private: true, withId: 3 });
-    expect(thread[thread.length - 1]).toMatchObject({ direction: "out", body: "Happy to help. I'll call you tonight." });
-    const toMember = fs.readdirSync(path.join(dir, "outbox")).find((f) => !beforeAnswer.has(f) && f.includes("12085550101"))!;
-    // A private answer: the member is told who it's from, but the words stay in the app.
-    const answerText = fs.readFileSync(path.join(dir, "outbox", toMember), "utf8");
-    expect(answerText).toContain("Private message from Counselor Person");
-    expect(answerText).not.toContain("call you tonight");
-    // Replying to an older text (sent before this, or after other texts) still answers the
-    // newest message a member sent them in the last few days.
-    d.exec("UPDATE members SET text_reply_member_id = NULL WHERE id = 3");
-    expect(await lib.handleInboundText({ From: "+12085550199", Body: "One more thing" })).toBe("answer_sent");
-    expect(conv.conversation(1, 2, { private: true, withId: 3 }).at(-1)).toMatchObject({ direction: "out", body: "One more thing" });
-    // The site owner's log says where each text went.
-    expect(d.prepare("SELECT result, note FROM sms_inbound_log ORDER BY id DESC LIMIT 1").get()).toEqual({ result: "answer_sent", note: "Answer to Member Person (private)" });
-    // With no member message to answer, a leader's text is their own message, and they aren't notified of it themselves.
-    d.exec("UPDATE member_messages SET created_at = datetime('now', '-10 days')");
-    const beforeOwn = new Set(fs.readdirSync(path.join(dir, "outbox")));
-    expect(await lib.handleInboundText({ From: "+12085550199", Body: "A note from me" })).toBe("saved");
-    expect(fs.readdirSync(path.join(dir, "outbox")).filter((f) => !beforeOwn.has(f) && f.includes("12085550199"))).toEqual([]);
+    const out: { reply?: string } = {};
+    expect(await lib.handleInboundText({ From: "+12085550199", Body: "Happy to help. I'll call you tonight." }, out)).toBe("leader_use_app");
+    expect(out.reply).toMatch(/^My Ward Link: texted replies to members aren't sent\. Please answer in the app: \S+\/admin\/replies\/2\?org=1&private=1#end$/);
+    expect(conv.conversation(1, 2, { private: true, withId: 3 }).at(-1)).toMatchObject({ direction: "in" });
+    expect(fs.readdirSync(path.join(dir, "outbox")).filter((f) => !beforeAnswer.has(f) && f.includes("12085550101"))).toEqual([]);
+    expect(d.prepare("SELECT result, note FROM sms_inbound_log ORDER BY id DESC LIMIT 1").get()).toEqual({ result: "leader_use_app", note: "A leader's texted reply (not sent: answer in the app)" });
+    // Long after, with nothing to answer: still not sent on (it could reach someone who wrote long ago).
+    d.exec("UPDATE member_messages SET created_at = datetime('now', '-10 days'); UPDATE members SET text_reply_member_id = NULL WHERE id = 3");
+    const later: { reply?: string } = {};
+    expect(await lib.handleInboundText({ From: "+12085550199", Body: "No picture" }, later)).toBe("leader_use_app");
+    expect(later.reply).toMatch(/\/messages$/);
     d.exec(
       "UPDATE members SET phone = NULL, contact_pref = 'email', sms_consent_at = NULL WHERE id = 3",
     );
   });
 });
 
-describe("a leader's texted reply when two people write at once", () => {
-  let lib: typeof import("@/lib/sms-inbound");
-  let conv: typeof import("@/lib/conversations");
-  let d: import("better-sqlite3").Database;
-  const leaderPhone = "+12085550177";
-
-  beforeAll(async () => {
-    d = (await import("@/lib/db")).useTestDb(`
-      INSERT INTO wards (id, name) VALUES (1, 'Test Ward EQ');
-      INSERT INTO members (id, ward_id, name, display_name, email, phone, contact_pref, role, sms_consent_at) VALUES
-        (1, 1, 'Pres', 'Pres Person', 'pres@test.local', '${leaderPhone}', 'text', 'presidency', datetime('now')),
-        (2, 1, 'Hyrum', 'Hyrum Johnson', 'hyrum@test.local', NULL, 'email', 'member', NULL),
-        (4, 1, 'Jane', 'Jane Smith', 'jane@test.local', NULL, 'email', 'member', NULL);
-    `);
-    lib = await import("@/lib/sms-inbound");
-    conv = await import("@/lib/conversations");
-  });
-  const last = (memberId: number) => conv.conversation(1, memberId, { private: true, withId: 1 }).at(-1);
-
-  it("asks who it's for, then sends the held reply to the person picked", async () => {
-    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Can you help Saturday?", "app", null, { private: true, withId: 1 });
-    // Jane's message arrives while the leader is typing their answer to Hyrum.
-    await conv.receiveReply({ id: 4, org_id: 1, display_name: "Jane Smith" }, "Is the activity still on?", "app", null, { private: true, withId: 1 });
-    const out: { reply?: string } = {};
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes, see you at 9" }, out)).toBe("asked_who");
-    expect(out.reply).toBe("Who is this for? Reply 1 for Jane Smith or 2 for Hyrum Johnson.");
-    expect(last(2)?.direction).toBe("in");
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "2" })).toBe("answer_sent");
-    expect(last(2)).toMatchObject({ direction: "out", body: "Yes, see you at 9" });
-    expect(last(4)?.direction).toBe("in");
-  });
-
-  it("sends a reply that starts with a name straight to that person", async () => {
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Jane, yes it's at 7pm at the church" })).toBe("answer_sent");
-    expect(last(4)).toMatchObject({ direction: "out", body: "Jane, yes it's at 7pm at the church" });
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Hyrum Johnson: bring a ladder" })).toBe("answer_sent");
-    expect(last(2)).toMatchObject({ direction: "out", body: "bring a ladder" });
-    // A comma after a word that isn't someone's name is an ordinary reply (here two people
-    // just wrote, so the app asks who it's for rather than treating "Sure" as a name).
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Sure, no problem" })).toBe("asked_who");
-  });
-
-  it("asks when two people are both waiting for an answer, even if they wrote a while ago", async () => {
-    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
-    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Ride Sunday?", "app", null, { private: true, withId: 1 });
-    await conv.receiveReply({ id: 4, org_id: 1, display_name: "Jane Smith" }, "Snacks?", "app", null, { private: true, withId: 1 });
-    d.exec("UPDATE member_messages SET created_at = datetime('now', '-14 minutes')");
-    const out: { reply?: string } = {};
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes, 8:30" }, out)).toBe("asked_who");
-    expect(out.reply).toBe("Who is this for? Reply 1 for Jane Smith or 2 for Hyrum Johnson.");
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "2" })).toBe("answer_sent");
-    expect(last(2)).toMatchObject({ direction: "out", body: "Yes, 8:30" });
-    // Hyrum's answered, so Jane is the only one waiting: the next reply goes to her without asking.
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Bring fruit" })).toBe("answer_sent");
-    expect(last(4)).toMatchObject({ direction: "out", body: "Bring fruit" });
-  });
-
-  it("asks whenever two or more people are still waiting, however long ago they wrote (within 3 days)", async () => {
-    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
-    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Ride Sunday?", "app", null, { private: true, withId: 1 });
-    await conv.receiveReply({ id: 4, org_id: 1, display_name: "Jane Smith" }, "Snacks?", "app", null, { private: true, withId: 1 });
-    d.exec("UPDATE member_messages SET created_at = datetime('now', '-16 minutes')");
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes" })).toBe("asked_who");
-    d.exec("UPDATE member_messages SET created_at = datetime('now', '-2 days')");
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes" })).toBe("asked_who");
-    // Older than 3 days isn't a conversation anymore: the reply is the leader's own message.
-    d.exec("UPDATE member_messages SET created_at = datetime('now', '-4 days'); DELETE FROM sms_pending; UPDATE members SET text_reply_member_id = NULL");
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Hello" })).toBe("saved");
-  });
-
-  it("lists everyone who just wrote", async () => {
-    d.exec(`INSERT INTO members (id, name, display_name, email, contact_pref, status) VALUES
-      (5, 'A', 'Amy Allen', 'amy@test.local', 'email', 'active'), (6, 'B', 'Ben Brown', 'ben@test.local', 'email', 'active')`);
-    const { addToOrg } = await import("@/lib/orgs");
-    addToOrg(5, 1);
-    addToOrg(6, 1);
-    for (const [id, name] of [[2, "Hyrum Johnson"], [4, "Jane Smith"], [5, "Amy Allen"], [6, "Ben Brown"]] as const)
-      await conv.receiveReply({ id, org_id: 1, display_name: name }, "Question", "app", null, { private: true, withId: 1 });
-    const out: { reply?: string } = {};
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes" }, out)).toBe("asked_who");
-    expect(out.reply).toBe("Who is this for? Reply 1 for Ben Brown, 2 for Amy Allen, 3 for Jane Smith, or 4 for Hyrum Johnson.");
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "4" })).toBe("answer_sent");
-    expect(last(2)).toMatchObject({ direction: "out", body: "Yes" });
-  });
-
-  it("asks which one when two people who wrote have that first name", async () => {
-    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
-    d.exec(`INSERT INTO members (id, name, display_name, email, contact_pref, status) VALUES (7, 'H', 'Hyrum Smith', 'hs@test.local', 'email', 'active')`);
-    (await import("@/lib/orgs")).addToOrg(7, 1);
-    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Ride?", "app", null, { private: true, withId: 1 });
-    await conv.receiveReply({ id: 7, org_id: 1, display_name: "Hyrum Smith" }, "Chairs?", "app", null, { private: true, withId: 1 });
-    d.exec("UPDATE member_messages SET created_at = datetime('now', '-1 hour')");
-    await conv.sendAnswer({ id: 1, org_id: 1, display_name: "Pres Person" }, 7, "Got it", true);
-    const out: { reply?: string } = {};
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Hyrum, 8:30 works" }, out)).toBe("asked_who");
-    expect(out.reply).toBe("Who is this for? Reply 1 for Hyrum Smith or 2 for Hyrum Johnson.");
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "2" })).toBe("answer_sent");
-    expect(last(2)).toMatchObject({ direction: "out", body: "Hyrum, 8:30 works" });
-    // The full name picks one directly.
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Hyrum Smith, thanks" })).toBe("answer_sent");
-    expect(last(7)).toMatchObject({ direction: "out", body: "Hyrum Smith, thanks" });
-  });
-
-  it("covers every ward and organization the leader leads", async () => {
-    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
-    const orgs = await import("@/lib/orgs");
-    // The leader also leads a second ward, where Kate writes to them.
-    const maple = orgs.createWard({ name: "Maple Ward", timezone: "America/Boise", creatorId: 1, calling: "bishop" });
-    const mapleOrg = orgs.wardOrg(maple.id).id;
-    d.exec(`INSERT INTO members (id, name, display_name, email, contact_pref, status) VALUES (8, 'K', 'Kate Lee', 'kate@test.local', 'email', 'active')`);
-    orgs.addToOrg(8, mapleOrg);
-    await conv.receiveReply({ id: 8, org_id: mapleOrg, display_name: "Kate Lee" }, "Can I borrow the projector?", "app", null, { private: true, withId: 1 });
-    // Then Hyrum writes in Villas (the last text the leader got).
-    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Ride?", "app", null, { private: true, withId: 1 });
-    d.exec("UPDATE member_messages SET created_at = datetime('now', '-30 minutes')");
-    const out: { reply?: string } = {};
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes, pick it up Friday" }, out)).toBe("asked_who");
-    expect(out.reply).toBe("Who is this for? Reply 1 for Hyrum Johnson or 2 for Kate Lee.");
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "2" })).toBe("answer_sent");
-    // Answered in Maple Ward, where Kate wrote.
-    expect(conv.conversation(mapleOrg, 8, { private: true, withId: 1 }).at(-1)).toMatchObject({ direction: "out", body: "Yes, pick it up Friday" });
-    // Kate's name works across wards too.
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Kate, it's in the library" })).toBe("answer_sent");
-    expect(conv.conversation(mapleOrg, 8, { private: true, withId: 1 }).at(-1)?.body).toBe("Kate, it's in the library");
-  });
-
-  it("doesn't ask when only one person is writing", async () => {
-    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending");
-    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Thanks!", "app", null, { private: true, withId: 1 });
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "You bet" })).toBe("answer_sent");
-    expect(last(2)).toMatchObject({ direction: "out", body: "You bet" });
-  });
-
-  it("treats a leader's text back to their own visit invitation as their reply to the presidency", async () => {
-    const { notify, recipientById } = await import("@/lib/notify");
-    // The leader is invited to a visit (e.g. a counselor, or testing on themselves) while others are waiting on them.
-    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Still need help?", "app", null, { private: true, withId: 1 });
-    await notify([recipientById(1, 1)!], { title: "An invitation", body: "Hi Pres! We would love to visit Friday at 7.", url: "/visit-invite/1", textLink: "Reply here", asMember: true });
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Friday works for us" })).toBe("saved");
-    expect(conv.memberConversation(1, 1).at(-1)).toMatchObject({ direction: "in", body: "Friday works for us", recipient_id: null });
-    expect(last(2)?.direction).toBe("in");
-    // A leader's notice afterwards: replies are answers again.
-    await notify([recipientById(1, 1)!], { title: "Reminder", body: "Lesson Sunday", url: "/lessons" });
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes, I'll call you" })).toBe("answer_sent");
-    expect(last(2)).toMatchObject({ direction: "out", body: "Yes, I'll call you" });
-  });
-});
-
-describe("a leader's texted reply about a visit answer", () => {
+describe("a leader's texted reply", () => {
   let lib: typeof import("@/lib/sms-inbound");
   let conv: typeof import("@/lib/conversations");
   const leaderPhone = "+12085550177";
@@ -437,37 +280,34 @@ describe("a leader's texted reply about a visit answer", () => {
     lib = await import("@/lib/sms-inbound");
     conv = await import("@/lib/conversations");
   });
+  const last = (memberId: number) => conv.conversation(1, memberId, { private: true, withId: 1 }).at(-1);
 
-  it("sends a leader's text back about a visit answer to that member, not whoever wrote last", async () => {
-    const pv = await import("@/lib/planned-visits");
-    // Hyrum wrote earlier, and the leader answered him.
+  it("is never sent to a member, whoever wrote: answers go through the app", async () => {
     await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Can you help Saturday?", "app", null, { private: true, withId: 1 });
-    await conv.sendAnswer({ id: 1, org_id: 1, display_name: "Pres Person" }, 2, "Got it", true);
-    (await import("@/lib/db")).db().exec("UPDATE member_messages SET created_at = datetime('now', '-1 hour') WHERE member_id = 2");
-    const plan = pv.savePlan({ orgId: 1, memberId: 4, date: "2030-10-16", time: "19:00", type: "home", note: "", requestId: null, visitors: [1], createdBy: 1 });
-    await pv.sendInvitation(pv.getPlannedVisit(1, plan)!, "Hi Jane! We would love to visit.", 1);
-    await pv.answerInvitation(pv.getPlannedVisit(1, plan)!, "new_time", "Wednesday between 6 and 7");
-    // Her answer is in her conversation, under the invitation.
-    expect(conv.conversation(1, 4, { private: false }).at(-1)).toMatchObject({ direction: "in", body: expect.stringContaining("Wednesday between 6 and 7") });
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "We will plan on Wednesday at 6 PM" })).toBe("answer_sent");
-    expect(conv.conversation(1, 4, { private: false }).at(-1)).toMatchObject({ direction: "out", body: "We will plan on Wednesday at 6 PM" });
-    expect(conv.conversation(1, 2, { private: true, withId: 1 }).at(-1)?.body).toBe("Got it");
+    await conv.receiveReply({ id: 4, org_id: 1, display_name: "Jane Smith" }, "Is the activity still on?", "app", null, { private: true, withId: 1 });
+    for (const body of ["Yes, see you at 9", "Hyrum, see you at 9", "1"]) {
+      const out: { reply?: string } = {};
+      expect(await lib.handleInboundText({ From: leaderPhone, Body: body }, out)).toBe("leader_use_app");
+      expect(out.reply).toMatch(/Please answer in the app/);
+    }
+    expect(last(2)?.direction).toBe("in");
+    expect(last(4)?.direction).toBe("in");
   });
 
-  it("asks, rather than guessing, when the text named one person but someone else is waiting", async () => {
+  it("treats a leader's text back to their own visit invitation as their reply to the presidency", async () => {
+    const { notify, recipientById } = await import("@/lib/notify");
+    await notify([recipientById(1, 1)!], { title: "An invitation", body: "Hi Pres! We would love to visit Friday at 7.", url: "/visit-invite/1", textLink: "Reply here", asMember: true });
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Friday works for us" })).toBe("saved");
+    expect(conv.memberConversation(1, 1).at(-1)).toMatchObject({ direction: "in", body: "Friday works for us", recipient_id: null });
+    // After a leader's notice, a text back is a leader's again: not sent.
+    await notify([recipientById(1, 1)!], { title: "Reminder", body: "Lesson Sunday", url: "/lessons" });
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "Yes, I'll call you" })).toBe("leader_use_app");
+  });
+
+  it("still answers TEACH and CANT for their own lesson", async () => {
     const d = (await import("@/lib/db")).db();
-    d.exec("DELETE FROM member_messages; DELETE FROM sms_pending;");
-    // Hyrum wrote a while ago and is still waiting.
-    await conv.receiveReply({ id: 2, org_id: 1, display_name: "Hyrum Johnson" }, "Any update?", "app", null);
-    d.exec("UPDATE member_messages SET created_at = datetime('now', '-1 hour')");
-    // Jane writes; the leader is texted about Jane; another leader answers her in the app.
-    await conv.receiveReply({ id: 4, org_id: 1, display_name: "Jane Smith" }, "Is the activity on?", "app", null);
-    d.exec("UPDATE member_messages SET created_at = datetime('now', '-1 hour') WHERE member_id = 4");
-    d.prepare("INSERT INTO member_messages (org_id, member_id, direction, author_id, body) VALUES (1, 4, 'out', 1, 'Yes!')").run();
-    const out: { reply?: string } = {};
-    expect(await lib.handleInboundText({ From: leaderPhone, Body: "See you there" }, out)).toBe("asked_who");
-    expect(out.reply).toContain("Jane Smith");
-    expect(out.reply).toContain("Hyrum Johnson");
+    d.prepare("INSERT INTO lessons (org_id, date, kind, teacher_id) VALUES (1, date('now', '+3 days'), 'talk', 1)").run();
+    expect(await lib.handleInboundText({ From: leaderPhone, Body: "TEACH" })).toBe("teacher_confirmed");
   });
 });
 

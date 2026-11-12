@@ -128,8 +128,8 @@ export async function receiveReply(member: { id: number; org_id: number; display
     // Private: the words stay in the app, in case someone else sees the phone or inbox.
     await notify([to], {
       title: `Private message from ${member.display_name}`,
-      body: "Open the app to read it. You can answer privately there, or by replying to this text.",
-      textFull: `Private message from ${member.display_name}. Read it in the app; to answer privately, reply to this text.`,
+      body: "Open the app to read it and answer privately.",
+      textFull: `Private message from ${member.display_name}. Read and answer it in the app.`,
       url: `/admin/replies/${member.id}?private=1#end`,
       linkLabel: "Read it",
       replyTo: { memberId: member.id, private: true },

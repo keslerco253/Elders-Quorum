@@ -858,6 +858,12 @@ sent), it goes into their conversation and every presidency member is notified
   bishopric under **Admin → Pass it on**. Each shows who it was for and whether
   it came by text. Forward it to an organization's presidency or one leader, or
   tap **I took care of it another way**.
+- **Answering them: in the app, not by text.** A member's message texted to you
+  says who it's from with a link; answer there (Messages → Inbox). Texting back
+  doesn't send anything to the member (it could reach the wrong person, like
+  someone who wrote long ago): you get "Texted replies to members aren't sent.
+  Please answer in the app" with a link to that conversation. TEACH and CANT for
+  your own lesson, and replies to your own visit invitation, still work by text.
 
 **Message groups** (Admin → Message groups): **Create a group** with its name, its
 organization (if you lead more than one), and **who can see this group and send

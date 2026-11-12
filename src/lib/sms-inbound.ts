@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { db } from "./db";
 import { appUrl } from "./config";
 import { normalizePhone } from "./contact";
-import { receiveReply, recentMessageFor, recentReplies, sendAnswer, threadForTextReply } from "./conversations";
+import { receiveReply, recentMessageFor, recentReplies, threadForTextReply } from "./conversations";
 import { sendSms, twilioConfigured } from "./sms";
 import { closedText, orgTakesMessages } from "./message-routing";
 import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching";
@@ -44,7 +44,8 @@ export type InboundResult =
   | "request_taken"
   | "asked_which"
   | "joined"
-  | "photo_todo";
+  | "photo_todo"
+  | "leader_use_app";
 
 /** Texted back (once a month) to a number that isn't anyone's in the app. */
 /** Answer to a texted reply to one of their own private reminders (which isn't passed to anyone). */
@@ -83,43 +84,6 @@ export async function handleInboundText(params: Record<string, string>, out: { r
 }
 
 type Seen = { memberId: number | null; note: string; reply: string | undefined };
-
-/** Someone who wrote to a leader, in one of the organizations they lead. `waiting`: nobody in that presidency has answered them since. */
-type Writer = { memberId: number; orgId: number; private: boolean; at: string; waiting: boolean };
-
-/**
- * Members who wrote to this leader (privately, or to the whole presidency) recently, in
- * any of the given organizations (every ward and organization they lead), newest first,
- * once each.
- */
-function recentWriters(leaderId: number, orgIds: number[], since = "-3 days"): Writer[] {
-  if (!orgIds.length) return [];
-  const rows = db()
-    .prepare(
-      `SELECT m.member_id, m.org_id, m.recipient_id, m.created_at,
-         NOT EXISTS (SELECT 1 FROM member_messages o WHERE o.org_id = m.org_id AND o.member_id = m.member_id AND o.direction = 'out' AND o.id > m.id) AS waiting
-       FROM member_messages m
-       WHERE m.org_id IN (${orgIds.map(() => "?").join(",")}) AND m.direction = 'in' AND m.member_id <> ? AND (m.recipient_id = ? OR m.recipient_id IS NULL)
-         AND m.created_at > datetime('now', ?)
-       ORDER BY m.id DESC`,
-    )
-    .all(...orgIds, leaderId, leaderId, since) as { member_id: number; org_id: number; recipient_id: number | null; created_at: string; waiting: number }[];
-  const seen = new Set<number>();
-  return rows.flatMap((r) =>
-    seen.has(r.member_id)
-      ? []
-      : (seen.add(r.member_id), [{ memberId: r.member_id, orgId: r.org_id, private: r.recipient_id !== null, at: r.created_at, waiting: !!r.waiting }]),
-  );
-}
-
-/** How long a new message counts as "just arrived" (the leader may not have seen it before replying). */
-export const JUST_ARRIVED_SECONDS = 120;
-/** People who wrote within this long are people the leader may be answering. */
-const ACTIVE_MINUTES = 15;
-
-const ago = (sqliteTime: string) => (Date.now() - Date.parse(sqliteTime.replace(" ", "T") + "Z")) / 1000;
-
-const nameOf = (id: number) => (db().prepare("SELECT display_name FROM members WHERE id = ?").get(id) as { display_name: string } | undefined)?.display_name ?? "a member";
 
 async function routeText(params: Record<string, string>, seen: Seen): Promise<InboundResult> {
   const from = normalizePhone(params.From || "");
@@ -257,81 +221,6 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
   // Not when the last text was to them as a member (a visit invitation, a personal message):
   // then it's their own reply to the presidency.
   const leader = !row.text_as_member && (ledOrgs.includes(orgId) || (ledOrgs.length > 0 && !!row.text_reply_member_id));
-  const answer = async (to: { memberId: number; private: boolean; orgId: number }, text = body) => {
-    // Answered from the organization the member wrote to.
-    if (!ledOrgs.includes(to.orgId) || !(await sendAnswer({ ...member, org_id: to.orgId }, to.memberId, text, to.private))) return false;
-    seen.note = `Answer to ${nameOf(to.memberId)}${to.private ? " (private)" : ""}${to.orgId !== orgId ? ` (${orgFullName(to.orgId)})` : ""}`;
-    return true;
-  };
-  /** Holds the reply and asks the leader who it's for (up to 6 people, to keep the text short). */
-  const askWho = (people: Writer[], text: string): InboundResult => {
-    const options = people.slice(0, 6);
-    db().prepare("INSERT OR REPLACE INTO sms_pending (leader_id, org_id, body, options) VALUES (?, ?, ?, ?)").run(row.id, orgId, text, JSON.stringify(options));
-    // Two people with the same name in different wards or organizations: say which.
-    const label = (o: Writer) => (options.some((x) => x !== o && nameOf(x.memberId) === nameOf(o.memberId)) ? `${nameOf(o.memberId)} (${orgFullName(o.orgId)})` : nameOf(o.memberId));
-    const names = options.map((o, i) => `${i + 1} for ${label(o)}`);
-    seen.reply = `Who is this for? Reply ${names.length > 2 ? names.slice(0, -1).join(", ") + ", or " + names.at(-1) : names.join(" or ")}.`;
-    seen.note = `Asked who it's for (${options.map((o) => nameOf(o.memberId)).join(", ")})`;
-    return "asked_who";
-  };
-  /**
-   * Sends a leader's reply to `target`, unless it's unclear who it's for: then it's
-   * held and the leader is asked. Unclear means two or more people who wrote in the
-   * last 3 days are still waiting for an answer, or someone's message arrived just
-   * before the reply while someone else wrote in the last 15 minutes (the leader may
-   * have been answering someone else).
-   */
-  const answerOrAsk = async (target: { memberId: number; private: boolean; orgId: number }, named = false): Promise<InboundResult | null> => {
-    const writers = recentWriters(row.id, ledOrgs);
-    const recent = writers.filter((w) => ago(w.at) < ACTIVE_MINUTES * 60);
-    const waiting = writers.filter((w) => w.waiting);
-    const justArrived = recent.length > 1 && ago(recent[0].at) < JUST_ARRIVED_SECONDS;
-    if (waiting.length > 1 || justArrived) {
-      // Everyone still waiting, plus (after a just-arrived message) whoever wrote in the last
-      // 15 minutes. Newest first.
-      return askWho(writers.filter((w) => w.waiting || (justArrived && recent.includes(w))), body);
-    }
-    // The text they're answering named someone, but a different person is the one waiting: ask.
-    const other = waiting.length === 1 && (waiting[0].memberId !== target.memberId || waiting[0].orgId !== target.orgId) ? waiting[0] : undefined;
-    if (named && other) return askWho([{ ...target, at: "", waiting: false }, other], body);
-    // One person still waiting: that's who it's for.
-    return (await answer(other ?? target)) ? "answer_sent" : null;
-  };
-
-  if (leader) {
-    // Answering "Who is this for?": the number picks the person, and the held reply goes to them.
-    const pending = db().prepare("SELECT body, options FROM sms_pending WHERE leader_id = ? AND created_at > datetime('now', '-15 minutes')").get(row.id) as
-      | { body: string; options: string }
-      | undefined;
-    db().prepare("DELETE FROM sms_pending WHERE leader_id = ?").run(row.id);
-    const pick = body.match(/^\s*(\d)\s*[.)]?\s*$/);
-    if (pending && pick) {
-      const choice = (JSON.parse(pending.options) as Partial<Writer>[])[Number(pick[1]) - 1];
-      if (choice?.memberId && (await answer({ memberId: choice.memberId, private: !!choice.private, orgId: choice.orgId ?? orgId }, pending.body))) return "answer_sent";
-    }
-    // "Hyrum, see you at 7" (or "Hyrum: ...") goes to that person, whoever wrote last. Only the
-    // name of someone who wrote to them counts, so "Sure, ..." is just a reply.
-    const named = body.match(/^\s*([^:,\n]{2,40})([:,])\s*([\s\S]+)$/);
-    if (named) {
-      const wanted = named[1].trim().toLowerCase();
-      // With a comma the name reads as part of the message ("Hyrum, see you at 7"), so it's kept.
-      const text = named[2] === "," ? body.trim() : named[3].trim();
-      const matches = recentWriters(row.id, ledOrgs, "-14 days").filter((w) => {
-        const name = nameOf(w.memberId).toLowerCase();
-        return name === wanted || name.split(/\s+/)[0] === wanted;
-      });
-      if (matches.length === 1 && (await answer(matches[0], text))) return "answer_sent";
-      // Two people with that name (e.g. two Hyrums): ask which one.
-      if (matches.length > 1) return askWho(matches, text);
-    }
-    // A leader answering the member's message the app just texted them.
-    if (row.text_reply_member_id) {
-      // That message came from the organization that last texted them.
-      const r = await answerOrAsk({ memberId: row.text_reply_member_id, private: !!row.text_reply_private, orgId }, true);
-      if (r) return r;
-    }
-  }
-
   const teach = parseTeachReply(body);
   const tz = getWard(getOrg(member.org_id)?.ward_id ?? 0)?.timezone ?? "America/Boise";
   // Answering "Will you teach?" (a waiting request comes first).
@@ -350,11 +239,14 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     await declineTeaching(member, lesson, teach.reason);
     return "teacher_declined";
   }
-  // Otherwise a leader's text answers the newest member message that came to them (from the last few days).
-  const latest = leader ? recentWriters(row.id, ledOrgs)[0] : undefined;
-  if (latest) {
-    const r = await answerOrAsk(latest);
-    if (r) return r;
+  // A leader texting back to answer a member isn't sent on (it could reach the wrong
+  // person, like someone who wrote long ago): answers to members go through the app.
+  if (leader) {
+    db().prepare("DELETE FROM sms_pending WHERE leader_id = ?").run(row.id);
+    const to = row.text_reply_member_id;
+    seen.reply = `My Ward Link: texted replies to members aren't sent. Please answer in the app: ${appUrl()}${to ? `/admin/replies/${to}?org=${orgId}${row.text_reply_private ? "&private=1" : ""}#end` : "/messages"}`;
+    seen.note = "A leader's texted reply (not sent: answer in the app)";
+    return "leader_use_app";
   }
   if (recentReplies(member.id) >= 20) return "ignored";
   // Answering "Which is this for?": the held message goes where they say. Anything else:
