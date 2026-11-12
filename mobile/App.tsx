@@ -581,7 +581,8 @@ function Main() {
         setSupportMultipleWindows
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
-        decelerationRate="normal"
+        // iPhone only: Android's web view takes a number here, and "normal" crashes it on open.
+        decelerationRate={Platform.OS === "ios" ? "normal" : undefined}
       />
       {loading && !failed ? (
         <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.center]}>
