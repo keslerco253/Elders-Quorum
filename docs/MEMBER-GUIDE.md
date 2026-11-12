@@ -48,8 +48,9 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   notifications on this device (with **Turn on**), **Privacy** (Lock with Face ID,
   in the phone app), **Appearance** (Automatic, Light or Dark), your account,
   **Sign out**, **Delete my account**, and **Privacy details** and **Terms and
-  conditions**. Service and Request a visit show only if an organization of
-  yours uses them.
+  conditions**. Service, Challenges and Request a visit show only if your
+  organization uses them. **Blocked people** shows only once you've blocked
+  someone (see **Lessons**).
 - **A red dot on More** means unread Reminders & alerts. Unread messages show on
   **Messages**.
 - **A number on the app's icon** (the phone app, or the website saved to your
@@ -63,8 +64,8 @@ guide that mentions those words is listed. Tap a topic to jump to it.
   General Handbook in your browser (or Gospel Library).
 - **Can't find something?** Your organization may not use it (for example Plans
   or Service). Ask your leaders.
-- **🎤 Talk instead of typing:** in any box you write in, a small microphone
-  shows at its right edge (on a computer in Chrome or Edge, and in Safari). Tap
+- **🎤 Talk instead of typing:** when you tap into a box you write in, a small
+  microphone shows at its right edge (on a computer in Chrome or Edge, and in Safari). Tap
   it and talk; your words are typed in. Tap it again to stop. The first time,
   allow the microphone. On a phone you can also use the microphone on your
   keyboard.
@@ -90,6 +91,10 @@ guide that mentions those words is listed. Tap a topic to jump to it.
 
 Then tap **Save**. Leaving an organization also takes you out of any calling and
 regular teaching Sundays you had in it.
+
+**Just following an organization:** you can tick **Send me its notifications**
+without **I belong to** (for example, a parent following Young Women). You get its
+reminders, events and messages, but you aren't on its member list.
 
 **Another ward:** if you serve in another ward too (for example a stake calling),
 enter its join code under **More → My organizations → Another ward → Join ward**.
@@ -170,9 +175,15 @@ Then tap **Save**. If you're teaching, you still get your teaching reminders.
 **Reminders & alerts** (More): every reminder and alert sent to you in the last 30
 days, in full. **Mark all as read**. Messages aren't here; they're in **Messages**.
 
-**Stopping texts:** reply **STOP** to any text, or untick **Text** under Contact &
-notifications. To get texts again, tick **Text** there and text **START** to the
-app's number. Reply **HELP** for help.
+**Stopping texts:** reply **STOP** to any text (UNSUBSCRIBE, CANCEL, END and QUIT
+work too), or untick **Text** under Contact & notifications. STOP ends texts to that
+phone number for everyone using it; if you have an email, things come by email
+instead. To get texts again, text **START** (or **JOIN**) to the app's number; that
+turns **Text** back on for you. Reply **HELP** for help.
+
+**Quiet at night:** a message or alert sent late at night (from 9 PM until the
+morning, usually 8 AM) waits until morning to come as a notification or text;
+email comes right away. Reminders come at the times set for them.
 
 **Not getting notifications?** Check that they're on for this device (More →
 Contact & notifications), that they're allowed in your phone's settings, and that
@@ -219,7 +230,7 @@ back. Things that need your answer always stay at the top.
   delete your own.
 - **Report or block:** under someone's comment, **Report** sends it to your
   leaders and hides it for you right away; they hide it from everyone if it
-  isn't appropriate. **Block** hides everything that person posts from you (they
+  isn't appropriate. **Block** hides that person's comments from you (they
   aren't told). Unblock them under **More → Blocked people**.
 - **Offering to teach:** on a lesson that shows **Teacher needed**, tap **I'd like
   to teach this**. Your leaders are told; **Withdraw** if your plans change.
@@ -227,6 +238,8 @@ back. Things that need your answer always stay at the top.
   ↗** instead of a talk.
 - **Conference Sundays** say there's no lesson (General Conference Sundays link to
   the conference).
+- **Sacrament meeting only** Sundays (like Easter or Christmas) say there's no
+  lesson that Sunday. If you were teaching that day, you're told.
 - **Sunday School** follows Come, Follow Me: each week shows that week's reading.
 
 ### When you're asked to teach
@@ -326,15 +339,17 @@ Tap **Messages** at the top (the speech bubble on a phone).
   it), or a group you can send to. You can write to the leaders of organizations you
   belong to, and to the bishopric.
 - **Who sees it:** a message to the whole presidency (or bishopric) can be read by
-  all of them. The leader it's for (whoever sent what you're answering) is the one
-  notified, and any of them may answer. A private message is seen only by that
+  all of them. The leader it's for (whoever sent what you're answering, otherwise
+  usually the president or bishop) is the one notified, and any of them may answer. A private message is seen only by that
   one leader.
 - **Conversations** read like a text thread. Under your last message it says
   **Delivered**, then **Seen** once a leader reads it.
 - **Sent** lists what you've written.
 - **By text:** if you get texts, you can just reply to one; it goes to your leaders.
-  If two organizations texted you recently, you'll be asked which your message is
-  for: reply with the number. Replying to an **email** doesn't reach anyone; use its
+  If two organizations texted you in the last few days, you'll be asked which your
+  message is for: reply with the number (with no answer in 30 minutes, it goes to
+  whoever texted you last). A reply to a reminder for your own to-do or event isn't
+  sent to anyone. Replying to an **email** doesn't reach anyone; use its
   button to open the app.
 - **Private messages:** notifications for a private message say only who it's
   from; open the app to read it.

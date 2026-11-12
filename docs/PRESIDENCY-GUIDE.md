@@ -41,7 +41,7 @@ sent. Then they choose their organizations (More → My organizations).
   members join and sign in with email. Once it's on, **Admin → Members →
   📱 Texting card** prints cards for members who'd rather get everything by text.
 - After a week or two, check **Ward members → Not in any organization** and
-  **Ward settings → New members** for anyone who joined but didn't pick an
+  **Admin → New members** for anyone who joined but didn't pick an
   organization, or shouldn't be there.
 
 **5. Each organization's president: set up your organization.** Switch to your
@@ -130,16 +130,17 @@ School); Add event 20; Service 22; Invite members and New members
 23; Ward settings 7 and 29. Members see 17 on Lessons, 22 on Service and 21 on
 Request a visit.
 
-Tap **Admin** (top of the screen; on a phone, top right). A red number on it is
-how many items are waiting on you. If they're all in one place, tapping the
-badge goes straight there. Unread messages aren't in this number; they show on
-**Messages**.
+Tap **Admin** (top of the screen; on a phone, top right). A red number on it
+adds up every red number on the Admin page: the **Waiting on you** items, plus
+overdue assignments, records to review and (for ward administrators) new members
+to check. If they're all in one place, tapping the badge goes straight there.
+Unread messages aren't in this number; they show on **Messages**.
 
 The Admin page has these sections:
 
 - **Waiting on you**, only when something is: **Couldn't reach** (see **Did they get it?**), Visit requests, Visit invitations
   (a member asked for another time), Teacher notes to approve, Comments to
-  approve, Access requests (old requests to join without a code; bishopric
+  approve (and any a member reported), Access requests (old requests to join without a code; bishopric
   only), Event requests, Teaching volunteers, Teacher needed, Assignments not
   accepted yet and Unassigned assignments.
 - **Presidency** (or **Bishopric**): Presidency meetings (with how many items
@@ -147,8 +148,10 @@ The Admin page has these sections:
   overdue), Home visits (upcoming visits and open invitations), Visit requests,
   Who's conducting, Challenges, Members, Callings and Invite members. Tiles for features
   your organization turned off don't show.
-- **Ward**: Pass it on (only when something is waiting), Ward settings (ward
-  administrators) and Site owner (site owner).
+- **Ward**: Pass it on (only when something is waiting); New members (with how
+  many to review) and Ward settings, for ward administrators (one who isn't in
+  the bishopric also gets Ward members and Invite members here, looking at the
+  ward); and Site owner (site owner).
 - **Setup**: Message groups, Shared publicly, Message wording, Settings and
   Leader guide.
 
@@ -179,16 +182,21 @@ ward.
 - **The ward level:** switch to the ward itself to see everything at once:
   Calendar has every organization's events, Plans every plan and Service every
   organization's opportunities, each labeled with where it's from.
-- **More** lists: Service (if the organization uses it), Challenges, My
-  assignments, Reminders & alerts, My organizations, Messages, Request a visit,
-  Customize Home, Reminder settings and Contact & notifications. Then Church apps
-  (Gospel Library, Member Tools), Notifications (on or off for this device),
-  Privacy (in the phone app: **Lock with Face ID** or fingerprint),
-  **Appearance** (Automatic, Light or Dark), the account (name, phone or email,
-  access level or calling, Privacy and Terms links, **Sign out**) and **Delete
-  my account**.
+- **More** lists, each as its own card: Request a visit (where visits are used),
+  My assignments, Reminders & alerts, Service (if the organization uses it),
+  Messages, My Journal, Challenges (where used), My organizations, Customize
+  Home, Reminder settings, Contact & notifications, Help and Suggest an
+  improvement. Then Church apps (Gospel Library, Member Tools), Notifications (on
+  or off for this device), Privacy (in the phone app: **Lock with Face ID** or
+  fingerprint), **Appearance** (Automatic, Light or Dark), **Blocked people**
+  (only for someone who blocked a commenter, with **Unblock**), the account
+  (name, phone or email, access level or calling, Privacy and Terms links,
+  **Sign out**) and **Delete my account**.
 - **Red dot on More:** unread Reminders & alerts only. Unread messages show on
-  Messages. In the phone app, the icon's number is unread messages plus alerts.
+  Messages. On the phone app's icon (or the website saved to a Home Screen), the
+  number is unread messages plus alerts, even while it's closed.
+- **🎤 Talk instead of typing:** writing boxes have a small microphone at the
+  right edge (in Chrome, Edge or Safari). Tap it and talk; tap again to stop.
 
 ## Wards and organizations
 
@@ -363,8 +371,8 @@ ward):
   - **Service and assignment reminders go out at:** 5 AM to 12 PM (starts at
     8 AM). Which days is chosen on each opportunity or assignment. Visits with
     no time are reminded at this hour too.
-  - **Presidency meeting reminder:** 15 or 30 minutes, 1 or 2 hours, or 1 day
-    before, or none (starts at 1 hour). Changing it updates meetings already
+  - **Presidency meeting reminder:** 15 or 30 minutes, 1 or 2 hours, or 1 or 2
+    days before, or none (starts at 1 hour). Changing it updates meetings already
     scheduled.
 
   Event reminders are set on each event, and private to-do reminders on each
@@ -449,7 +457,7 @@ code, or a leader adds them.
 
   Their account is then made in the ward (and those organizations), signed up for
   ward texts (their JOIN text is their agreement), and they're texted a
-  confirmation with a sign-in link that has their number filled in, to use the app too. They show under **Ward settings → New
+  confirmation with a sign-in link that has their number filled in, to use the app too. They show under **Admin → New
   members** as "Joined by texting JOIN" for the ward administrators to check
   (**Looks good**, or **Remove from ward**). A conversation left an hour starts
   over with JOIN; a few wrong codes end it; STOP ends it. Only wards with texting
@@ -704,7 +712,8 @@ whether they've accepted.
   More → Contact & notifications and text START to the app's number. HELP is
   answered automatically.
 - **Texting back:** a member's texted reply goes to the organization that last
-  texted them, and its presidency is notified (see **Messages**). More than 20
+  texted them, into their conversation, and the leader it's for is notified (see
+  **When members reply to you**). More than 20
   texted replies from one member in an hour are ignored.
 - **TEACH / CANT:** a member can text **TEACH** (or "teaching") or **CANT**
   ("can't", "cannot") plus a reason. A waiting "Will you teach?" request is
@@ -1001,7 +1010,8 @@ organization they're in.
     the 2nd and 4th).
   - 5th Sundays have their own slot, filled in each time: the card lists the
     next few; tap one to set its lesson and teacher (members can also offer).
-    They never get a regular teacher. Conference Sundays are skipped.
+    They never get a regular teacher. Conference and sacrament-meeting-only
+    Sundays are skipped.
   - Each teacher is notified once when added ("You're teaching on the 2nd and 4th
     Sundays of each month"), and if they're taken off. Their lessons show under
     My assignments, and reminders ask them to confirm.
@@ -1022,7 +1032,8 @@ organization they're in.
   presidency is notified either way ("Teacher found" or "Can't teach" with the
   reason). The lesson shows who was asked (Waiting for answer, Accepted,
   Declined, Withdrawn); **Withdraw** a waiting request (they aren't told). You
-  can't ask the same person twice at once, or for past or conference Sundays.
+  can't ask the same person twice at once, or for past Sundays or ones with no
+  lesson (a conference, or sacrament meeting only).
 - **Teacher's reminders:** by default the Sunday before at 7 PM and Saturday at
   8 AM (Admin → Settings → Reminder times): "You're teaching this Sunday" /
   "You're teaching tomorrow", with the title and whether their notes are posted,
@@ -1153,8 +1164,10 @@ the same way as on private to-dos (When it starts, or 15 minutes to 2 weeks
 before; App and Email for everyone, Text for presidency members, up to 3). Only
 they see it, marked **🔒 Only you**, on their calendar (under Everything),
 Home's Coming up and their own subscribed calendar (marked private); no leader
-can. Tap it to change or delete it. They're deleted
-30 days after their date.
+can. It can **Repeat** (every day, week or 2 weeks, month or year), until a date
+or a number of times. Tap it to change or delete it. They're deleted
+30 days after their date (a repeating one, after its last date). A private to-do
+with a due date also shows on its owner's calendar, marked **🔒 My to-do**.
 
 **Subscribe:** on **Calendar → Subscribe**, members add a calendar to **Apple
 Calendar**, **Google Calendar** or Outlook (**Copy link**, then Add calendar →
@@ -1352,6 +1365,11 @@ can't.
   app notification (or email if notifications are off). A regular member never
   gets these by text.
 
+- **Repeat** (with a due date): every day, week, 2 weeks, month or year. It shows
+  **🔁 Repeats**; marking it done adds the next one, with the same reminders.
+- With a due date (and not done), it also shows on their own calendar that day,
+  marked **🔒 My to-do**; only they see it.
+
 Tap it to edit, mark done or delete. Done to-dos are deleted after 6 months.
 
 ## Presidency meetings
@@ -1405,6 +1423,9 @@ place. Only the presidency (or bishopric) sees it.
   go through says so and leaves your writing in the box to try again. If you
   switched to another organization meanwhile (here or on another device), it
   says the item isn't on that organization's agenda instead of saving nothing.
+- **🎤 Talk instead of typing:** tap the small microphone at the right edge of a
+  writing box (an agenda item's notes, the meeting's notes) and talk; tap it
+  again to stop (Chrome, Edge or Safari; allow the microphone the first time).
 - **📎 Files on an agenda item:** when adding an item, or later under **Edit or
   add notes**, choose **Attach files**: PDFs, pictures (JPEG, PNG, iPhone photos),
   Word, Excel and PowerPoint files, or text/CSV files, up to 15 MB each, several
@@ -1549,8 +1570,8 @@ place. Only the presidency (or bishopric) sees it.
   told). Left off, the schedule is firm: only whoever is scheduled can ask someone
   else (below).
 - Presidency members see **Conducting this Sunday** on Home. Tapping it (or
-  **Admin → Who's conducting**) shows the next 13 Sundays; conference Sundays show
-  "no meeting".
+  **Admin → Who's conducting**) shows the next 13 Sundays; conference and
+  sacrament-meeting-only Sundays show "no meeting".
 - **Can't be there?** (firm schedules) On your Sunday, tap **Ask someone to conduct**, choose
   someone in the presidency and add a note. They get a notification and a card on
   Home to answer **Yes, I'll conduct** or **I can't**. Yes notifies the whole
@@ -1662,7 +1683,8 @@ history work.
 ## Message wording
 
 **Admin → Message wording** (presidency) lists the reminders and messages the app
-sends on its own: lesson reminders (and the conference-weekend one), Come, Follow
+sends on its own: lesson reminders (and the **No lesson** one, for conference and
+sacrament-meeting-only Sundays), Come, Follow
 Me this week (Sunday School), event reminders, new event, event changed, service
 reminders, new service opportunity, service opportunity changed, the visit
 reminders (to the member and to the presidency), the visit invitation, and the
@@ -1677,7 +1699,8 @@ wording**. Open one to change its title (up to 120 characters) and text (up to
   `[ at {location}]` disappears for an event with no place.
 - The preview shows how it will read. A message can't be blank; **Reset to the
   app's wording** undoes your changes and shows who changed it last.
-- **Text message** (the lesson reminder, and the visit reminder to the member):
+- **Text message** (the lesson reminder, Come, Follow Me this week, and the visit
+  reminder to the member):
   the shorter wording sent by text. It must fit in one text, 160 letters counting
   "Elders Quorum:" and the link (or, for the visit reminder, the signature). **As a text** shows it with sample fill-ins and counts
   the letters as you type; a save over 160 is refused and says how much to cut.
@@ -1720,7 +1743,8 @@ The iPhone and Android app does everything the website does, plus:
   alerts. iPhone: small, medium, large and lock screen; Android: long-press the
   home screen → Widgets → My Ward Link. It refreshes about every 30 minutes and
   when the app opens.
-- A number on the app icon for unread messages and alerts; notifications that open
+- A number on the app icon for unread messages and alerts (the website saved to a
+  phone's Home Screen shows it too); notifications that open
   the right page; links in emails that open in the app; texted sign-in codes
   offered above the keyboard; Zoom, Meet and Teams links that open their apps;
   **Share…** with the phone's share sheet; press and hold a QR code to save it;
@@ -1744,6 +1768,7 @@ and deletes old information automatically:
 | Announcements and group messages | after 1 year |
 | Reminders & alerts (and delivery records) | after 30 days |
 | Private to-dos | 6 months after they're done |
+| Members' own events (+ My event) | 30 days after their date (a repeating one, after its last date) |
 | Challenge entries | no longer tied to anyone 30 days after it ends |
 | Old join requests nobody answered | after 60 days |
 | Unused sign-in and confirmation codes | after a day |
@@ -1771,13 +1796,19 @@ and the member list**).
   Working on it, Done and Not adding; on each, an optional note back and buttons
   to move it (**Save note** keeps the status). With **Let them know** ticked, the
   person is notified when the status changes, with your note.
-- **Who has site-owner access.**
+- **Who has site-owner access:** whoever set up the first ward, and anyone who
+  signs in with the `OWNER_EMAIL` address set on the server. Nothing in the app
+  can give it to anyone else.
 - **New wards to approve:** each with its stake, who started it (with their email or
-  phone) and their note. **Approve** opens it and emails them. **Decline** (optional
+  phone) and their note. **Approve** opens it and emails them (or texts them, with
+  only a phone). **Decline** (optional
   note, then **Decline and delete**) deletes the ward, and the starter's account if
-  they're in no other ward, and emails them.
-- **Each ward's card:** texting status, people and organizations, texts this month
-  and their cost, and:
+  they're in no other ward, and tells them the same way.
+- **Each ward's card:** texting status, which email it sends from, people and
+  organizations, texts this month and their cost, and:
+  - **Use the site's email** / **Stop using the site's email:** whether the ward
+    may send from the site's own account. A ward's or organization's own account
+    is used first; a ward with neither and this off sends no email.
   - **Open this ward:** look into it to fix problems (support view), without
     joining it. A yellow **Support view** bar shows at the top of every page. You
     have the bishopric's and every organization's leader tools there (members,
@@ -1793,9 +1824,11 @@ and the member list**).
     conversations with members stay private to its members and leaders.
   - **Texting & billing:** turn texting on or off; set its monthly limit (0 to
     100,000); set a **Paid through** date (texting turns off by itself the day
-    after; you're notified two weeks before and when it does); see texts and cost
-    for each of the last 12 months at the **Texting cost** per text you set
-    ($0.012 to start); or **No texting at all** (nothing is texted, not even
+    after; you're notified two weeks before and when it does); turn **Text from
+    my phone** on or off (leaders text from their own phones, free; off to
+    start); see texts and cost for each of the last 12 months at the **Texting
+    cost** you set per text segment ($0.012 to start; a text over 160 letters is
+    more than one segment); or **No texting at all** (nothing is texted, not even
     sign-in codes; it warns how many people sign in with only a phone). **Allow
     texting again** undoes it.
   - **Clear…:** tick Messages and alerts, Calendar and/or Service and type the ward's
