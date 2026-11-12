@@ -36,6 +36,7 @@ import { canTextTodos, dueAtUtc, reminderWays, todoReminders as personalReminder
 import { dueText } from "./assignments";
 import { challengeMemberIds, challengeTeams, scoreboard } from "./challenges";
 import { lastDelivery } from "./delivery";
+import { leaderInbox } from "./conversations";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
 interface OrgCtx {
@@ -335,6 +336,36 @@ function reviewReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   ];
 }
 
+
+/**
+ * The evening summary (8 PM), only for leaders who turned it on (Admin → Settings →
+ * Messages from members): how many member messages in this organization still wait for
+ * an answer that no one else said "I've got it" for.
+ */
+function messageSummaries(org: OrgCtx, now: DateTime): DueNotification[] {
+  const local = now.setZone(org.timezone);
+  if (local.hour !== 20) return [];
+  const leaders = db()
+    .prepare("SELECT om.member_id FROM org_members om JOIN members m ON m.id = om.member_id WHERE om.org_id = ? AND om.role = 'presidency' AND om.msg_summary = 1 AND m.status = 'active'")
+    .all(org.id) as { member_id: number }[];
+  const out: DueNotification[] = [];
+  for (const { member_id } of leaders) {
+    const n = leaderInbox(member_id).filter((r) => r.org_id === org.id && r.needs_reply && (!r.claimed_by || r.claimed_by === member_id)).length;
+    const to = recipientById(member_id, org.id);
+    if (!n || !to) continue;
+    out.push({
+      key: `msg-summary:${org.id}:${local.toISODate()}:${member_id}`,
+      recipients: [to],
+      payload: {
+        title: `${org.label}: ${n} member message${n === 1 ? "" : "s"} waiting`,
+        body: `${n === 1 ? "A member is" : `${n} members are`} waiting for an answer. Open Messages to reply.`,
+        url: withOrg("/messages", org.id),
+        tag: `msg-summary-${org.id}`,
+      },
+    });
+  }
+  return out;
+}
 
 /**
  * A planned visit's reminder, the same day and at least 3 hours ahead, to the
@@ -669,6 +700,7 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
     ...eventReminders(o, now),
     ...(hasFeature(o, "todos") ? todoReminders(o, now) : []),
     ...(hasFeature(o, "todos") ? reviewReminders(o, now) : []),
+    ...messageSummaries(o, now),
     ...(hasFeature(o, "visits") ? visitReminders(o, now) : []),
     ...(hasFeature(o, "signups") ? signupReminders(o, now) : []),
     ]),

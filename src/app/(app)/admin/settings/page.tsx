@@ -8,6 +8,7 @@ import { leadersWord } from "@/lib/types";
 import { ReminderTimes } from "./reminder-times";
 import { OrgEmail } from "./org-email";
 import { hasFeature } from "@/lib/orgs";
+import { messageLead } from "@/lib/reply-notify";
 import { FEATURES, type Feature } from "@/lib/types";
 
 import { monthlyLimit, phoneEnabled, textsThisMonth } from "@/lib/sms";
@@ -17,7 +18,14 @@ export const metadata = { title: "Settings" };
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePresidency();
   const sp = await searchParams;
-  const myMessages = !!(db().prepare("SELECT member_messages FROM org_members WHERE org_id = ? AND member_id = ?").get(user.org_id, user.id) as { member_messages: number } | undefined)?.member_messages;
+  const mine = db().prepare("SELECT member_messages, msg_notify, msg_summary FROM org_members WHERE org_id = ? AND member_id = ?").get(user.org_id, user.id) as
+    | { member_messages: number; msg_notify: string; msg_summary: number }
+    | undefined;
+  const myMessages = !!mine?.member_messages;
+  const presidency = db()
+    .prepare("SELECT m.id, m.display_name FROM org_members om JOIN members m ON m.id = om.member_id WHERE om.org_id = ? AND om.role = 'presidency' ORDER BY m.display_name")
+    .all(user.org_id) as { id: number; display_name: string }[];
+  const lead = messageLead(user.org_id);
   return (
     <>
       <PageHeader title="Settings" back={{ href: "/admin", label: "Admin" }} />
@@ -76,6 +84,47 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               </span>
             </span>
           </label>
+          <fieldset className="space-y-1">
+            <legend className="font-semibold">When a member writes or texts back, notify me about</legend>
+            {(
+              [
+                ["mine", "Only ones for me", "Replies to what I sent (a message, an event, an assignment, a lesson I'm conducting). Ones with no clear sender go to the message lead."],
+                ["all", "Every member message", `Every message to the ${leadersWord(user.org)}.`],
+                ["none", "None", "I'll check Messages myself."],
+              ] as const
+            ).map(([v, label, hint]) => (
+              <label key={v} className="flex items-start gap-2">
+                <input type="radio" name="msg_notify" value={v} className="mt-1" defaultChecked={(mine?.msg_notify ?? "mine") === v} />
+                <span>
+                  <strong>{label}</strong>
+                  <span className="block text-muted">{hint}</span>
+                </span>
+              </label>
+            ))}
+            <p className="hint">Everyone in the {leadersWord(user.org)} still sees every message in Messages. Private messages to you always notify you unless you pick None.</p>
+          </fieldset>
+          <label className="flex items-start gap-2">
+            <input type="checkbox" name="msg_summary" className="mt-1" defaultChecked={!!mine?.msg_summary} />
+            <span>
+              <strong>Evening summary</strong>
+              <span className="block text-muted">One notification about 8 PM if member messages are still waiting for an answer. Off unless you turn it on.</span>
+            </span>
+          </label>
+          {presidency.length > 1 && (
+            <div>
+              <label className="label" htmlFor="message-lead">
+                Message lead
+              </label>
+              <select id="message-lead" name="message_lead" className="input" defaultValue={lead ?? ""}>
+                {presidency.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.display_name}
+                  </option>
+                ))}
+              </select>
+              <p className="hint">Gets the messages that aren&apos;t a reply to anyone in particular. Shared by the whole {leadersWord(user.org)}.</p>
+            </div>
+          )}
           <SubmitButton className="btn-secondary btn-sm">Save</SubmitButton>
         </form>
       </Section>

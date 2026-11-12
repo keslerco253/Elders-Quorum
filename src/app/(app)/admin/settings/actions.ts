@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { requirePresidency, requireUser, requireWardAdmin } from "@/lib/auth";
 import { addToOrg, createOrg, createWard, deleteOrg, getOrg, inOrgWard, newJoinCode, setWardAdmins, wardAdmins, wardOrg } from "@/lib/orgs";
 import { notify, recipientById } from "@/lib/notify";
+import { MSG_NOTIFY } from "@/lib/reply-notify";
 import { validZone } from "@/lib/time";
 import { FEATURES, type Feature } from "@/lib/types";
 import { LESSON_DAYS, MEETING_MINUTES, saveOrgReminderSettings, VISIT_HOURS, type LessonWhen } from "@/lib/reminder-settings";
@@ -192,7 +193,13 @@ export async function setWardMemberMessages(fd: FormData) {
 export async function saveMemberMessages(fd: FormData) {
   const user = await requirePresidency();
   db().prepare("UPDATE orgs SET member_messages = ? WHERE id = ?").run(fd.get("org_messages") === "on" ? 1 : 0, user.org_id);
-  db().prepare("UPDATE org_members SET member_messages = ? WHERE org_id = ? AND member_id = ?").run(fd.get("my_messages") === "on" ? 1 : 0, user.org_id, user.id);
+  const notifyPref = MSG_NOTIFY.find((v) => v === fd.get("msg_notify")) ?? "mine";
+  db()
+    .prepare("UPDATE org_members SET member_messages = ?, msg_notify = ?, msg_summary = ? WHERE org_id = ? AND member_id = ?")
+    .run(fd.get("my_messages") === "on" ? 1 : 0, notifyPref, fd.get("msg_summary") === "on" ? 1 : 0, user.org_id, user.id);
+  const lead = Number(fd.get("message_lead"));
+  if (lead && db().prepare("SELECT 1 FROM org_members WHERE org_id = ? AND member_id = ? AND role = 'presidency'").get(user.org_id, lead))
+    db().prepare("UPDATE orgs SET message_lead_id = ? WHERE id = ?").run(lead, user.org_id);
   revalidatePath("/", "layout");
   go("Saved.");
 }

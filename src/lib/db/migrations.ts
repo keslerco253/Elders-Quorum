@@ -1989,6 +1989,22 @@ CREATE TABLE member_blocks (
     id: 111,
     sql: `ALTER TABLE personal_events ADD COLUMN images TEXT NOT NULL DEFAULT '[]';`,
   },
+  {
+    // Fewer notices about members' messages: each leader chooses which they hear about
+    // (just ones for them, all, or none) and an evening summary; the presidency picks a
+    // message lead (for replies with no clear sender); "I've got it" on a conversation.
+    id: 112,
+    sql: `ALTER TABLE org_members ADD COLUMN msg_notify TEXT NOT NULL DEFAULT 'mine';
+ALTER TABLE org_members ADD COLUMN msg_summary INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE orgs ADD COLUMN message_lead_id INTEGER REFERENCES members(id) ON DELETE SET NULL;
+CREATE TABLE conversation_claims (
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  claimed_by INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  claimed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (org_id, member_id)
+);`,
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */

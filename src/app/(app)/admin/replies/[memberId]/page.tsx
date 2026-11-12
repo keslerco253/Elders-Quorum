@@ -15,7 +15,8 @@ import { Flash, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/client";
 import { ChatBox } from "@/components/chat-box";
 import { LiveRefresh } from "@/components/live-refresh";
-import { answerMember, markUnread, noReplyNeeded } from "../actions";
+import { answerMember, claimThread, markUnread, noReplyNeeded } from "../actions";
+import { claimOf } from "@/lib/reply-notify";
 import { leadersWord } from "@/lib/types";
 import { hasFeature } from "@/lib/orgs";
 import { agendaFromMessage } from "../../meetings/actions";
@@ -56,6 +57,7 @@ export default async function ConversationPage({ params, searchParams }: { param
         display_name: string | null;
       })
     : null;
+  const claim = !privately && lastIn && !noReply?.no_reply_at ? claimOf(user.org_id, member.id) : undefined;
   const tab = (on: boolean) => `rounded-lg px-3 py-1.5 text-sm font-medium ${on ? "bg-accent-soft text-accent" : "text-muted hover:bg-surface-2"}`;
 
   return (
@@ -121,6 +123,38 @@ export default async function ConversationPage({ params, searchParams }: { param
             </li>
           ))}
         </ul>
+      )}
+      {!privately && lastIn && !noReply?.no_reply_at && (
+        <form action={claimThread} className="mb-2 flex flex-wrap items-center justify-end gap-2 text-sm">
+          <input type="hidden" name="member_id" value={member.id} />
+          <input type="hidden" name="org_id" value={user.org_id} />
+          {claim ? (
+            <>
+              <span className="text-xs text-muted">
+                ✋ {claim.claimed_by === user.id ? "You've" : `${claim.name} has`} got it, {formatDateTime(claim.claimed_at, tz, "LLL d, h:mm a")}
+              </span>
+              {claim.claimed_by === user.id ? (
+                <>
+                  <input type="hidden" name="undo" value="1" />
+                  <SubmitButton className="btn-secondary btn-sm" pendingText="…">
+                    Let it go
+                  </SubmitButton>
+                </>
+              ) : (
+                <SubmitButton className="btn-secondary btn-sm" pendingText="…">
+                  I&apos;ll take it
+                </SubmitButton>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="text-xs text-muted">Answering this? Let the presidency know.</span>
+              <SubmitButton className="btn-secondary btn-sm" pendingText="…">
+                ✋ I&apos;ve got it
+              </SubmitButton>
+            </>
+          )}
+        </form>
       )}
       {lastIn && (
         <form action={noReplyNeeded} className="mb-3 flex flex-wrap items-center justify-end gap-2 text-sm">

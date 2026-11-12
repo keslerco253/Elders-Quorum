@@ -141,7 +141,8 @@ describe("replies to the presidency", () => {
     expect(conv.wardConversations(1, 1)[0]).toMatchObject({
       member_name: "Member Person",
       last_direction: "out",
-      unread: 1,
+      // Answered, so it's no longer waiting on anyone.
+      unread: 0,
     });
   });
 

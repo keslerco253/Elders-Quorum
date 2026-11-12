@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requirePresidency } from "@/lib/auth";
 import { ledOrgIds, markNoReplyNeeded, markThreadUnread, sendAnswer } from "@/lib/conversations";
 import type { CurrentUser } from "@/lib/types";
+import { claimConversation, releaseConversation } from "@/lib/reply-notify";
 
 /** The organization the page was showing (it may not be the one now chosen on another device). */
 function formOrg(user: CurrentUser, fd: FormData): number {
@@ -43,4 +44,15 @@ export async function markUnread(fd: FormData) {
   markThreadUnread(formOrg(user, fd), memberId, fd.get("private") === "1" ? { private: true, withId: user.id } : { private: false }, user.id);
   revalidatePath("/", "layout");
   redirect("/messages");
+}
+
+/** "I've got it": tells the rest of the presidency someone is answering (or, with undo, lets it go). */
+export async function claimThread(fd: FormData) {
+  const user = await requirePresidency();
+  const memberId = Number(fd.get("member_id"));
+  const orgId = formOrg(user, fd);
+  if (fd.get("undo") === "1") releaseConversation(orgId, memberId);
+  else claimConversation(orgId, memberId, user.id);
+  revalidatePath("/", "layout");
+  redirect(`/admin/replies/${memberId}?org=${orgId}#end`);
 }

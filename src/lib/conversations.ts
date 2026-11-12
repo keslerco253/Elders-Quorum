@@ -2,6 +2,7 @@ import { db } from "./db";
 import { audienceMembers, notify, recipientById } from "./notify";
 import { callingLabel, CALLINGS, type Calling, type Org } from "./types";
 import { getOrg, leadersPhrase, orgLabel } from "./orgs";
+import { msgNotify, releaseConversation, whoToNotify } from "./reply-notify";
 import { backupReceivers, confirmToSender, leaderTakesMessages, orgReceivers } from "./message-routing";
 
 // In each organization, a member can talk with the whole presidency
@@ -122,11 +123,18 @@ export async function receiveReply(member: { id: number; org_id: number; display
     .prepare("INSERT INTO member_messages (org_id, member_id, direction, message_id, body, via, recipient_id, needs_home) VALUES (?, ?, 'in', ?, ?, ?, ?, ?)")
     .run(member.org_id, member.id, msg, text, via, recipientId, presidency.length ? 0 : 1);
   let where: string;
+  // Several messages in a row (a member texting "Hi" / "can you" / "help Saturday?"): one
+  // notice for the first; the rest are in the conversation.
+  const followUp = !!db()
+    .prepare(
+      "SELECT 1 FROM member_messages WHERE org_id = ? AND member_id = ? AND direction = 'in' AND recipient_id IS ? AND created_at > datetime('now', '-10 minutes') AND id < (SELECT MAX(id) FROM member_messages WHERE org_id = ? AND member_id = ?)",
+    )
+    .get(member.org_id, member.id, recipientId, member.org_id, member.id);
   // Leaders read the whole message in the notification, text or email; answering is in the app.
   if (to) {
     where = to.display_name;
     // Private: the words stay in the app, in case someone else sees the phone or inbox.
-    await notify([to], {
+    if (!followUp && msgNotify(member.org_id, to.id) !== "none") await notify([to], {
       title: `Private message from ${member.display_name}`,
       body: "Open the app to read it and answer privately.",
       textFull: `Private message from ${member.display_name}. Read and answer it in the app.`,
@@ -138,7 +146,10 @@ export async function receiveReply(member: { id: number; org_id: number; display
     });
   } else if (presidency.length) {
     where = org ? leadersPhrase(org) : "the presidency";
-    await notify(presidency, {
+    // Just the leader it's for (who sent what they answered), and any who want every one;
+    // the rest see it in Messages.
+    const notified = followUp ? [] : whoToNotify(member.org_id, member.id, msg ?? recentMessageFor(member.id, member.org_id), presidency);
+    if (notified.length) await notify(notified, {
       title: `Reply from ${member.display_name}`,
       textTitle: member.display_name,
       body: text,
@@ -171,6 +182,8 @@ export async function sendAnswer(author: { id: number; org_id: number; display_n
   const org = getOrg(author.org_id);
   if (!text || !member || !org || !db().prepare("SELECT 1 FROM ward_members WHERE ward_id = ? AND member_id = ?").get(org.ward_id, memberId)) return false;
   db().prepare("INSERT INTO member_messages (org_id, member_id, direction, author_id, body, recipient_id) VALUES (?, ?, 'out', ?, ?, ?)").run(author.org_id, memberId, author.id, text, privately ? author.id : null);
+  // Answered: no longer anyone's to take.
+  if (!privately) releaseConversation(author.org_id, memberId);
   const url = `/messages/thread/${privately ? author.id : "all"}?org=${author.org_id}#end`;
   await notify(
     [member],
@@ -215,13 +228,18 @@ export function wardConversations(orgId: number, viewerId: number): Conversation
     .prepare(
       `SELECT c.member_id, mem.display_name AS member_name, c.recipient_id, c.body AS last_body, c.direction AS last_direction, c.created_at AS last_at,
          (SELECT COUNT(*) FROM member_messages u WHERE u.org_id = c.org_id AND u.member_id = c.member_id AND u.recipient_id IS c.recipient_id AND u.direction = 'in'
-           AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = u.id AND r.viewer_id = ?)) AS unread
+           AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = u.id AND r.viewer_id = @viewer)
+           -- Not once someone answered it, marked it no reply needed, or said "I've got it".
+           AND u.no_reply_at IS NULL
+           AND NOT EXISTS (SELECT 1 FROM member_messages a WHERE a.org_id = u.org_id AND a.member_id = u.member_id AND a.recipient_id IS u.recipient_id AND a.direction = 'out' AND a.id > u.id)
+           AND NOT (u.recipient_id IS NULL AND EXISTS (SELECT 1 FROM conversation_claims cc WHERE cc.org_id = u.org_id AND cc.member_id = u.member_id AND cc.claimed_by <> @viewer))) AS unread,
+         (SELECT m2.display_name FROM conversation_claims cc JOIN members m2 ON m2.id = cc.claimed_by WHERE c.recipient_id IS NULL AND cc.org_id = c.org_id AND cc.member_id = c.member_id) AS claimed_by_name
        FROM member_messages c JOIN members mem ON mem.id = c.member_id
-       WHERE c.org_id = ? AND (c.recipient_id IS NULL OR c.recipient_id = ?)
+       WHERE c.org_id = @org AND (c.recipient_id IS NULL OR c.recipient_id = @viewer)
          AND c.id = (SELECT MAX(id) FROM member_messages x WHERE x.org_id = c.org_id AND x.member_id = c.member_id AND x.recipient_id IS c.recipient_id)
        ORDER BY c.created_at DESC, c.id DESC`,
     )
-    .all(viewerId, orgId, viewerId) as ConversationSummary[];
+    .all({ viewer: viewerId, org: orgId }) as ConversationSummary[];
 }
 
 /** Messages this presidency member can see and hasn't read yet (each leader has their own). */
@@ -288,6 +306,7 @@ export function markNoReplyNeeded(orgId: number, memberId: number, thread: Threa
     .prepare(`UPDATE member_messages SET no_reply_at = ${on ? "datetime('now')" : "NULL"}, no_reply_by = ? WHERE id = ?`)
     .run(on ? viewerId : null, last.id);
   if (on) markThreadRead(orgId, memberId, thread, viewerId);
+  if (on && !thread.private) releaseConversation(orgId, memberId);
 }
 
 /** Counts a member's messages in the last hour, to stop runaway texting or posting. */
@@ -304,6 +323,9 @@ export interface InboxRow extends ConversationSummary {
   last_author_name: string | null;
   /** The member wrote last, and no leader has answered or marked it "No reply needed". */
   needs_reply: number;
+  /** Who said "I've got it" (whole-presidency conversations). */
+  claimed_by_name: string | null;
+  claimed_by: number | null;
 }
 
 /** Organizations (turned on, in any ward) where this person is in the presidency. */
@@ -329,14 +351,20 @@ export function leaderInbox(viewerId: number, opts: { unreadOnly?: boolean; q?: 
          c.author_id AS last_author_id, au.display_name AS last_author_name, (c.direction = 'in' AND c.no_reply_at IS NULL) AS needs_reply,
          CASE WHEN o.kind = 'ward' THEN w.name ELSE w.name || ' · ' || o.name END AS org_label,
          (SELECT COUNT(*) FROM member_messages u WHERE u.org_id = c.org_id AND u.member_id = c.member_id AND u.recipient_id IS c.recipient_id AND u.direction = 'in'
-           AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = u.id AND r.viewer_id = ?)) AS unread
+           AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id = u.id AND r.viewer_id = @viewer)
+           -- Not once someone answered it, marked it no reply needed, or said "I've got it".
+           AND u.no_reply_at IS NULL
+           AND NOT EXISTS (SELECT 1 FROM member_messages a WHERE a.org_id = u.org_id AND a.member_id = u.member_id AND a.recipient_id IS u.recipient_id AND a.direction = 'out' AND a.id > u.id)
+           AND NOT (u.recipient_id IS NULL AND EXISTS (SELECT 1 FROM conversation_claims cc WHERE cc.org_id = u.org_id AND cc.member_id = u.member_id AND cc.claimed_by <> @viewer))) AS unread,
+         (SELECT m2.display_name FROM conversation_claims cc JOIN members m2 ON m2.id = cc.claimed_by WHERE c.recipient_id IS NULL AND cc.org_id = c.org_id AND cc.member_id = c.member_id) AS claimed_by_name,
+         (SELECT cc.claimed_by FROM conversation_claims cc WHERE c.recipient_id IS NULL AND cc.org_id = c.org_id AND cc.member_id = c.member_id) AS claimed_by
        FROM member_messages c JOIN members mem ON mem.id = c.member_id JOIN orgs o ON o.id = c.org_id JOIN wards w ON w.id = o.ward_id
          LEFT JOIN members au ON au.id = c.author_id
-       WHERE c.org_id IN (${orgIds.map(() => "?").join(",")}) AND (c.recipient_id IS NULL OR c.recipient_id = ?) AND c.member_id <> ?
+       WHERE c.org_id IN (${orgIds.map((_, i) => `@o${i}`).join(",")}) AND (c.recipient_id IS NULL OR c.recipient_id = @viewer) AND c.member_id <> @viewer
          AND c.id = (SELECT MAX(id) FROM member_messages x WHERE x.org_id = c.org_id AND x.member_id = c.member_id AND x.recipient_id IS c.recipient_id)
        ORDER BY c.created_at DESC, c.id DESC`,
     )
-    .all(viewerId, ...orgIds, viewerId, viewerId) as InboxRow[];
+    .all({ viewer: viewerId, ...Object.fromEntries(orgIds.map((id, i) => [`o${i}`, id])) }) as InboxRow[];
   const q = (opts.q ?? "").trim().toLowerCase();
   return rows.filter((r) => (!opts.unreadOnly || r.unread > 0) && (!q || r.member_name.toLowerCase().includes(q)));
 }

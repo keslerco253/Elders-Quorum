@@ -840,8 +840,24 @@ signed with your name. Or answer in the app with the link. Replying to an
   answers.
 
 **When members reply to you** (in the app, or by texting back to anything you
-sent), it goes into their conversation and every presidency member is notified
-(or just the one person, if private).
+sent), it goes into their conversation. Every presidency member sees it in
+Messages, but only the one it's for is notified (a private message notifies just
+that person):
+- **Who it's for:** whoever sent what they're answering (the message, the event,
+  the assignment, the sign-up, the visit invitation; for a lesson reminder, that
+  Sunday's conductor). With no clear sender, the presidency's **message lead**
+  (the president unless you choose someone in Admin → Settings → Messages from
+  members).
+- **Your choice** (Admin → Settings → Messages from members): **Only ones for me**
+  (the default), **Every member message**, or **None** (you'll check Messages).
+- **Quick follow-ups fold in:** more messages from the same member within 10
+  minutes don't notify again.
+- **✋ I've got it:** on a conversation, tells the rest of the presidency you're
+  answering. It drops off their unread list and shows "{name} has it" in the
+  inbox. Answering or marking **No reply needed** clears it.
+- **Answered = done:** once anyone answers, it's no longer unread for anyone.
+- **Evening summary** (off unless you turn it on, each person for themselves):
+  one notification about 8 PM if member messages are still waiting for an answer.
 - **Two organizations texted them in the last 3 days?** Their text first gets
   "Which is your message for? Reply 1 for … or 2 for …" (up to 3). With no
   number in 30 minutes, it goes to whoever texted last.
