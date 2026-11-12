@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import { db } from "./db";
-import { deleteUpload } from "./uploads";
+import { deletePicturesIfUnused } from "./uploads";
 import { storeReminders, TODO_WHEN, type TodoReminder } from "./personal-todos";
 import type { EventRow } from "./types";
 import { describeRecurrence, occurrenceDates, type Pattern } from "./recurrence";
@@ -163,7 +163,7 @@ export function deletePersonalEvent(memberId: number, id: number) {
   const e = getPersonalEvent(memberId, id);
   db().prepare("DELETE FROM personal_events WHERE id = ? AND member_id = ?").run(id, memberId);
   // Its pictures go with it.
-  if (e) for (const name of eventImages(e)) deleteUpload(name);
+  if (e) deletePicturesIfUnused(eventImages(e));
 }
 
 /** A member's own events between two UTC instants, shaped like calendar events. */

@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { deleteUpload } from "./uploads";
+import { deletePicturesIfUnused } from "./uploads";
 import { db } from "./db";
 import { ledOrgIds } from "./conversations";
 import { WHEN_OPTIONS } from "./reminder-prefs";
@@ -181,7 +181,7 @@ export function deletePersonalTodo(memberId: number, id: number) {
   const t = getPersonalTodo(memberId, id);
   db().prepare("DELETE FROM personal_todos WHERE id = ? AND member_id = ?").run(id, memberId);
   // Its pictures go with it.
-  if (t) for (const name of todoImages(t)) deleteUpload(name);
+  if (t) deletePicturesIfUnused(todoImages(t));
 }
 
 /** Reminders as saved (JSON), after cleanReminders. */

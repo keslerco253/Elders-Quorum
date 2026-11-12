@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { deleteAccount } from "./accounts";
-import { deleteUpload } from "./uploads";
+import { deletePicturesIfUnused } from "./uploads";
 
 const listOf = (json: string): string[] => {
   try {
@@ -73,7 +73,7 @@ export function runRetention() {
     run("messages", `DELETE FROM messages WHERE created_at < datetime('now', '-365 days')`);
   })();
   // The pictures of what was just deleted (files, after the database change is made).
-  for (const name of pictures) deleteUpload(name);
+  deletePicturesIfUnused(pictures);
   // Members who haven't signed in for 12 months (leaders are kept).
   const stale = d
     .prepare(

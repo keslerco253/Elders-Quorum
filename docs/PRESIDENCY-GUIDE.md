@@ -1797,8 +1797,13 @@ and the member list**).
   start and end time, the place under where, the details in its notes, text
   reminders a day and 3 hours before (change them like any other), and the
   pictures kept with it (tap to see them full size; deleted with the event).
-  Pictures sent within a few seconds of each other (a phone often sends the front
-  and back as separate texts) are read together as one event. No date on the
+  A picture with more than one date makes an event for each: a birthday
+  invitation with an RSVP date gives the party (at its time and place, text
+  reminders a day and 3 hours before) and **RSVP for…** (all day on that date, with
+  who to answer in its notes, text reminders the morning before and that morning),
+  both with the picture; the answer lists them all. Pictures sent within a few
+  seconds of each other (a phone often sends the front and back as separate texts)
+  are read together. No date on the
   picture: it says so and adds nothing. Pictures from anyone else are handled like
   any other text. Needs ANTHROPIC_API_KEY on the server.
 - **The site's email account** (what sign-in codes and wards set to use the

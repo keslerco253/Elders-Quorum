@@ -16,15 +16,21 @@ import { saveUpload } from "./uploads";
 
 export const photoTodoConfigured = () => !!process.env.ANTHROPIC_API_KEY;
 
-/** What Claude reads off the picture. */
-interface Reading {
-  found: boolean;
+/** One date read off the picture: the event itself, or a deadline for it (an RSVP). */
+interface ReadEvent {
+  kind: "event" | "deadline";
   title: string;
   date: string;
   start_time: string;
   end_time: string;
   location: string;
   details: string;
+}
+
+/** What Claude reads off the picture: every date on it. */
+interface Reading {
+  found: boolean;
+  events: ReadEvent[];
   problem: string;
 }
 
@@ -50,16 +56,28 @@ async function fetchMedia(url: string): Promise<{ data: Buffer; type: string } |
 const SCHEMA = {
   type: "object",
   properties: {
-    found: { type: "boolean", description: "True if the picture shows a dated event or appointment to remember." },
-    title: { type: "string", description: "Short title, e.g. 'Wedding reception: Ashton Daniels & Brooke Boyle'." },
-    date: { type: "string", description: "The event's date as YYYY-MM-DD, or empty if none is shown." },
-    start_time: { type: "string", description: "Start time as 24-hour HH:MM, or empty if none is shown." },
-    end_time: { type: "string", description: "End time as 24-hour HH:MM, or empty." },
-    location: { type: "string", description: "Address or place, as written, or empty." },
-    details: { type: "string", description: "Other useful details in one or two short lines (who it's for, hosts, notes), or empty." },
+    found: { type: "boolean", description: "True if the picture shows at least one dated event, appointment or deadline." },
+    events: {
+      type: "array",
+      description: "One entry per date to remember: the event itself, and separately any deadline for it (RSVP by, sign up by, pay by). Oldest first.",
+      items: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["event", "deadline"], description: "event: the occasion itself. deadline: something to do by a date (an RSVP)." },
+          title: { type: "string", description: "Short title, e.g. \"Darik's 1st birthday party\" or \"RSVP for Darik's 1st birthday\"." },
+          date: { type: "string", description: "YYYY-MM-DD." },
+          start_time: { type: "string", description: "Start time as 24-hour HH:MM, or empty (a deadline usually has none)." },
+          end_time: { type: "string", description: "End time as 24-hour HH:MM, or empty." },
+          location: { type: "string", description: "Address or place, as written, or empty (empty for a deadline)." },
+          details: { type: "string", description: "Useful details in one or two short lines: who it's for and hosts; for a deadline, who to answer and how (name and phone number)." },
+        },
+        required: ["kind", "title", "date", "start_time", "end_time", "location", "details"],
+        additionalProperties: false,
+      },
+    },
     problem: { type: "string", description: "If found is false, a short reason (e.g. 'no date on it'); else empty." },
   },
-  required: ["found", "title", "date", "start_time", "end_time", "location", "details", "problem"],
+  required: ["found", "events", "problem"],
   additionalProperties: false,
 } as const;
 
@@ -73,9 +91,9 @@ async function readPictures(pictures: { data: Buffer; type: ClaudeType }[], capt
     fallbacks: "default",
     output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
     system:
-      "You read photos of invitations, flyers and appointment cards and pull out the one event to put on someone's to-do list. " +
+      "You read photos of invitations, flyers and appointment cards and pull out what to put on someone's calendar: the event, and separately each deadline that goes with it (an RSVP date, a sign-up-by date). " +
       `Today is ${today} (time zone ${tz}). When the year isn't shown, use the next date on or after today. ` +
-      "Several pictures are the front and back of the same thing. Use only what the pictures (and the sender's note) say; leave a field empty rather than guess.",
+      "The same date written twice is one entry. Several pictures are the front and back of the same thing. Use only what the pictures (and the sender's note) say; leave a field empty rather than guess.",
     messages: [
       {
         role: "user",
@@ -96,14 +114,21 @@ async function readPictures(pictures: { data: Buffer; type: ClaudeType }[], capt
   }
 }
 
-const REMINDERS: TodoReminder[] = [
+/** The event: a text a day before and 3 hours before. */
+const EVENT_REMINDERS: TodoReminder[] = [
   { when: "m:1440", push: false, text: true, email: false },
   { when: "m:180", push: false, text: true, email: false },
 ];
+/** A deadline (all day): a text the morning before and the morning of (9 AM). */
+const DEADLINE_REMINDERS: TodoReminder[] = [
+  { when: "m:1440", push: false, text: true, email: false },
+  { when: "m:0", push: false, text: true, email: false },
+];
 
 /**
- * Turns texted pictures into an event on this member's calendar. Returns the text to send
- * back: what was posted (with a link), or what went wrong.
+ * Turns texted pictures into events on this member's calendar: the event itself and any
+ * deadline on it (an RSVP), each with its own reminders and the pictures. Returns the text
+ * to send back: what was posted (with links), or what went wrong.
  */
 export async function photoToEvent(memberId: number, media: { url: string; type: string }[], caption: string): Promise<string> {
   if (!photoTodoConfigured()) return "My Ward Link: reading pictures isn't set up yet (ANTHROPIC_API_KEY on the server).";
@@ -117,30 +142,12 @@ export async function photoToEvent(memberId: number, media: { url: string; type:
   try {
     reading = await readPictures(pictures, caption, today, tz);
   } catch (err) {
-    console.error("[photo-todo] reading failed", err);
+    console.error("[photo-event] reading failed", err);
   }
   if (!reading) return "My Ward Link: I couldn't read that picture just now. Please try again in a minute.";
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(reading.date) ? reading.date : "";
-  if (!reading.found || !date) return `My Ward Link: I couldn't find a date on that picture${reading.problem ? ` (${reading.problem})` : ""}. Add it with + My event on the calendar instead.`;
-  const time = /^\d{2}:\d{2}$/.test(reading.start_time) ? reading.start_time : null;
-  const end = /^\d{2}:\d{2}$/.test(reading.end_time) ? reading.end_time : null;
-  const hm = (t: string) => DateTime.fromFormat(t, "HH:mm").toFormat("h:mm a");
-  const when = time ? `${hm(time)}${end ? ` to ${hm(end)}` : ""}` : "";
-  const title = (reading.title || "From a picture").slice(0, 200);
-  // An end before its start (or none): an hour long, as + My event would show it.
-  const id = savePersonalEvent(memberId, null, {
-    title,
-    notes: reading.details.slice(0, 2000),
-    location: reading.location.slice(0, 300),
-    date,
-    start_time: time ?? "00:00",
-    end_time: time && end && end > time ? end : null,
-    all_day: !time,
-    timezone: tz,
-    reminders: REMINDERS,
-  });
-  if (!id) return "My Ward Link: that couldn't be saved. Please try again.";
-  // Keep the pictures with it (all of them, including any Claude couldn't read).
+  const dated = (reading.events ?? []).filter((e) => /^\d{4}-\d{2}-\d{2}$/.test(e.date)).slice(0, 4);
+  if (!reading.found || !dated.length) return `My Ward Link: I couldn't find a date on that picture${reading.problem ? ` (${reading.problem})` : ""}. Add it with + My event on the calendar instead.`;
+  // Keep the pictures (all of them, including any Claude couldn't read), shared by every event made from them.
   const names: string[] = [];
   for (const f of fetched) {
     try {
@@ -149,7 +156,31 @@ export async function photoToEvent(memberId: number, media: { url: string; type:
       // Not a kind of picture that's kept.
     }
   }
-  db().prepare("UPDATE personal_events SET images = ? WHERE id = ?").run(JSON.stringify(names), id);
-  const day = DateTime.fromISO(date).toFormat("ccc, LLL d");
-  return `Posted to your calendar: ${title}, ${day}${when ? `, ${when}` : ""}${reading.location ? `, ${reading.location}` : ""}. Text reminders 1 day and 3 hours before. ${appUrl()}/calendar/mine/${id}`;
+  const hm = (t: string) => DateTime.fromFormat(t, "HH:mm").toFormat("h:mm a");
+  const posted: string[] = [];
+  for (const e of dated) {
+    const time = /^\d{2}:\d{2}$/.test(e.start_time) ? e.start_time : null;
+    const end = time && /^\d{2}:\d{2}$/.test(e.end_time) && e.end_time > time ? e.end_time : null;
+    const deadline = e.kind === "deadline";
+    const title = (e.title || (deadline ? "Deadline" : "From a picture")).slice(0, 200);
+    const id = savePersonalEvent(memberId, null, {
+      title,
+      notes: (e.details ?? "").slice(0, 2000),
+      location: (e.location ?? "").slice(0, 300),
+      date: e.date,
+      start_time: time ?? "00:00",
+      end_time: end,
+      all_day: !time,
+      timezone: tz,
+      reminders: deadline ? DEADLINE_REMINDERS : EVENT_REMINDERS,
+    });
+    if (!id) continue;
+    db().prepare("UPDATE personal_events SET images = ? WHERE id = ?").run(JSON.stringify(names), id);
+    const day = DateTime.fromISO(e.date).toFormat("ccc, LLL d");
+    const when = time ? `, ${hm(time)}${end ? ` to ${hm(end)}` : ""}` : "";
+    const reminders = deadline ? "reminders the day before and that morning" : "reminders 1 day and 3 hours before";
+    posted.push(`${title}, ${day}${when}${e.location ? `, ${e.location}` : ""} (text ${reminders}) ${appUrl()}/calendar/mine/${id}`);
+  }
+  if (!posted.length) return "My Ward Link: that couldn't be saved. Please try again.";
+  return posted.length === 1 ? `Posted to your calendar: ${posted[0]}` : `Posted ${posted.length} events to your calendar:\n${posted.map((p, n) => `${n + 1}. ${p}`).join("\n")}`;
 }
