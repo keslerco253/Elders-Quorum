@@ -1786,26 +1786,27 @@ and the member list**).
   went out and the last failure** (with the error, e.g. a bad Gmail app password),
   the address links point to, and the Twilio incoming-message webhook. **Send me a
   test email** and **Send me a test text** (needs your phone and text consent).
-- **Text a picture to put it on your calendar** (site owner only): text a photo
-  (a wedding invitation, a flyer, an appointment card; front and back together is
-  fine) to the app's texting number from your own phone, or text **EVENT** first
-  (with a note if you like, e.g. "EVENT Brooke's wedding"), get "Ready", then send
-  the picture. The app answers right away; Claude reads the picture, and a minute
-  later you get: "Posted to your calendar: Wedding reception…, Sat, Dec 12, 6:00 PM
-  to 8:00 PM, 506 N 1000 E, Firth, Idaho. Text reminders 1 day and 3 hours
-  before." with a link. It's one of your own events (like **+ My event**): its
-  start and end time, the place under where, the details in its notes, text
-  reminders a day and 3 hours before (change them like any other), and the
-  pictures kept with it (tap to see them full size; deleted with the event).
-  A picture with more than one date makes an event for each: a birthday
-  invitation with an RSVP date gives the party (at its time and place, text
-  reminders a day and 3 hours before) and **RSVP for…** (all day on that date, with
-  who to answer in its notes, text reminders the morning before and that morning),
-  both with the picture; the answer lists them all. Pictures sent within a few
-  seconds of each other (a phone often sends the front and back as separate texts)
-  are read together. No date on the
-  picture: it says so and adds nothing. Pictures from anyone else are handled like
-  any other text. Needs ANTHROPIC_API_KEY on the server.
+- **Text in your own events and to-dos** (site owner only), from your own phone to
+  the app's texting number:
+  - **EVENT** and what it is, a picture, or both: on your calendar as your own
+    events (like **+ My event**). "EVENT dentist Dec 3 2pm" works without a
+    picture. A picture on its own is an event too.
+  - **TODO** and what to do, a picture, or both: on your to-do list (My
+    assignments). "TODO visit dad" just goes on the list; "TODO call the bishop
+    Friday 3pm" is due then, with text reminders the day before and when it's due.
+  - **EVENT** or **TODO** by itself: "Ready", then send the picture or the words.
+  - Claude reads the words and pictures (needs ANTHROPIC_API_KEY on the server;
+    without it a TODO is added just as typed). A picture with more than one date
+    makes one for each: a birthday invitation with an RSVP date gives the party (at
+    its time and place, text reminders a day and 3 hours before) and **RSVP for…**
+    (all day, with who to answer in its notes, text reminders the morning before
+    and that morning), both with the picture. Pictures and words sent within a few
+    seconds of each other are read together. The app answers "Got it" right away
+    and texts "Posted to your calendar:" or "Posted to your to-dos:" with what it
+    was and a link. Pictures are kept with what they made (tap to see them full
+    size; deleted when nothing uses them). Nothing is sent to anyone else; texts
+    starting EVENT or TODO from anyone else, and their pictures, are handled like
+    any other text.
 - **The site's email account** (what sign-in codes and wards set to use the
   site's email send from) shows with its sender name and whether it's **set
   here** or **from the server's settings** (SMTP_USER). **Change the site's

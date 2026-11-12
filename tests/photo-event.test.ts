@@ -81,19 +81,20 @@ describe("a picture texted in by the site owner", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const out: { reply?: string } = {};
     expect(await handleInboundText({ From: "+12085550001", Body: "", NumMedia: "1", MediaUrl0: "https://api.twilio.com/2010-04-01/Accounts/AC1/Messages/MM1/Media/ME2", MediaContentType0: "image/png" }, out)).toBe("photo_todo");
-    expect(out.reply).toMatch(/Reading the picture now/);
+    expect(out.reply).toBe("Got it. I'll text you when it's posted to your calendar.");
     // EVENT first (with a note), then the front and back as two texts: read together, as one to-do.
     // (The first picture is read once no more come.)
     await vi.runAllTimersAsync();
     const ready: { reply?: string } = {};
     expect(await handleInboundText({ From: "+12085550001", Body: "Event Brooke's wedding" }, ready)).toBe("photo_todo");
-    expect(ready.reply).toMatch(/^Ready\. Send the picture/);
+    expect(ready.reply).toBe("Got it. I'll text you when it's posted to your calendar.");
     const before = create.mock.calls.length;
     const front: { reply?: string } = {};
     const back: { reply?: string } = {};
     await handleInboundText({ From: "+12085550001", Body: "", NumMedia: "1", MediaUrl0: "https://api.twilio.com/2010-04-01/Accounts/AC1/Messages/MM1/Media/ME3", MediaContentType0: "image/png" }, front);
     await handleInboundText({ From: "+12085550001", Body: "", NumMedia: "1", MediaUrl0: "https://api.twilio.com/2010-04-01/Accounts/AC1/Messages/MM1/Media/ME4", MediaContentType0: "image/png" }, back);
-    expect(front.reply).toMatch(/Reading the picture now/);
+    // The note started the batch: the pictures join it, unanswered.
+    expect(front.reply).toBeUndefined();
     expect(back.reply).toBeUndefined();
     await vi.runAllTimersAsync();
     vi.useRealTimers();
@@ -138,6 +139,48 @@ describe("a picture texted in by the site owner", () => {
     expect(readUpload(picture)).not.toBeNull();
     deletePersonalEvent(1, rows[1].id);
     expect(readUpload(picture)).toBeNull();
+    reading = WEDDING;
+  });
+
+  it("TODO puts it on the to-do list, with or without a date or a picture", async () => {
+    process.env.TWILIO_ACCOUNT_SID = "AC1";
+    process.env.TWILIO_AUTH_TOKEN = "t";
+    const d = (await import("@/lib/db")).useTestDb(`
+      INSERT INTO wards (id, name, timezone) VALUES (1, 'Villas Ward', 'America/Boise');
+      INSERT INTO members (id, ward_id, name, display_name, email, phone, role) VALUES (1, 1, 'M', 'Mark', 'm@x.com', '+12085550001', 'presidency');
+    `);
+    d.prepare("UPDATE members SET is_site_owner = 1 WHERE id = 1").run();
+    const { textedItems } = await import("@/lib/photo-event");
+    // No date: just on the list, no reminders.
+    process.env.ANTHROPIC_API_KEY = "test";
+    reading = { found: true, problem: "", events: [{ kind: "event", title: "Visit Dad", date: "", start_time: "", end_time: "", location: "", details: "" }] };
+    expect(await textedItems(1, "todo", [], "visit dad")).toMatch(/^Posted to your to-dos: Visit Dad http\S+\/assignments\/mine\/\d+$/);
+    // With a date and time: due then, text reminders the day before and when it's due.
+    reading = { found: true, problem: "", events: [{ kind: "event", title: "Call the bishop", date: "2026-12-04", start_time: "15:00", end_time: "", location: "", details: "" }] };
+    expect(await textedItems(1, "todo", [], "call the bishop friday 3pm")).toMatch(/^Posted to your to-dos: Call the bishop, due Fri, Dec 4, 3:00 PM \(text reminders the day before and when it's due\)/);
+    // Reading isn't set up: added as typed.
+    delete process.env.ANTHROPIC_API_KEY;
+    expect(await textedItems(1, "todo", [], "pick up the chairs")).toMatch(/^Posted to your to-dos: pick up the chairs /);
+    const todos = d.prepare("SELECT title, due_date, due_time, reminders FROM personal_todos ORDER BY id").all() as { title: string; due_date: string | null; due_time: string | null; reminders: string }[];
+    expect(todos.map((t) => [t.title, t.due_date, t.due_time, JSON.parse(t.reminders).length])).toEqual([["Visit Dad", null, null, 0], ["Call the bishop", "2026-12-04", "15:00", 2], ["pick up the chairs", null, null, 0]]);
+    expect(d.prepare("SELECT COUNT(*) AS n FROM personal_events").get()).toEqual({ n: 0 });
+
+    // By text: "Todo visit dad" goes to the to-do list (after a moment, in case a picture follows); nothing is sent to anyone.
+    process.env.ANTHROPIC_API_KEY = "test";
+    reading = { found: true, problem: "", events: [{ kind: "event", title: "Visit Dad", date: "", start_time: "", end_time: "", location: "", details: "" }] };
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const { handleInboundText } = await import("@/lib/sms-inbound");
+    const out: { reply?: string } = {};
+    expect(await handleInboundText({ From: "+12085550001", Body: "Todo visit dad" }, out)).toBe("photo_todo");
+    expect(out.reply).toBe("Got it. I'll text you when it's posted to your to-dos.");
+    await vi.runAllTimersAsync();
+    vi.useRealTimers();
+    await vi.waitFor(() => expect((d.prepare("SELECT COUNT(*) AS n FROM personal_todos").get() as { n: number }).n).toBe(4));
+    expect(d.prepare("SELECT COUNT(*) AS n FROM member_messages").get()).toEqual({ n: 0 });
+    // TODO on its own: ready for what's next.
+    const ready: { reply?: string } = {};
+    await handleInboundText({ From: "+12085550001", Body: "TODO" }, ready);
+    expect(ready.reply).toMatch(/^Ready\. Text what to do/);
     reading = WEDDING;
   });
 });

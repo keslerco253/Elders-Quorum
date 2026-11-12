@@ -7,7 +7,7 @@ import { sendSms, twilioConfigured } from "./sms";
 import { closedText, orgTakesMessages } from "./message-routing";
 import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching";
 import { getOrg, getWard, homeOf, isSiteOwner, memberWards, orgFullName, orgLabel } from "./orgs";
-import { photoToEvent } from "./photo-event";
+import { textedItems } from "./photo-event";
 import type { Member } from "./types";
 import { allowHit } from "./rate-limit";
 import { answerRequest, latestPendingRequest } from "./teaching-requests";
@@ -124,26 +124,27 @@ const nameOf = (id: number) => (db().prepare("SELECT display_name FROM members W
 async function routeText(params: Record<string, string>, seen: Seen): Promise<InboundResult> {
   const from = normalizePhone(params.From || "");
   const body = (params.Body || "").trim();
-  // The site owner texting a picture (an invitation, a flyer): it becomes an event on their calendar.
-  // "EVENT" first (with a note, if they like) gets it ready for the picture.
-  if (from && /^\s*(event|to-?do)\b/i.test(body) && !Number(params.NumMedia || 0)) {
+  // The site owner texting things to remember: TODO (to-do list) or EVENT (calendar), in
+  // words, with a picture, or both; a picture on its own is an event.
+  const keyword = body.match(/^\s*(event|to-?do)\b[\s:,.-]*/i);
+  const pictures = Number(params.NumMedia || 0);
+  if (from && (keyword || pictures > 0)) {
     const owner = photoSender(from);
     if (owner) {
-      waitingNote.set(owner.id, { note: body.replace(/^\s*(event|to-?do)\b[\s:,.-]*/i, "").trim(), until: Date.now() + 30 * 60_000 });
+      const kind = keyword && /^to/i.test(keyword[1]) ? "todo" : keyword ? "event" : null;
+      const note = keyword ? body.slice(keyword[0].length).trim() : body;
+      const media = Array.from({ length: Math.min(pictures, 4) }, (_, i) => ({ url: params[`MediaUrl${i}`] || "", type: params[`MediaContentType${i}`] || "" })).filter((m) => m.url);
       seen.memberId = owner.id;
-      seen.note = "Ready for a picture";
-      seen.reply = "Ready. Send the picture (front and back is fine) and I'll put it on your calendar.";
-      return "photo_todo";
-    }
-  }
-  if (from && Number(params.NumMedia || 0) > 0) {
-    const owner = photoSender(from);
-    if (owner) {
-      const media = Array.from({ length: Math.min(Number(params.NumMedia), 4) }, (_, i) => ({ url: params[`MediaUrl${i}`] || "", type: params[`MediaContentType${i}`] || "" })).filter((m) => m.url);
-      seen.memberId = owner.id;
-      seen.note = "Picture to a calendar event";
-      // Only the first picture of a batch is answered; the rest join it.
-      if (collectPicture(owner, from, media, body)) seen.reply = "Got it. Reading the picture now; I'll text you when it's posted to your calendar.";
+      seen.note = kind === "todo" ? "Texted a to-do" : "Texted a calendar event";
+      if (kind && !note && !media.length) {
+        // Just the word: ready for the picture (or the words) that come next.
+        waiting.set(owner.id, { kind, until: Date.now() + 30 * 60_000 });
+        seen.reply = kind === "todo" ? "Ready. Text what to do (a date if it has one), or send a picture." : "Ready. Send the picture (front and back is fine) and I'll put it on your calendar.";
+        return "photo_todo";
+      }
+      // Only the first text of a batch is answered; the rest join it.
+      if (collectTexted(owner, from, kind, media, note))
+        seen.reply = `Got it. I'll text you when it's posted to your ${(kind ?? waitingKind(owner.id) ?? "event") === "todo" ? "to-dos" : "calendar"}.`;
       return "photo_todo";
     }
   }
@@ -452,29 +453,35 @@ function photoSender(phone: string): { id: number; orgId: number | null } | null
   return owner ? { id: owner.id, orgId: homeOf(owner.id).orgId } : null;
 }
 
-/** A note sent with EVENT, waiting for the picture (half an hour). */
-const waitingNote = new Map<number, { note: string; until: number }>();
-/** Pictures arriving close together (a phone sends the front and back as separate texts): read as one. */
-const batches = new Map<number, { media: { url: string; type: string }[]; notes: string[]; timer: ReturnType<typeof setTimeout> }>();
-/** How long to wait for more pictures before reading them. */
+/** EVENT or TODO on its own: what the next picture or words are for (half an hour). */
+const waiting = new Map<number, { kind: "event" | "todo"; until: number }>();
+const waitingKind = (memberId: number) => {
+  const w = waiting.get(memberId);
+  return w && w.until > Date.now() ? w.kind : null;
+};
+/**
+ * What the owner texted in, gathered for a moment: a phone sends a note and its picture,
+ * or the front and back, as separate texts. Read together once no more come.
+ */
+const batches = new Map<number, { kind: "event" | "todo" | null; media: { url: string; type: string }[]; notes: string[]; timer: ReturnType<typeof setTimeout> }>();
+/** How long to wait for more pictures or words before reading them. */
 export const PICTURE_WAIT_MS = 15_000;
 
-/** Adds pictures to this owner's batch, read once no more come for a moment. True for the batch's first. */
-function collectPicture(owner: { id: number; orgId: number | null }, phone: string, media: { url: string; type: string }[], note: string): boolean {
+/** Adds a text to this owner's batch. True for the batch's first. */
+function collectTexted(owner: { id: number; orgId: number | null }, phone: string, kind: "event" | "todo" | null, media: { url: string; type: string }[], note: string): boolean {
   const old = batches.get(owner.id);
   if (old) clearTimeout(old.timer);
-  const batch = old ?? { media: [], notes: [], timer: setTimeout(() => {}, 0) };
+  const batch = old ?? { kind: null, media: [], notes: [], timer: setTimeout(() => {}, 0) };
+  batch.kind ??= kind;
   batch.media.push(...media);
   if (note.trim()) batch.notes.push(note.trim());
   batch.timer = setTimeout(() => {
     batches.delete(owner.id);
-    const waiting = waitingNote.get(owner.id);
-    waitingNote.delete(owner.id);
-    const caption = [waiting && waiting.until > Date.now() ? waiting.note : "", ...batch.notes].filter(Boolean).join(" ");
-    // Reading takes longer than Twilio waits for an answer: the result is texted after.
-    void photoToEvent(owner.id, batch.media, caption)
+    const as = batch.kind ?? waitingKind(owner.id) ?? "event";
+    waiting.delete(owner.id);
+    void textedItems(owner.id, as, batch.media, batch.notes.join(" "))
       .then((reply) => sendSms(owner.orgId, phone, reply, "notice"))
-      .catch((err) => console.error("[sms] picture to-do failed", err));
+      .catch((err) => console.error("[sms] texted item failed", err));
   }, PICTURE_WAIT_MS);
   batches.set(owner.id, batch);
   return !old;

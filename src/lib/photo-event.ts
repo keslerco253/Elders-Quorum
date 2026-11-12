@@ -4,7 +4,7 @@ import { appUrl } from "./config";
 import { db } from "./db";
 import { homeOf } from "./orgs";
 import { getWard } from "./orgs";
-import { type TodoReminder } from "./personal-todos";
+import { savePersonalTodo, type TodoReminder } from "./personal-todos";
 import { savePersonalEvent } from "./personal-events";
 import { saveUpload } from "./uploads";
 
@@ -81,7 +81,7 @@ const SCHEMA = {
   additionalProperties: false,
 } as const;
 
-async function readPictures(pictures: { data: Buffer; type: ClaudeType }[], caption: string, today: string, tz: string): Promise<Reading | null> {
+async function readPictures(pictures: { data: Buffer; type: ClaudeType }[], caption: string, today: string, tz: string, kind: "event" | "todo" = "event"): Promise<Reading | null> {
   const client = new Anthropic();
   const response = await client.beta.messages.create({
     model: "claude-opus-5-5",
@@ -91,7 +91,9 @@ async function readPictures(pictures: { data: Buffer; type: ClaudeType }[], capt
     fallbacks: "default",
     output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
     system:
-      "You read photos of invitations, flyers and appointment cards and pull out what to put on someone's calendar: the event, and separately each deadline that goes with it (an RSVP date, a sign-up-by date). " +
+      (kind === "todo"
+        ? "Someone texted a thing to do (and maybe a picture of it) to put on their to-do list. Give one entry per thing to do, with a short title in their words; a date and time only if they or the picture give one (found is true even with no date). "
+        : "You read photos of invitations, flyers and appointment cards (or a texted description) and pull out what to put on someone's calendar: the event, and separately each deadline that goes with it (an RSVP date, a sign-up-by date). ") +
       `Today is ${today} (time zone ${tz}). When the year isn't shown, use the next date on or after today. ` +
       "The same date written twice is one entry. Several pictures are the front and back of the same thing. Use only what the pictures (and the sender's note) say; leave a field empty rather than guess.",
     messages: [
@@ -99,7 +101,7 @@ async function readPictures(pictures: { data: Buffer; type: ClaudeType }[], capt
         role: "user",
         content: [
           ...pictures.map((p) => ({ type: "image" as const, source: { type: "base64" as const, media_type: p.type, data: p.data.toString("base64") } })),
-          { type: "text" as const, text: caption ? `The sender's note: ${caption.slice(0, 500)}` : "What event is this, and when?" },
+          { type: "text" as const, text: caption ? `The sender's note: ${caption.slice(0, 500)}` : kind === "todo" ? "What is there to do, and by when?" : "What event is this, and when?" },
         ],
       },
     ],
@@ -125,29 +127,47 @@ const DEADLINE_REMINDERS: TodoReminder[] = [
   { when: "m:0", push: false, text: true, email: false },
 ];
 
+/** A to-do with a due date: a text the day before and when it's due (9 AM without a time). */
+const TODO_REMINDERS: TodoReminder[] = [
+  { when: "m:1440", push: false, text: true, email: false },
+  { when: "m:0", push: false, text: true, email: false },
+];
+
+/** Pictures texted in (no keyword, or EVENT): events on the calendar. */
+export const photoToEvent = (memberId: number, media: { url: string; type: string }[], caption: string) => textedItems(memberId, "event", media, caption);
+
 /**
- * Turns texted pictures into events on this member's calendar: the event itself and any
- * deadline on it (an RSVP), each with its own reminders and the pictures. Returns the text
- * to send back: what was posted (with links), or what went wrong.
+ * What the site owner texted in (EVENT or TODO with words, pictures, or both) put on their
+ * calendar as events, or on their to-do list. Each date on it is its own item (the event,
+ * and an RSVP or other deadline), each with its own reminders and the pictures. Returns
+ * the text to send back: what was posted (with links), or what went wrong.
  */
-export async function photoToEvent(memberId: number, media: { url: string; type: string }[], caption: string): Promise<string> {
-  if (!photoTodoConfigured()) return "My Ward Link: reading pictures isn't set up yet (ANTHROPIC_API_KEY on the server).";
+export async function textedItems(memberId: number, kind: "event" | "todo", media: { url: string; type: string }[], caption: string): Promise<string> {
   const fetched = (await Promise.all(media.slice(0, 4).map((m) => fetchMedia(m.url)))).filter((f): f is { data: Buffer; type: string } => !!f);
   const pictures = fetched.filter((f): f is { data: Buffer; type: ClaudeType } => (CLAUDE_TYPES as readonly string[]).includes(f.type));
-  if (!pictures.length) return "My Ward Link: I couldn't open that picture. Please send it as a photo (JPEG or PNG).";
+  if (media.length && !pictures.length) return "My Ward Link: I couldn't open that picture. Please send it as a photo (JPEG or PNG).";
   const home = homeOf(memberId);
   const tz = (home.orgId && getWard((db().prepare("SELECT ward_id FROM orgs WHERE id = ?").get(home.orgId) as { ward_id: number } | undefined)?.ward_id ?? 0)?.timezone) || "America/Boise";
   const today = DateTime.now().setZone(tz).toISODate()!;
   let reading: Reading | null = null;
-  try {
-    reading = await readPictures(pictures, caption, today, tz);
-  } catch (err) {
-    console.error("[photo-event] reading failed", err);
+  if (photoTodoConfigured()) {
+    try {
+      reading = await readPictures(pictures, caption, today, tz, kind);
+    } catch (err) {
+      console.error("[photo-event] reading failed", err);
+    }
   }
-  if (!reading) return "My Ward Link: I couldn't read that picture just now. Please try again in a minute.";
-  const dated = (reading.events ?? []).filter((e) => /^\d{4}-\d{2}-\d{2}$/.test(e.date)).slice(0, 4);
-  if (!reading.found || !dated.length) return `My Ward Link: I couldn't find a date on that picture${reading.problem ? ` (${reading.problem})` : ""}. Add it with + My event on the calendar instead.`;
-  // Keep the pictures (all of them, including any Claude couldn't read), shared by every event made from them.
+  // A to-do in words can be added as typed, even when it can't be read for a date.
+  if (!reading && kind === "todo" && !pictures.length && caption.trim())
+    reading = { found: true, problem: "", events: [{ kind: "event", title: caption.trim(), date: "", start_time: "", end_time: "", location: "", details: "" }] };
+  if (!reading) return photoTodoConfigured() ? "My Ward Link: I couldn't read that just now. Please try again in a minute." : "My Ward Link: reading pictures isn't set up yet (ANTHROPIC_API_KEY on the server).";
+  const all = (reading.events ?? []).slice(0, 4);
+  const items = kind === "todo" ? all.filter((e) => e.title.trim()) : all.filter((e) => /^\d{4}-\d{2}-\d{2}$/.test(e.date));
+  if (!reading.found || !items.length)
+    return kind === "todo"
+      ? "My Ward Link: I couldn't tell what the to-do is. Text TODO and what to do, like \"TODO call the bishop Friday 3pm\"."
+      : `My Ward Link: I couldn't find a date${reading.problem ? ` (${reading.problem})` : ""}. Text EVENT with the date, like "EVENT dentist Dec 3 2pm", or use + My event on the calendar.`;
+  // Keep the pictures (all of them, including any Claude couldn't read), shared by everything made from them.
   const names: string[] = [];
   for (const f of fetched) {
     try {
@@ -158,16 +178,27 @@ export async function photoToEvent(memberId: number, media: { url: string; type:
   }
   const hm = (t: string) => DateTime.fromFormat(t, "HH:mm").toFormat("h:mm a");
   const posted: string[] = [];
-  for (const e of dated) {
-    const time = /^\d{2}:\d{2}$/.test(e.start_time) ? e.start_time : null;
+  for (const e of items) {
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(e.date) ? e.date : null;
+    const time = date && /^\d{2}:\d{2}$/.test(e.start_time) ? e.start_time : null;
     const end = time && /^\d{2}:\d{2}$/.test(e.end_time) && e.end_time > time ? e.end_time : null;
     const deadline = e.kind === "deadline";
     const title = (e.title || (deadline ? "Deadline" : "From a picture")).slice(0, 200);
+    const day = date ? DateTime.fromISO(date).toFormat("ccc, LLL d") : "";
+    const when = time ? `, ${hm(time)}${end ? ` to ${hm(end)}` : ""}` : "";
+    if (kind === "todo") {
+      const notes = [end && `Until ${hm(end)}`, e.location && `Where: ${e.location}`, e.details].filter(Boolean).join("\n").slice(0, 2000);
+      const id = savePersonalTodo(memberId, null, { title, notes, due_date: date, due_time: time, reminders: date ? TODO_REMINDERS : [] });
+      if (!id) continue;
+      if (names.length) db().prepare("UPDATE personal_todos SET images = ? WHERE id = ?").run(JSON.stringify(names), id);
+      posted.push(`${title}${date ? `, due ${day}${when} (text reminders the day before and when it's due)` : ""} ${appUrl()}/assignments/mine/${id}`);
+      continue;
+    }
     const id = savePersonalEvent(memberId, null, {
       title,
       notes: (e.details ?? "").slice(0, 2000),
       location: (e.location ?? "").slice(0, 300),
-      date: e.date,
+      date: date!,
       start_time: time ?? "00:00",
       end_time: end,
       all_day: !time,
@@ -175,12 +206,11 @@ export async function photoToEvent(memberId: number, media: { url: string; type:
       reminders: deadline ? DEADLINE_REMINDERS : EVENT_REMINDERS,
     });
     if (!id) continue;
-    db().prepare("UPDATE personal_events SET images = ? WHERE id = ?").run(JSON.stringify(names), id);
-    const day = DateTime.fromISO(e.date).toFormat("ccc, LLL d");
-    const when = time ? `, ${hm(time)}${end ? ` to ${hm(end)}` : ""}` : "";
+    if (names.length) db().prepare("UPDATE personal_events SET images = ? WHERE id = ?").run(JSON.stringify(names), id);
     const reminders = deadline ? "reminders the day before and that morning" : "reminders 1 day and 3 hours before";
     posted.push(`${title}, ${day}${when}${e.location ? `, ${e.location}` : ""} (text ${reminders}) ${appUrl()}/calendar/mine/${id}`);
   }
   if (!posted.length) return "My Ward Link: that couldn't be saved. Please try again.";
-  return posted.length === 1 ? `Posted to your calendar: ${posted[0]}` : `Posted ${posted.length} events to your calendar:\n${posted.map((p, n) => `${n + 1}. ${p}`).join("\n")}`;
+  const where = kind === "todo" ? "to-dos" : "calendar";
+  return posted.length === 1 ? `Posted to your ${where}: ${posted[0]}` : `Posted ${posted.length} ${kind === "todo" ? "to-dos" : "events"} to your ${where}:\n${posted.map((p, n) => `${n + 1}. ${p}`).join("\n")}`;
 }
