@@ -9,7 +9,7 @@ import { agendaFileHref, type AgendaItem } from "@/lib/meetings";
 import { AGENDA_SECTIONS, groupBySection } from "@/lib/agenda-sections";
 import { formatDateTime } from "@/lib/time";
 import { moveAgenda, removeAgenda, removeAgendaFileAction, saveItemNotes, toggleDiscussed } from "./actions";
-import { DOCUMENT_ACCEPT } from "@/lib/upload-names";
+import { DOCUMENT_ACCEPT, isAudio, isVideo } from "@/lib/upload-names";
 
 const ARROWS = { top: "⤒", up: "↑", down: "↓" };
 const LABELS = { top: "Move to the top", up: "Move up", down: "Move down" };
@@ -103,14 +103,41 @@ function SectionList({
         // Attached files: open (PDFs and pictures in the browser, others download); ✕ to take one off.
         // Attached files, with a preview (a picture, a PDF's first page, or the kind of
         // document): tap to open (PDFs and pictures in the browser, others download); ✕ to remove.
+        const docs = a.files.filter((f) => !isAudio(f.name) && !isVideo(f.name));
+        const media = a.files.filter((f) => isAudio(f.name) || isVideo(f.name));
         const files = a.files.length > 0 && (
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {a.files.map((f) => (
-              <li key={f.id} className="relative w-24">
-                <a href={agendaFileHref(f)} target="_blank" rel="noreferrer" title={f.original_name} className="block hover:opacity-90">
-                  <FlyerThumb file={f.name} name={f.original_name} src={agendaFileHref(f)} big />
-                  <span className="mt-0.5 block truncate text-[11px] text-accent">{f.original_name}</span>
-                </a>
+          <>
+            {docs.length > 0 && (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {docs.map((f) => (
+                  <li key={f.id} className="relative w-24">
+                    <a href={agendaFileHref(f)} target="_blank" rel="noreferrer" title={f.original_name} className="block hover:opacity-90">
+                      <FlyerThumb file={f.name} name={f.original_name} src={agendaFileHref(f)} big />
+                      <span className="mt-0.5 block truncate text-[11px] text-accent">{f.original_name}</span>
+                    </a>
+                    {canEdit && (
+                  <form action={removeAgendaFileAction} className="absolute -top-1.5 -right-1.5">
+                    <input type="hidden" name="file_id" value={f.id} />
+                    <SubmitButton className="flex min-h-6 min-w-6 items-center justify-center rounded-full border border-border bg-surface px-1.5 text-xs whitespace-nowrap text-muted shadow hover:text-danger" confirm={`Remove ${f.original_name}?`} pendingText="…">
+                      <span aria-label={`Remove ${f.original_name}`}>✕</span>
+                    </SubmitButton>
+                  </form>
+                )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {/* Sound and video play right here. */}
+            {media.map((f) => (
+              <div key={f.id} className="relative mt-2 max-w-md rounded-lg border border-border bg-surface-2 p-2">
+                <div className="mb-1 truncate pr-6 text-xs text-muted">
+                  {isVideo(f.name) ? "🎬" : "🎵"} {f.original_name}
+                </div>
+                {isVideo(f.name) ? (
+                  <video src={agendaFileHref(f)} controls playsInline preload="metadata" className="max-h-80 w-full rounded bg-black" />
+                ) : (
+                  <audio src={agendaFileHref(f)} controls preload="metadata" className="w-full" />
+                )}
                 {canEdit && (
                   <form action={removeAgendaFileAction} className="absolute -top-1.5 -right-1.5">
                     <input type="hidden" name="file_id" value={f.id} />
@@ -119,9 +146,9 @@ function SectionList({
                     </SubmitButton>
                   </form>
                 )}
-              </li>
+              </div>
             ))}
-          </ul>
+          </>
         );
         const actions = (reorder || meetingId) && (
           <div className="mt-2 flex flex-wrap gap-1">
@@ -215,7 +242,7 @@ function SectionList({
                       aria-label="Notes"
                     />
                     <label className="block text-xs text-muted">
-                      📎 Attach files <span className="font-normal">(PDF, picture, Word, Excel, PowerPoint or text; up to 15 MB each)</span>
+                      📎 Attach files <span className="font-normal">(PDF, picture, Word, Excel, PowerPoint or text, up to 15 MB each; MP3 or MP4, up to 40 MB)</span>
                       <input type="file" name="files" multiple accept={DOCUMENT_ACCEPT} className="mt-1 block w-full text-sm" />
                     </label>
                     <SubmitButton className="btn-secondary btn-sm" pendingText="Saving…">

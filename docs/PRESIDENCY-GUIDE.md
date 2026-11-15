@@ -1420,9 +1420,12 @@ place. Only the presidency (or bishopric) sees it.
 - **📎 Files on an agenda item:** when adding an item, or later under **Edit or
   add notes**, choose **Attach files**: PDFs, pictures (JPEG, PNG, iPhone photos),
   Word, Excel and PowerPoint files, or text/CSV files, up to 15 MB each, several
-  at once. They show under the item as small previews (a picture, the first page
-  of a PDF, or a Word/Excel/PowerPoint icon); tap one to open it (PDFs and pictures open in
-  the browser, other files download) or ✕ to remove it. Only your presidency (or
+  at once; and sound or video (MP3, M4A or WAV; MP4 or an iPhone MOV) up to 40 MB
+  each, a few minutes of video. They show under the item as small previews (a
+  picture, the first page of a PDF, or a Word/Excel/PowerPoint icon); tap one to
+  open it (PDFs and pictures open in the browser, other files download) or ✕ to
+  remove it. Sound and video play right on the agenda (tap ▶; the video can go
+  full screen). For a longer video, share a link to it instead. Only your presidency (or
   bishopric) can open them. The printed agenda lists them by name. They stay with
   the item when the meeting is finished, and are deleted with it.
 - **🤝 Ward council** (at the top of Presidency meetings): a page for ward

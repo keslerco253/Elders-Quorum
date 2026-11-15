@@ -17,20 +17,30 @@ export const UPLOAD_TYPES = {
   ppt: "application/vnd.ms-powerpoint",
   txt: "text/plain; charset=utf-8",
   csv: "text/csv; charset=utf-8",
+  // Sound and video (agenda items too): played on the page.
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  wav: "audio/wav",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
 } as const;
 export type UploadExt = keyof typeof UPLOAD_TYPES;
 
 /** Stored files are named <24 hex>.<kind>. */
-export const UPLOAD_NAME = /^[a-f0-9]{24}\.(pdf|png|jpg|gif|webp|heic|docx|xlsx|pptx|doc|xls|ppt|txt|csv)$/;
+export const UPLOAD_NAME = /^[a-f0-9]{24}\.(pdf|png|jpg|gif|webp|heic|docx|xlsx|pptx|doc|xls|ppt|txt|csv|mp3|m4a|wav|mp4|mov)$/;
 
 /** For the file picker. */
 export const UPLOAD_ACCEPT = "application/pdf,image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif,.heic,.heif";
 
 /** For the file picker on an agenda item: PDFs, pictures, Office documents and plain text. */
-export const DOCUMENT_ACCEPT = `${UPLOAD_ACCEPT},.docx,.xlsx,.pptx,.doc,.xls,.ppt,.txt,.csv`;
+export const DOCUMENT_ACCEPT = `${UPLOAD_ACCEPT},.docx,.xlsx,.pptx,.doc,.xls,.ppt,.txt,.csv,.mp3,.m4a,.wav,.mp4,.mov,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,video/mp4,video/quicktime`;
 
-/** Files a browser can show itself (the rest are downloaded). */
-export const opensInBrowser = (name: string) => /\.(pdf|png|jpg|gif|webp)$/.test(name);
+/** Files a browser can show or play itself (the rest are downloaded). */
+export const opensInBrowser = (name: string) => /\.(pdf|png|jpg|gif|webp|mp3|m4a|wav|mp4|mov)$/.test(name);
+
+/** Sound and video files, played on the page. */
+export const isAudio = (name: string | null | undefined) => !!name && /\.(mp3|m4a|wav)$/i.test(name);
+export const isVideo = (name: string | null | undefined) => !!name && /\.(mp4|mov)$/i.test(name);
 
 /** Pictures every browser can show on the page (HEIC opens as a file instead). */
 export const isPicture = (name: string | null | undefined) => !!name && /\.(png|jpg|gif|webp)$/.test(name);
@@ -54,7 +64,7 @@ export function sniffUpload(b: Buffer): UploadExt | null {
  * plain text / CSV (no binary bytes). Anything else is refused.
  */
 export function sniffDocument(b: Buffer, fileName: string): UploadExt | null {
-  const known = sniffUpload(b);
+  const known = sniffUpload(b) ?? sniffMedia(b);
   if (known) return known;
   const ext = (fileName.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? "") as UploadExt;
   const zip = b[0] === 0x50 && b[1] === 0x4b && b[2] === 0x03 && b[3] === 0x04;
@@ -62,5 +72,20 @@ export function sniffDocument(b: Buffer, fileName: string): UploadExt | null {
   if (zip && ["docx", "xlsx", "pptx"].includes(ext)) return ext;
   if (ole && ["doc", "xls", "ppt"].includes(ext)) return ext;
   if (["txt", "csv"].includes(ext) && !b.subarray(0, 8192).includes(0)) return ext;
+  return null;
+}
+
+/** Sound and video, from their first bytes: MP3, M4A, WAV, MP4 or a QuickTime movie. */
+export function sniffMedia(b: Buffer): UploadExt | null {
+  const ascii = (from: number, to: number) => b.subarray(from, to).toString("latin1");
+  // MP3: an ID3 tag, or straight into an MPEG audio frame.
+  if (ascii(0, 3) === "ID3" || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0 && (b[1] & 0x06) !== 0)) return "mp3";
+  if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WAVE") return "wav";
+  if (ascii(4, 8) === "ftyp") {
+    const brand = ascii(8, 12);
+    if (brand === "M4A " || brand === "M4B ") return "m4a";
+    if (brand === "qt  ") return "mov";
+    if (["isom", "iso2", "iso4", "iso5", "iso6", "mp41", "mp42", "avc1", "M4V ", "MSNV", "dash", "3gp4", "3gp5"].includes(brand)) return "mp4";
+  }
   return null;
 }

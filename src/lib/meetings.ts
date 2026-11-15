@@ -249,18 +249,21 @@ function withFiles(items: Omit<AgendaItem, "files">[]): AgendaItem[] {
 }
 
 export const MAX_AGENDA_FILE = 15_000_000;
+/** A sound or video file can be bigger (a short clip). */
+export const MAX_AGENDA_MEDIA = 40_000_000;
 
 /** Attaches uploaded files to an agenda item. Returns an error to show, or null. */
 export async function attachAgendaFiles(orgId: number, itemId: number, files: File[], by: number): Promise<string | null> {
   const item = db().prepare("SELECT id FROM agenda_items WHERE id = ? AND org_id = ?").get(itemId, orgId);
   if (!item) return "That agenda item no longer exists.";
   for (const f of files) {
-    if (f.size > MAX_AGENDA_FILE) return `"${f.name}" is over 15 MB.`;
+    const media = /\.(mp3|m4a|wav|mp4|mov)$/i.test(f.name) || /^(audio|video)\//.test(f.type);
+    if (f.size > (media ? MAX_AGENDA_MEDIA : MAX_AGENDA_FILE)) return `"${f.name}" is over ${media ? "40" : "15"} MB.${media ? " Use a shorter clip, or share a link to it instead." : ""}`;
     let name: string;
     try {
       name = await saveDocument(f);
     } catch {
-      return `"${f.name}" can't be attached. Use a PDF, a picture, a Word, Excel or PowerPoint file, or a text file.`;
+      return `"${f.name}" can't be attached. Use a PDF, a picture, a Word, Excel or PowerPoint file, a text file, an MP3 or M4A, or an MP4 or MOV video.`;
     }
     db().prepare("INSERT INTO agenda_files (item_id, org_id, name, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)").run(itemId, orgId, name, f.name.slice(0, 200) || "File", by);
   }

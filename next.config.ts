@@ -39,8 +39,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: { "/admin/guide": ["./docs/PRESIDENCY-GUIDE.md"], "/more/help": ["./docs/MEMBER-GUIDE.md"] },
   experimental: {
     serverActions: {
-      // Room for a few attachments (15 MB each, e.g. on an agenda item) plus the rest of the form.
-      bodySizeLimit: "50mb",
+      // Room for a few attachments (15 MB each, or a 40 MB sound or video clip, on an agenda item) plus the rest of the form.
+      bodySizeLimit: "100mb",
       allowedOrigins: ["*.ts.net", ...(publicHost ? [publicHost] : [])],
     },
   },

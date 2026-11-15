@@ -20,6 +20,25 @@ describe("files on agenda items", () => {
     expect(sniffDocument(Buffer.from("<script>"), "page.html")).toBeNull();
   });
 
+  it("accepts sound and video (MP3, M4A, WAV, MP4, MOV) by their contents, not their names", () => {
+    const ftyp = (brand: string) => Buffer.concat([Buffer.from([0, 0, 0, 0x20]), Buffer.from(`ftyp${brand}`, "latin1"), Buffer.alloc(8)]);
+    expect(sniffDocument(Buffer.from("ID3\x04\x00rest", "latin1"), "talk.mp3")).toBe("mp3");
+    expect(sniffDocument(Buffer.from([0xff, 0xfb, 0x90, 0x64]), "no-tag.mp3")).toBe("mp3");
+    expect(sniffDocument(ftyp("M4A "), "Voice memo.m4a")).toBe("m4a");
+    expect(sniffDocument(Buffer.from("RIFF\x00\x00\x00\x00WAVEfmt ", "latin1"), "clip.wav")).toBe("wav");
+    expect(sniffDocument(ftyp("isom"), "clip.mp4")).toBe("mp4");
+    expect(sniffDocument(ftyp("mp42"), "renamed.bin")).toBe("mp4");
+    expect(sniffDocument(ftyp("qt  "), "IMG_0001.MOV")).toBe("mov");
+    // An iPhone photo is still a picture.
+    expect(sniffDocument(ftyp("heic"), "IMG_0002.HEIC")).toBe("heic");
+    expect(sniffDocument(Buffer.from("not really a song"), "fake.mp3")).toBeNull();
+  });
+
+  it("lets a sound or video clip be bigger than a document (40 MB, not 15)", async () => {
+    const m = await import("@/lib/meetings");
+    expect(m.MAX_AGENDA_MEDIA).toBeGreaterThan(m.MAX_AGENDA_FILE);
+  });
+
   it("attaches, lists, serves only to that presidency, and removes them", async () => {
     const { useTestDb, db } = await import("@/lib/db");
     useTestDb(`

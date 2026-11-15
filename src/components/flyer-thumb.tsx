@@ -14,7 +14,7 @@ export function FlyerThumb({ file, name, big, src: given }: { file: string; name
   if (file.endsWith(".pdf")) return <PdfThumb src={src} className={box} width={big ? 96 : 56} />;
   // Other documents: their kind, at a glance.
   const ext = file.split(".").pop() ?? "";
-  const kind = ext.startsWith("doc") ? ["📝", "Word"] : ext.startsWith("xls") || ext === "csv" ? ["📊", ext === "csv" ? "CSV" : "Excel"] : ext.startsWith("ppt") ? ["📽️", "PowerPoint"] : ["📄", ext.toUpperCase()];
+  const kind = ["mp3", "m4a", "wav"].includes(ext) ? ["🎵", "Audio"] : ["mp4", "mov"].includes(ext) ? ["🎬", "Video"] : ext.startsWith("doc") ? ["📝", "Word"] : ext.startsWith("xls") || ext === "csv" ? ["📊", ext === "csv" ? "CSV" : "Excel"] : ext.startsWith("ppt") ? ["📽️", "PowerPoint"] : ["📄", ext.toUpperCase()];
   return (
     <span className={`${box} flex flex-col items-center justify-center gap-0.5`} aria-label={kind[1]}>
       <span className="text-2xl">{kind[0]}</span>
