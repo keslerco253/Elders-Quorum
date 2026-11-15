@@ -71,9 +71,13 @@ describe("planned visits", () => {
   });
 
   it("clears planned visits never recorded 30 days after their date", () => {
-    d.exec("INSERT INTO planned_visits (org_id, member_id, date) VALUES (1, 3, date('now', '-40 days')), (1, 3, date('now', '-5 days'))");
-    const before = (d.prepare("SELECT COUNT(*) AS n FROM planned_visits").get() as { n: number }).n;
+    const add = (daysAgo: number) =>
+      Number(d.prepare("INSERT INTO planned_visits (org_id, member_id, date) VALUES (1, 3, date('now', ?))").run(`-${daysAgo} days`).lastInsertRowid);
+    const old = add(40);
+    const recent = add(5);
     runRetention();
-    expect((d.prepare("SELECT COUNT(*) AS n FROM planned_visits").get() as { n: number }).n).toBe(before - 1);
+    const still = (id: number) => !!d.prepare("SELECT 1 FROM planned_visits WHERE id = ?").get(id);
+    expect(still(old)).toBe(false);
+    expect(still(recent)).toBe(true);
   });
 });
