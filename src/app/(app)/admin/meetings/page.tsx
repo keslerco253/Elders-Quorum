@@ -23,6 +23,8 @@ import { DOCUMENT_ACCEPT } from "@/lib/upload-names";
 import { SectionSelect } from "./section-select";
 import { MeetingDateInput } from "./meeting-date";
 import { RepeatFields } from "@/components/repeat-fields";
+import { VideoInvite } from "./video-invite";
+import { orgPresidency, orgRoster } from "@/lib/orgs";
 
 export const metadata = { title: "Presidency meetings" };
 
@@ -37,6 +39,11 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const meetings = orgMeetings(user.org_id);
   const review = recordsToReview(user.org_id, today).length;
   const video = videoLink(user.org_id);
+  // Who can be invited to the video meeting: the presidency first, then the rest.
+  const leaderIds = new Set(orgPresidency(user.org_id).map((p) => p.id));
+  const invitable = orgRoster(user.org_id)
+    .filter((p) => p.id !== user.id)
+    .map((p) => ({ ...p, presidency: leaderIds.has(p.id) }));
   const reminderMin = reminderSettings(user.org_id).meetingMinutes;
   // Scheduled and not finished yet (today's too); the rest are past.
   const upcoming = meetings.filter((m) => !m.held_at && m.date >= today).reverse();
@@ -275,12 +282,10 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         <div id="video" className="card scroll-mt-20 space-y-3">
           <h2 className="h2">{kind === "video" ? "Video meeting" : `${kind} meeting`}</h2>
           {video ? (
-            <form action={startVideo} className="space-y-2">
+            <form action={startVideo} className="space-y-3">
+              <VideoInvite people={invitable} leaders={leadersWord(user.org)} />
               <SubmitButton pendingText="Opening…">Start {kind} meeting</SubmitButton>
-              <label className="flex items-start gap-2 text-sm">
-                <input type="checkbox" name="notify" defaultChecked className="mt-1" />
-                <span>Let the rest of the {leadersWord(user.org)} know, with a Join button</span>
-              </label>
+              <p className="hint">They get a notification (or text) with a Join button. Someone outside the {leadersWord(user.org)} can open the link for 12 hours.</p>
             </form>
           ) : (
             <p className="text-sm text-muted">

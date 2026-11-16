@@ -434,6 +434,23 @@ export function videoLink(orgId: number): string | null {
   return (db().prepare("SELECT video_link FROM orgs WHERE id = ?").get(orgId) as { video_link: string | null } | undefined)?.video_link ?? null;
 }
 
+/** How long an invitation to a video meeting lets someone outside the presidency open it. */
+export const VIDEO_INVITE_HOURS = 12;
+
+/** Records who was invited to the video meeting (so they can open its link). */
+export function inviteToVideo(orgId: number, memberIds: number[]) {
+  const ins = db().prepare("INSERT INTO video_invites (org_id, member_id) VALUES (?, ?) ON CONFLICT(org_id, member_id) DO UPDATE SET invited_at = datetime('now')");
+  for (const id of memberIds) ins.run(orgId, id);
+}
+
+/** The video meeting link this member may open: the presidency's own, or one they were invited to lately. */
+export function videoLinkFor(orgId: number, memberId: number): string | null {
+  const d = db();
+  const leads = d.prepare("SELECT 1 FROM org_members WHERE org_id = ? AND member_id = ? AND role = 'presidency'").get(orgId, memberId);
+  const invited = d.prepare(`SELECT 1 FROM video_invites WHERE org_id = ? AND member_id = ? AND invited_at > datetime('now', '-${VIDEO_INVITE_HOURS} hours')`).get(orgId, memberId);
+  return leads || invited ? videoLink(orgId) : null;
+}
+
 export function setVideoLink(orgId: number, link: string | null) {
   db().prepare("UPDATE orgs SET video_link = ? WHERE id = ?").run(link, orgId);
 }

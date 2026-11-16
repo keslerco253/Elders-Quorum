@@ -2005,6 +2005,17 @@ CREATE TABLE conversation_claims (
   PRIMARY KEY (org_id, member_id)
 );`,
   },
+  {
+    // Video meetings: who was invited (the presidency, or chosen people from the
+    // organization), so those outside the presidency can open the link for a while.
+    id: 113,
+    sql: `CREATE TABLE video_invites (
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  invited_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (org_id, member_id)
+);`,
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */

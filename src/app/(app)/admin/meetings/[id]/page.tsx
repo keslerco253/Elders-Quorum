@@ -104,6 +104,9 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="notify" defaultChecked /> Let the others know
           </label>
+          <Link href="/admin/meetings#video" className="text-sm text-accent hover:underline">
+            Invite others…
+          </Link>
         </form>
       )}
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">

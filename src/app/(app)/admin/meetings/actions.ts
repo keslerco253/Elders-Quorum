@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requirePresidency } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { attachAgendaFiles, deleteAgendaItemFiles, removeAgendaFile, addAgendaItem, cleanVideoLink, inviteGroups, inviteToMeeting, uninviteFromMeeting, isMeetingRole, moveAgendaItem, setAgendaSection, setMeetingRole, createMeeting, deleteMeetingRecord, finishMeeting, getMeeting, reviewRecord, saveAgendaNotes, setVideoLink, syncMeetingEvent, videoKind, videoLink, type ReviewRecord } from "@/lib/meetings";
+import { attachAgendaFiles, deleteAgendaItemFiles, removeAgendaFile, addAgendaItem, cleanVideoLink, inviteGroups, inviteToMeeting, uninviteFromMeeting, isMeetingRole, moveAgendaItem, setAgendaSection, setMeetingRole, createMeeting, deleteMeetingRecord, finishMeeting, getMeeting, reviewRecord, saveAgendaNotes, setVideoLink, syncMeetingEvent, videoKind, videoLink, inviteToVideo, type ReviewRecord } from "@/lib/meetings";
 import { audienceMembers, notify, recipientById, type Recipient } from "@/lib/notify";
 import { orgFullName, orgRoster } from "@/lib/orgs";
 import { DateTime } from "luxon";
@@ -317,17 +317,33 @@ export async function saveVideoLink(fd: FormData) {
   go("/admin/meetings", `${videoKind(link)} link saved. Tap Start to begin a meeting.`);
 }
 
-/** Opens the video meeting, and (if ticked) tells the rest of the presidency to join. */
+/**
+ * Opens the video meeting and tells whoever is invited, with a Join button: the rest of
+ * the presidency, or people chosen from the organization (presidency members too), or
+ * no one.
+ */
 export async function startVideo(fd: FormData) {
   const user = await requirePresidency();
   const link = videoLink(user.org_id);
   if (!link) go("/admin/meetings", "Add your meeting link first.");
-  if (fd.get("notify") === "on") {
-    const others = audienceMembers(user.org_id, "presidency").filter((r) => r.id !== user.id);
-    await notify(others, {
+  // "notify" is what the older form sent (the presidency, ticked).
+  const who = String(fd.get("who") || (fd.get("notify") === "on" ? "presidency" : "me"));
+  let ids: number[] = [];
+  if (who === "presidency") ids = audienceMembers(user.org_id, "presidency").map((r) => r.id);
+  else if (who === "people") {
+    const roster = new Set(orgRoster(user.org_id).map((p) => p.id));
+    ids = [...new Set(fd.getAll("people").map(Number))].filter((id) => roster.has(id));
+    if (!ids.filter((id) => id !== user.id).length) go("/admin/meetings#video", "Choose who to invite, or pick The presidency.");
+  }
+  ids = ids.filter((id) => id !== user.id);
+  if (ids.length) {
+    inviteToVideo(user.org_id, ids);
+    const to = ids.map((id) => recipientById(id, user.org_id)).filter((r): r is Recipient => !!r);
+    await notify(to, {
       title: `${user.display_name} started a ${videoKind(link)} meeting`,
-      body: `The ${leadersWord(user.org)} meeting is starting. Tap to join.`,
-      url: withOrg("/admin/meetings/join", user.org_id),
+      body: who === "presidency" ? `The ${leadersWord(user.org)} meeting is starting. Tap to join.` : `${user.display_name} invited you to a ${user.orgLabel} meeting. Tap to join.`,
+      textFull: `${user.display_name} invited you to a ${videoKind(link)} meeting, starting now.`,
+      url: withOrg("/join-meeting", user.org_id),
       linkLabel: "Join",
     });
   }

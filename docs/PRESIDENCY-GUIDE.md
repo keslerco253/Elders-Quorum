@@ -1533,11 +1533,16 @@ place. Only the presidency (or bishopric) sees it.
   Meet/Teams) box tap **Add the link**, paste it and **Save link** (**Change the
   link** later; save it empty to remove it). Use a Zoom personal room or recurring
   meeting, Google Meet or Teams; in Zoom, Meetings → Personal Room → Copy
-  Invitation, which includes the passcode. **Start Zoom meeting** (or Google Meet /
-  Teams) opens it; with **Let the rest of the presidency know** ticked, the others
-  get a notification with a **Join** button. The button (with **Let the others
-  know**) also shows at the top of an unfinished presidency meeting, not on
-  invited meetings.
+  Invitation, which includes the passcode. Under **Send the Join link to**, pick
+  **The presidency**, **People I choose** (tick anyone in the organization, the
+  presidency too; **Find a name** narrows the list) or **No one**, then **Start
+  Zoom meeting** (or Google Meet / Teams). It opens for you, and those invited get
+  a notification (or text, by their choice) with a **Join** button. Members outside
+  the presidency can open the link for 12 hours after they're invited; after that
+  **Join** says to ask for a new invitation. The link itself stays hidden (it
+  holds the passcode). A **Start** button (with **Let the others know**, for the
+  presidency, and **Invite others…**) also shows at the top of an unfinished
+  presidency meeting, not on invited meetings.
 - **Keep notes only as long as they're needed** (General Handbook): a meeting
   comes up for review 3 months after it's held, a finished assignment 3 months
   after it's done, and an agenda item after waiting 3 months. On the 1st of each

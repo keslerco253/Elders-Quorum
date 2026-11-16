@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import { requirePresidency } from "@/lib/auth";
-import { videoLink } from "@/lib/meetings";
+import { requireUser } from "@/lib/auth";
 
-/** "Join" in a meeting-started notification: opens the presidency's video meeting. */
-export default async function JoinVideoPage() {
-  const user = await requirePresidency();
-  redirect(videoLink(user.org_id) ?? "/admin/meetings?msg=No%20video%20meeting%20link%20is%20set%20up.");
+/** The older "Join" link (in notifications already sent): the same as /join-meeting. */
+export default async function JoinVideoPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
+  const user = await requireUser();
+  const org = (await searchParams).org;
+  redirect(`/join-meeting?org=${Number(org) || user.org_id}`);
 }
