@@ -2,9 +2,10 @@ import { hasFeature } from "@/lib/orgs";
 import { AssignmentReview } from "../assignment-review";
 import { Labeled } from "@/components/labeled";
 import Link from "next/link";
+import { VideoMeetingFields } from "../video-fields";
 import { notFound } from "next/navigation";
 import { requirePresidency } from "@/lib/auth";
-import { attendeeChoices, getMeeting, inviteGroups, MEETING_ROLES, meetingInvitees, meetingAgenda, meetingName, meetingReminders, pendingAgenda, videoKind, videoLink } from "@/lib/meetings";
+import { attendeeChoices, getMeeting, inviteGroups, MEETING_ROLES, meetingInvitees, meetingAgenda, meetingName, meetingReminders, pendingAgenda, videoKind, videoLink, meetingVideoLink } from "@/lib/meetings";
 import { DateTime } from "luxon";
 import { Linkify } from "@/components/linkify";
 import { orgTodos, STATUS_LABELS } from "@/lib/assignments";
@@ -96,7 +97,13 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
           )}
         </form>
       )}
-      {video && (
+      {/* A meeting held over video: join it (everyone in it was sent the same button). */}
+      {!held && meetingVideoLink(m) && (
+        <a href={`/join-meeting?meeting=${m.id}`} target="_blank" rel="noreferrer" className="btn-primary mb-5 inline-flex">
+          ▶ Join {videoKind(meetingVideoLink(m)!)} meeting
+        </a>
+      )}
+      {video && !m.video && (
         <form action={startVideo} className="mb-5 flex flex-wrap items-center gap-3">
           <SubmitButton className="btn-secondary" pendingText="Opening…">
             Start {videoKind(video)} meeting
@@ -260,6 +267,7 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                 <input name="location" maxLength={200} defaultValue={m.location} className="input" />
               </Labeled>
             </div>
+            {!held && <VideoMeetingFields on={!!m.video} link={m.video_link} saved={videoLink(user.org_id)} />}
             {!held && <MeetingReminderFields id="meeting" first={meetingReminders(user.org_id, m)[0] ?? 0} second={meetingReminders(user.org_id, m)[1] ?? 0} />}
             <fieldset>
               <legend className="label">Who was there</legend>

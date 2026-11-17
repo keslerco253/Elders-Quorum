@@ -24,6 +24,7 @@ import { SectionSelect } from "./section-select";
 import { MeetingDateInput } from "./meeting-date";
 import { RepeatFields } from "@/components/repeat-fields";
 import { VideoInvite } from "./video-invite";
+import { VideoMeetingFields } from "./video-fields";
 import { orgPresidency, orgRoster } from "@/lib/orgs";
 
 export const metadata = { title: "Presidency meetings" };
@@ -178,6 +179,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
             <Labeled label="Where" hint="optional" className="col-span-2 sm:col-span-1">
               <input name="location" maxLength={200} defaultValue={next.location} className="input" />
             </Labeled>
+            <VideoMeetingFields on={!!next.video} link={next.video_link} saved={video} className="col-span-2" />
             <MeetingReminderFields
               id="edit"
               first={meetingReminders(user.org_id, next)[0] ?? 0}
@@ -260,6 +262,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                   <input name="location" maxLength={200} className="input" />
                 </Labeled>
               </div>
+              <VideoMeetingFields on={false} link={null} saved={video} />
               <MeetingReminderFields id="new" first={reminderMin} second={0} />
               <RepeatFields initialStart={today} />
               <p className="hint -mt-1">Repeats is for {leadersWord(user.org)} meetings: the next two are always scheduled, each with its own agenda and notes.</p>

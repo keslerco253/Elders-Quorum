@@ -21,6 +21,9 @@ export interface MeetingSeries {
   location: string;
   reminder_minutes: number | null;
   reminder2_minutes: number | null;
+  /** Over video: each meeting gets it (with this link, or the presidency's saved one). */
+  video: number;
+  video_link: string | null;
   created_by: number | null;
   active: number;
   last_date: string | null;
@@ -55,6 +58,7 @@ export function fillMeetingSeries(seriesId: number, tz: string, today = todayIn(
       location: s.location,
       reminders: [s.reminder_minutes, s.reminder2_minutes],
       seriesId: s.id,
+      video: { on: !!s.video, link: s.video_link },
     }),
   );
   if (dates.length) db().prepare("UPDATE meeting_series SET last_date = ? WHERE id = ?").run(dates.at(-1), s.id);
@@ -66,17 +70,31 @@ export function fillMeetingSeries(seriesId: number, tz: string, today = todayIn(
 /** Starts repeating meetings and schedules the first ones. Returns the first meeting's id. */
 export function createMeetingSeries(
   orgId: number,
-  input: { pattern: Pattern; start: string; until: string | null; count: number | null; time: string; title: string; location: string; reminders: [number | null, number | null] },
+  input: { pattern: Pattern; start: string; until: string | null; count: number | null; time: string; title: string; location: string; reminders: [number | null, number | null]; video?: { on: boolean; link: string | null } },
   createdBy: number,
   tz: string,
 ): number | undefined {
   const id = Number(
     db()
       .prepare(
-        `INSERT INTO meeting_series (org_id, pattern, start_date, until, count, time, title, location, reminder_minutes, reminder2_minutes, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO meeting_series (org_id, pattern, start_date, until, count, time, title, location, reminder_minutes, reminder2_minutes, created_by, video, video_link)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(orgId, input.pattern, input.start, input.until, input.count, input.time, input.title, input.location.trim().slice(0, 200), input.reminders[0], input.reminders[1], createdBy).lastInsertRowid,
+      .run(
+        orgId,
+        input.pattern,
+        input.start,
+        input.until,
+        input.count,
+        input.time,
+        input.title,
+        input.location.trim().slice(0, 200),
+        input.reminders[0],
+        input.reminders[1],
+        createdBy,
+        input.video?.on ? 1 : 0,
+        input.video?.on ? input.video.link : null,
+      ).lastInsertRowid,
   );
   return fillMeetingSeries(id, tz, input.start < todayIn(tz) ? todayIn(tz) : input.start)[0];
 }

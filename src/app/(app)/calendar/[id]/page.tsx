@@ -15,7 +15,7 @@ import { FlyerView } from "@/components/flyer-view";
 import { rsvp } from "../actions";
 import { editsEventsOf, hasFeature, roleIn } from "@/lib/orgs";
 import { Linkify } from "@/components/linkify";
-import { meetingForEvent } from "@/lib/meetings";
+import { meetingById, meetingForEvent, meetingVideoLink, videoKind } from "@/lib/meetings";
 import { withOrg } from "@/lib/org-cookie";
 
 export const metadata = { title: "Event" };
@@ -86,9 +86,14 @@ export default async function EventPage({ params, searchParams }: { params: Prom
         {e.location && (
           <div>
             <div className="text-sm text-muted">Where</div>
-            <a className="link" href={`https://maps.google.com/?q=${encodeURIComponent(e.location)}`} target="_blank" rel="noreferrer">
-              {e.location}
-            </a>
+            {/* Over video ("Zoom"): not a place to map. */}
+            {/^(zoom|google meet|teams|video)$/i.test(e.location.trim()) ? (
+              <span>{e.location}</span>
+            ) : (
+              <a className="link" href={`https://maps.google.com/?q=${encodeURIComponent(e.location)}`} target="_blank" rel="noreferrer">
+                {e.location}
+              </a>
+            )}
           </div>
         )}
         {e.description && (
@@ -96,6 +101,16 @@ export default async function EventPage({ params, searchParams }: { params: Prom
             <Linkify text={e.description} />
           </p>
         )}
+        {/* A meeting held over video: Join (for those in it; the link opens around its time). */}
+        {(() => {
+          const vm = meetingForEvent(e.id) ?? (e.invited_meeting_id ? meetingById(e.invited_meeting_id) : undefined);
+          const link = vm && !vm.held_at ? meetingVideoLink(vm) : null;
+          return link ? (
+            <a href={`/join-meeting?meeting=${vm!.id}`} target="_blank" rel="noreferrer" className="btn-primary btn-sm mr-2">
+              ▶ Join {videoKind(link)} meeting
+            </a>
+          ) : null;
+        })()}
         {/* A meeting someone was invited to: its agenda, and their answer. */}
         {e.invited_meeting_id && (
           <Link href={`/meetings/${e.invited_meeting_id}`} className="btn-primary btn-sm">

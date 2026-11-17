@@ -38,6 +38,9 @@ export interface Meeting {
   reminder_minutes: number | null;
   /** An optional second reminder (null or 0: none). */
   reminder2_minutes: number | null;
+  /** Held over video (1): its own link, or (null) the presidency's saved one. */
+  video: number;
+  video_link: string | null;
   /** The repeating meetings it's one of, if any (meeting-series.ts). */
   series_id: number | null;
 }
@@ -93,11 +96,11 @@ export function createMeeting(
   date: string,
   title: string,
   createdBy: number,
-  opts: { time?: string | null; tz?: string; kind?: MeetingKind; location?: string; reminders?: [number | null, number | null]; seriesId?: number } = {},
+  opts: { time?: string | null; tz?: string; kind?: MeetingKind; location?: string; reminders?: [number | null, number | null]; seriesId?: number; video?: { on: boolean; link: string | null } } = {},
 ): number {
   const id = Number(
     db()
-      .prepare("INSERT INTO meetings (org_id, date, time, title, created_by, kind, location, reminder_minutes, reminder2_minutes, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .prepare("INSERT INTO meetings (org_id, date, time, title, created_by, kind, location, reminder_minutes, reminder2_minutes, series_id, video, video_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .run(
         orgId,
         date,
@@ -109,6 +112,8 @@ export function createMeeting(
         opts.reminders?.[0] ?? null,
         opts.reminders?.[1] ?? null,
         opts.seriesId ?? null,
+        opts.video?.on ? 1 : 0,
+        opts.video?.on ? opts.video.link : null,
       ).lastInsertRowid,
   );
   if (opts.time && opts.tz) syncMeetingEvent(orgId, id, opts.tz, createdBy);
@@ -133,15 +138,19 @@ export function syncMeetingEvent(orgId: number, meetingId: number, tz: string, b
   }
   const ends = DateTime.fromISO(starts).plus({ hours: 1 }).toUTC().toISO({ suppressMilliseconds: true })!;
   const title = meetingName(orgId, m);
-  const description = m.kind === "invited" ? "For the people invited. Open it for the agenda, and to say whether you can come." : "The agenda and notes are under Admin → Presidency meetings.";
+  const link = meetingVideoLink(m);
+  const join = link ? ` It's on ${videoKind(link)}: tap Join meeting here (or in its reminder) to join.` : "";
+  const description = (m.kind === "invited" ? "For the people invited. Open it for the agenda, and to say whether you can come." : "The agenda and notes are under Admin → Presidency meetings.") + join;
+  // Over video with no place given: say so (the link itself stays in the app).
+  const where = m.location || (link ? videoKind(link) : "");
   const exists = m.event_id && d.prepare("SELECT 1 FROM events WHERE id = ? AND org_id = ?").get(m.event_id, orgId);
   const [first, second] = meetingReminders(orgId, m);
   if (exists)
-    d.prepare("UPDATE events SET title = ?, location = ?, starts_at = ?, ends_at = ?, reminder_minutes = ?, reminder2_minutes = ? WHERE id = ?").run(title, m.location, starts, ends, first, second, m.event_id);
+    d.prepare("UPDATE events SET title = ?, description = ?, location = ?, starts_at = ?, ends_at = ?, reminder_minutes = ?, reminder2_minutes = ? WHERE id = ?").run(title, description, where, starts, ends, first, second, m.event_id);
   else {
     const id = d
       .prepare("INSERT INTO events (org_id, title, description, location, starts_at, ends_at, presidency_only, reminder_minutes, reminder2_minutes, created_by) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)")
-      .run(orgId, title, description, m.location, starts, ends, first, second, by).lastInsertRowid;
+      .run(orgId, title, description, where, starts, ends, first, second, by).lastInsertRowid;
     d.prepare("UPDATE meetings SET event_id = ? WHERE id = ?").run(Number(id), m.id);
   }
 }
@@ -449,6 +458,49 @@ export function videoLinkFor(orgId: number, memberId: number): string | null {
   const leads = d.prepare("SELECT 1 FROM org_members WHERE org_id = ? AND member_id = ? AND role = 'presidency'").get(orgId, memberId);
   const invited = d.prepare(`SELECT 1 FROM video_invites WHERE org_id = ? AND member_id = ? AND invited_at > datetime('now', '-${VIDEO_INVITE_HOURS} hours')`).get(orgId, memberId);
   return leads || invited ? videoLink(orgId) : null;
+}
+
+/** A meeting held over video: its own link, else the presidency's saved one (null if it isn't, or none is saved). */
+export function meetingVideoLink(m: Pick<Meeting, "org_id" | "video" | "video_link">): string | null {
+  return m.video ? (m.video_link ?? videoLink(m.org_id)) : null;
+}
+
+/** A meeting by its id alone (for links that carry it). */
+export function meetingById(id: number): Meeting | undefined {
+  return db().prepare("SELECT * FROM meetings WHERE id = ?").get(id) as Meeting | undefined;
+}
+
+/** Who a video meeting is for: the presidency, or (invited) those invited who didn't say no. */
+export function videoMeetingPeople(m: Pick<Meeting, "id" | "org_id" | "kind">): number[] {
+  const d = db();
+  if (m.kind === "invited")
+    return (d.prepare("SELECT i.member_id FROM meeting_invitees i JOIN members mm ON mm.id = i.member_id WHERE i.meeting_id = ? AND (i.response IS NULL OR i.response <> 'no') AND mm.status = 'active'").all(m.id) as { member_id: number }[]).map((r) => r.member_id);
+  return (d.prepare("SELECT om.member_id FROM org_members om JOIN members mm ON mm.id = om.member_id WHERE om.org_id = ? AND om.role = 'presidency' AND mm.status = 'active'").all(m.org_id) as { member_id: number }[]).map((r) => r.member_id);
+}
+
+/** Invited people can join from an hour before it starts until 3 hours after. */
+export const JOIN_EARLY_MIN = 60;
+export const JOIN_LATE_MIN = 180;
+
+/** Whether a meeting is open to join now: from an hour before it starts to 3 hours after. */
+export function joinOpen(m: Pick<Meeting, "date" | "time">, tz: string, now: DateTime = DateTime.utc()): boolean {
+  if (!m.time) return false;
+  const start = DateTime.fromISO(`${m.date}T${m.time}`, { zone: tz });
+  return now >= start.minus({ minutes: JOIN_EARLY_MIN }) && now <= start.plus({ minutes: JOIN_LATE_MIN });
+}
+
+/**
+ * The link this member may open for this video meeting, around its time (an hour
+ * before to 3 hours after): the organization's presidency (any time, for one with no
+ * time set), or, for an invited meeting, those invited who didn't say no.
+ */
+export function meetingVideoLinkFor(m: Meeting, memberId: number, tz: string, now: DateTime = DateTime.utc()): string | null {
+  const link = meetingVideoLink(m);
+  if (!link) return null;
+  const leads = !!db().prepare("SELECT 1 FROM org_members WHERE org_id = ? AND member_id = ? AND role = 'presidency'").get(m.org_id, memberId);
+  if (leads && !m.time) return link;
+  const inIt = leads || (m.kind === "invited" && videoMeetingPeople(m).includes(memberId));
+  return inIt && joinOpen(m, tz, now) ? link : null;
 }
 
 export function setVideoLink(orgId: number, link: string | null) {

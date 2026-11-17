@@ -136,6 +136,29 @@ function saveReminders(fd: FormData, meetingId: number) {
   db().prepare("UPDATE meetings SET reminder_minutes = ?, reminder2_minutes = ? WHERE id = ?").run(first, second || null, meetingId);
 }
 
+/**
+ * "Over video" from a meeting form (only forms with the video boxes send video_fields):
+ * on or off, and its own link (empty: the presidency's saved one). A link that isn't a
+ * Zoom, Meet or Teams one goes back with a message.
+ */
+function videoOf(fd: FormData, back: string): { on: boolean; link: string | null } | undefined {
+  if (!fd.has("video_fields")) return undefined;
+  const on = fd.get("video") === "on";
+  const raw = String(fd.get("video_link") || "").trim();
+  if (!on) return { on: false, link: null };
+  if (!raw) return { on: true, link: null };
+  const link = cleanVideoLink(raw);
+  if (!link) go(back, "Paste a Zoom, Google Meet or Teams link for this meeting (it starts with https://), or leave it empty to use your saved link.");
+  return { on: true, link };
+}
+
+/** Saves a meeting's video setting (when the form had it). True if it changed. */
+function saveVideo(m: { id: number; video: number; video_link: string | null }, v: { on: boolean; link: string | null } | undefined): boolean {
+  if (!v || (!!m.video === v.on && (m.video_link ?? null) === v.link)) return false;
+  db().prepare("UPDATE meetings SET video = ?, video_link = ? WHERE id = ?").run(v.on ? 1 : 0, v.link, m.id);
+  return true;
+}
+
 const timeOf = (fd: FormData) => (/^\d{2}:\d{2}$/.test(String(fd.get("time"))) ? String(fd.get("time")) : null);
 
 /**
@@ -152,6 +175,8 @@ export async function newMeeting(fd: FormData) {
   const [first, second] = remindersOf(fd);
   const reminders: [number | null, number | null] | undefined = fd.has("reminder") ? [first, second || null] : undefined;
   const location = String(fd.get("location") || "");
+  const video = videoOf(fd, "/admin/meetings");
+  if (video?.on && !video.link && !videoLink(user.org_id)) go("/admin/meetings", "Save your meeting link first (Video meeting, below), or paste a link just for this meeting.");
   // A presidency meeting can repeat (the first Sunday of every month…): the next ones are scheduled ahead.
   const pattern = String(fd.get("repeat") || "") as Pattern;
   if (!invited && time && patternOptions(date).some((o) => o.value === pattern)) {
@@ -169,6 +194,7 @@ export async function newMeeting(fd: FormData) {
         title,
         location,
         reminders: reminders ?? [null, null],
+        video,
       },
       user.id,
       user.ward.timezone,
@@ -182,6 +208,7 @@ export async function newMeeting(fd: FormData) {
     kind: invited ? "invited" : "presidency",
     location,
     reminders,
+    video,
   });
   revalidatePath("/", "layout");
   if (invited) go(`/admin/meetings/${id}#invite`, `${title} scheduled for ${formatDate(date, "short")}. Now invite people to it.`);
@@ -232,12 +259,13 @@ export async function saveMeeting(fd: FormData) {
   const time = fd.has("time") ? timeOf(fd) : m.time;
   const title = String(fd.get("title") || "").trim().slice(0, 120) || (m.kind === "invited" ? m.title : "");
   const location = fd.has("location") ? String(fd.get("location") || "").trim().slice(0, 200) : m.location;
+  const videoChanged = saveVideo(m, videoOf(fd, `/admin/meetings/${m.id}`));
   db()
     .prepare("UPDATE meetings SET date = ?, time = ?, title = ?, location = ?, attendees = ?, notes = ?, updated_at = datetime('now') WHERE id = ?")
     .run(date, time, title, location, attendees, String(fd.get("notes") ?? m.notes).replace(/\r\n?/g, "\n").slice(0, 20000), m.id);
   saveReminders(fd, m.id);
   syncRoleTodosWhen(user.org_id, m.id);
-  if (fd.has("reminder") || date !== m.date || time !== m.time || title !== m.title || location !== m.location) syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
+  if (videoChanged || fd.has("reminder") || date !== m.date || time !== m.time || title !== m.title || location !== m.location) syncMeetingEvent(user.org_id, m.id, user.ward.timezone, user.id);
   revalidatePath("/", "layout");
   go(`/admin/meetings/${m.id}`, "Notes saved.");
 }
@@ -251,6 +279,7 @@ export async function saveMeetingWhen(fd: FormData) {
   const time = timeOf(fd) ?? m.time;
   const title = String(fd.get("title") || "").trim().slice(0, 120) || (m.kind === "invited" ? m.title : "");
   const location = String(fd.get("location") || "").trim().slice(0, 200);
+  saveVideo(m, videoOf(fd, String(fd.get("back")) === "meeting" ? `/admin/meetings/${m.id}` : "/admin/meetings"));
   db().prepare("UPDATE meetings SET date = ?, time = ?, title = ?, location = ?, updated_at = datetime('now') WHERE id = ?").run(date, time, title, location, m.id);
   saveReminders(fd, m.id);
   syncRoleTodosWhen(user.org_id, m.id);

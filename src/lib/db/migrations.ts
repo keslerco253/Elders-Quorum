@@ -2016,6 +2016,15 @@ CREATE TABLE conversation_claims (
   PRIMARY KEY (org_id, member_id)
 );`,
   },
+  {
+    // A scheduled meeting held over video (Zoom, Meet, Teams): the presidency's saved
+    // link, or one just for it. Repeating meetings carry it to each one.
+    id: 114,
+    sql: `ALTER TABLE meetings ADD COLUMN video INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE meetings ADD COLUMN video_link TEXT;
+ALTER TABLE meeting_series ADD COLUMN video INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE meeting_series ADD COLUMN video_link TEXT;`,
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */

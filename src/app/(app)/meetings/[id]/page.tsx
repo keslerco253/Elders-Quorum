@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { DateTime } from "luxon";
 import { requireUser } from "@/lib/auth";
-import { invitedMeeting, MEETING_ROLES, meetingAgenda, meetingInvitees } from "@/lib/meetings";
+import { invitedMeeting, MEETING_ROLES, meetingAgenda, meetingInvitees, meetingVideoLink, videoKind } from "@/lib/meetings";
 import { getOrg, roleIn } from "@/lib/orgs";
 import { withOrg } from "@/lib/org-cookie";
 import { formatDate } from "@/lib/time";
@@ -71,6 +71,15 @@ export default async function InvitedMeetingPage({ params }: { params: Promise<{
                 {answer("no", "I can't come")}
               </div>
             </>
+          )}
+          {/* Over video: the Join button (it opens an hour before). */}
+          {!m.held_at && m.response !== "no" && meetingVideoLink(m) && (
+            <div>
+              <a href={`/join-meeting?meeting=${m.id}`} target="_blank" rel="noreferrer" className="btn-primary btn-sm">
+                ▶ Join {videoKind(meetingVideoLink(m)!)} meeting
+              </a>
+              <p className="hint mt-1">Opens an hour before it starts.</p>
+            </div>
           )}
           {m.event_id && (
             <Link href={`/calendar/${m.event_id}`} className="link block text-sm">

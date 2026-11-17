@@ -37,6 +37,7 @@ import { dueText } from "./assignments";
 import { challengeMemberIds, challengeTeams, scoreboard } from "./challenges";
 import { lastDelivery } from "./delivery";
 import { leaderInbox } from "./conversations";
+import { joinOpen, meetingById, meetingForEvent, meetingName, meetingVideoLink, videoKind, videoMeetingPeople, type Meeting } from "./meetings";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
 interface OrgCtx {
@@ -221,9 +222,13 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   const out: DueNotification[] = [];
   for (const e of events) {
     const audience = eventAudience(e);
+    // A meeting held over video: its reminder carries the Join button.
+    const vm = meetingForEvent(e.id) ?? (e.invited_meeting_id ? meetingById(e.invited_meeting_id) : undefined);
+    const video = vm && !vm.held_at && meetingVideoLink(vm);
     const payload: PushPayload = {
       ...renderTemplate(org.id, "event_reminder", { event: e.title, date_time: eventWhenText(e, org.timezone), location: e.location }),
-      url: `/calendar/${e.id}`,
+      url: video ? withOrg(`/join-meeting?meeting=${vm.id}`, org.id) : `/calendar/${e.id}`,
+      ...(video ? { linkLabel: "Join" } : {}),
     };
     for (const m of audience) {
       const mine = own.get(m.id);
@@ -336,6 +341,42 @@ function reviewReminders(org: OrgCtx, now: DateTime): DueNotification[] {
   ];
 }
 
+
+/**
+ * A meeting held over video, as it starts (within 15 minutes of its time): everyone in
+ * it (the presidency, or those invited who didn't say no) gets "starting now" with a
+ * Join button.
+ */
+function videoMeetingStarts(org: OrgCtx, now: DateTime): DueNotification[] {
+  const local = now.setZone(org.timezone);
+  const meetings = db()
+    .prepare("SELECT * FROM meetings WHERE org_id = ? AND video = 1 AND held_at IS NULL AND time IS NOT NULL AND date BETWEEN ? AND ?")
+    .all(org.id, local.minus({ days: 1 }).toISODate(), local.toISODate()) as Meeting[];
+  const out: DueNotification[] = [];
+  for (const m of meetings) {
+    const link = meetingVideoLink(m);
+    const start = DateTime.fromISO(`${m.date}T${m.time}`, { zone: org.timezone });
+    if (!link || local < start || local > start.plus({ minutes: 15 }) || !joinOpen(m, org.timezone, now)) continue;
+    const to = videoMeetingPeople(m)
+      .map((id) => recipientById(id, org.id))
+      .filter((r): r is Recipient => !!r);
+    if (!to.length) continue;
+    const name = meetingName(org.id, m);
+    out.push({
+      key: `video-start:${m.id}:${m.date}T${m.time}`,
+      recipients: to,
+      payload: {
+        title: `${name} is starting`,
+        body: `It's on ${videoKind(link)}. Tap Join to come in.`,
+        textFull: `${name} is starting now on ${videoKind(link)}. Join:`,
+        url: withOrg(`/join-meeting?meeting=${m.id}`, org.id),
+        linkLabel: "Join",
+        tag: `video-start-${m.id}`,
+      },
+    });
+  }
+  return out;
+}
 
 /**
  * The evening summary (8 PM), only for leaders who turned it on (Admin → Settings →
@@ -701,6 +742,7 @@ export function collectDue(now: DateTime = DateTime.utc()): DueNotification[] {
     ...(hasFeature(o, "todos") ? todoReminders(o, now) : []),
     ...(hasFeature(o, "todos") ? reviewReminders(o, now) : []),
     ...messageSummaries(o, now),
+    ...videoMeetingStarts(o, now),
     ...(hasFeature(o, "visits") ? visitReminders(o, now) : []),
     ...(hasFeature(o, "signups") ? signupReminders(o, now) : []),
     ]),

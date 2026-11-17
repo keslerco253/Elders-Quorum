@@ -1543,6 +1543,20 @@ place. Only the presidency (or bishopric) sees it.
   holds the passcode). A **Start** button (with **Let the others know**, for the
   presidency, and **Invite others…**) also shows at the top of an unfinished
   presidency meeting, not on invited meetings.
+- **Scheduled meetings over Zoom:** when scheduling a meeting (a presidency
+  meeting, a repeating one, or one for people you invite), or editing one, tick
+  **Meet on Zoom**. It uses your saved link; to use another just for that meeting
+  (one the stake set up, say), open **Use a different link for this meeting** and
+  paste it (empty goes back to the saved one). Then:
+  - Its calendar event says **Where: Zoom** and has **▶ Join Zoom meeting**; so do
+    the meeting's page and, for invited meetings, the invitation page.
+  - Its reminders carry a **Join** button.
+  - As it starts (within 15 minutes of its time) everyone in it gets "… is
+    starting" with **Join**: the presidency, or for an invited meeting everyone
+    invited except those who said they can't come.
+  - **Join** opens the link from an hour before until 3 hours after the meeting
+    (any time for a presidency meeting with no time set). Before that it says when
+    it opens. Only the people in it can open it; the link itself stays hidden.
 - **Keep notes only as long as they're needed** (General Handbook): a meeting
   comes up for review 3 months after it's held, a finished assignment 3 months
   after it's done, and an agenda item after waiting 3 months. On the 1st of each
