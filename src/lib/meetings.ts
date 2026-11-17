@@ -86,7 +86,7 @@ export function orgMeetings(orgId: number): ListedMeeting[] {
       `SELECT m.*, (SELECT COUNT(*) FROM agenda_items a WHERE a.meeting_id = m.id) AS item_count, (SELECT COUNT(*) FROM todos t WHERE t.meeting_id = m.id) AS todo_count,
          (SELECT COUNT(*) FROM meeting_invitees i WHERE i.meeting_id = m.id) AS invited_count,
          (SELECT COUNT(*) FROM meeting_invitees i WHERE i.meeting_id = m.id AND i.response = 'yes') AS coming_count
-       FROM meetings m WHERE m.org_id = ? ORDER BY m.date DESC, m.id DESC LIMIT 100`,
+       FROM meetings m WHERE m.org_id = ? ORDER BY m.date DESC, COALESCE(m.time, '99:99') DESC, m.id DESC LIMIT 100`,
     )
     .all(orgId) as ListedMeeting[];
 }

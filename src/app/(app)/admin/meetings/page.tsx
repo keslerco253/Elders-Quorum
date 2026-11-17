@@ -51,8 +51,11 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const past = meetings.filter((m) => !upcoming.includes(m));
   // The opening prayer, thought and closing prayer are chosen for the next meeting.
   const next = upcoming.find((m) => m.kind === "presidency");
-  // Other scheduled meetings (the next one is at the top).
-  const later = upcoming.filter((m) => m !== next);
+  // Other scheduled meetings (the next one is at the top). Any before the next
+  // presidency meeting (a committee meeting, say) show above it, soonest first.
+  const at = (m: { date: string; time: string | null }) => `${m.date} ${m.time ?? "99:99"}`;
+  const sooner = upcoming.filter((m) => m !== next && (!next || at(m) < at(next)));
+  const later = upcoming.filter((m) => m !== next && !sooner.includes(m));
   const people = attendeeChoices(user.org_id).filter((p) => p.id > 0);
   const roleSelect = (role: (typeof MEETING_ROLES)[number]) =>
     next && <RoleSelect key={role[0]} action={saveMeetingRole} meetingId={next.id} role={role[0]} label={role[1]} value={next[role[0]]} people={people} notifyBox={`role-notify-${next.id}`} back="list" />;
@@ -72,6 +75,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
               </span>
               <span className="text-sm text-muted">
                 {[
+                  !m.held_at && m.video && `🎥 ${kind}`,
                   m.kind === "invited" && `${m.invited_count} invited${m.invited_count && !m.held_at ? `, ${m.coming_count} coming` : ""}`,
                   m.attendees,
                   meetingRolesText(m),
@@ -126,11 +130,18 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         </Link>
       )}
 
+      {/* Meetings before the next presidency meeting: soonest first, at the top. */}
+      {sooner.length > 0 && (
+        <section className="mb-6">
+          <div className="mb-2 text-xs font-semibold tracking-wide text-accent uppercase">{next ? "Coming up first" : "Coming up"}</div>
+          {list(sooner)}
+        </section>
+      )}
       {/* The next meeting: when and where, who prays, and its agenda. Edit meeting puts the agenda in order. */}
       <section id="next" className="card mb-6 scroll-mt-20 space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-wide text-accent">Next meeting</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-accent">{sooner.length ? `Next ${leadersWord(user.org)} meeting` : "Next meeting"}</div>
             {next ? (
               <>
                 <h2 className="h1 mt-1">
