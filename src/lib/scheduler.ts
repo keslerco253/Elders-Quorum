@@ -228,7 +228,8 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
     const payload: PushPayload = {
       ...renderTemplate(org.id, "event_reminder", { event: e.title, date_time: eventWhenText(e, org.timezone), location: e.location }),
       url: video ? withOrg(`/join-meeting?meeting=${vm.id}`, org.id) : `/calendar/${e.id}`,
-      ...(video ? { linkLabel: "Join" } : {}),
+      // "… on Zoom. Join: <link>" (not "at Zoom").
+      ...(video ? { linkLabel: "Join", body: `${eventWhenText(e, org.timezone)} on ${videoKind(video)}. Tap Join to come in.`, textFull: `Reminder: ${e.title}, ${eventWhenText(e, org.timezone)} on ${videoKind(video)}. Join:` } : {}),
     };
     for (const m of audience) {
       const mine = own.get(m.id);

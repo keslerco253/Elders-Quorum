@@ -1550,7 +1550,9 @@ place. Only the presidency (or bishopric) sees it.
   paste it (empty goes back to the saved one). Then:
   - Its calendar event says **Where: Zoom** and has **▶ Join Zoom meeting**; so do
     the meeting's page and, for invited meetings, the invitation page.
-  - Its reminders carry a **Join** button.
+  - Its reminders go out like any event's (app notification, text or email, as
+    each person chose), with a **Join** button; a text reads "Reminder:
+    Presidency meeting, Tue, Dec 1 - 7:00 PM on Zoom. Join:" and its link.
   - As it starts (within 15 minutes of its time) everyone in it gets "… is
     starting" with **Join**: the presidency, or for an invited meeting everyone
     invited except those who said they can't come.
