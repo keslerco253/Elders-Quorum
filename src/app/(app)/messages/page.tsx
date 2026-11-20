@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pendingScheduled } from "@/lib/scheduled-messages";
 import { SupportNotice } from "@/components/support-notice";
 import { redirect } from "next/navigation";
 import { Linkify } from "@/components/linkify";
@@ -58,11 +59,21 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   if (tab === "sent") {
     const sent = sentAnnouncements(user.id);
     const manyOrgs = new Set(ledOrgIds(user.id)).size > 1;
+    const scheduledCount = pendingScheduled(user.id).length;
     return (
       <>
         <PageHeader title="Messages" subtitle="Announcements sent to groups in the organizations you lead." actions={newButton} />
         {tabs}
         <Flash msg={sp.msg} tone="success" />
+        {scheduledCount > 0 && (
+          <Link href="/messages/scheduled" className="card mb-3 flex items-center justify-between gap-3 hover:bg-surface-2">
+            <span>
+              <strong>🕒 Scheduled ({scheduledCount})</strong>
+              <span className="block text-sm text-muted">Messages and reminders still to go out. Change or cancel them.</span>
+            </span>
+            <span aria-hidden>›</span>
+          </Link>
+        )}
         {sent.length === 0 ? (
           <Empty>Nothing sent yet. Use New message to write to everyone, the {leadersWord(user.org)}, or a group.</Empty>
         ) : (

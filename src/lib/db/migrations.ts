@@ -2025,6 +2025,30 @@ ALTER TABLE meetings ADD COLUMN video_link TEXT;
 ALTER TABLE meeting_series ADD COLUMN video INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE meeting_series ADD COLUMN video_link TEXT;`,
   },
+  {
+    // An event's own reminder wording, for one time (it changed a little), and messages
+    // a leader scheduled to go out later, with an optional reminder of the same message.
+    id: 115,
+    sql: `ALTER TABLE events ADD COLUMN reminder_text TEXT;
+CREATE TABLE scheduled_messages (
+  id INTEGER PRIMARY KEY,
+  org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  sender_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  audience TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  link TEXT NOT NULL DEFAULT '/',
+  flyer_file TEXT,
+  flyer_name TEXT,
+  send_at TEXT NOT NULL,
+  reminder_at TEXT,
+  sent_at TEXT,
+  sent_message_id INTEGER REFERENCES messages(id) ON DELETE SET NULL,
+  reminder_sent_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX scheduled_messages_due ON scheduled_messages(send_at);`,
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */

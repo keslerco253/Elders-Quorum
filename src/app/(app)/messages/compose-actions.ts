@@ -14,6 +14,8 @@ import { hasFeature } from "@/lib/orgs";
 import { audienceLabel } from "@/lib/notify";
 import { morningText } from "@/lib/quiet-hours";
 import { optedOutOf } from "@/lib/delivery";
+import { scheduleMessage } from "@/lib/scheduled-messages";
+import { formatDateTime, localInputToUtc } from "@/lib/time";
 
 const LINKS = ["/", "/lessons", "/calendar", "/plans", "/signups"];
 
@@ -78,6 +80,36 @@ export async function composeMessage(fd: FormData) {
     }
     db().prepare("INSERT INTO plan_files (name, ward_id, original_name, uploaded_by) VALUES (?, ?, ?, ?)").run(flyer.file, wardId, flyer.name, user.id);
   }
+  // Send later (and maybe again, as a reminder): saved for the scheduler.
+  if (fd.get("when") === "later") {
+    const at = (name: string) => {
+      const v = String(fd.get(name) || "");
+      return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v) ? localInputToUtc(v, tz) : null;
+    };
+    const sendAt = at("send_at");
+    const now = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+    if (!sendAt || sendAt <= now) back("Choose a time in the future to send it.", to);
+    const remindAt = fd.get("remind") === "on" ? at("reminder_at") : null;
+    if (fd.get("remind") === "on" && (!remindAt || remindAt <= sendAt)) back("Choose a reminder time after the message goes out.", to);
+    scheduleMessage({ org_id: orgId, sender_id: user.id, audience, title, body: body.slice(0, 2000), link, flyer_file: flyer?.file ?? null, flyer_name: flyer?.name ?? null, send_at: sendAt, reminder_at: remindAt });
+    toAgenda(audience === "everyone" ? "everyone" : audienceLabel(orgId, audience), null, String(fd.get("title") || "").trim().slice(0, 120));
+    revalidatePath("/", "layout");
+    redirect(
+      `/messages/scheduled?msg=${encodeURIComponent(`Scheduled for ${formatDateTime(sendAt, tz, "ccc, LLL d 'at' h:mm a")}${remindAt ? `, with a reminder ${formatDateTime(remindAt, tz, "ccc, LLL d 'at' h:mm a")}` : ""}. You can change or cancel it here until then.`)}`,
+    );
+  }
+  // Sending now, with a reminder later: the reminder is scheduled.
+  let remindNote = "";
+  if (fd.get("remind") === "on") {
+    const v = String(fd.get("reminder_at") || "");
+    const remindAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v) ? localInputToUtc(v, tz) : null;
+    if (!remindAt || remindAt <= new Date().toISOString()) back("Choose a reminder time in the future.", to);
+    const nowIso = new Date().toISOString();
+    const id = scheduleMessage({ org_id: orgId, sender_id: user.id, audience, title, body: body.slice(0, 2000), link, flyer_file: flyer?.file ?? null, flyer_name: flyer?.name ?? null, send_at: nowIso, reminder_at: remindAt });
+    // It goes now (below); this only holds its reminder.
+    db().prepare("UPDATE scheduled_messages SET sent_at = ? WHERE id = ?").run(nowIso, id);
+    remindNote = ` A reminder goes out ${formatDateTime(remindAt, tz, "ccc, LLL d 'at' h:mm a")} (Messages → Scheduled).`;
+  }
   const { count, push, email, text, reached, held } = await sendToAudience({ orgId, senderId: user.id, audience, title, body: body.slice(0, 2000), link, tz, flyer });
   revalidatePath("/", "layout");
   const label = audienceLabel(orgId, audience);
@@ -85,7 +117,7 @@ export async function composeMessage(fd: FormData) {
   const missed = count - reached;
   redirect(
     `/messages?tab=sent&msg=${encodeURIComponent(
-      `Sent to ${count}: ${push} by notification, ${email} by email, ${text} by text${held ? ` (it's late, so app notifications and texts go out at ${morningText(orgId)}; email went now)` : ""}${missed > 0 ? `. ${missed} couldn't be reached (notifications off and no texts or emails chosen)` : ""}${audience === "everyone" && optedOutOf(orgId).length ? `. ${optedOutOf(orgId).length} turned off notifications from this organization and weren't sent it (see Sent)` : ""}.${agenda ? " Added to the next presidency meeting's agenda." : ""}`,
+      `Sent to ${count}: ${push} by notification, ${email} by email, ${text} by text${held ? ` (it's late, so app notifications and texts go out at ${morningText(orgId)}; email went now)` : ""}${missed > 0 ? `. ${missed} couldn't be reached (notifications off and no texts or emails chosen)` : ""}${audience === "everyone" && optedOutOf(orgId).length ? `. ${optedOutOf(orgId).length} turned off notifications from this organization and weren't sent it (see Sent)` : ""}.${agenda ? " Added to the next presidency meeting's agenda." : ""}${remindNote}`,
     )}`,
   );
 }

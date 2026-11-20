@@ -37,6 +37,9 @@ export function ComposeForm({
   const chosen = isPerson ? person : to;
   const canAgenda = agendaOrgs.includes(Number(chosen.split(":")[1]));
   const canPhone = !!chosen && phoneOrgs.includes(Number(chosen.split(":")[1]));
+  // Send now or later, and maybe again as a reminder.
+  const [later, setLater] = useState(false);
+  const [remind, setRemind] = useState(false);
   return (
     <form action={composeMessage} className="card max-w-2xl space-y-4">
       <input type="hidden" name="to" value={isPerson ? person : to} />
@@ -138,13 +141,47 @@ export function ComposeForm({
           </span>
         </label>
       )}
+      {!isPerson && (
+        <fieldset className="space-y-2 rounded-lg bg-surface-2 p-3">
+          <legend className="sr-only">When</legend>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <label className="flex items-center gap-2">
+              <input type="radio" name="when" value="now" checked={!later} onChange={() => setLater(false)} /> Send now
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="when" value="later" checked={later} onChange={() => setLater(true)} /> Send later
+            </label>
+          </div>
+          {later && (
+            <div>
+              <label className="label" htmlFor="compose-send-at">
+                Send it on
+              </label>
+              <input id="compose-send-at" name="send_at" type="datetime-local" required className="input w-auto" />
+            </div>
+          )}
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="remind" checked={remind} onChange={() => setRemind(!remind)} /> Send it again as a reminder
+          </label>
+          {remind && (
+            <div>
+              <label className="label" htmlFor="compose-reminder-at">
+                Reminder on
+              </label>
+              <input id="compose-reminder-at" name="reminder_at" type="datetime-local" required className="input w-auto" />
+              <p className="hint">The same message, titled &ldquo;Reminder: …&rdquo;, to the same people (whoever is in the group then).</p>
+            </div>
+          )}
+          {(later || remind) && <p className="hint">Change or cancel it until then under Messages → Scheduled.</p>}
+        </fieldset>
+      )}
       <p className="text-xs text-muted">
         {isPerson
           ? "They get just your words, signed with your name, as a notification (or by text or email, as they chose). It opens your conversation with them."
           : "Sent as a notification, or by text or email as each person chose. The number shows how many people get it. They can reply, and replies come to your inbox."}
       </p>
-      <SubmitButton pendingText="Sending…" {...(isPerson ? {} : { confirm: "Send this to everyone you chose?" })}>
-        Send
+      <SubmitButton pendingText={later && !isPerson ? "Scheduling…" : "Sending…"} {...(isPerson ? {} : { confirm: later ? "Schedule this for everyone you chose?" : "Send this to everyone you chose?" })}>
+        {later && !isPerson ? "Schedule" : "Send"}
       </SubmitButton>
     </form>
   );

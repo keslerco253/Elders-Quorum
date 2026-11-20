@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { requireAdmin, requireEventEditor } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 import { formatDateTime, localInputToUtc } from "@/lib/time";
-import { allDayRange, eventWhenText } from "@/lib/events";
+import { allDayRange, eventWhenText, getOrgEvent } from "@/lib/events";
 import { notify, recipientById } from "@/lib/notify";
 import { announceRecipients, notifiedNote, readTargets } from "@/lib/announce";
 import { renderTemplate } from "@/lib/templates";
@@ -288,4 +288,15 @@ export async function decideEventRequest(fd: FormData) {
   revalidatePath("/admin/event-requests");
   revalidatePath("/calendar", "layout");
   go(approve ? `/admin/events/${eventId}` : "/admin/event-requests", approve ? "Approved and added to the calendar. Adjust anything below if needed." : "Request declined.");
+}
+
+/** This event's own reminder wording (one time), or (empty) back to the usual. */
+export async function saveReminderWording(fd: FormData) {
+  const user = await requireEventEditor();
+  const e = getOrgEvent(user, Number(fd.get("event_id")));
+  if (!e) go("/calendar", "That event no longer exists.");
+  const text = String(fd.get("reminder_text") || "").replace(/\s+/g, " ").trim().slice(0, 300);
+  db().prepare("UPDATE events SET reminder_text = ? WHERE id = ?").run(text || null, e.id);
+  revalidatePath(`/calendar/${e.id}`);
+  go(`/admin/events/${e.id}`, text ? "Saved: this event's reminders will say that." : "This event's reminders are back to the usual wording.");
 }

@@ -37,6 +37,7 @@ import { dueText } from "./assignments";
 import { challengeMemberIds, challengeTeams, scoreboard } from "./challenges";
 import { lastDelivery } from "./delivery";
 import { leaderInbox } from "./conversations";
+import { sendDueScheduled } from "./scheduled-messages";
 import { joinOpen, meetingById, meetingForEvent, meetingName, meetingVideoLink, videoKind, videoMeetingPeople, type Meeting } from "./meetings";
 
 /** An organization the scheduler sends reminders for, with its ward's time zone. */
@@ -230,6 +231,8 @@ function eventReminders(org: OrgCtx, now: DateTime): DueNotification[] {
       url: video ? withOrg(`/join-meeting?meeting=${vm.id}`, org.id) : `/calendar/${e.id}`,
       // "… on Zoom. Join: <link>" (not "at Zoom").
       ...(video ? { linkLabel: "Join", body: `${eventWhenText(e, org.timezone)} on ${videoKind(video)}. Tap Join to come in.`, textFull: `Reminder: ${e.title}, ${eventWhenText(e, org.timezone)} on ${videoKind(video)}. Join:` } : {}),
+      // Its own wording, written for this event (it changed a little): just that.
+      ...(e.reminder_text?.trim() ? { body: e.reminder_text.trim(), textFull: e.reminder_text.trim() } : {}),
     };
     for (const m of audience) {
       const mine = own.get(m.id);
@@ -785,6 +788,9 @@ export async function tick(now: DateTime = DateTime.utc()) {
       const res = await notify(n.recipients, n.payload, { only: n.only, scheduled: true });
       console.log(`[scheduler] ${n.key}: ${res.push} push, ${res.email} email, ${res.text} text`);
     }
+    // Messages leaders scheduled for now (and their reminders).
+    const scheduled = await sendDueScheduled(now);
+    if (scheduled) console.log(`[scheduler] sent ${scheduled} scheduled message${scheduled === 1 ? "" : "s"}`);
     // Texts held overnight (quiet hours) go out once it's morning.
     const morning = await sendHeldTexts();
     const pushes = await sendHeldPushes();

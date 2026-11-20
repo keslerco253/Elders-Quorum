@@ -778,6 +778,13 @@ number next to each is how many people get it.
   already when writing to the presidency).
 - After sending you're told how many it reached by notification, email and
   text, and how many couldn't be reached or turned off your notifications.
+- **Send later:** choose **Send later** and a date and time; the button says
+  **Schedule**. **Send it again as a reminder** (with **Send now** or **Send
+  later**) sends the same message again at a second time, titled "Reminder: …", to
+  whoever is in the group then. Both go out like any message (notification, text
+  or email, as each person chose). **Sent → 🕒 Scheduled** lists what's still to
+  go: **Change it** (the words, the times) or **Cancel** (once the message has
+  gone, **Cancel the reminder**). Anyone in the presidency can change them.
 
 **Your inbox:** leaders see three tabs and a **New message** button:
 - **Inbox:** one row per person who has written to you (and a separate row for
@@ -1114,6 +1121,14 @@ or **Keep it**. Look at reports within a day: app stores expect it.
 to**, tick everyone, the presidency, any groups, the people who RSVP'd, or **the
 same people as before**, and add anyone by name; each person gets it once.
 **Delete event** removes it.
+
+**This event's reminders in other words** (it changed a little): on its **Edit
+event** page, under **Reminder wording, this event only**, write what its
+reminders should say (up to 300 letters), e.g. "The party starts at 6:30 now, not
+6, and it's in the gym." Its upcoming reminders (text, notification and email)
+say just that; texts start with your organization's name and end with the link.
+Empty it to go back to the usual wording. It's for that one event (one date of a
+repeating event); reminders already sent aren't changed.
 
 **Repeating events:** choose **Repeats**: every week, every 2 weeks, every month
 on (for example) the third or last Friday, or every month on the same date.

@@ -197,6 +197,8 @@ export interface EventRow {
   rsvp_enabled: number;
   reminder_minutes: number | null;
   reminder2_minutes: number | null;
+  /** This event's own reminder wording (one time, e.g. it changed a little); null: the usual. */
+  reminder_text?: string | null;
   /** A flyer: a PDF or picture (stored name, and the name it was uploaded with). */
   flyer_file: string | null;
   flyer_name: string | null;
