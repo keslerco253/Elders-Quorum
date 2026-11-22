@@ -1089,6 +1089,14 @@ or **Keep it**. Look at reports within a day: app stores expect it.
 
 ## Calendar
 
+**Finding an event:** type in **Search events** at the top of the Calendar (a
+name, like "Wilson", or a place) and tap **Search**. It looks through every
+event you can see in the ward, past (3 years) and coming, in every organization
+(or just the one chip you picked), plus your own events and to-dos, matching the
+title, place or details. Coming ones are listed first, soonest first; past ones
+say "past". **Clear search** goes back to the month. Can't find it? It may be in
+another organization's calendar or deleted.
+
 **Adding an event:** **Calendar → Add (organization) event**, or tap a day →
 **Add event on this day**.
 - **Title**, **Starts**, **Ends**, **Location** (members can tap it for a map)

@@ -63,7 +63,42 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         ...(byDay.get(selected.toISODate()!) ?? []),
       ]
     : [];
-  const list = selected ? dayEvents : [...ongoingThisMonth, ...upcoming];
+  // Search: events (past and coming, every organization shown) and their own, by words
+  // in the title, place or details.
+  const q = (sp.q ?? "").trim().slice(0, 100);
+  const nowIso = now.toUTC().toISO()!;
+  const found = q.length >= 2 ? searchCalendar(q) : null;
+  function searchCalendar(words: string): EventRow[] {
+    const from = now.minus({ years: 3 }).toUTC().toISO()!;
+    const to = now.plus({ years: 3 }).toUTC().toISO()!;
+    const mineFrom = now.minus({ years: 1 }).toUTC().toISO()!;
+    const mineTo = now.plus({ years: 2 }).toUTC().toISO()!;
+    const all = [
+      ...eventsBetween(user.id, from, to, { wardId: user.ward_id, orgIds: only ? [only.id] : undefined, support: user.support }),
+      ...(only || user.support ? [] : personalEventsBetween(user.id, mineFrom, mineTo)),
+      ...(only || user.support ? [] : personalTodosBetween(user.id, mineFrom, mineTo, user.ward.timezone)),
+    ];
+    const terms = words.toLowerCase().split(/\s+/).filter(Boolean);
+    const seen = new Set<string>();
+    return all
+      .filter((e) => terms.every((t) => `${e.title} ${e.location ?? ""} ${e.description ?? ""}`.toLowerCase().includes(t)))
+      .sort((a, b) => {
+        // Coming up first (soonest), then past ones (latest first).
+        const ac = a.ends_at >= nowIso;
+        const bc = b.ends_at >= nowIso;
+        if (ac !== bc) return ac ? -1 : 1;
+        return ac ? a.starts_at.localeCompare(b.starts_at) : b.starts_at.localeCompare(a.starts_at);
+      })
+      .filter((e) => {
+        // A repeating one of their own: its next date (or its latest) is enough.
+        const key = e.personal_event_id ? `pe:${e.personal_event_id}` : e.personal_todo_id ? `pt:${e.personal_todo_id}` : `e:${e.id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 100);
+  }
+  const list = found ?? (selected ? dayEvents : [...ongoingThisMonth, ...upcoming]);
 
   return (
     <>
@@ -110,6 +145,25 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           })}
         </nav>
       )}
+      {/* Find an event by name, place or details, past or coming. */}
+      <form action="/calendar" className="mb-3 flex gap-2" role="search">
+        {only && <input type="hidden" name="o" value={only.id} />}
+        <input type="search" name="q" defaultValue={q} placeholder="Search events (e.g. Wilson)" aria-label="Search events" className="input flex-1" />
+        <button className="btn-secondary">Search</button>
+      </form>
+      {found && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span>
+            {found.length === 0 ? "Nothing" : found.length === 100 ? "The first 100 events" : `${found.length} event${found.length === 1 ? "" : "s"}`} matching <strong>&ldquo;{q}&rdquo;</strong>
+            {only ? ` in ${only.label}` : ""}, past and coming
+          </span>
+          <Link href={keep({})} className="text-accent">
+            Clear search
+          </Link>
+        </div>
+      )}
+      {!found && (
+        <>
       <div className="card mb-5 p-3 sm:p-4">
         <div className="mb-3 flex items-center justify-between">
           <Link href={keep({ m: month.minus({ months: 1 }).toFormat("yyyy-LL") })} className="btn-secondary btn-sm" aria-label="Previous month">
@@ -194,8 +248,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           </div>
         )}
       </div>
+        </>
+      )}
       {list.length === 0 ? (
-        <Empty>{selected ? "Nothing on the calendar this day." : "No events."}</Empty>
+        <Empty>{found ? "No events match. Try one word, like a family's last name, or check that you're in the right organization (top of the page)." : selected ? "Nothing on the calendar this day." : "No events."}</Empty>
       ) : (
         <ul className="space-y-2">
           {list.map((e) => (
@@ -219,12 +275,13 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                     {isOngoing(e)
                       ? spanText(e, tz)
                       : e.all_day
-                        ? selected
+                        ? selected && !found
                           ? "All day"
                           : allDayText(e, tz)
-                        : selected
+                        : selected && !found
                           ? `${formatTime(e.starts_at, tz)} – ${formatTime(e.ends_at, tz)}`
                           : formatDateTime(e.starts_at, tz)}
+                    {found && e.ends_at < nowIso && " · past"}
                     {e.location && ` · ${e.location}`}
                   </div>
                 </div>
