@@ -7,6 +7,7 @@ import { sendSms, twilioConfigured } from "./sms";
 import { closedText, orgTakesMessages } from "./message-routing";
 import { confirmTeaching, declineTeaching, nextLessonTaughtBy } from "./teaching";
 import { getOrg, getWard, homeOf, isSiteOwner, memberWards, orgFullName, orgLabel } from "./orgs";
+import { textEvent } from "./say-event";
 import { textedItems } from "./photo-event";
 import type { Member } from "./types";
 import { allowHit } from "./rate-limit";
@@ -45,7 +46,8 @@ export type InboundResult =
   | "asked_which"
   | "joined"
   | "photo_todo"
-  | "leader_use_app";
+  | "leader_use_app"
+  | "text_event";
 
 /** Texted back (once a month) to a number that isn't anyone's in the app. */
 /** Answer to a texted reply to one of their own private reminders (which isn't passed to anyone). */
@@ -207,6 +209,17 @@ async function routeText(params: Record<string, string>, seen: Seen): Promise<In
     seen.reply = PRIVATE_REMINDER_REPLY;
     seen.note = "Reply to a private reminder (not passed on)";
     return "ignored";
+  }
+
+  // A leader adding an event by text: "EVENT Wilson move-in Saturday 9am", then
+  // answers to what the app asks (a date, a time…) until it's added.
+  if (db().prepare("SELECT 1 FROM org_members om JOIN orgs o ON o.id = om.org_id WHERE om.member_id = ? AND om.role = 'presidency' AND o.active = 1").get(row.id)) {
+    const reply = await textEvent(row.id, body);
+    if (reply) {
+      seen.reply = reply;
+      seen.note = /^My Ward Link: Added/.test(reply) ? "Added an event by text" : "Adding an event by text";
+      return "text_event";
+    }
   }
 
   if (twilioConfigured()) db().prepare("INSERT INTO sms_log (org_id, kind) VALUES (?, 'reply')").run(member.org_id);

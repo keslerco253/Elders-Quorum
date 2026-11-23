@@ -268,6 +268,10 @@ add a reason), or text back **TEACH** or **CANT**.
 - **Calendar** shows a month of events from your ward and organizations. Use the
   chips at the top to see one organization. Tap a day to see its events. Events that
   last weeks or months show as **Going on: …** at the top.
+- **🎤 Say an event:** tap it and say (or type) your event, like "Dentist Tuesday at
+  2". It asks for anything missing (the day or time), shows what it understood, and
+  **Add to calendar** puts it on your own calendar (only you see it). On an iPhone,
+  use the microphone on the keyboard.
 - **Search events** (at the top): type a word from an event's name or place, like
   "Wilson" or "temple", and tap **Search** to find it, coming or past.
 - **An event's page:** the time (or "All day"), place (tap for a map), details, flyer, **Add to

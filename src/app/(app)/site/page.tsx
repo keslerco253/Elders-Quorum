@@ -50,6 +50,7 @@ const TEXT_RESULTS: Record<string, string> = {
   answer_sent: "Sent as a leader's answer",
   asked_who: "Asked the leader who it's for",
   leader_use_app: "A leader's texted reply (not sent; told to answer in the app)",
+  text_event: "A leader adding an event by text (EVENT …)",
   opted_out: "Opted out (STOP)",
   ignored: "Ignored (HELP/START, or too many)",
   unknown_sender: "Number not in the app",

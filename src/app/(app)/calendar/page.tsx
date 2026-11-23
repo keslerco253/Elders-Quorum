@@ -106,6 +106,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         title="Calendar"
         actions={
           <>
+            <Link href="/calendar/say" className="btn-secondary">
+              🎤 Say an event
+            </Link>
             <Link href="/calendar/mine/new" className="btn-secondary">
               + My event
             </Link>

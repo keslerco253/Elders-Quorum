@@ -108,7 +108,11 @@ export function Dictation() {
     window.addEventListener("scroll", later, true);
     window.addEventListener("resize", later);
     field.addEventListener("input", later);
+    // Something above it appeared or grew (the page moved the box): follow it.
+    const moved = typeof ResizeObserver !== "undefined" ? new ResizeObserver(later) : null;
+    moved?.observe(document.body);
     return () => {
+      moved?.disconnect();
       window.removeEventListener("scroll", later, true);
       window.removeEventListener("resize", later);
       field.removeEventListener("input", later);

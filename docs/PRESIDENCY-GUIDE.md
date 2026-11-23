@@ -1089,6 +1089,26 @@ or **Keep it**. Look at reports within a day: app stores expect it.
 
 ## Calendar
 
+**🎤 Say an event:** **Calendar → 🎤 Say an event**. Say (or type) what it is,
+when and where, like "Wilson family move-in Saturday at 9 at 123 Main Street,
+leaders only". Tap in the box, then its 🎤 to talk (in the iPhone app, use the
+microphone on the keyboard). It shows what it understood and asks one question at
+a time for anything missing (the day, the start time or all day, and whose
+calendar: yours, or an organization you add events to). Say what to change
+("make it 10", "it's just for me"), then **Add to calendar**; nothing is added
+before that. It goes on your own calendar (only you see it) or the
+organization's (with a reminder a day before; **leaders only** if you said so).
+Change anything after on its page, like any event. Needs ANTHROPIC_API_KEY on the
+server.
+
+**Adding an event by text** (presidency and bishopric members): text the app's
+number **EVENT** and what it is, like "EVENT Wilson move-in Saturday 9am at 123
+Main for the quorum". It texts back a question for anything missing ("What time
+does it start?"); answer by text. When it has what it needs it adds it and texts
+"Added to … calendar: …" with a link to change it. **SKIP** stops one in the
+middle; one not finished in 30 minutes is dropped. (The site owner's own EVENT
+texts, with pictures, work as described under Site owner.)
+
 **Finding an event:** type in **Search events** at the top of the Calendar (a
 name, like "Wilson", or a place) and tap **Search**. It looks through every
 event you can see in the ward, past (3 years) and coming, in every organization

@@ -2049,6 +2049,16 @@ CREATE TABLE scheduled_messages (
 );
 CREATE INDEX scheduled_messages_due ON scheduled_messages(send_at);`,
   },
+  {
+    // A leader adding an event by text (EVENT …): the conversation so far, while the
+    // app asks for what's missing.
+    id: 116,
+    sql: `CREATE TABLE text_event_drafts (
+  member_id INTEGER PRIMARY KEY REFERENCES members(id) ON DELETE CASCADE,
+  turns TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);`,
+  },
 ];
 
 /** SQL that posts the temple challenge plan in Villas Ward (the real one, with its members), if it's here and doesn't have it yet. */
