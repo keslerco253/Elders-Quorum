@@ -213,6 +213,9 @@ and the review notes below point it out.
    under "Sign-in required".
 4. After approval, remove `REVIEW_LOGIN`. Put it back for the next review.
 
+**When Apple asks for more information** (a recording, purpose, services,
+regions…): the ready answers are in `docs/APP-REVIEW.md`.
+
 **Review notes (paste this):**
 
 > My Ward Link is for members of a local congregation ("ward") of The Church
